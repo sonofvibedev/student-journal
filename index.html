@@ -126,8 +126,13 @@
       background-color: #0d1117;
       border: 1px solid #21262d;
       border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-check-input:checked {
+      background-color: #238636;
+      border-color: #238636;
     }
 
     .form-control, .form-select {
@@ -288,9 +293,8 @@
           <input type="number" id="absenceHours" class="form-control" placeholder="Своё количество часов" min="1" value="2" oninput="renderSubjectPickers()">
         </div>
 
-        <!-- Динамический список выбора предметов -->
+        <!-- Динамический список выбора предметов (Radio Buttons) -->
         <div class="mb-3">
-          <label class="form-label text-secondary small d-block">Предметы (выбор по парам)</label>
           <div id="subjectContainer"></div>
         </div>
 
@@ -582,7 +586,7 @@
     updateAdminUI();
   }
 
-  // --- Внести пропуски с динамическим выбором предметов ---
+  // --- Внести пропуски с Radio Buttons для предметов ---
   function openAddAbsenceModal() {
     const studentSelect = document.getElementById('absenceStudent');
     studentSelect.innerHTML = appData.students.map(s => `<option value="${s.id}">${s.lastName} ${s.firstName}</option>`).join('');
@@ -614,16 +618,19 @@
       div.className = 'subject-slot-card';
 
       const labelText = pairsCount === 1 
-        ? `Предмет (${slotHours} ч)` 
+        ? `Выберите предмет (${slotHours} ч):` 
         : `Пара ${i} (${slotHours} ч) — Выберите предмет:`;
 
-      const options = appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+      const radiosHtml = appData.subjects.map((s, idx) => `
+        <div class="form-check my-1">
+          <input class="form-check-input" type="radio" name="subject_pair_${i}" id="sub_p${i}_${idx}" value="${s}" ${idx === 0 ? 'checked' : ''} data-hours="${slotHours}">
+          <label class="form-check-label text-white small" for="sub_p${i}_${idx}">${s}</label>
+        </div>
+      `).join('');
 
       div.innerHTML = `
-        <label class="form-label text-secondary small mb-1">${labelText}</label>
-        <select class="form-select subject-picker" data-hours="${slotHours}">
-          ${options}
-        </select>
+        <label class="form-label text-secondary small fw-bold mb-2">${labelText}</label>
+        <div class="ps-1">${radiosHtml}</div>
       `;
       container.appendChild(div);
     }
@@ -656,15 +663,19 @@
     const isExcused = document.getElementById('absenceIsExcused').checked;
     const comment = document.getElementById('absenceComment').value.trim();
 
-    const pickers = document.querySelectorAll('.subject-picker');
-    if (pickers.length === 0) return alert('Выберите хотя бы один предмет');
+    const hoursInput = document.getElementById('absenceHours');
+    let hours = parseInt(hoursInput.value) || 2;
+    const pairsCount = Math.max(1, Math.floor(hours / 2) + (hours % 2 > 0 ? 1 : 0));
 
-    pickers.forEach((picker, idx) => {
-      const slotHours = Number(picker.dataset.hours) || 2;
-      const subject = picker.value;
+    for (let i = 1; i <= pairsCount; i++) {
+      const checkedRadio = document.querySelector(`input[name="subject_pair_${i}"]:checked`);
+      if (!checkedRadio) continue;
+
+      const slotHours = Number(checkedRadio.dataset.hours) || 2;
+      const subject = checkedRadio.value;
 
       appData.absences.push({
-        id: 'abs-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
+        id: 'abs-' + Date.now() + '-' + i + '-' + Math.floor(Math.random() * 1000),
         studentId,
         date,
         totalHours: slotHours,
@@ -672,7 +683,7 @@
         subject,
         comment
       });
-    });
+    }
 
     await saveDataToGitHub('Добавлены пропуски по предметам');
     addAbsenceModal.hide();
