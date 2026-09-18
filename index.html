@@ -882,40 +882,47 @@
 
   // --- Сохранение в GitHub ---
   async function saveDataToGitHub(message) {
-    try {
-      const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
-        headers: { Authorization: `Bearer ${githubToken}` }
-      });
-      const fileData = await getFileRes.json();
+  try {
+    const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+      headers: { Authorization: `Bearer ${githubToken}` }
+    });
 
-      const updatedJsonStr = JSON.stringify(appData, null, 2);
-      const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
-      const base64Content = btoa(String.fromCharCode(...utf8Bytes));
-
-      const putRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${githubToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: message,
-          content: base64Content,
-          sha: fileData.sha
-        })
-      });
-
-      if (putRes.ok) {
-        updateStats();
-        renderTable();
-      } else {
-        const errorData = await putRes.json();
-        alert('Ошибка сохранения на GitHub: ' + errorData.message);
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Ошибка сети при запросе к GitHub API');
+    if (!getFileRes.ok) {
+      const errJson = await getFileRes.json();
+      return alert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
     }
+
+    const fileData = await getFileRes.json();
+    const updatedJsonStr = JSON.stringify(appData, null, 2);
+    const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
+    const base64Content = btoa(String.fromCharCode(...utf8Bytes));
+
+    const putRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: message,
+        content: base64Content,
+        sha: fileData.sha
+      })
+    });
+
+    if (putRes.ok) {
+      updateStats();
+      renderTable();
+      alert('Изменения успешно сохранены!');
+    } else {
+      const errorData = await putRes.json();
+      alert('Ошибка сохранения на GitHub: ' + errorData.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
+  }
+}
   }
 
   // --- Авторизация ---
@@ -961,3 +968,4 @@
 </script>
 </body>
 </html>
+
