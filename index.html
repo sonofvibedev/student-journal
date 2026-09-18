@@ -1,0 +1,343 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Электронный журнал посещаемости</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .badge-budget { background-color: #28a745; }
+    .badge-paid { background-color: #fd7e14; }
+    .clickable-row { cursor: pointer; }
+    .clickable-row:hover { background-color: #f1f3f5; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-primary mb-4 shadow-sm">
+  <div class="container">
+    <span class="navbar-brand mb-0 h1">🎓 Журнал посещаемости</span>
+    <button id="adminBtn" class="btn btn-outline-light btn-sm" onclick="toggleAdminModal()">🔑 Вход для админа</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div id="adminStatus" class="alert alert-info d-none d-flex justify-content-between align-items-center mb-4">
+    <span><strong>Режим администратора активен.</strong> Вы можете добавлять пропуски.</span>
+    <button class="btn btn-sm btn-outline-danger" onclick="logoutAdmin()">Выйти</button>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <input type="text" id="searchInput" class="form-control" placeholder="Поиск по фамилии или имени..." oninput="renderTable()">
+    </div>
+    <div class="col-md-6 text-end d-none" id="adminActions">
+      <button class="btn btn-success" onclick="openAddAbsenceModal()">+ Добавить пропуск</button>
+    </div>
+  </div>
+
+  <div class="card p-3 mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>ФИО Студента</th>
+            <th>Обучение</th>
+            <th>Неуважительные (ч)</th>
+            <th>Уважительные (ч)</th>
+            <th>Всего (ч)</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="studentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="studentModalName">Карточка студента</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Форма обучения:</strong> <span id="studentModalStatus"></span></p>
+        <h6>История пропусков:</h6>
+        <ul class="list-group" id="studentAbsenceList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="adminModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Авторизация Администратора</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted">Введите ваш GitHub Personal Access Token для сохранения изменений в репозиторий:</p>
+        <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx">
+        <button class="btn btn-primary w-100" onclick="saveAdminToken()">Войти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addAbsenceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить пропуск</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="absenceForm">
+          <div class="mb-3">
+            <label class="form-label">Студент</label>
+            <select id="absenceStudent" class="form-select" required></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Дата</label>
+            <input type="date" id="absenceDate" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Количество часов</label>
+            <input type="number" id="absenceHours" class="form-control" min="2" step="2" value="2" required>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" id="absenceIsExcused" class="form-check-input">
+            <label class="form-check-label" for="absenceIsExcused">Уважительная причина</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Предмет(ы)</label>
+            <select id="absenceSubjects" class="form-select" multiple required></select>
+            <small class="text-muted">Зажмите Ctrl для выбора нескольких</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Примечание (необязательно)</label>
+            <input type="text" id="absenceComment" class="form-control">
+          </div>
+          <button type="button" class="btn btn-success w-100" onclick="submitAbsence()">Сохранить на GitHub</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const GITHUB_OWNER = 'dimpolenyshev';
+  const GITHUB_REPO = 'student-journal';
+  const DATA_PATH = 'data.json';
+
+  let appData = { subjects: [], students: [], absences: [] };
+  let currentSha = '';
+  let githubToken = localStorage.getItem('gh_pat') || '';
+
+  const studentModal = new bootstrap.Modal(document.getElementById('studentModal'));
+  const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
+  const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
+
+  async function init() {
+    await loadData();
+    updateAdminUI();
+  }
+
+  async function loadData() {
+    try {
+      const response = await fetch(`./data.json?t=${Date.now()}`);
+      appData = await response.json();
+      renderTable();
+    } catch (err) {
+      console.error('Ошибка загрузки данных:', err);
+    }
+  }
+
+  function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const tbody = document.getElementById('studentsTableBody');
+    tbody.innerHTML = '';
+
+    const filtered = appData.students.filter(s => 
+      `${s.lastName} ${s.firstName}`.toLowerCase().includes(search)
+    );
+
+    filtered.forEach((student, index) => {
+      const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
+      let unexcused = 0;
+      let excused = 0;
+
+      studentAbsences.forEach(a => {
+        if (a.isExcused) excused += Number(a.totalHours);
+        else unexcused += Number(a.totalHours);
+      });
+
+      const tr = document.createElement('tr');
+      tr.className = 'clickable-row';
+      tr.onclick = () => showStudentDetails(student.id);
+
+      tr.innerHTML = `
+        <td>${index + 1}</td>
+        <td><strong>${student.lastName}</strong> ${student.firstName}</td>
+        <td><span class="badge ${student.status === 'Бюджет' ? 'badge-budget' : 'badge-paid'}">${student.status}</span></td>
+        <td class="text-danger fw-bold">${unexcused}</td>
+        <td class="text-success fw-bold">${excused}</td>
+        <td class="fw-bold">${unexcused + excused}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function showStudentDetails(studentId) {
+    const student = appData.students.find(s => s.id === studentId);
+    if (!student) return;
+
+    document.getElementById('studentModalName').innerText = `${student.lastName} ${student.firstName}`;
+    document.getElementById('studentModalStatus').innerText = student.status;
+
+    const list = document.getElementById('studentAbsenceList');
+    list.innerHTML = '';
+
+    const absences = appData.absences.filter(a => a.studentId === studentId);
+    if (absences.length === 0) {
+      list.innerHTML = '<li class="list-group-item text-muted">Пропусков нет</li>';
+    } else {
+      absences.forEach(a => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        li.innerHTML = `
+          <div>
+            <strong>${a.date}</strong> — ${a.subjects ? a.subjects.join(', ') : 'Предмет не указан'}<br>
+            <small class="text-muted">${a.comment || 'Без комментария'}</small>
+          </div>
+          <div>
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.totalHours} ч (${a.isExcused ? 'Уваж.' : 'Неуваж.'})</span>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    studentModal.show();
+  }
+
+  function toggleAdminModal() {
+    if (githubToken) {
+      alert('Вы уже вошли как администратор.');
+    } else {
+      adminModal.show();
+    }
+  }
+
+  function saveAdminToken() {
+    const token = document.getElementById('githubTokenInput').value.trim();
+    if (!token) return alert('Введите токен!');
+    githubToken = token;
+    localStorage.setItem('gh_pat', token);
+    adminModal.hide();
+    updateAdminUI();
+  }
+
+  function logoutAdmin() {
+    localStorage.removeItem('gh_pat');
+    githubToken = '';
+    updateAdminUI();
+  }
+
+  function updateAdminUI() {
+    const adminStatus = document.getElementById('adminStatus');
+    const adminActions = document.getElementById('adminActions');
+    const adminBtn = document.getElementById('adminBtn');
+
+    if (githubToken) {
+      adminStatus.classList.remove('d-none');
+      adminActions.classList.remove('d-none');
+      adminBtn.innerText = '🔑 Вы вошли';
+    } else {
+      adminStatus.classList.add('d-none');
+      adminActions.classList.add('d-none');
+      adminBtn.innerText = '🔑 Вход для админа';
+    }
+  }
+
+  function openAddAbsenceModal() {
+    const studentSelect = document.getElementById('absenceStudent');
+    studentSelect.innerHTML = appData.students.map(s => `<option value="${s.id}">${s.lastName} ${s.firstName}</option>`).join('');
+
+    const subjectSelect = document.getElementById('absenceSubjects');
+    subjectSelect.innerHTML = appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    document.getElementById('absenceDate').valueAsDate = new Date();
+    addAbsenceModal.show();
+  }
+
+  async function submitAbsence() {
+    if (!githubToken) return alert('Нет токена администратора!');
+
+    const studentId = document.getElementById('absenceStudent').value;
+    const date = document.getElementById('absenceDate').value;
+    const hours = document.getElementById('absenceHours').value;
+    const isExcused = document.getElementById('absenceIsExcused').checked;
+    const comment = document.getElementById('absenceComment').value;
+    const subjects = Array.from(document.getElementById('absenceSubjects').selectedOptions).map(o => o.value);
+
+    const newAbsence = {
+      id: 'abs-' + Date.now(),
+      studentId,
+      date,
+      totalHours: Number(hours),
+      isExcused,
+      comment,
+      subjects
+    };
+
+    appData.absences.push(newAbsence);
+
+    try {
+      const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+        headers: { Authorization: `Bearer ${githubToken}` }
+      });
+      const fileData = await getFileRes.json();
+      currentSha = fileData.sha;
+
+      const updatedJsonStr = JSON.stringify(appData, null, 2);
+      const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
+      const base64Content = btoa(String.fromCharCode(...utf8Bytes));
+
+      const putRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: 'Добавлен пропуск через веб-панель',
+          content: base64Content,
+          sha: currentSha
+        })
+      });
+
+      if (putRes.ok) {
+        alert('Успешно сохранено в GitHub!');
+        addAbsenceModal.hide();
+        renderTable();
+      } else {
+        const errorData = await putRes.json();
+        alert('Ошибка при сохранении: ' + errorData.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка при выполнении запроса к GitHub API');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
