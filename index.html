@@ -1,54 +1,257 @@
 ﻿<!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Электронный журнал посещаемости</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Учёт пропусков</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .badge-budget { background-color: #28a745; }
-    .badge-paid { background-color: #fd7e14; }
-    .clickable-row { cursor: pointer; }
-    .clickable-row:hover { background-color: #f1f3f5; }
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .app-header {
+      padding: 24px 0 16px 0;
+    }
+
+    .stat-card {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      height: 100%;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0f6fc;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    .notice-banner {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #8b949e;
+    }
+
+    .table-container {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table {
+      margin-bottom: 0;
+      color: #c9d1d9;
+      --bs-table-bg: transparent;
+      --bs-table-border-color: #21262d;
+    }
+
+    .table th {
+      background-color: #161b22;
+      color: #8b949e;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      padding: 14px 16px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .table td {
+      padding: 12px 16px;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .table-hover tbody tr:hover {
+      background-color: #1c2128;
+    }
+
+    .student-name {
+      font-weight: 600;
+      color: #f0f6fc;
+      cursor: pointer;
+    }
+
+    .student-name:hover {
+      color: #58a6ff;
+    }
+
+    .badge-type {
+      background-color: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .hours-cell {
+      width: 70px;
+      text-align: center;
+      padding: 6px 0;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.1;
+    }
+
+    .hours-subtext {
+      font-size: 9px;
+      font-weight: 400;
+      display: block;
+      opacity: 0.8;
+    }
+
+    .hours-zero {
+      background-color: #0f2d1e;
+      color: #3fb950;
+      border: 1px solid #1a4d31;
+    }
+
+    .hours-warning {
+      background-color: #382403;
+      color: #d29922;
+      border: 1px solid #5d3d06;
+    }
+
+    .hours-danger {
+      background-color: #3d1314;
+      color: #f85149;
+      border: 1px solid #672022;
+    }
+
+    .form-control, .form-select {
+      background-color: #0d1117;
+      border-color: #30363d;
+      color: #f0f6fc;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background-color: #0d1117;
+      border-color: #58a6ff;
+      color: #f0f6fc;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    }
+
+    .modal-content {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+
+    .modal-header, .modal-footer {
+      border-color: #21262d;
+    }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-primary mb-4 shadow-sm">
-  <div class="container">
-    <span class="navbar-brand mb-0 h1">🎓 Журнал посещаемости</span>
-    <button id="adminBtn" class="btn btn-outline-light btn-sm" onclick="toggleAdminModal()">🔑 Вход для админа</button>
+<div class="container my-4">
+  
+  <!-- Заголовок страницы -->
+  <div class="app-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h2 class="m-0 fw-bold text-white">Учёт пропусков</h2>
+        <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-25 px-2 py-1">24ДММ-2</span>
+      </div>
+      <div class="text-secondary small mt-1" id="currentPeriodText">Текущий период: Сентябрь 2026</div>
+    </div>
+    <div>
+      <button id="adminBtn" class="btn btn-outline-secondary btn-sm" onclick="toggleAdminModal()">🔑 Вход для админа</button>
+    </div>
   </div>
-</nav>
 
-<div class="container">
-  <div id="adminStatus" class="alert alert-info d-none d-flex justify-content-between align-items-center mb-4">
+  <!-- Карточки статистики -->
+  <div class="row g-3 mb-4">
+    <div class="col">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalStudents">0</div>
+        <div class="stat-label">Всего студентов</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card">
+        <div class="stat-value" id="statBudget">0</div>
+        <div class="stat-label">Бюджет</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card">
+        <div class="stat-value" id="statPaid">0</div>
+        <div class="stat-label">Платники</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalHours">0</div>
+        <div class="stat-label">Часов всего</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card">
+        <div class="stat-value text-danger" id="statRedZone">0</div>
+        <div class="stat-label">В красной зоне (14+)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Уведомление о режиме -->
+  <div id="viewNotice" class="notice-banner mb-3 d-flex align-items-center gap-2">
+    <span>👁️ Режим просмотра: это копия для чтения. Изменять данные может только владелец приложения.</span>
+  </div>
+
+  <div id="adminStatus" class="alert alert-info bg-dark border-info text-info d-none d-flex justify-content-between align-items-center mb-3 py-2">
     <span><strong>Режим администратора активен.</strong> Вы можете добавлять пропуски.</span>
     <button class="btn btn-sm btn-outline-danger" onclick="logoutAdmin()">Выйти</button>
   </div>
 
-  <div class="row mb-4">
-    <div class="col-md-6">
-      <input type="text" id="searchInput" class="form-control" placeholder="Поиск по фамилии или имени..." oninput="renderTable()">
+  <!-- Панель управления и фильтрации -->
+  <div class="row g-2 mb-3 align-items-center">
+    <div class="col-md-4">
+      <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
+    </div>
+    <div class="col-md-2">
+      <select id="typeFilter" class="form-select form-select-sm" onchange="renderTable()">
+        <option value="ALL">Все формы</option>
+        <option value="Бюджет">Бюджет</option>
+        <option value="Платное">Платники</option>
+      </select>
     </div>
     <div class="col-md-6 text-end d-none" id="adminActions">
-      <button class="btn btn-success" onclick="openAddAbsenceModal()">+ Добавить пропуск</button>
+      <button class="btn btn-success btn-sm fw-bold px-3" onclick="openAddAbsenceModal()">+ Добавить пропуск</button>
     </div>
   </div>
 
-  <div class="card p-3 mb-4">
+  <!-- Таблица -->
+  <div class="table-container mb-4">
     <div class="table-responsive">
       <table class="table table-hover align-middle">
-        <thead class="table-light">
+        <thead>
           <tr>
-            <th>#</th>
-            <th>ФИО Студента</th>
-            <th>Обучение</th>
-            <th>Неуважительные (ч)</th>
-            <th>Уважительные (ч)</th>
-            <th>Всего (ч)</th>
+            <th>ФИО ▲</th>
+            <th>Тип</th>
+            <th>Часы</th>
+            <th>Последний пропуск</th>
+            <th>Комментарий</th>
+            <th class="text-end">Действия</th>
           </tr>
         </thead>
         <tbody id="studentsTableBody"></tbody>
@@ -57,80 +260,82 @@
   </div>
 </div>
 
+<!-- Модальное окно детализации -->
 <div class="modal fade" id="studentModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="studentModalName">Карточка студента</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title text-white" id="studentModalName">Карточка студента</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p><strong>Форма обучения:</strong> <span id="studentModalStatus"></span></p>
-        <h6>История пропусков:</h6>
-        <ul class="list-group" id="studentAbsenceList"></ul>
+        <p class="mb-3"><strong>Форма обучения:</strong> <span id="studentModalStatus" class="badge bg-secondary"></span></p>
+        <h6 class="text-white mb-2">История пропусков:</h6>
+        <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="studentAbsenceList"></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Модальное окно входа админа -->
 <div class="modal fade" id="adminModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Авторизация Администратора</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title text-white">Авторизация Администратора</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="small text-muted">Введите ваш GitHub Personal Access Token для сохранения изменений в репозиторий:</p>
+        <p class="small text-secondary mb-3">Введите ваш Personal Access Token (Classic) с правами <code>repo</code>:</p>
         <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx">
-        <button class="btn btn-primary w-100" onclick="saveAdminToken()">Войти</button>
+        <button class="btn btn-primary w-100 fw-bold" onclick="saveAdminToken()">Войти</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Модальное окно добавления пропуска -->
 <div class="modal fade" id="addAbsenceModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Добавить пропуск</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title text-white">Добавить пропуск</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <form id="absenceForm">
           <div class="mb-3">
-            <label class="form-label">Студент</label>
+            <label class="form-label text-secondary small">Студент</label>
             <select id="absenceStudent" class="form-select" required></select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Дата</label>
+            <label class="form-label text-secondary small">Дата</label>
             <input type="date" id="absenceDate" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Количество часов</label>
+            <label class="form-label text-secondary small">Количество часов</label>
             <input type="number" id="absenceHours" class="form-control" min="2" step="2" value="2" required>
           </div>
           <div class="mb-3 form-check">
             <input type="checkbox" id="absenceIsExcused" class="form-check-input">
-            <label class="form-check-label" for="absenceIsExcused">Уважительная причина</label>
+            <label class="form-check-label text-secondary small" for="absenceIsExcused">Уважительная причина</label>
           </div>
           <div class="mb-3">
-            <label class="form-label">Предмет(ы)</label>
+            <label class="form-label text-secondary small">Предмет(ы)</label>
             <select id="absenceSubjects" class="form-select" multiple required></select>
-            <small class="text-muted">Зажмите Ctrl для выбора нескольких</small>
           </div>
           <div class="mb-3">
-            <label class="form-label">Примечание (необязательно)</label>
-            <input type="text" id="absenceComment" class="form-control">
+            <label class="form-label text-secondary small">Примечание</label>
+            <input type="text" id="absenceComment" class="form-control" placeholder="Например: Болел">
           </div>
-          <button type="button" class="btn btn-success w-100" onclick="submitAbsence()">Сохранить на GitHub</button>
+          <button type="button" class="btn btn-success w-100 fw-bold" onclick="submitAbsence()">Сохранить на GitHub</button>
         </form>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const GITHUB_OWNER = 'dimpolenyshev';
   const GITHUB_REPO = 'student-journal';
@@ -153,42 +358,106 @@
     try {
       const response = await fetch(`./data.json?t=${Date.now()}`);
       appData = await response.json();
+      updateStats();
       renderTable();
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
     }
   }
 
+  function updateStats() {
+    const totalStudents = appData.students.length;
+    const budget = appData.students.filter(s => s.status === 'Бюджет').length;
+    const paid = totalStudents - budget;
+
+    let totalHours = 0;
+    let redZone = 0;
+
+    appData.students.forEach(student => {
+      const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
+      const studentTotal = studentAbsences.reduce((sum, a) => sum + Number(a.totalHours), 0);
+      totalHours += studentTotal;
+      if (studentTotal >= 14) redZone++;
+    });
+
+    document.getElementById('statTotalStudents').innerText = totalStudents;
+    document.getElementById('statBudget').innerText = budget;
+    document.getElementById('statPaid').innerText = paid;
+    document.getElementById('statTotalHours').innerText = totalHours;
+    document.getElementById('statRedZone').innerText = redZone;
+  }
+
   function renderTable() {
     const search = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
     const tbody = document.getElementById('studentsTableBody');
     tbody.innerHTML = '';
 
-    const filtered = appData.students.filter(s => 
-      `${s.lastName} ${s.firstName}`.toLowerCase().includes(search)
-    );
+    const filtered = appData.students.filter(s => {
+      const fullName = `${s.lastName} ${s.firstName}`.toLowerCase();
+      const matchesSearch = fullName.includes(search);
+      const matchesType = typeFilter === 'ALL' || s.status === typeFilter;
+      return matchesSearch && matchesType;
+    });
 
-    filtered.forEach((student, index) => {
+    filtered.sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+    filtered.forEach(student => {
       const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
-      let unexcused = 0;
-      let excused = 0;
+      
+      let totalHours = 0;
+      let lastAbsenceDate = '—';
+      let lastComment = '—';
 
-      studentAbsences.forEach(a => {
-        if (a.isExcused) excused += Number(a.totalHours);
-        else unexcused += Number(a.totalHours);
-      });
+      if (studentAbsences.length > 0) {
+        // Сортировка по дате для получения последнего пропуска
+        const sortedAbs = [...studentAbsences].sort((a, b) => new Date(b.date) - new Date(a.date));
+        totalHours = studentAbsences.reduce((sum, a) => sum + Number(a.totalHours), 0);
+        
+        const last = sortedAbs[0];
+        if (last.date) {
+          const d = new Date(last.date);
+          lastAbsenceDate = d.toLocaleDateString('ru-RU');
+        }
+        if (last.comment) {
+          lastComment = last.comment;
+        } else {
+          lastComment = `Без комментария (${studentAbsences.length})`;
+        }
+      }
+
+      let hoursClass = 'hours-zero';
+      if (totalHours >= 14) {
+        hoursClass = 'hours-danger';
+      } else if (totalHours > 0) {
+        hoursClass = 'hours-warning';
+      }
+
+      function getHoursText(h) {
+        if (h === 1) return 'час';
+        if (h >= 2 && h <= 4) return 'часа';
+        return 'часов';
+      }
 
       const tr = document.createElement('tr');
-      tr.className = 'clickable-row';
-      tr.onclick = () => showStudentDetails(student.id);
-
       tr.innerHTML = `
-        <td>${index + 1}</td>
-        <td><strong>${student.lastName}</strong> ${student.firstName}</td>
-        <td><span class="badge ${student.status === 'Бюджет' ? 'badge-budget' : 'badge-paid'}">${student.status}</span></td>
-        <td class="text-danger fw-bold">${unexcused}</td>
-        <td class="text-success fw-bold">${excused}</td>
-        <td class="fw-bold">${unexcused + excused}</td>
+        <td>
+          <span class="student-name" onclick="showStudentDetails('${student.id}')">
+            ${student.lastName} ${student.firstName}
+          </span>
+        </td>
+        <td>
+          <span class="badge-type">${student.status}</span>
+        </td>
+        <td>
+          <div class="hours-cell ${hoursClass}">
+            ${totalHours}
+            <span class="hours-subtext">${getHoursText(totalHours)}</span>
+          </div>
+        </td>
+        <td class="text-secondary">${lastAbsenceDate}</td>
+        <td class="text-secondary small">${lastComment}</td>
+        <td class="text-end text-secondary">—</td>
       `;
       tbody.appendChild(tr);
     });
@@ -206,21 +475,21 @@
 
     const absences = appData.absences.filter(a => a.studentId === studentId);
     if (absences.length === 0) {
-      list.innerHTML = '<li class="list-group-item text-muted">Пропусков нет</li>';
+      list.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
     } else {
       absences.forEach(a => {
-        const li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-        li.innerHTML = `
+        const item = document.createElement('div');
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
+        item.innerHTML = `
           <div>
-            <strong>${a.date}</strong> — ${a.subjects ? a.subjects.join(', ') : 'Предмет не указан'}<br>
-            <small class="text-muted">${a.comment || 'Без комментария'}</small>
+            <div class="fw-bold text-white">${a.date} — ${a.subjects ? a.subjects.join(', ') : 'Предмет не указан'}</div>
+            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
           </div>
           <div>
             <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.totalHours} ч (${a.isExcused ? 'Уваж.' : 'Неуваж.'})</span>
           </div>
         `;
-        list.appendChild(li);
+        list.appendChild(item);
       });
     }
 
@@ -252,15 +521,18 @@
 
   function updateAdminUI() {
     const adminStatus = document.getElementById('adminStatus');
+    const viewNotice = document.getElementById('viewNotice');
     const adminActions = document.getElementById('adminActions');
     const adminBtn = document.getElementById('adminBtn');
 
     if (githubToken) {
       adminStatus.classList.remove('d-none');
+      viewNotice.classList.add('d-none');
       adminActions.classList.remove('d-none');
       adminBtn.innerText = '🔑 Вы вошли';
     } else {
       adminStatus.classList.add('d-none');
+      viewNotice.classList.remove('d-none');
       adminActions.classList.add('d-none');
       adminBtn.innerText = '🔑 Вход для админа';
     }
@@ -324,8 +596,9 @@
       });
 
       if (putRes.ok) {
-        alert('Успешно сохранено в GitHub!');
+        alert('Успешно сохранено на GitHub!');
         addAbsenceModal.hide();
+        updateStats();
         renderTable();
       } else {
         const errorData = await putRes.json();
