@@ -122,6 +122,14 @@
       padding: 12px 16px;
     }
 
+    .subject-slot-card {
+      background-color: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
     .form-control, .form-select {
       background-color: #0d1117;
       border-color: #30363d;
@@ -206,7 +214,7 @@
   <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
     <div class="d-flex gap-2 flex-grow-1" style="max-width: 500px;">
       <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
-      <select id="typeFilter" class="form-select form-select-sm style-select" style="width: 130px;" onchange="renderTable()">
+      <select id="typeFilter" class="form-select form-select-sm" style="width: 130px;" onchange="renderTable()">
         <option value="ALL">Все</option>
         <option value="Бюджет">Бюджет</option>
         <option value="Платное">Платники</option>
@@ -255,7 +263,7 @@
           <select id="absenceStudent" class="form-select" onchange="updateStudentSummaryCard()"></select>
         </div>
 
-        <!-- Карточка сводки по выбранному студенту -->
+        <!-- Сводка по выбранному студенту -->
         <div class="student-summary-card mb-3">
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -277,12 +285,13 @@
             <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setQuickHours(6)">6</button>
             <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setQuickHours(8)">8</button>
           </div>
-          <input type="number" id="absenceHours" class="form-control" placeholder="Своё количество часов" min="1" value="2">
+          <input type="number" id="absenceHours" class="form-control" placeholder="Своё количество часов" min="1" value="2" oninput="renderSubjectPickers()">
         </div>
 
+        <!-- Динамический список выбора предметов -->
         <div class="mb-3">
-          <label class="form-label text-secondary small">Предмет</label>
-          <select id="absenceSubject" class="form-select"></select>
+          <label class="form-label text-secondary small d-block">Предметы (выбор по парам)</label>
+          <div id="subjectContainer"></div>
         </div>
 
         <div class="mb-3">
@@ -425,7 +434,18 @@
   const GITHUB_REPO = 'student-journal';
   const DATA_PATH = 'data.json';
 
-  let appData = { subjects: [], students: [], absences: [] };
+  const DEFAULT_SUBJECTS = [
+    "Интегрированные маркетинговые коммуникации",
+    "Логистика",
+    "Маркетинг инноваций",
+    "Маркетинг услуг",
+    "Маркетинговые исследования и аналитика",
+    "Стратегический маркетинг",
+    "Функционально-стоимостный анализ",
+    "Эконометрика"
+  ];
+
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
   let githubToken = localStorage.getItem('gh_pat') || '';
 
   const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
@@ -442,7 +462,9 @@
     try {
       const response = await fetch(`./data.json?t=${Date.now()}`);
       appData = await response.json();
-      if (!appData.subjects) appData.subjects = ["Логистика", "Кураторский час", "Высшая математика", "Информатика", "Иностранный язык", "Философия"];
+      if (!appData.subjects || appData.subjects.length === 0) {
+        appData.subjects = DEFAULT_SUBJECTS;
+      }
       updateStats();
       renderTable();
     } catch (err) {
@@ -560,17 +582,56 @@
     updateAdminUI();
   }
 
-  // --- Внести пропуски ---
+  // --- Внести пропуски с динамическим выбором предметов ---
   function openAddAbsenceModal() {
     const studentSelect = document.getElementById('absenceStudent');
     studentSelect.innerHTML = appData.students.map(s => `<option value="${s.id}">${s.lastName} ${s.firstName}</option>`).join('');
 
-    const subjectSelect = document.getElementById('absenceSubject');
-    subjectSelect.innerHTML = appData.subjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
-
     document.getElementById('absenceDate').valueAsDate = new Date();
+    document.getElementById('absenceHours').value = 2;
+
     updateStudentSummaryCard();
+    renderSubjectPickers();
     addAbsenceModal.show();
+  }
+
+  function renderSubjectPickers() {
+    const hoursInput = document.getElementById('absenceHours');
+    let hours = parseInt(hoursInput.value) || 2;
+    if (hours < 1) hours = 1;
+
+    const container = document.getElementById('subjectContainer');
+    container.innerHTML = '';
+
+    const pairsCount = Math.max(1, Math.floor(hours / 2) + (hours % 2 > 0 ? 1 : 0));
+    let remainingHours = hours;
+
+    for (let i = 1; i <= pairsCount; i++) {
+      const slotHours = remainingHours >= 2 ? 2 : remainingHours;
+      remainingHours -= slotHours;
+
+      const div = document.createElement('div');
+      div.className = 'subject-slot-card';
+
+      const labelText = pairsCount === 1 
+        ? `Предмет (${slotHours} ч)` 
+        : `Пара ${i} (${slotHours} ч) — Выберите предмет:`;
+
+      const options = appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+      div.innerHTML = `
+        <label class="form-label text-secondary small mb-1">${labelText}</label>
+        <select class="form-select subject-picker" data-hours="${slotHours}">
+          ${options}
+        </select>
+      `;
+      container.appendChild(div);
+    }
+  }
+
+  function setQuickHours(val) {
+    document.getElementById('absenceHours').value = val;
+    renderSubjectPickers();
   }
 
   function updateStudentSummaryCard() {
@@ -587,34 +648,33 @@
     document.getElementById('modalStudentHoursSummary').innerText = `${unexcused} часов`;
   }
 
-  function setQuickHours(val) {
-    document.getElementById('absenceHours').value = val;
-  }
-
   async function submitAbsence() {
     if (!githubToken) return alert('Требуется авторизация администратора');
 
     const studentId = document.getElementById('absenceStudent').value;
-    const hours = Number(document.getElementById('absenceHours').value);
-    const subject = document.getElementById('absenceSubject').value;
     const date = document.getElementById('absenceDate').value;
     const isExcused = document.getElementById('absenceIsExcused').checked;
     const comment = document.getElementById('absenceComment').value.trim();
 
-    if (!hours || hours <= 0) return alert('Укажите корректное количество часов');
+    const pickers = document.querySelectorAll('.subject-picker');
+    if (pickers.length === 0) return alert('Выберите хотя бы один предмет');
 
-    const newAbsence = {
-      id: 'abs-' + Date.now(),
-      studentId,
-      date,
-      totalHours: hours,
-      isExcused,
-      subject,
-      comment
-    };
+    pickers.forEach((picker, idx) => {
+      const slotHours = Number(picker.dataset.hours) || 2;
+      const subject = picker.value;
 
-    appData.absences.push(newAbsence);
-    await saveDataToGitHub('Добавлен пропуск');
+      appData.absences.push({
+        id: 'abs-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
+        studentId,
+        date,
+        totalHours: slotHours,
+        isExcused,
+        subject,
+        comment
+      });
+    });
+
+    await saveDataToGitHub('Добавлены пропуски по предметам');
     addAbsenceModal.hide();
   }
 
@@ -627,7 +687,6 @@
 
     const studentAbs = appData.absences.filter(a => a.studentId === studentId);
 
-    // Статистика за месяц
     const currentMonth = new Date().getMonth();
     let monthUnexcused = 0, monthExcused = 0;
     let totalUnexcused = 0, totalExcused = 0;
@@ -660,7 +719,6 @@
     document.getElementById('historyTotalUnexcused').innerText = `${totalUnexcused} ч`;
     document.getElementById('historyTotalExcused').innerText = `${totalExcused} ч`;
 
-    // Заполнение таблицы предметов
     const subjectBody = document.getElementById('subjectStatsBody');
     subjectBody.innerHTML = '';
     Object.keys(subjectMap).forEach(sub => {
@@ -678,7 +736,6 @@
       }
     });
 
-    // Заполнение списка записей
     const historyList = document.getElementById('historyList');
     historyList.innerHTML = '';
 
@@ -832,7 +889,7 @@
       }
     } catch (err) {
       console.error(err);
-      alert(' Ошибка сети при запросе к GitHub API');
+      alert('Ошибка сети при запросе к GitHub API');
     }
   }
 
