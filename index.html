@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -164,8 +164,9 @@
 <body>
 
 <div class="container my-3">
-  
+
   <!-- Заголовок страницы -->
+  <div class="app-header d-flex justify-content-between align-items-center mb-3">
   <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
       <div class="d-flex align-items-center gap-2">
@@ -368,7 +369,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        
+
         <!-- Сводка статистики -->
         <div class="row g-2 mb-3">
           <div class="col-md-6">
@@ -537,7 +538,7 @@
 
     filtered.forEach(student => {
       const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
-      
+
       let unexcusedHours = 0;
       let excusedHours = 0;
       let lastAbsenceDate = '—';
@@ -661,7 +662,7 @@
     if (!student) return;
 
     document.getElementById('modalStudentNameSummary').innerText = `${student.lastName} ${student.firstName}`;
-    
+
     const unexcused = appData.absences
       .filter(a => a.studentId === studentId && !a.isExcused)
       .reduce((sum, a) => sum + Number(a.totalHours), 0);
@@ -734,7 +735,7 @@
 
       const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
       if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
-      
+
       if (a.isExcused) subjectMap[subName].excused += h;
       else subjectMap[subName].unexcused += h;
     });
@@ -966,6 +967,7 @@
   init();
 </script>
 </body>
+</html>
 </html>
 
 
