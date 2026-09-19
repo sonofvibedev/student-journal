@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Учёт пропусков</title>
+  <title>Журнал 24ДММ-2</title>
 
   <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -184,6 +184,47 @@
     }
 
     .modal-header, .modal-footer { border-color: #21262d; }
+    /* --- Порядковый номер по журналу --- */
+    .journal-num {
+      color: #8b949e;
+      font-weight: 700;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- Кнопка входа для администратора --- */
+    .admin-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #1a73ff;
+      border: none;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+      padding: 10px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background-color .15s ease, transform .1s ease;
+    }
+
+    .admin-btn:hover { background-color: #0f5ce0; }
+    .admin-btn:active { transform: scale(0.97); }
+    .admin-btn:focus-visible { outline: 2px solid #8fc0ff; outline-offset: 2px; }
+    .admin-btn .admin-btn-icon { width: 22px; height: 22px; flex: 0 0 auto; }
+    .admin-btn.is-admin { background-color: #238636; }
+    .admin-btn.is-admin:hover { background-color: #1a6f2b; }
+
+    /* --- Подсказка под списком предметов --- */
+    .subject-hint { font-size: 12px; margin-top: 10px; line-height: 1.4; }
+
+    /* Место под колонку с номером */
+    .table { min-width: 730px; }
+
+    /* Предмет недоступен: лимит пар уже выбран */
+    .subject-off { opacity: .4; }
+
   </style>
 </head>
 <body>
@@ -194,13 +235,20 @@
   <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <div>
       <div class="d-flex align-items-center gap-2">
-        <h2 class="m-0 fw-bold text-white">Учёт пропусков</h2>
+        <h2 class="m-0 fw-bold text-white">Журнал</h2>
         <span class="group-badge">24ДММ-2</span>
       </div>
       <div class="text-secondary small mt-1" id="currentPeriodText">Текущий период: Сентябрь 2026</div>
     </div>
     <div>
-      <button id="adminBtn" class="btn btn-outline-secondary btn-sm" onclick="toggleAdminModal()">🔑 Вход для админа</button>
+      <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
+        <svg class="admin-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="8" cy="7" r="4.3"/>
+          <path d="M8 13.2c-3.6 0-6.6 2.4-6.9 5.5-.1.6.4 1.1 1 1.1h9.6c-1.2-1.3-1.9-3-1.9-4.9v-1.1c0-.2 0-.3.1-.5-.6-.1-1.2-.1-1.9-.1z"/>
+          <path fill-rule="evenodd" d="M17.5 9.3l4.5 1.8v3.5c0 2.8-1.9 5.3-4.5 6.1-2.6-.8-4.5-3.3-4.5-6.1v-3.5zm0 2.3l2.6 1v2.1c0 1.7-1 3.3-2.6 4.1z"/>
+        </svg>
+        <span id="adminBtnText">Админ</span>
+      </button>
     </div>
   </div>
 
@@ -257,6 +305,7 @@
       <table class="table table-hover align-middle">
         <thead>
           <tr>
+            <th class="text-center" style="width: 54px;">№</th>
             <th>ФИО ▲</th>
             <th>Тип</th>
             <th class="text-center">Часы</th>
@@ -310,7 +359,7 @@
           <input type="number" id="absenceHours" class="form-control" placeholder="Своё количество часов" min="1" value="2" oninput="renderSubjectPickers()">
         </div>
 
-        <!-- Динамический список выбора предметов (Radio Buttons) -->
+        <!-- Один список предметов (чекбоксы) -->
         <div class="mb-3">
           <div id="subjectContainer"></div>
         </div>
@@ -533,11 +582,23 @@
     document.getElementById('statRedZone').innerText = redZoneCount;
   }
 
+  // --- Номера по журналу: по алфавиту, 1..N, одни и те же при любом фильтре ---
+  function getJournalNumbers() {
+    const ordered = [...appData.students].sort((a, b) =>
+      `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'ru')
+    );
+    const map = {};
+    ordered.forEach((s, i) => { map[s.id] = i + 1; });
+    return map;
+  }
+
   function renderTable() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const typeFilter = document.getElementById('typeFilter').value;
     const tbody = document.getElementById('studentsTableBody');
     tbody.innerHTML = '';
+
+    const journalNumbers = getJournalNumbers();
 
     const filtered = appData.students.filter(s => {
       const fullName = `${s.lastName} ${s.firstName}`.toLowerCase();
@@ -546,11 +607,11 @@
       return matchesSearch && matchesType;
     });
 
-    filtered.sort((a, b) => a.lastName.localeCompare(b.lastName));
+    filtered.sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
 
     filtered.forEach(student => {
       const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
-      
+
       let unexcusedHours = 0;
       let excusedHours = 0;
       let lastAbsenceDate = '—';
@@ -580,6 +641,7 @@
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
+        <td class="text-center journal-num">${journalNumbers[student.id]}</td>
         <td>
           <a class="student-name" onclick="openStudentHistory('${student.id}')">
             ${student.lastName} ${student.firstName}
@@ -615,51 +677,112 @@
 
   // --- Внести пропуски с Radio Buttons для предметов ---
   function openAddAbsenceModal() {
+    const journalNumbers = getJournalNumbers();
+    const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
+
     const studentSelect = document.getElementById('absenceStudent');
-    studentSelect.innerHTML = appData.students.map(s => `<option value="${s.id}">${s.lastName} ${s.firstName}</option>`).join('');
+    studentSelect.innerHTML = ordered
+      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
+      .join('');
 
     document.getElementById('absenceDate').valueAsDate = new Date();
     document.getElementById('absenceHours').value = 2;
+    document.getElementById('absenceComment').value = '';
+    document.getElementById('absenceIsExcused').checked = false;
+    document.getElementById('subjectContainer').innerHTML = '';
 
     updateStudentSummaryCard();
     renderSubjectPickers();
     addAbsenceModal.show();
   }
 
+  // --- Один список предметов: одна пара (2 ч) на предмет ---
+  // 2 ч = 1 предмет, 4 ч = 2 предмета, 6 ч = 3, 8 ч = 4
+  function subjectLimit(hours) {
+    return Math.max(1, Math.ceil(hours / 2));
+  }
+
+  function getAbsenceHours() {
+    let hours = parseInt(document.getElementById('absenceHours').value) || 2;
+    return hours < 1 ? 1 : hours;
+  }
+
   function renderSubjectPickers() {
-    const hoursInput = document.getElementById('absenceHours');
-    let hours = parseInt(hoursInput.value) || 2;
-    if (hours < 1) hours = 1;
-
+    const hours = getAbsenceHours();
+    const limit = subjectLimit(hours);
     const container = document.getElementById('subjectContainer');
-    container.innerHTML = '';
 
-    const pairsCount = Math.max(1, Math.floor(hours / 2) + (hours % 2 > 0 ? 1 : 0));
-    let remainingHours = hours;
+    // отмеченное сохраняем при смене часов, но не больше нового лимита
+    const checkedBefore = Array.from(container.querySelectorAll('.subject-check:checked'))
+      .map(el => el.value)
+      .slice(0, limit);
 
-    for (let i = 1; i <= pairsCount; i++) {
-      const slotHours = remainingHours >= 2 ? 2 : remainingHours;
-      remainingHours -= slotHours;
+    const itemsHtml = appData.subjects.map((s, idx) => `
+      <div class="form-check my-1">
+        <input class="form-check-input subject-check" type="checkbox" id="sub_${idx}" value="${s}"
+               ${checkedBefore.includes(s) ? 'checked' : ''} onchange="updateSubjectHint()">
+        <label class="form-check-label text-white small" for="sub_${idx}">${s}</label>
+      </div>
+    `).join('');
 
-      const div = document.createElement('div');
-      div.className = 'subject-slot-card';
+    container.innerHTML = `
+      <div class="subject-slot-card">
+        <label class="form-label text-secondary small fw-bold mb-2">Предметы (${hours} ч — ${limit} ${pairWord(limit)}):</label>
+        <div class="ps-1">${itemsHtml}</div>
+        <div class="subject-hint text-secondary" id="subjectHint"></div>
+      </div>
+    `;
 
-      const labelText = pairsCount === 1 
-        ? `Выберите предмет (${slotHours} ч):` 
-        : `Пара ${i} (${slotHours} ч) — Выберите предмет:`;
+    updateSubjectHint();
+  }
 
-      const radiosHtml = appData.subjects.map((s, idx) => `
-        <div class="form-check my-1">
-          <input class="form-check-input" type="radio" name="subject_pair_${i}" id="sub_p${i}_${idx}" value="${s}" ${idx === 0 ? 'checked' : ''} data-hours="${slotHours}">
-          <label class="form-check-label text-white small" for="sub_p${i}_${idx}">${s}</label>
-        </div>
-      `).join('');
+  function pairWord(n) {
+    if (n % 10 === 1 && n % 100 !== 11) return 'предмет';
+    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return 'предмета';
+    return 'предметов';
+  }
 
-      div.innerHTML = `
-        <label class="form-label text-secondary small fw-bold mb-2">${labelText}</label>
-        <div class="ps-1">${radiosHtml}</div>
-      `;
-      container.appendChild(div);
+  function getSelectedSubjects() {
+    return Array.from(document.querySelectorAll('.subject-check:checked')).map(el => el.value);
+  }
+
+  // Каждому предмету — по 2 часа. Остаток (нечётный ввод) уходит первым предметам
+  function splitHours(total, parts) {
+    const base = Math.floor(total / parts);
+    const rest = total % parts;
+    return Array.from({ length: parts }, (_, i) => base + (i < rest ? 1 : 0));
+  }
+
+  function updateSubjectHint() {
+    const hint = document.getElementById('subjectHint');
+    if (!hint) return;
+
+    const hours = getAbsenceHours();
+    const limit = subjectLimit(hours);
+    const boxes = Array.from(document.querySelectorAll('.subject-check'));
+    const selectedCount = boxes.filter(b => b.checked).length;
+
+    // лимит выбран — остальные предметы гасим
+    boxes.forEach(b => {
+      b.disabled = !b.checked && selectedCount >= limit;
+      const label = b.nextElementSibling;
+      if (label) label.classList.toggle('subject-off', b.disabled);
+    });
+
+    if (selectedCount === 0) {
+      hint.className = 'subject-hint text-secondary';
+      hint.innerText = `${hours} ч — отметьте ${limit} ${pairWord(limit)}.`;
+      return;
+    }
+
+    const parts = splitHours(hours, selectedCount).join(' + ');
+
+    if (selectedCount < limit) {
+      hint.className = 'subject-hint text-warning';
+      hint.innerText = `Отмечено ${selectedCount} из ${limit}. Если оставить так, часы разделятся: ${parts}.`;
+    } else {
+      hint.className = 'subject-hint text-success';
+      hint.innerText = `Отмечено ${selectedCount} из ${limit} — по часам: ${parts}.`;
     }
   }
 
@@ -690,27 +813,31 @@
     const isExcused = document.getElementById('absenceIsExcused').checked;
     const comment = document.getElementById('absenceComment').value.trim();
 
-    const hoursInput = document.getElementById('absenceHours');
-    let hours = parseInt(hoursInput.value) || 2;
-    const pairsCount = Math.max(1, Math.floor(hours / 2) + (hours % 2 > 0 ? 1 : 0));
+    if (!date) return alert('Укажите дату пропуска');
 
-    for (let i = 1; i <= pairsCount; i++) {
-      const checkedRadio = document.querySelector(`input[name="subject_pair_${i}"]:checked`);
-      if (!checkedRadio) continue;
+    const hours = getAbsenceHours();
+    const limit = subjectLimit(hours);
+    const selected = getSelectedSubjects();
 
-      const slotHours = Number(checkedRadio.dataset.hours) || 2;
-      const subject = checkedRadio.value;
+    if (selected.length === 0) return alert('Отметьте хотя бы один предмет');
+    if (selected.length > limit) {
+      return alert(`При ${hours} ч можно отметить не больше ${limit} ${pairWord(limit)}`);
+    }
 
+    const parts = splitHours(hours, selected.length);
+    const stamp = Date.now();
+
+    selected.forEach((subject, i) => {
       appData.absences.push({
-        id: 'abs-' + Date.now() + '-' + i + '-' + Math.floor(Math.random() * 1000),
+        id: 'abs-' + stamp + '-' + i + '-' + Math.floor(Math.random() * 1000),
         studentId,
         date,
-        totalHours: slotHours,
+        totalHours: parts[i],
         isExcused,
         subject,
         comment
       });
-    }
+    });
 
     await saveDataToGitHub('Добавлены пропуски по предметам');
     addAbsenceModal.hide();
@@ -964,15 +1091,18 @@
   function updateAdminUI() {
     const adminElements = document.querySelectorAll('.admin-only');
     const adminBtn = document.getElementById('adminBtn');
+    const adminBtnText = document.getElementById('adminBtnText');
 
     if (githubToken) {
       adminElements.forEach(el => el.classList.remove('d-none'));
-      adminBtn.innerText = '🔑 Вы вошли (Выйти)';
-      adminBtn.classList.replace('btn-outline-secondary', 'btn-outline-success');
+      adminBtn.classList.add('is-admin');
+      adminBtn.title = 'Вы вошли как администратор — нажмите, чтобы выйти';
+      if (adminBtnText) adminBtnText.innerText = 'Выйти';
     } else {
       adminElements.forEach(el => el.classList.add('d-none'));
-      adminBtn.innerText = '🔑 Вход для админа';
-      adminBtn.classList.replace('btn-outline-success', 'btn-outline-secondary');
+      adminBtn.classList.remove('is-admin');
+      adminBtn.title = 'Вход для администратора';
+      if (adminBtnText) adminBtnText.innerText = 'Админ';
     }
   }
 
