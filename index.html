@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -17,14 +17,35 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
+    .container { max-width: 1100px; }
+
     .app-header { padding: 20px 0 10px 0; }
+
+    .group-badge {
+      background-color: rgba(56, 139, 253, 0.15);
+      color: #58a6ff;
+      border: 1px solid rgba(56, 139, 253, 0.4);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+
+    /* Карточки метрик: авто-подбор колонок, никогда не сжимаются в нечитаемую ширину */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
 
     .stat-card {
       background-color: #161b22;
       border: 1px solid #21262d;
       border-radius: 8px;
-      padding: 14px 16px;
-      height: 100%;
+      padding: 16px;
+      min-height: 84px;
     }
 
     .stat-value {
@@ -38,6 +59,8 @@
       font-size: 12px;
       color: #8b949e;
       margin-top: 4px;
+      white-space: normal;
+      line-height: 1.35;
     }
 
     .table-container {
@@ -50,6 +73,7 @@
     .table {
       margin-bottom: 0;
       color: #c9d1d9;
+      min-width: 680px;
       --bs-table-bg: transparent;
       --bs-table-border-color: #21262d;
     }
@@ -63,6 +87,7 @@
       font-weight: 600;
       padding: 12px 14px;
       border-bottom: 1px solid #30363d;
+      white-space: nowrap;
     }
 
     .table td {
@@ -164,14 +189,13 @@
 <body>
 
 <div class="container my-3">
-
+  
   <!-- Заголовок страницы -->
-  <div class="app-header d-flex justify-content-between align-items-center mb-3">
-  <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <div>
       <div class="d-flex align-items-center gap-2">
         <h2 class="m-0 fw-bold text-white">Учёт пропусков</h2>
-        <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-25 px-2 py-1">24ДММ-2</span>
+        <span class="group-badge">24ДММ-2</span>
       </div>
       <div class="text-secondary small mt-1" id="currentPeriodText">Текущий период: Сентябрь 2026</div>
     </div>
@@ -181,47 +205,35 @@
   </div>
 
   <!-- Карточки метрик -->
-  <div class="row g-2 mb-3">
-    <div class="col-md-2 col-6">
-      <div class="stat-card">
-        <div class="stat-value" id="statTotalStudents">0</div>
-        <div class="stat-label">Всего студентов</div>
-      </div>
+  <div class="stats-grid mb-4">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotalStudents">0</div>
+      <div class="stat-label">Всего студентов</div>
     </div>
-    <div class="col-md-2 col-6">
-      <div class="stat-card">
-        <div class="stat-value" id="statBudget">0</div>
-        <div class="stat-label">Бюджет</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statBudget">0</div>
+      <div class="stat-label">Бюджет</div>
     </div>
-    <div class="col-md-2 col-6">
-      <div class="stat-card">
-        <div class="stat-value" id="statPaid">0</div>
-        <div class="stat-label">Платники</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statPaid">0</div>
+      <div class="stat-label">Платники</div>
     </div>
-    <div class="col-md-2 col-6">
-      <div class="stat-card">
-        <div class="stat-value text-warning" id="statUnexcusedHours">0</div>
-        <div class="stat-label">Обычных часов</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-value text-warning" id="statUnexcusedHours">0</div>
+      <div class="stat-label">Обычных часов</div>
     </div>
-    <div class="col-md-2 col-6">
-      <div class="stat-card">
-        <div class="stat-value text-success" id="statExcusedHours">0</div>
-        <div class="stat-label">Уваж. часов</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-value text-success" id="statExcusedHours">0</div>
+      <div class="stat-label">Уваж. часов</div>
     </div>
-    <div class="col-md-2 col-6">
-      <div class="stat-card">
-        <div class="stat-value text-danger" id="statRedZone">0</div>
-        <div class="stat-label">В красной зоне (14+)</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-value text-danger" id="statRedZone">0</div>
+      <div class="stat-label">В красной зоне (14+)</div>
     </div>
   </div>
 
   <!-- Панель действий -->
-  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
     <div class="d-flex gap-2 flex-grow-1" style="max-width: 500px;">
       <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
       <select id="typeFilter" class="form-select form-select-sm" style="width: 130px;" onchange="renderTable()">
@@ -369,7 +381,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-
+        
         <!-- Сводка статистики -->
         <div class="row g-2 mb-3">
           <div class="col-md-6">
@@ -538,7 +550,7 @@
 
     filtered.forEach(student => {
       const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
-
+      
       let unexcusedHours = 0;
       let excusedHours = 0;
       let lastAbsenceDate = '—';
@@ -662,7 +674,7 @@
     if (!student) return;
 
     document.getElementById('modalStudentNameSummary').innerText = `${student.lastName} ${student.firstName}`;
-
+    
     const unexcused = appData.absences
       .filter(a => a.studentId === studentId && !a.isExcused)
       .reduce((sum, a) => sum + Number(a.totalHours), 0);
@@ -735,7 +747,7 @@
 
       const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
       if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
-
+      
       if (a.isExcused) subjectMap[subName].excused += h;
       else subjectMap[subName].unexcused += h;
     });
@@ -967,7 +979,6 @@
   init();
 </script>
 </body>
-</html>
 </html>
 
 
