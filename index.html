@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -9,12 +9,101 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Light.ttf') format('truetype');
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-LightItalic.ttf') format('truetype');
+      font-weight: 300;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-RegularItalic.ttf') format('truetype');
+      font-weight: 400;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Medium.ttf') format('truetype');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-MediumItalic.ttf') format('truetype');
+      font-weight: 500;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Semibold.ttf') format('truetype');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-SemiboldItalic.ttf') format('truetype');
+      font-weight: 600;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-BoldItalic.ttf') format('truetype');
+      font-weight: 700;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Heavy.ttf') format('truetype');
+      font-weight: 800;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-HeavyItalic.ttf') format('truetype');
+      font-weight: 800;
+      font-style: italic;
+      font-display: swap;
+    }
+
+    html, body {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
     body {
       background-color: #0d1117;
       color: #c9d1d9;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     .container { max-width: 1100px; }
@@ -68,6 +157,10 @@
       border: 1px solid #21262d;
       border-radius: 8px;
       overflow: hidden;
+    }
+
+    .table-responsive {
+      -webkit-overflow-scrolling: touch;
     }
 
     .table {
@@ -228,6 +321,37 @@
     /* Предмет недоступен: лимит пар уже выбран */
     .subject-off { opacity: .4; }
 
+    /* ===== Мобильная адаптация (телефоны, Telegram Mini App) ===== */
+    @media (max-width: 576px) {
+      .container { padding-left: 12px; padding-right: 12px; }
+
+      .app-header { padding: 14px 0 6px 0; }
+      .app-header h2 { font-size: 1.3rem; }
+      .app-header .group-badge { font-size: 12px; padding: 4px 9px; }
+      .app-header > div:last-child { width: 100%; }
+      .admin-btn { width: 100%; justify-content: center; }
+
+      /* Карточки метрик: компактная сетка 3×2 вместо авто-подбора */
+      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-card { padding: 10px; min-height: 68px; }
+      .stat-value { font-size: 19px; }
+      .stat-label { font-size: 10px; }
+
+      /* Панель поиска/фильтра — занимает всю ширину */
+      .search-filter-group { max-width: none; width: 100%; }
+      .search-filter-group .form-select { width: 110px; }
+
+      /* Кнопки действий — на всю ширину построчно, удобнее тапать */
+      .action-buttons-group { width: 100%; }
+      .action-buttons-group .btn { flex: 1 1 auto; }
+
+      /* iOS зумит инпуты с font-size меньше 16px при фокусе — фиксируем */
+      .form-control, .form-select { font-size: 16px !important; }
+
+      .table td, .table th { padding: 10px; font-size: 13px; }
+      .modal-body { padding: 14px; }
+    }
+
   </style>
 </head>
 <body>
@@ -285,7 +409,7 @@
 
   <!-- Панель действий -->
   <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
-    <div class="d-flex gap-2 flex-grow-1" style="max-width: 500px;">
+    <div class="search-filter-group d-flex gap-2 flex-grow-1" style="max-width: 500px;">
       <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
       <select id="typeFilter" class="form-select form-select-sm" style="width: 130px;" onchange="renderTable()">
         <option value="ALL">Все</option>
@@ -294,7 +418,7 @@
       </select>
     </div>
 
-    <div class="d-flex gap-2 flex-wrap">
+    <div class="action-buttons-group d-flex gap-2 flex-wrap">
       <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
       <button class="btn btn-outline-secondary btn-sm" onclick="exportToCSV()">Выгрузить</button>
@@ -325,7 +449,7 @@
 
 <!-- Модальное окно: Внести пропуски -->
 <div class="modal fade" id="addAbsenceModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title text-white">Внести пропуски</h5>
@@ -426,7 +550,7 @@
 
 <!-- Модальное окно: История и подробная статистика студента -->
 <div class="modal fade" id="studentHistoryModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title text-white" id="historyModalTitle">История пропусков</h5>
