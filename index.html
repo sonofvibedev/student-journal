@@ -1,0 +1,1026 @@
+﻿<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Учёт пропусков</title>
+
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .container { max-width: 1100px; }
+
+    .app-header { padding: 20px 0 10px 0; }
+
+    .group-badge {
+      background-color: rgba(56, 139, 253, 0.15);
+      color: #58a6ff;
+      border: 1px solid rgba(56, 139, 253, 0.4);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+
+    /* Карточки метрик: авто-подбор колонок, никогда не сжимаются в нечитаемую ширину */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-card {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 84px;
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: #f0f6fc;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 4px;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    .table-container {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table-responsive {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+      margin-bottom: 0;
+      color: #c9d1d9;
+      min-width: 680px;
+      --bs-table-bg: transparent;
+      --bs-table-border-color: #21262d;
+    }
+
+    .table th {
+      background-color: #161b22;
+      color: #8b949e;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid #30363d;
+      white-space: nowrap;
+    }
+
+    .table td {
+      padding: 10px 14px;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .table-hover tbody tr:hover { background-color: #1c2128; }
+
+    .student-name {
+      font-weight: 600;
+      color: #58a6ff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .student-name:hover { text-decoration: underline; }
+
+    .badge-type {
+      background-color: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .hours-box {
+      width: 65px;
+      text-align: center;
+      padding: 4px 0;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.1;
+      display: inline-block;
+    }
+
+    .hours-subtext {
+      font-size: 9px;
+      font-weight: 400;
+      display: block;
+      opacity: 0.85;
+    }
+
+    .hours-zero { background-color: #0f2d1e; color: #3fb950; border: 1px solid #1a4d31; }
+    .hours-warning { background-color: #382403; color: #d29922; border: 1px solid #5d3d06; }
+    .hours-danger { background-color: #3d1314; color: #f85149; border: 1px solid #672022; }
+
+    .quick-hour-btn {
+      min-width: 50px;
+      font-weight: 600;
+    }
+
+    .student-summary-card {
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px 16px;
+    }
+
+    .subject-slot-card {
+      background-color: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-check-input:checked {
+      background-color: #238636;
+      border-color: #238636;
+    }
+
+    .form-control, .form-select {
+      background-color: #0d1117;
+      border-color: #30363d;
+      color: #f0f6fc;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background-color: #0d1117;
+      border-color: #58a6ff;
+      color: #f0f6fc;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    }
+
+    .modal-content {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+
+    .modal-header, .modal-footer { border-color: #21262d; }
+
+    /* ===== Мобильная адаптация (телефоны, Telegram Mini App) ===== */
+    @media (max-width: 576px) {
+      .container { padding-left: 12px; padding-right: 12px; }
+
+      .app-header { padding: 14px 0 6px 0; }
+      .app-header h2 { font-size: 1.3rem; }
+      .app-header .group-badge { font-size: 12px; padding: 4px 9px; }
+      #adminBtn { width: 100%; }
+      .app-header > div:last-child { width: 100%; }
+
+      /* Карточки метрик: компактная сетка 3×2 вместо авто-подбора */
+      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-card { padding: 10px; min-height: 68px; }
+      .stat-value { font-size: 19px; }
+      .stat-label { font-size: 10px; }
+
+      /* Панель поиска/фильтра — занимает всю ширину */
+      .search-filter-group { max-width: none; width: 100%; }
+      .search-filter-group .form-select { width: 110px; }
+
+      /* Кнопки действий — на всю ширину построчно, удобнее тапать */
+      .action-buttons-group { width: 100%; }
+      .action-buttons-group .btn { flex: 1 1 auto; }
+
+      /* iOS зумит инпуты с font-size меньше 16px при фокусе — фиксируем */
+      .form-control, .form-select { font-size: 16px !important; }
+
+      .table td, .table th { padding: 10px; font-size: 13px; }
+      .modal-body { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container my-3">
+  
+  <!-- Заголовок страницы -->
+  <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h2 class="m-0 fw-bold text-white">Учёт пропусков</h2>
+        <span class="group-badge">24ДММ-2</span>
+      </div>
+      <div class="text-secondary small mt-1" id="currentPeriodText">Текущий период: Сентябрь 2026</div>
+    </div>
+    <div>
+      <button id="adminBtn" class="btn btn-outline-secondary btn-sm" onclick="toggleAdminModal()">🔑 Вход для админа</button>
+    </div>
+  </div>
+
+  <!-- Карточки метрик -->
+  <div class="stats-grid mb-4">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotalStudents">0</div>
+      <div class="stat-label">Всего студентов</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statBudget">0</div>
+      <div class="stat-label">Бюджет</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statPaid">0</div>
+      <div class="stat-label">Платники</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value text-warning" id="statUnexcusedHours">0</div>
+      <div class="stat-label">Обычных часов</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value text-success" id="statExcusedHours">0</div>
+      <div class="stat-label">Уваж. часов</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value text-danger" id="statRedZone">0</div>
+      <div class="stat-label">В красной зоне (14+)</div>
+    </div>
+  </div>
+
+  <!-- Панель действий -->
+  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+    <div class="search-filter-group d-flex gap-2 flex-grow-1" style="max-width: 500px;">
+      <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
+      <select id="typeFilter" class="form-select form-select-sm" style="width: 130px;" onchange="renderTable()">
+        <option value="ALL">Все</option>
+        <option value="Бюджет">Бюджет</option>
+        <option value="Платное">Платники</option>
+      </select>
+    </div>
+
+    <div class="action-buttons-group d-flex gap-2 flex-wrap">
+      <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
+      <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="exportToCSV()">Выгрузить</button>
+      <button class="btn btn-outline-danger btn-sm admin-only d-none" onclick="confirmClearMonth()">Очистить месяц</button>
+    </div>
+  </div>
+
+  <!-- Таблица студентов -->
+  <div class="table-container mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>ФИО ▲</th>
+            <th>Тип</th>
+            <th class="text-center">Часы</th>
+            <th class="text-center">Уваж.</th>
+            <th>Последний пропуск</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Внести пропуски -->
+<div class="modal fade" id="addAbsenceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Внести пропуски</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Студент</label>
+          <select id="absenceStudent" class="form-select" onchange="updateStudentSummaryCard()"></select>
+        </div>
+
+        <!-- Сводка по выбранному студенту -->
+        <div class="student-summary-card mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="small text-secondary">ФИО</div>
+              <div class="fw-bold text-white" id="modalStudentNameSummary">—</div>
+            </div>
+            <div class="text-end">
+              <div class="small text-secondary">Обычных часов за месяц</div>
+              <div class="fw-bold text-warning" id="modalStudentHoursSummary">0 часов</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Часы за этот день</label>
+          <div class="d-flex gap-2 mb-2">
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setQuickHours(2)">2</button>
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setQuickHours(4)">4</button>
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setQuickHours(6)">6</button>
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setQuickHours(8)">8</button>
+          </div>
+          <input type="number" id="absenceHours" class="form-control" placeholder="Своё количество часов" min="1" value="2" oninput="renderSubjectPickers()">
+        </div>
+
+        <!-- Динамический список выбора предметов (Radio Buttons) -->
+        <div class="mb-3">
+          <div id="subjectContainer"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Дата</label>
+          <input type="date" id="absenceDate" class="form-control">
+        </div>
+
+        <div class="mb-3 form-check">
+          <input type="checkbox" id="absenceIsExcused" class="form-check-input">
+          <label class="form-check-label text-secondary small" for="absenceIsExcused">Уважительный пропуск</label>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Примечание (необязательно)</label>
+          <input type="text" id="absenceComment" class="form-control" placeholder="Например: По болезни">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary fw-bold" onclick="submitAbsence()">Ввести</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Добавить / Редактировать студента -->
+<div class="modal fade" id="studentEditModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="studentEditTitle">Добавить студента</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editStudentId">
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Фамилия</label>
+          <input type="text" id="studentLastName" class="form-control" placeholder="Иванов" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Имя и Отчество</label>
+          <input type="text" id="studentFirstName" class="form-control" placeholder="Иван Иванович" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Форма обучения</label>
+          <select id="studentStatus" class="form-select">
+            <option value="Бюджет">Бюджет</option>
+            <option value="Платное">Платник</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-success fw-bold" onclick="saveStudent()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: История и подробная статистика студента -->
+<div class="modal fade" id="studentHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="historyModalTitle">История пропусков</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Сводка статистики -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <div class="p-3 border rounded border-secondary border-opacity-25 bg-dark">
+              <div class="text-secondary small mb-1">За текущий месяц</div>
+              <div class="d-flex justify-content-between">
+                <span>Обычные: <strong class="text-warning" id="historyMonthUnexcused">0 ч</strong></span>
+                <span>Уважительные: <strong class="text-success" id="historyMonthExcused">0 ч</strong></span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 border rounded border-secondary border-opacity-25 bg-dark">
+              <div class="text-secondary small mb-1">За весь семестр</div>
+              <div class="d-flex justify-content-between">
+                <span>Обычные: <strong class="text-danger" id="historyTotalUnexcused">0 ч</strong></span>
+                <span>Уважительные: <strong class="text-success" id="historyTotalExcused">0 ч</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Детализация по предметам -->
+        <h6 class="text-white mb-2">Пропуски по предметам:</h6>
+        <div class="table-responsive mb-4">
+          <table class="table table-bordered table-sm align-middle text-center">
+            <thead>
+              <tr class="table-dark">
+                <th class="text-start">Предмет</th>
+                <th>Неуваж. (ч)</th>
+                <th>Уваж. (ч)</th>
+                <th>Всего (ч)</th>
+              </tr>
+            </thead>
+            <tbody id="subjectStatsBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Список записей -->
+        <h6 class="text-white mb-2">Все записи пропусков:</h6>
+        <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="historyList"></div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно авторизации админа -->
+<div class="modal fade" id="adminModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Авторизация Администратора</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-secondary mb-3">Введите ваш Personal Access Token (Classic) с правами <code>repo</code>:</p>
+        <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx">
+        <button class="btn btn-primary w-100 fw-bold" onclick="saveAdminToken()">Войти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const GITHUB_OWNER = 'dimpolenyshev';
+  const GITHUB_REPO = 'student-journal';
+  const DATA_PATH = 'data.json';
+
+  const DEFAULT_SUBJECTS = [
+    "Интегрированные маркетинговые коммуникации",
+    "Кураторский час",
+    "Логистика",
+    "Маркетинг инноваций",
+    "Маркетинг услуг",
+    "Маркетинговые исследования и аналитика",
+    "Стратегический маркетинг",
+    "Физическая культура",
+    "Функционально-стоимостный анализ",
+    "Эконометрика"
+  ];
+
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
+  let githubToken = localStorage.getItem('gh_pat') || '';
+
+  const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
+  const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
+  const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
+  const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
+
+  async function init() {
+    // Инициализация Telegram Mini App
+    if (window.Telegram && window.Telegram.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.expand();
+      if (tg.disableVerticalSwipes) {
+        tg.disableVerticalSwipes();
+      }
+      tg.ready();
+    }
+
+    await loadData();
+    updateAdminUI();
+  }
+
+  async function loadData() {
+    try {
+      const response = await fetch(`./data.json?t=${Date.now()}`);
+      appData = await response.json();
+      if (!appData.subjects || appData.subjects.length === 0) {
+        appData.subjects = DEFAULT_SUBJECTS;
+      }
+      updateStats();
+      renderTable();
+    } catch (err) {
+      console.error('Ошибка загрузки данных:', err);
+    }
+  }
+
+  function updateStats() {
+    const totalStudents = appData.students.length;
+    const budget = appData.students.filter(s => s.status === 'Бюджет').length;
+    const paid = totalStudents - budget;
+
+    let unexcusedTotal = 0;
+    let excusedTotal = 0;
+    let redZoneCount = 0;
+
+    appData.students.forEach(student => {
+      const studentAbs = appData.absences.filter(a => a.studentId === student.id);
+      let unexcused = 0;
+      studentAbs.forEach(a => {
+        if (a.isExcused) excusedTotal += Number(a.totalHours);
+        else {
+          unexcusedTotal += Number(a.totalHours);
+          unexcused += Number(a.totalHours);
+        }
+      });
+      if (unexcused >= 14) redZoneCount++;
+    });
+
+    document.getElementById('statTotalStudents').innerText = totalStudents;
+    document.getElementById('statBudget').innerText = budget;
+    document.getElementById('statPaid').innerText = paid;
+    document.getElementById('statUnexcusedHours').innerText = unexcusedTotal;
+    document.getElementById('statExcusedHours').innerText = excusedTotal;
+    document.getElementById('statRedZone').innerText = redZoneCount;
+  }
+
+  function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    const tbody = document.getElementById('studentsTableBody');
+    tbody.innerHTML = '';
+
+    const filtered = appData.students.filter(s => {
+      const fullName = `${s.lastName} ${s.firstName}`.toLowerCase();
+      const matchesSearch = fullName.includes(search);
+      const matchesType = typeFilter === 'ALL' || s.status === typeFilter;
+      return matchesSearch && matchesType;
+    });
+
+    filtered.sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+    filtered.forEach(student => {
+      const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
+      
+      let unexcusedHours = 0;
+      let excusedHours = 0;
+      let lastAbsenceDate = '—';
+
+      if (studentAbsences.length > 0) {
+        const sortedAbs = [...studentAbsences].sort((a, b) => new Date(b.date) - new Date(a.date));
+        studentAbsences.forEach(a => {
+          if (a.isExcused) excusedHours += Number(a.totalHours);
+          else unexcusedHours += Number(a.totalHours);
+        });
+
+        if (sortedAbs[0].date) {
+          const d = new Date(sortedAbs[0].date);
+          lastAbsenceDate = d.toLocaleDateString('ru-RU');
+        }
+      }
+
+      let hoursClass = 'hours-zero';
+      if (unexcusedHours >= 14) hoursClass = 'hours-danger';
+      else if (unexcusedHours > 0) hoursClass = 'hours-warning';
+
+      function getHoursText(h) {
+        if (h === 1) return 'час';
+        if (h >= 2 && h <= 4) return 'часа';
+        return 'часов';
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <a class="student-name" onclick="openStudentHistory('${student.id}')">
+            ${student.lastName} ${student.firstName}
+          </a>
+        </td>
+        <td><span class="badge-type">${student.status}</span></td>
+        <td class="text-center">
+          <div class="hours-box ${hoursClass}">
+            ${unexcusedHours}
+            <span class="hours-subtext">${getHoursText(unexcusedHours)}</span>
+          </div>
+        </td>
+        <td class="text-center">
+          <div class="hours-box hours-zero" style="background-color: #0d2719; color: #2ea043; border-color: #1b4728;">
+            ${excusedHours}
+            <span class="hours-subtext">${getHoursText(excusedHours)}</span>
+          </div>
+        </td>
+        <td class="text-secondary">${lastAbsenceDate}</td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary btn-sm" onclick="openStudentHistory('${student.id}')">История</button>
+            <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openEditStudentModal('${student.id}')">Изменить</button>
+            <button class="btn btn-outline-danger btn-sm admin-only d-none" onclick="deleteStudent('${student.id}')">Удалить</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateAdminUI();
+  }
+
+  // --- Внести пропуски с Radio Buttons для предметов ---
+  function openAddAbsenceModal() {
+    const studentSelect = document.getElementById('absenceStudent');
+    studentSelect.innerHTML = appData.students.map(s => `<option value="${s.id}">${s.lastName} ${s.firstName}</option>`).join('');
+
+    document.getElementById('absenceDate').valueAsDate = new Date();
+    document.getElementById('absenceHours').value = 2;
+
+    updateStudentSummaryCard();
+    renderSubjectPickers();
+    addAbsenceModal.show();
+  }
+
+  function renderSubjectPickers() {
+    const hoursInput = document.getElementById('absenceHours');
+    let hours = parseInt(hoursInput.value) || 2;
+    if (hours < 1) hours = 1;
+
+    const container = document.getElementById('subjectContainer');
+    container.innerHTML = '';
+
+    const pairsCount = Math.max(1, Math.floor(hours / 2) + (hours % 2 > 0 ? 1 : 0));
+    let remainingHours = hours;
+
+    for (let i = 1; i <= pairsCount; i++) {
+      const slotHours = remainingHours >= 2 ? 2 : remainingHours;
+      remainingHours -= slotHours;
+
+      const div = document.createElement('div');
+      div.className = 'subject-slot-card';
+
+      const labelText = pairsCount === 1 
+        ? `Выберите предмет (${slotHours} ч):` 
+        : `Пара ${i} (${slotHours} ч) — Выберите предмет:`;
+
+      const radiosHtml = appData.subjects.map((s, idx) => `
+        <div class="form-check my-1">
+          <input class="form-check-input" type="radio" name="subject_pair_${i}" id="sub_p${i}_${idx}" value="${s}" ${idx === 0 ? 'checked' : ''} data-hours="${slotHours}">
+          <label class="form-check-label text-white small" for="sub_p${i}_${idx}">${s}</label>
+        </div>
+      `).join('');
+
+      div.innerHTML = `
+        <label class="form-label text-secondary small fw-bold mb-2">${labelText}</label>
+        <div class="ps-1">${radiosHtml}</div>
+      `;
+      container.appendChild(div);
+    }
+  }
+
+  function setQuickHours(val) {
+    document.getElementById('absenceHours').value = val;
+    renderSubjectPickers();
+  }
+
+  function updateStudentSummaryCard() {
+    const studentId = document.getElementById('absenceStudent').value;
+    const student = appData.students.find(s => s.id === studentId);
+    if (!student) return;
+
+    document.getElementById('modalStudentNameSummary').innerText = `${student.lastName} ${student.firstName}`;
+    
+    const unexcused = appData.absences
+      .filter(a => a.studentId === studentId && !a.isExcused)
+      .reduce((sum, a) => sum + Number(a.totalHours), 0);
+
+    document.getElementById('modalStudentHoursSummary').innerText = `${unexcused} часов`;
+  }
+
+  async function submitAbsence() {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+
+    const studentId = document.getElementById('absenceStudent').value;
+    const date = document.getElementById('absenceDate').value;
+    const isExcused = document.getElementById('absenceIsExcused').checked;
+    const comment = document.getElementById('absenceComment').value.trim();
+
+    const hoursInput = document.getElementById('absenceHours');
+    let hours = parseInt(hoursInput.value) || 2;
+    const pairsCount = Math.max(1, Math.floor(hours / 2) + (hours % 2 > 0 ? 1 : 0));
+
+    for (let i = 1; i <= pairsCount; i++) {
+      const checkedRadio = document.querySelector(`input[name="subject_pair_${i}"]:checked`);
+      if (!checkedRadio) continue;
+
+      const slotHours = Number(checkedRadio.dataset.hours) || 2;
+      const subject = checkedRadio.value;
+
+      appData.absences.push({
+        id: 'abs-' + Date.now() + '-' + i + '-' + Math.floor(Math.random() * 1000),
+        studentId,
+        date,
+        totalHours: slotHours,
+        isExcused,
+        subject,
+        comment
+      });
+    }
+
+    await saveDataToGitHub('Добавлены пропуски по предметам');
+    addAbsenceModal.hide();
+  }
+
+  // --- История и расширенная статистика по студенту ---
+  function openStudentHistory(studentId) {
+    const student = appData.students.find(s => s.id === studentId);
+    if (!student) return;
+
+    document.getElementById('historyModalTitle').innerText = `${student.lastName} ${student.firstName} (${student.status})`;
+
+    const studentAbs = appData.absences.filter(a => a.studentId === studentId);
+
+    const currentMonth = new Date().getMonth();
+    let monthUnexcused = 0, monthExcused = 0;
+    let totalUnexcused = 0, totalExcused = 0;
+
+    const subjectMap = {};
+    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
+
+    studentAbs.forEach(a => {
+      const h = Number(a.totalHours);
+      const absDate = new Date(a.date);
+      const isCurrentMonth = absDate.getMonth() === currentMonth;
+
+      if (a.isExcused) {
+        totalExcused += h;
+        if (isCurrentMonth) monthExcused += h;
+      } else {
+        totalUnexcused += h;
+        if (isCurrentMonth) monthUnexcused += h;
+      }
+
+      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
+      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
+      
+      if (a.isExcused) subjectMap[subName].excused += h;
+      else subjectMap[subName].unexcused += h;
+    });
+
+    document.getElementById('historyMonthUnexcused').innerText = `${monthUnexcused} ч`;
+    document.getElementById('historyMonthExcused').innerText = `${monthExcused} ч`;
+    document.getElementById('historyTotalUnexcused').innerText = `${totalUnexcused} ч`;
+    document.getElementById('historyTotalExcused').innerText = `${totalExcused} ч`;
+
+    const subjectBody = document.getElementById('subjectStatsBody');
+    subjectBody.innerHTML = '';
+    Object.keys(subjectMap).forEach(sub => {
+      const u = subjectMap[sub].unexcused;
+      const e = subjectMap[sub].excused;
+      if (u > 0 || e > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-start fw-bold text-white">${sub}</td>
+          <td class="text-warning">${u}</td>
+          <td class="text-success">${e}</td>
+          <td class="fw-bold">${u + e}</td>
+        `;
+        subjectBody.appendChild(tr);
+      }
+    });
+
+    const historyList = document.getElementById('historyList');
+    historyList.innerHTML = '';
+
+    if (studentAbs.length === 0) {
+      historyList.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
+    } else {
+      const sortedAbs = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      sortedAbs.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
+        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+        item.innerHTML = `
+          <div>
+            <div class="fw-bold text-white">${a.date} — ${subName} (${a.totalHours} ч)</div>
+            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Обычный'}</span>
+            <button class="btn btn-sm btn-outline-danger admin-only d-none" onclick="deleteAbsence('${a.id}', '${studentId}')">✕</button>
+          </div>
+        `;
+        historyList.appendChild(item);
+      });
+    }
+
+    studentHistoryModal.show();
+  }
+
+  async function deleteAbsence(absId, studentId) {
+    if (!confirm('Удалить эту запись о пропуске?')) return;
+    appData.absences = appData.absences.filter(a => a.id !== absId);
+    await saveDataToGitHub('Удален пропуск');
+    openStudentHistory(studentId);
+  }
+
+  // --- Добавить / Удалить / Редактировать студента ---
+  function openAddStudentModal() {
+    document.getElementById('studentEditTitle').innerText = 'Добавить студента';
+    document.getElementById('editStudentId').value = '';
+    document.getElementById('studentLastName').value = '';
+    document.getElementById('studentFirstName').value = '';
+    document.getElementById('studentStatus').value = 'Бюджет';
+    studentEditModal.show();
+  }
+
+  function openEditStudentModal(id) {
+    const student = appData.students.find(s => s.id === id);
+    if (!student) return;
+    document.getElementById('studentEditTitle').innerText = 'Редактировать студента';
+    document.getElementById('editStudentId').value = student.id;
+    document.getElementById('studentLastName').value = student.lastName;
+    document.getElementById('studentFirstName').value = student.firstName;
+    document.getElementById('studentStatus').value = student.status;
+    studentEditModal.show();
+  }
+
+  async function saveStudent() {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+    const id = document.getElementById('editStudentId').value;
+    const lastName = document.getElementById('studentLastName').value.trim();
+    const firstName = document.getElementById('studentFirstName').value.trim();
+    const status = document.getElementById('studentStatus').value;
+
+    if (!lastName || !firstName) return alert('Заполните ФИО студента');
+
+    if (id) {
+      const student = appData.students.find(s => s.id === id);
+      if (student) {
+        student.lastName = lastName;
+        student.firstName = firstName;
+        student.status = status;
+      }
+    } else {
+      appData.students.push({
+        id: 'st-' + Date.now(),
+        lastName,
+        firstName,
+        status
+      });
+    }
+
+    await saveDataToGitHub('Обновлен список студентов');
+    studentEditModal.hide();
+  }
+
+  async function deleteStudent(id) {
+    if (!confirm('Вы действительно хотите удалить студента и все его пропуски?')) return;
+    appData.students = appData.students.filter(s => s.id !== id);
+    appData.absences = appData.absences.filter(a => a.studentId !== id);
+    await saveDataToGitHub('Удален студент');
+  }
+
+  // --- Выгрузка в CSV и Очистка месяца ---
+  function exportToCSV() {
+    let csv = '\uFEFFФИО;Статус;Всего обычных часов;Всего уважительных часов\n';
+    appData.students.forEach(s => {
+      const abs = appData.absences.filter(a => a.studentId === s.id);
+      let u = 0, e = 0;
+      abs.forEach(a => {
+        if (a.isExcused) e += Number(a.totalHours);
+        else u += Number(a.totalHours);
+      });
+      csv += `"${s.lastName} ${s.firstName}";"${s.status}";${u};${e}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Пропуски_24ДММ-2_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  }
+
+  async function confirmClearMonth() {
+    if (!confirm('Вы уверены, что хотите очистить пропуски за текущий месяц для ВСЕХ студентов?')) return;
+    const currentMonth = new Date().getMonth();
+    appData.absences = appData.absences.filter(a => new Date(a.date).getMonth() !== currentMonth);
+    await saveDataToGitHub('Очищен текущий месяц');
+  }
+
+  // --- Сохранение в GitHub ---
+  async function saveDataToGitHub(message) {
+  try {
+    const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+      headers: { Authorization: `Bearer ${githubToken}` }
+    });
+
+    if (!getFileRes.ok) {
+      const errJson = await getFileRes.json();
+      return alert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
+    }
+
+    const fileData = await getFileRes.json();
+    const updatedJsonStr = JSON.stringify(appData, null, 2);
+    const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
+    const base64Content = btoa(String.fromCharCode(...utf8Bytes));
+
+    const putRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: message,
+        content: base64Content,
+        sha: fileData.sha
+      })
+    });
+
+    if (putRes.ok) {
+      updateStats();
+      renderTable();
+      alert('Изменения успешно сохранены!');
+    } else {
+      const errorData = await putRes.json();
+      alert('Ошибка сохранения на GitHub: ' + errorData.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
+  }
+}
+
+  // --- Авторизация ---
+  function toggleAdminModal() {
+    if (githubToken) {
+      if (confirm('Выйти из режима администратора?')) logoutAdmin();
+    } else {
+      adminModal.show();
+    }
+  }
+
+  function saveAdminToken() {
+    const token = document.getElementById('githubTokenInput').value.trim();
+    if (!token) return alert('Введите токен!');
+    githubToken = token;
+    localStorage.setItem('gh_pat', token);
+    adminModal.hide();
+    updateAdminUI();
+  }
+
+  function logoutAdmin() {
+    localStorage.removeItem('gh_pat');
+    githubToken = '';
+    updateAdminUI();
+  }
+
+  function updateAdminUI() {
+    const adminElements = document.querySelectorAll('.admin-only');
+    const adminBtn = document.getElementById('adminBtn');
+
+    if (githubToken) {
+      adminElements.forEach(el => el.classList.remove('d-none'));
+      adminBtn.innerText = '🔑 Вы вошли (Выйти)';
+      adminBtn.classList.replace('btn-outline-secondary', 'btn-outline-success');
+    } else {
+      adminElements.forEach(el => el.classList.add('d-none'));
+      adminBtn.innerText = '🔑 Вход для админа';
+      adminBtn.classList.replace('btn-outline-success', 'btn-outline-secondary');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
+
+
