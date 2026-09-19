@@ -352,6 +352,58 @@
       .modal-body { padding: 14px; }
     }
 
+  /* v2-patch-applied: сортировка, мягкие кнопки, нейтральные уваж. часы */
+
+    /* Уважительные часы — без зелёного фона */
+    .hours-excused {
+      background-color: transparent;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+
+    /* Сортировка: клик по заголовку столбца */
+    .table th.sortable {
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: color .15s ease;
+    }
+    .table th.sortable:hover { color: #c9d1d9; }
+    .table th.sortable.asc,
+    .table th.sortable.desc { color: #58a6ff; }
+
+    /* Стрелки сортировки рисуются на CSS (без шрифтовых символов) */
+    .sort-arrow {
+      display: inline-block;
+      position: relative;
+      width: 8px;
+      height: 11px;
+      margin-left: 6px;
+      vertical-align: -1px;
+      opacity: .35;
+    }
+    .sort-arrow::before,
+    .sort-arrow::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+    }
+    .sort-arrow::before { top: 0; border-bottom: 4px solid currentColor; }
+    .sort-arrow::after { bottom: 0; border-top: 4px solid currentColor; }
+    th.asc .sort-arrow, th.desc .sort-arrow { opacity: 1; }
+    th.asc .sort-arrow::after { display: none; }
+    th.desc .sort-arrow::before { display: none; }
+
+    /* Панель кнопок: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
+    .action-buttons-group { display: flex; }
+
+    /* Мягкие кнопки: скруглённые углы + приглушённые границы */
+    .btn { --bs-btn-border-radius: 10px; }
+    .btn-outline-secondary { --bs-btn-border-color: rgba(139, 148, 158, 0.35); }
+    .btn-outline-light { --bs-btn-border-color: rgba(240, 246, 252, 0.28); }
+    .btn-outline-danger { --bs-btn-border-color: rgba(248, 81, 73, 0.45); }
   </style>
 </head>
 <body>
@@ -395,7 +447,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-value text-warning" id="statUnexcusedHours">0</div>
-      <div class="stat-label">Обычных часов</div>
+      <div class="stat-label">Неуваж. часов</div>
     </div>
     <div class="stat-card">
       <div class="stat-value text-success" id="statExcusedHours">0</div>
@@ -403,7 +455,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-value text-danger" id="statRedZone">0</div>
-      <div class="stat-label">В красной зоне (14+)</div>
+      <div class="stat-label">Вероятное предупреждение от деканата (14+)</div>
     </div>
   </div>
 
@@ -418,10 +470,10 @@
       </select>
     </div>
 
-    <div class="action-buttons-group d-flex gap-2 flex-wrap">
+    <div class="action-buttons-group admin-only d-none gap-2 flex-wrap">
       <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
-      <button class="btn btn-outline-secondary btn-sm" onclick="exportToCSV()">Выгрузить</button>
+      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="exportToCSV()">Выгрузить</button>
       <button class="btn btn-outline-danger btn-sm admin-only d-none" onclick="confirmClearMonth()">Очистить месяц</button>
     </div>
   </div>
@@ -433,11 +485,11 @@
         <thead>
           <tr>
             <th class="text-center" style="width: 54px;">№</th>
-            <th>ФИО ▲</th>
-            <th>Тип</th>
-            <th class="text-center">Часы</th>
-            <th class="text-center">Уваж.</th>
-            <th>Последний пропуск</th>
+            <th class="sortable" data-sort="name" onclick="setSort('name')">ФИО<span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="status" onclick="setSort('status')">Тип<span class="sort-arrow"></span></th>
+            <th class="text-center sortable" data-sort="unexcused" onclick="setSort('unexcused')">Неуваж.<span class="sort-arrow"></span></th>
+            <th class="text-center sortable" data-sort="excused" onclick="setSort('excused')">Уваж.<span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="last" onclick="setSort('last')">Последний пропуск<span class="sort-arrow"></span></th>
             <th class="text-end">Действия</th>
           </tr>
         </thead>
@@ -469,7 +521,7 @@
               <div class="fw-bold text-white" id="modalStudentNameSummary">—</div>
             </div>
             <div class="text-end">
-              <div class="small text-secondary">Обычных часов за месяц</div>
+              <div class="small text-secondary">Неуваж. часов за месяц</div>
               <div class="fw-bold text-warning" id="modalStudentHoursSummary">0 часов</div>
             </div>
           </div>
@@ -564,7 +616,7 @@
             <div class="p-3 border rounded border-secondary border-opacity-25 bg-dark">
               <div class="text-secondary small mb-1">За текущий месяц</div>
               <div class="d-flex justify-content-between">
-                <span>Обычные: <strong class="text-warning" id="historyMonthUnexcused">0 ч</strong></span>
+                <span>Неуважительные: <strong class="text-warning" id="historyMonthUnexcused">0 ч</strong></span>
                 <span>Уважительные: <strong class="text-success" id="historyMonthExcused">0 ч</strong></span>
               </div>
             </div>
@@ -573,7 +625,7 @@
             <div class="p-3 border rounded border-secondary border-opacity-25 bg-dark">
               <div class="text-secondary small mb-1">За весь семестр</div>
               <div class="d-flex justify-content-between">
-                <span>Обычные: <strong class="text-danger" id="historyTotalUnexcused">0 ч</strong></span>
+                <span>Неуважительные: <strong class="text-danger" id="historyTotalUnexcused">0 ч</strong></span>
                 <span>Уважительные: <strong class="text-success" id="historyTotalExcused">0 ч</strong></span>
               </div>
             </div>
@@ -719,6 +771,75 @@
     return map;
   }
 
+  // --- Сортировка таблицы (клик по заголовку) ---
+  // Первый клик: ФИО и тип — по алфавиту; часы и даты — сначала бо́льшие/свежие
+  const SORT_DEFAULT_DIR = { name: 'asc', status: 'asc', unexcused: 'desc', excused: 'desc', last: 'desc' };
+  let sortState = { key: 'name', dir: 'asc' };
+
+  function setSort(key) {
+    if (sortState.key === key) {
+      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState = { key: key, dir: SORT_DEFAULT_DIR[key] || 'asc' };
+    }
+    renderTable();
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('th.sortable').forEach(th => {
+      const active = th.dataset.sort === sortState.key;
+      th.classList.toggle('asc', active && sortState.dir === 'asc');
+      th.classList.toggle('desc', active && sortState.dir === 'desc');
+      th.setAttribute('aria-sort', active ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+    });
+  }
+
+  function getStudentStats(studentId) {
+    let unexcused = 0, excused = 0, lastTs = null;
+    appData.absences.forEach(a => {
+      if (a.studentId !== studentId) return;
+      const h = Number(a.totalHours) || 0;
+      if (a.isExcused) excused += h; else unexcused += h;
+      const ts = new Date(a.date).getTime();
+      if (!isNaN(ts) && (lastTs === null || ts > lastTs)) lastTs = ts;
+    });
+    return { unexcused: unexcused, excused: excused, lastTs: lastTs };
+  }
+
+  function makeComparator(statsById, journalNumbers) {
+    const mul = sortState.dir === 'asc' ? 1 : -1;
+    const byName = (a, b) => journalNumbers[a.id] - journalNumbers[b.id];
+
+    return (a, b) => {
+      let cmp = 0;
+      switch (sortState.key) {
+        case 'name':
+          return mul * byName(a, b);
+        case 'status':
+          cmp = mul * (a.status || '').localeCompare(b.status || '', 'ru');
+          break;
+        case 'unexcused':
+          cmp = mul * (statsById[a.id].unexcused - statsById[b.id].unexcused);
+          break;
+        case 'excused':
+          cmp = mul * (statsById[a.id].excused - statsById[b.id].excused);
+          break;
+        case 'last': {
+          const ta = statsById[a.id].lastTs;
+          const tb = statsById[b.id].lastTs;
+          // студенты без пропусков всегда внизу, в любом направлении
+          if (ta === null && tb === null) break;
+          if (ta === null) return 1;
+          if (tb === null) return -1;
+          cmp = mul * (ta - tb);
+          break;
+        }
+      }
+      // при равенстве — по алфавиту
+      return cmp !== 0 ? cmp : byName(a, b);
+    };
+  }
+
   function renderTable() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const typeFilter = document.getElementById('typeFilter').value;
@@ -734,7 +855,10 @@
       return matchesSearch && matchesType;
     });
 
-    filtered.sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
+    const statsById = {};
+    filtered.forEach(s => { statsById[s.id] = getStudentStats(s.id); });
+    filtered.sort(makeComparator(statsById, journalNumbers));
+    updateSortIndicators();
 
     filtered.forEach(student => {
       const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
@@ -782,14 +906,14 @@
           </div>
         </td>
         <td class="text-center">
-          <div class="hours-box hours-zero" style="background-color: #0d2719; color: #2ea043; border-color: #1b4728;">
+          <div class="hours-box hours-excused">
             ${excusedHours}
             <span class="hours-subtext">${getHoursText(excusedHours)}</span>
           </div>
         </td>
         <td class="text-secondary">${lastAbsenceDate}</td>
         <td class="text-end">
-          <div class="btn-group btn-group-sm">
+          <div class="d-inline-flex gap-1">
             <button class="btn btn-outline-secondary btn-sm" onclick="openStudentHistory('${student.id}')">История</button>
             <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openEditStudentModal('${student.id}')">Изменить</button>
             <button class="btn btn-outline-danger btn-sm admin-only d-none" onclick="deleteStudent('${student.id}')">Удалить</button>
@@ -1045,7 +1169,7 @@
             <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
           </div>
           <div class="d-flex align-items-center gap-2">
-            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Обычный'}</span>
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
             <button class="btn btn-sm btn-outline-danger admin-only d-none" onclick="deleteAbsence('${a.id}', '${studentId}')">✕</button>
           </div>
         `;
@@ -1122,7 +1246,7 @@
 
   // --- Выгрузка в CSV и Очистка месяца ---
   function exportToCSV() {
-    let csv = '\uFEFFФИО;Статус;Всего обычных часов;Всего уважительных часов\n';
+    let csv = '\uFEFFФИО;Статус;Всего неуважительных часов;Всего уважительных часов\n';
     appData.students.forEach(s => {
       const abs = appData.absences.filter(a => a.studentId === s.id);
       let u = 0, e = 0;
