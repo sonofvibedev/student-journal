@@ -470,6 +470,78 @@
       color: #58a6ff;
     }
     .admin-badge svg { width: 100%; height: 100%; }
+  /* v4-feature-buttons-applied: кнопки разделов для обычных пользователей */
+
+    .feature-buttons {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .feature-btn {
+      --fb-top: #336ee6;
+      --fb-bottom: #1c4fc9;
+      -webkit-appearance: none;
+      appearance: none;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      min-height: 72px;
+      padding: 13px 16px;
+      border: 0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--fb-top), var(--fb-bottom));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px -10px var(--fb-bottom);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+      text-align: left;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: filter .15s ease, transform .1s ease;
+    }
+    .feature-btn:active { transform: scale(0.98); }
+    .feature-btn:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+    @media (hover: hover) {
+      .feature-btn:hover { filter: brightness(1.08); }
+    }
+
+    .feature-btn-icon {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      background-color: rgba(255, 255, 255, 0.16);
+    }
+    .feature-btn-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .feature-btn--blue { --fb-top: #336ee6; --fb-bottom: #1c4fc9; }
+    .feature-btn--violet { --fb-top: #7a4fe6; --fb-bottom: #5a2fc0; }
+    .feature-btn--teal { --fb-top: #0c8f83; --fb-bottom: #08625b; }
+
+    @media (min-width: 768px) {
+      .feature-buttons { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .feature-btn { min-height: 92px; padding: 16px 20px; font-size: 17px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .feature-btn { transition: none; }
+      .feature-btn:active { transform: none; }
+    }
   </style>
 </head>
 <body>
@@ -497,8 +569,30 @@
     </div>
   </div>
 
-  <!-- Карточки метрик -->
-  <div class="stats-grid mb-4">
+  <!-- Кнопки разделов (обычные пользователи; у администратора вместо них — статистика) -->
+  <div class="feature-buttons mb-4 user-only">
+    <button type="button" class="feature-btn feature-btn--blue" onclick="openRatingCalculator()">
+      <span class="feature-btn-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7.5" y="5.5" width="9" height="3.5" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17.5h.01M12 17.5h.01M16 17.5h.01"/></svg>
+      </span>
+      <span class="feature-btn-label">Калькулятор рейтинга</span>
+    </button>
+    <button type="button" class="feature-btn feature-btn--violet" onclick="openPersonalCabinet()">
+      <span class="feature-btn-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.6-4 3.7-6 7.5-6s6.9 2 7.5 6"/></svg>
+      </span>
+      <span class="feature-btn-label">Личный кабинет</span>
+    </button>
+    <button type="button" class="feature-btn feature-btn--teal" onclick="openTeachersList()">
+      <span class="feature-btn-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 4L2 9l10 5 10-5-10-5z"/><path d="M6 11.5v4.2c0 1.6 2.7 3.3 6 3.3s6-1.7 6-3.3v-4.2"/><path d="M22 9v5.5"/></svg>
+      </span>
+      <span class="feature-btn-label">Преподавательский состав</span>
+    </button>
+  </div>
+
+  <!-- Карточки метрик (только для администратора) -->
+  <div class="stats-grid mb-4 admin-only d-none">
     <div class="stat-card">
       <div class="stat-value" id="statTotalStudents">0</div>
       <div class="stat-label">Всего студентов</div>
@@ -814,6 +908,7 @@
       tg.ready();
     }
 
+    updateAdminUI();
     await loadData();
     updateAdminUI();
   }
@@ -1494,6 +1589,35 @@
   }
 }
 
+  // --- Кнопки разделов (заготовки): пока показывают сообщение «в разработке» ---
+  const FEATURE_IN_DEV_MESSAGE = 'Данная функция ещё в разработке. Ожидайте, пожалуйста, дальнейших изменений.';
+  let featurePopupOpen = false;
+
+  function showFeatureInDevelopment() {
+    if (featurePopupOpen) return;
+
+    // Внутри Telegram — родное окно с заголовком «Ошибка», в обычном браузере — alert
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && tg.initData && tg.isVersionAtLeast && tg.isVersionAtLeast('6.2')) {
+      try {
+        featurePopupOpen = true;
+        tg.showPopup(
+          { title: 'Ошибка', message: FEATURE_IN_DEV_MESSAGE, buttons: [{ type: 'close' }] },
+          () => { featurePopupOpen = false; }
+        );
+        return;
+      } catch (e) {
+        featurePopupOpen = false;
+      }
+    }
+    alert(FEATURE_IN_DEV_MESSAGE);
+  }
+
+  // Каждой кнопке — своя функция: позже достаточно заменить тело нужной
+  function openRatingCalculator() { showFeatureInDevelopment(); }
+  function openPersonalCabinet() { showFeatureInDevelopment(); }
+  function openTeachersList() { showFeatureInDevelopment(); }
+
   // --- Авторизация ---
   function toggleAdminModal() {
     if (githubToken) {
@@ -1520,6 +1644,8 @@
 
   function updateAdminUI() {
     const adminElements = document.querySelectorAll('.admin-only');
+    // Кнопки разделов — только для обычных пользователей
+    document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!githubToken));
     const adminBtn = document.getElementById('adminBtn');
     const adminBtnText = document.getElementById('adminBtnText');
 
