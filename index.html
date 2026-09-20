@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -625,9 +625,24 @@
           <label class="form-label text-secondary small">Роль (необязательно)</label>
           <input type="text" id="studentRole" class="form-control" placeholder="Староста, Зам. старосты...">
         </div>
-        <div class="form-check">
+        <div class="form-check mb-3">
           <input type="checkbox" id="studentIsAdmin" class="form-check-input">
           <label class="form-check-label text-secondary small" for="studentIsAdmin">Администратор журнала</label>
+        </div>
+
+        <div id="studentAbsenceManageSection" class="d-none">
+          <hr class="border-secondary">
+          <label class="form-label text-secondary small fw-bold">Удалить пропуски студента</label>
+
+          <div class="d-flex gap-2 mb-2">
+            <select id="deleteAbsByDateSelect" class="form-select form-select-sm"></select>
+            <button type="button" class="btn btn-outline-danger btn-sm text-nowrap" onclick="deleteAbsencesByDate()">За день</button>
+          </div>
+
+          <div class="d-flex gap-2">
+            <select id="deleteAbsBySubjectSelect" class="form-select form-select-sm"></select>
+            <button type="button" class="btn btn-outline-danger btn-sm text-nowrap" onclick="deleteAbsencesBySubject()">По предмету</button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1226,6 +1241,7 @@
       });
     }
 
+    updateAdminUI();
     studentHistoryModal.show();
   }
 
@@ -1245,6 +1261,7 @@
     document.getElementById('studentStatus').value = 'Бюджет';
     document.getElementById('studentRole').value = '';
     document.getElementById('studentIsAdmin').checked = false;
+    populateAbsenceManageSection(null);
     studentEditModal.show();
   }
 
@@ -1258,7 +1275,68 @@
     document.getElementById('studentStatus').value = student.status;
     document.getElementById('studentRole').value = student.role || '';
     document.getElementById('studentIsAdmin').checked = !!student.isAdmin;
+    populateAbsenceManageSection(student.id);
     studentEditModal.show();
+  }
+
+  // Заполняет выпадающие списки "удалить за день" / "удалить по предмету"
+  // в карточке студента данными его текущих пропусков (или прячет блок, если удалять нечего)
+  function populateAbsenceManageSection(studentId) {
+    const section = document.getElementById('studentAbsenceManageSection');
+    const abs = studentId ? appData.absences.filter(a => a.studentId === studentId) : [];
+
+    if (!studentId || abs.length === 0) {
+      section.classList.add('d-none');
+      return;
+    }
+    section.classList.remove('d-none');
+
+    const dateMap = {};
+    const subjMap = {};
+    abs.forEach(a => {
+      const h = Number(a.totalHours) || 0;
+      dateMap[a.date] = (dateMap[a.date] || 0) + h;
+      const subj = a.subject || 'Без предмета';
+      subjMap[subj] = (subjMap[subj] || 0) + h;
+    });
+
+    const dates = Object.keys(dateMap).sort((a, b) => new Date(b) - new Date(a));
+    document.getElementById('deleteAbsByDateSelect').innerHTML = dates
+      .map(d => `<option value="${d}">${formatDateShort(d)} (${dateMap[d]} ч)</option>`)
+      .join('');
+
+    const subjects = Object.keys(subjMap).sort((a, b) => a.localeCompare(b, 'ru'));
+    document.getElementById('deleteAbsBySubjectSelect').innerHTML = subjects
+      .map(s => `<option value="${s}">${s} (${subjMap[s]} ч)</option>`)
+      .join('');
+  }
+
+  async function deleteAbsencesByDate() {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+    const studentId = document.getElementById('editStudentId').value;
+    const date = document.getElementById('deleteAbsByDateSelect').value;
+    if (!studentId || !date) return;
+
+    const count = appData.absences.filter(a => a.studentId === studentId && a.date === date).length;
+    if (!confirm(`Удалить ${count} запис${count === 1 ? 'ь' : 'и'} пропуска за ${formatDateShort(date)}?`)) return;
+
+    appData.absences = appData.absences.filter(a => !(a.studentId === studentId && a.date === date));
+    await saveDataToGitHub('Удалены пропуски за день');
+    populateAbsenceManageSection(studentId);
+  }
+
+  async function deleteAbsencesBySubject() {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+    const studentId = document.getElementById('editStudentId').value;
+    const subject = document.getElementById('deleteAbsBySubjectSelect').value;
+    if (!studentId || !subject) return;
+
+    const count = appData.absences.filter(a => a.studentId === studentId && (a.subject || 'Без предмета') === subject).length;
+    if (!confirm(`Удалить ${count} запис${count === 1 ? 'ь' : 'и'} пропуска по предмету «${subject}»?`)) return;
+
+    appData.absences = appData.absences.filter(a => !(a.studentId === studentId && (a.subject || 'Без предмета') === subject));
+    await saveDataToGitHub('Удалены пропуски по предмету');
+    populateAbsenceManageSection(studentId);
   }
 
   async function saveStudent() {
