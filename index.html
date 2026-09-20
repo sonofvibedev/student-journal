@@ -470,73 +470,84 @@
       color: #58a6ff;
     }
     .admin-badge svg { width: 100%; height: 100%; }
-  /* v4-feature-buttons-applied: кнопки разделов для обычных пользователей */
+  /* v5-feature-tiles-applied: квадратные кнопки разделов в цветах приложения + отступы под интерфейс Telegram */
 
+    /* Telegram в полноэкранном режиме рисует свои кнопки («Закрыть», меню) и системную строку
+       поверх страницы. Размеры этих зон Telegram отдаёт в переменных --tg-*.
+       В обычном режиме они равны 0, и ничего не меняется. */
+    :root {
+      --app-inset-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+      --app-inset-right: calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px));
+      --app-inset-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+      --app-inset-left: calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px));
+    }
+    body {
+      padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
+    }
+    /* окна (история, добавление и т.д.) тоже не должны уезжать под кнопки Telegram */
+    .modal {
+      padding-top: var(--app-inset-top);
+      padding-bottom: var(--app-inset-bottom);
+    }
+
+    /* Кнопки разделов: три квадрата в ряд. Тонированные карточки в стиле .group-badge:
+       фон карточки приложения + лёгкий цветной оттенок, цветная рамка и иконка */
     .feature-buttons {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      max-width: 480px;
     }
 
     .feature-btn {
-      --fb-top: #336ee6;
-      --fb-bottom: #1c4fc9;
+      --fb-accent: #58a6ff;
+      --fb-tint: 56, 139, 253;
       -webkit-appearance: none;
       appearance: none;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 14px;
-      width: 100%;
-      min-height: 72px;
-      padding: 13px 16px;
-      border: 0;
+      justify-content: flex-start;
+      gap: 8px;
+      min-width: 0;
+      aspect-ratio: 1 / 1;
+      padding: 14px 6px 8px;
+      border: 1px solid rgba(var(--fb-tint), 0.40);
       border-radius: 16px;
-      background: linear-gradient(135deg, var(--fb-top), var(--fb-bottom));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px -10px var(--fb-bottom);
-      color: #ffffff;
-      font-size: 16px;
+      background-color: #161b22;
+      background-image: linear-gradient(160deg, rgba(var(--fb-tint), 0.22), rgba(var(--fb-tint), 0.08));
+      color: #e6edf3;
+      font-size: clamp(10.5px, 3.1vw, 13px);
       font-weight: 600;
-      line-height: 1.25;
-      text-align: left;
+      line-height: 1.2;
+      text-align: center;
+      overflow-wrap: anywhere;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
-      transition: filter .15s ease, transform .1s ease;
+      transition: border-color .15s ease, transform .1s ease;
     }
-    .feature-btn:active { transform: scale(0.98); }
-    .feature-btn:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+    .feature-btn:active { transform: scale(0.97); }
+    .feature-btn:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 2px; }
     @media (hover: hover) {
-      .feature-btn:hover { filter: brightness(1.08); }
+      .feature-btn:hover { border-color: rgba(var(--fb-tint), 0.75); }
     }
 
-    .feature-btn-icon {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 46px;
-      height: 46px;
-      border-radius: 13px;
-      background-color: rgba(255, 255, 255, 0.16);
-    }
+    .feature-btn-icon { display: flex; color: var(--fb-accent); }
     .feature-btn-icon svg {
-      width: 24px;
-      height: 24px;
+      width: 30px;
+      height: 30px;
       fill: none;
       stroke: currentColor;
-      stroke-width: 2;
+      stroke-width: 1.8;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
+    .feature-btn-label { display: block; max-width: 100%; }
 
-    .feature-btn--blue { --fb-top: #336ee6; --fb-bottom: #1c4fc9; }
-    .feature-btn--violet { --fb-top: #7a4fe6; --fb-bottom: #5a2fc0; }
-    .feature-btn--teal { --fb-top: #0c8f83; --fb-bottom: #08625b; }
-
-    @media (min-width: 768px) {
-      .feature-buttons { grid-template-columns: repeat(3, 1fr); gap: 12px; }
-      .feature-btn { min-height: 92px; padding: 16px 20px; font-size: 17px; }
-    }
+    .feature-btn--blue { --fb-accent: #58a6ff; --fb-tint: 56, 139, 253; }
+    .feature-btn--purple { --fb-accent: #a371f7; --fb-tint: 163, 113, 247; }
+    .feature-btn--green { --fb-accent: #3fb950; --fb-tint: 46, 160, 67; }
 
     @media (prefers-reduced-motion: reduce) {
       .feature-btn { transition: none; }
@@ -575,19 +586,19 @@
       <span class="feature-btn-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><rect x="7.5" y="5.5" width="9" height="3.5" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17.5h.01M12 17.5h.01M16 17.5h.01"/></svg>
       </span>
-      <span class="feature-btn-label">Калькулятор рейтинга</span>
+      <span class="feature-btn-label">Каль&shy;ку&shy;ля&shy;тор рейтинга</span>
     </button>
-    <button type="button" class="feature-btn feature-btn--violet" onclick="openPersonalCabinet()">
+    <button type="button" class="feature-btn feature-btn--purple" onclick="openPersonalCabinet()">
       <span class="feature-btn-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.6-4 3.7-6 7.5-6s6.9 2 7.5 6"/></svg>
       </span>
       <span class="feature-btn-label">Личный кабинет</span>
     </button>
-    <button type="button" class="feature-btn feature-btn--teal" onclick="openTeachersList()">
+    <button type="button" class="feature-btn feature-btn--green" onclick="openTeachersList()">
       <span class="feature-btn-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M12 4L2 9l10 5 10-5-10-5z"/><path d="M6 11.5v4.2c0 1.6 2.7 3.3 6 3.3s6-1.7 6-3.3v-4.2"/><path d="M22 9v5.5"/></svg>
       </span>
-      <span class="feature-btn-label">Преподавательский состав</span>
+      <span class="feature-btn-label">Пре&shy;по&shy;да&shy;ва&shy;тель&shy;ский состав</span>
     </button>
   </div>
 
