@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -306,8 +306,8 @@
     .admin-btn:active { transform: scale(0.97); }
     .admin-btn:focus-visible { outline: 2px solid #8fc0ff; outline-offset: 2px; }
     .admin-btn .admin-btn-icon { width: 22px; height: 22px; flex: 0 0 auto; }
-    .admin-btn.is-admin { background-color: #238636; }
-    .admin-btn.is-admin:hover { background-color: #1a6f2b; }
+    .admin-btn.is-admin { background-color: #da3633; }
+    .admin-btn.is-admin:hover { background-color: #b02a27; }
 
     /* --- Подсказка под списком предметов --- */
     .subject-hint { font-size: 12px; margin-top: 10px; line-height: 1.4; }
@@ -404,6 +404,36 @@
     .btn-outline-secondary { --bs-btn-border-color: rgba(139, 148, 158, 0.35); }
     .btn-outline-light { --bs-btn-border-color: rgba(240, 246, 252, 0.28); }
     .btn-outline-danger { --bs-btn-border-color: rgba(248, 81, 73, 0.45); }
+
+  /* v3-patch-applied (chat): дата дд.мм.гг, теги ролей, admin-badge, красная кнопка выхода */
+
+    /* Тег роли рядом с ФИО (например "Староста") */
+    .role-tag {
+      display: inline-block;
+      background-color: rgba(210, 153, 34, 0.15);
+      color: #d29922;
+      border: 1px solid rgba(210, 153, 34, 0.4);
+      font-weight: 600;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* Значок администратора рядом с ФИО */
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      vertical-align: middle;
+      margin-left: 6px;
+      color: #58a6ff;
+    }
+    .admin-badge svg { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -591,6 +621,14 @@
             <option value="Платное">Платник</option>
           </select>
         </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Роль (необязательно)</label>
+          <input type="text" id="studentRole" class="form-control" placeholder="Староста, Зам. старосты...">
+        </div>
+        <div class="form-check">
+          <input type="checkbox" id="studentIsAdmin" class="form-check-input">
+          <label class="form-check-label text-secondary small" for="studentIsAdmin">Администратор журнала</label>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -685,14 +723,26 @@
 
   const DEFAULT_SUBJECTS = [
     "Интегрированные маркетинговые коммуникации",
+    "Кураторский час",
     "Логистика",
     "Маркетинг инноваций",
     "Маркетинг услуг",
     "Маркетинговые исследования и аналитика",
     "Стратегический маркетинг",
+    "Физическая культура",
     "Функционально-стоимостный анализ",
     "Эконометрика"
   ];
+
+  // Формат дд.мм.гг для дат в интерфейсе (принимает 'YYYY-MM-DD' или Date)
+  function formatDateShort(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '—');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}.${mm}.${yy}`;
+  }
 
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
   let githubToken = localStorage.getItem('gh_pat') || '';
@@ -875,8 +925,7 @@
         });
 
         if (sortedAbs[0].date) {
-          const d = new Date(sortedAbs[0].date);
-          lastAbsenceDate = d.toLocaleDateString('ru-RU');
+          lastAbsenceDate = formatDateShort(sortedAbs[0].date);
         }
       }
 
@@ -896,7 +945,7 @@
         <td>
           <a class="student-name" onclick="openStudentHistory('${student.id}')">
             ${student.lastName} ${student.firstName}
-          </a>
+          </a>${student.role ? `<span class="role-tag">${student.role}</span>` : ''}${student.isAdmin ? `<span class="admin-badge" title="Администратор журнала"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5l-8-3zm-1.2 13.2L7 11.4l1.4-1.4 2.4 2.4 4.8-4.8L17 9l-6.2 6.2z"/></svg></span>` : ''}
         </td>
         <td><span class="badge-type">${student.status}</span></td>
         <td class="text-center">
@@ -1165,7 +1214,7 @@
         const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
         item.innerHTML = `
           <div>
-            <div class="fw-bold text-white">${a.date} — ${subName} (${a.totalHours} ч)</div>
+            <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
             <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
           </div>
           <div class="d-flex align-items-center gap-2">
@@ -1194,6 +1243,8 @@
     document.getElementById('studentLastName').value = '';
     document.getElementById('studentFirstName').value = '';
     document.getElementById('studentStatus').value = 'Бюджет';
+    document.getElementById('studentRole').value = '';
+    document.getElementById('studentIsAdmin').checked = false;
     studentEditModal.show();
   }
 
@@ -1205,6 +1256,8 @@
     document.getElementById('studentLastName').value = student.lastName;
     document.getElementById('studentFirstName').value = student.firstName;
     document.getElementById('studentStatus').value = student.status;
+    document.getElementById('studentRole').value = student.role || '';
+    document.getElementById('studentIsAdmin').checked = !!student.isAdmin;
     studentEditModal.show();
   }
 
@@ -1214,6 +1267,8 @@
     const lastName = document.getElementById('studentLastName').value.trim();
     const firstName = document.getElementById('studentFirstName').value.trim();
     const status = document.getElementById('studentStatus').value;
+    const role = document.getElementById('studentRole').value.trim();
+    const isAdmin = document.getElementById('studentIsAdmin').checked;
 
     if (!lastName || !firstName) return alert('Заполните ФИО студента');
 
@@ -1223,14 +1278,19 @@
         student.lastName = lastName;
         student.firstName = firstName;
         student.status = status;
+        if (role) student.role = role; else delete student.role;
+        if (isAdmin) student.isAdmin = true; else delete student.isAdmin;
       }
     } else {
-      appData.students.push({
+      const newStudent = {
         id: 'st-' + Date.now(),
         lastName,
         firstName,
         status
-      });
+      };
+      if (role) newStudent.role = role;
+      if (isAdmin) newStudent.isAdmin = true;
+      appData.students.push(newStudent);
     }
 
     await saveDataToGitHub('Обновлен список студентов');
