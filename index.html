@@ -702,6 +702,64 @@
         pointer-events: none;
       }
     }
+  /* v7-docs-report-applied: справки за уважительные пропуски */
+
+    /* Блок «Справка» в форме */
+    .doc-block {
+      padding: 12px;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      background-color: #0d1117;
+    }
+
+    /* Строка со справкой в истории: тип, статус, кнопка */
+    .doc-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .doc-row .btn { padding: 2px 10px; font-size: 12px; }
+
+    .doc-type {
+      padding: 2px 8px;
+      border-radius: 10px;
+      background-color: #21262d;
+      color: #8b949e;
+      font-size: 12px;
+      text-transform: capitalize;
+    }
+
+    /* Статусы справки — тонированные бейджи в стиле приложения */
+    .doc-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .doc-badge--ok { color: #3fb950; background-color: rgba(46, 160, 67, 0.15); border-color: rgba(46, 160, 67, 0.4); }
+    .doc-badge--warn { color: #d29922; background-color: rgba(210, 153, 34, 0.15); border-color: rgba(210, 153, 34, 0.4); }
+    .doc-badge--danger { color: #f85149; background-color: rgba(248, 81, 73, 0.15); border-color: rgba(248, 81, 73, 0.4); }
+
+    .doc-dot {
+      flex: none;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background-color: #f85149;
+      box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.25);
+    }
+
+    /* Запись с просроченной справкой */
+    .doc-overdue-row {
+      box-shadow: inset 3px 0 0 #f85149;
+      background-color: rgba(248, 81, 73, 0.05);
+    }
   </style>
 </head>
 <body>
@@ -794,7 +852,7 @@
       <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
       <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="exportToCSV()">Выгрузить</button>
-      <button class="btn btn-outline-danger btn-sm admin-only d-none" onclick="confirmClearMonth()">Очистить месяц</button>
+      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openReportModal()">Отчёт для деканата</button>
     </div>
   </div>
 
@@ -866,8 +924,35 @@
         </div>
 
         <div class="mb-3 form-check">
-          <input type="checkbox" id="absenceIsExcused" class="form-check-input">
+          <input type="checkbox" id="absenceIsExcused" class="form-check-input" onchange="toggleAbsenceDocBlock()">
           <label class="form-check-label text-secondary small" for="absenceIsExcused">Уважительный пропуск</label>
+        </div>
+
+        <!-- Справка (показывается только для уважительного пропуска) -->
+        <div id="absenceDocBlock" class="doc-block mb-3 d-none">
+          <div class="small fw-bold text-white mb-2">Справка</div>
+          <div class="mb-2">
+            <label class="form-label text-secondary small" for="absenceDocType">Тип документа</label>
+            <select id="absenceDocType" class="form-select">
+              <option value="больничный">Больничный</option>
+              <option value="заявление">Заявление</option>
+              <option value="освобождение">Освобождение</option>
+            </select>
+          </div>
+          <div class="form-check mb-2">
+            <input type="checkbox" id="absenceDocSubmitted" class="form-check-input" onchange="onAbsenceDocSubmittedChange()">
+            <label class="form-check-label text-secondary small" for="absenceDocSubmitted">Справка сдана</label>
+          </div>
+          <div id="absenceDocDeadlineWrap">
+            <label class="form-label text-secondary small" for="absenceDocDeadline">Срок сдачи справки</label>
+            <input type="date" id="absenceDocDeadline" class="form-control mb-2">
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDocDeadlineFromAbsenceDate(3)">+3 дня</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDocDeadlineFromAbsenceDate(7)">+7 дней</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDocDeadlineFromAbsenceDate(14)">+14 дней</button>
+            </div>
+            <div class="small text-secondary mt-1">Отсчёт от даты пропуска. Без срока просрочку отследить не получится.</div>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -997,6 +1082,42 @@
         <button type="button" class="btn btn-outline-secondary admin-only d-none" onclick="editCurrentHistoryStudent()">Изменить</button>
         <button type="button" class="btn btn-outline-danger admin-only d-none" onclick="deleteCurrentHistoryStudent()">Удалить</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Отчёт для деканата (Excel) -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Отчёт для деканата</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-secondary mb-3">Excel-таблица: строки — студенты, столбцы — дни периода, в ячейках — часы неуважительных пропусков. Воскресенья не заполняются.</p>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label text-secondary small" for="reportStart">С</label>
+            <input type="date" id="reportStart" class="form-control" onchange="updateReportInfo()">
+          </div>
+          <div class="col-6">
+            <label class="form-label text-secondary small" for="reportEnd">По</label>
+            <input type="date" id="reportEnd" class="form-control" onchange="updateReportInfo()">
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setReportPeriod('month')">Этот месяц</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setReportPeriod('prev')">Прошлый месяц</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setReportPeriod('semester')">Семестр</button>
+        </div>
+        <div class="small text-secondary" id="reportInfo"></div>
+        <div class="small text-secondary mt-2">Если в Telegram файл не скачался, откройте сайт в обычном браузере.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary fw-bold" onclick="downloadAttendanceReport()">Скачать Excel</button>
       </div>
     </div>
   </div>
@@ -1516,6 +1637,7 @@
     document.getElementById('absenceHours').value = 2;
     document.getElementById('absenceComment').value = '';
     document.getElementById('absenceIsExcused').checked = false;
+    resetAbsenceDocBlock();
     document.getElementById('subjectContainer').innerHTML = '';
 
     updateStudentSummaryCard();
@@ -1651,6 +1773,8 @@
       return alert(`При ${hours} ч можно отметить не больше ${limit} ${pairWord(limit)}`);
     }
 
+    // Справка: поля записываются только у уважительных пропусков
+    const docFields = isExcused ? getAbsenceDocFields() : {};
     const parts = splitHours(hours, selected.length);
     const stamp = Date.now();
 
@@ -1662,7 +1786,8 @@
         totalHours: parts[i],
         isExcused,
         subject,
-        comment
+        comment,
+        ...docFields
       });
     });
 
@@ -1738,12 +1863,14 @@
       const sortedAbs = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
       sortedAbs.forEach(a => {
         const item = document.createElement('div');
-        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center'
+          + (isDocOverdue(a) ? ' doc-overdue-row' : '');
         const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
         item.innerHTML = `
           <div>
             <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
             <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+            ${renderAbsenceDocInfo(a, studentId)}
           </div>
           <div class="d-flex align-items-center gap-2">
             <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
@@ -1930,13 +2057,6 @@
     link.click();
   }
 
-  async function confirmClearMonth() {
-    if (!confirm('Вы уверены, что хотите очистить пропуски за текущий месяц для ВСЕХ студентов?')) return;
-    const currentMonth = new Date().getMonth();
-    appData.absences = appData.absences.filter(a => new Date(a.date).getMonth() !== currentMonth);
-    await saveDataToGitHub('Очищен текущий месяц');
-  }
-
   // --- Сохранение в GitHub ---
   async function saveDataToGitHub(message) {
   try {
@@ -2008,6 +2128,506 @@
   // Каждой кнопке — своя функция: позже достаточно заменить тело нужной
   function openPersonalCabinet() { showFeatureInDevelopment(); }
   function openTeachersList() { showFeatureInDevelopment(); }
+
+  // ===== Справки за уважительные пропуски =====
+  // Поля записи (только у уважительных пропусков): docType, docSubmitted, docDeadline
+  const DOC_TYPES = ['больничный', 'заявление', 'освобождение'];
+
+  function docEsc(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // 'YYYY-MM-DD' -> Date по местному времени (без сдвига часового пояса)
+  function docParseDate(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+    if (!m) return null;
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function docToIso(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function docDaysWord(n) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return 'дней';
+    if (b === 1) return 'день';
+    if (b >= 2 && b <= 4) return 'дня';
+    return 'дней';
+  }
+
+  // Сколько дней до срока: > 0 — осталось, 0 — сегодня, < 0 — просрочено
+  function docDaysUntil(iso) {
+    const deadline = docParseDate(iso);
+    if (!deadline) return null;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((deadline - today) / 86400000);
+  }
+
+  function docHasInfo(a) {
+    return !!a && !!a.isExcused && !!(a.docType || a.docDeadline || typeof a.docSubmitted === 'boolean');
+  }
+
+  function isDocOverdue(a) {
+    if (!docHasInfo(a) || a.docSubmitted === true || !a.docDeadline) return false;
+    const left = docDaysUntil(a.docDeadline);
+    return left !== null && left < 0;
+  }
+
+  // --- Форма «Внести пропуски» ---
+  function toggleAbsenceDocBlock() {
+    const on = document.getElementById('absenceIsExcused').checked;
+    document.getElementById('absenceDocBlock').classList.toggle('d-none', !on);
+  }
+
+  function onAbsenceDocSubmittedChange() {
+    const submitted = document.getElementById('absenceDocSubmitted').checked;
+    document.getElementById('absenceDocDeadlineWrap').classList.toggle('d-none', submitted);
+  }
+
+  function resetAbsenceDocBlock() {
+    document.getElementById('absenceDocType').value = DOC_TYPES[0];
+    document.getElementById('absenceDocSubmitted').checked = false;
+    document.getElementById('absenceDocDeadline').value = '';
+    toggleAbsenceDocBlock();
+    onAbsenceDocSubmittedChange();
+  }
+
+  // Срок = дата пропуска + N дней
+  function setDocDeadlineFromAbsenceDate(days) {
+    const base = docParseDate(document.getElementById('absenceDate').value) || new Date();
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + days);
+    document.getElementById('absenceDocDeadline').value = docToIso(d);
+  }
+
+  function getAbsenceDocFields() {
+    return {
+      docType: document.getElementById('absenceDocType').value,
+      docSubmitted: document.getElementById('absenceDocSubmitted').checked,
+      docDeadline: document.getElementById('absenceDocDeadline').value || ''
+    };
+  }
+
+  // --- История: тип справки, статус и подсветка просроченных ---
+  function renderAbsenceDocInfo(a, studentId) {
+    if (!docHasInfo(a)) return '';
+    const submitted = a.docSubmitted === true;
+    const left = a.docDeadline ? docDaysUntil(a.docDeadline) : null;
+    let status;
+    if (submitted) {
+      status = '<span class="doc-badge doc-badge--ok">✓ Справка сдана</span>';
+    } else if (left === null) {
+      status = '<span class="doc-badge doc-badge--warn">Справка не сдана</span>';
+    } else if (left < 0) {
+      status = `<span class="doc-badge doc-badge--danger"><span class="doc-dot"></span>Справка не сдана, срок истёк ${-left} ${docDaysWord(-left)} назад</span>`;
+    } else if (left === 0) {
+      status = '<span class="doc-badge doc-badge--warn">Справка не сдана, срок — сегодня</span>';
+    } else {
+      status = `<span class="doc-badge doc-badge--warn">Справка не сдана, до ${formatDateShort(docParseDate(a.docDeadline))} (осталось ${left} ${docDaysWord(left)})</span>`;
+    }
+    const type = a.docType ? `<span class="doc-type">${docEsc(a.docType)}</span>` : '';
+    const button = `<button class="btn btn-sm btn-outline-secondary admin-only d-none" onclick="toggleDocSubmitted('${a.id}', '${studentId}')">${submitted ? 'Снять отметку' : 'Отметить сданной'}</button>`;
+    return `<div class="doc-row mt-2">${type}${status}${button}</div>`;
+  }
+
+  async function toggleDocSubmitted(absId, studentId) {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+    const absence = appData.absences.find(a => a.id === absId);
+    if (!absence) return;
+    absence.docSubmitted = absence.docSubmitted !== true;
+    await saveDataToGitHub(absence.docSubmitted ? 'Справка сдана' : 'Отметка о справке снята');
+    openStudentHistory(studentId);
+  }
+
+  // ===== Отчёт для деканата (Excel) =====
+  // .xlsx собирается прямо в браузере, без внешних библиотек и без сервера.
+  const REPORT_GROUP = '24ДММ-2';
+  const REPORT_MAX_DAYS = 370;
+  const RU_WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  // Номера стилей из XLSX_STYLES_XML (cellXfs)
+  const XLSX_STYLE = { title: 1, subtitle: 2, head: 3, headSun: 4, cell: 5, cellSun: 6, cellHours: 7, name: 8, total: 9 };
+
+  function reportFmt(d) {
+    return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear();
+  }
+
+  function setReportPeriod(kind) {
+    const now = new Date();
+    let start, end;
+    if (kind === 'prev') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (kind === 'semester') {
+      const sem = getSemesterRange(now);
+      const semEnd = new Date(sem.end.getFullYear(), sem.end.getMonth(), sem.end.getDate() - 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      start = sem.start;
+      end = semEnd < monthEnd ? semEnd : monthEnd;
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+    document.getElementById('reportStart').value = docToIso(start);
+    document.getElementById('reportEnd').value = docToIso(end);
+    updateReportInfo();
+  }
+
+  function getReportPeriod() {
+    const start = docParseDate(document.getElementById('reportStart').value);
+    const end = docParseDate(document.getElementById('reportEnd').value);
+    if (!start || !end) return { error: 'Укажите даты начала и конца периода' };
+    if (end < start) return { error: 'Дата «По» раньше даты «С»' };
+    const days = Math.round((end - start) / 86400000) + 1;
+    if (days > REPORT_MAX_DAYS) return { error: `Период слишком длинный (максимум ${REPORT_MAX_DAYS} дн.)` };
+    return { start: start, end: end, days: days };
+  }
+
+  function updateReportInfo() {
+    const period = getReportPeriod();
+    const info = document.getElementById('reportInfo');
+    info.classList.toggle('text-danger', !!period.error);
+    info.classList.toggle('text-secondary', !period.error);
+    info.innerText = period.error
+      ? period.error
+      : `Дней в периоде: ${period.days} · студентов: ${appData.students.length}`;
+  }
+
+  function openReportModal() {
+    setReportPeriod('month');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('reportModal')).show();
+  }
+
+  // Модель листа: строки студентов × дни периода, в ячейках — часы неуважительных пропусков
+  function buildAttendanceSheet(start, end) {
+    const S = XLSX_STYLE;
+    const days = [];
+    for (let d = new Date(start); d <= end; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) days.push(d);
+
+    const dayIndex = new Map();
+    days.forEach((d, i) => dayIndex.set(docToIso(d), i));
+
+    // студент -> (номер дня -> часы)
+    const hoursMap = new Map();
+    let skippedSundayHours = 0;
+    appData.absences.forEach(a => {
+      if (a.isExcused) return;
+      const i = dayIndex.get(String(a.date || '').slice(0, 10));
+      const hours = Number(a.totalHours) || 0;
+      if (i === undefined || hours <= 0) return;
+      if (days[i].getDay() === 0) { skippedSundayHours += hours; return; }
+      if (!hoursMap.has(a.studentId)) hoursMap.set(a.studentId, new Map());
+      const perDay = hoursMap.get(a.studentId);
+      perDay.set(i, (perDay.get(i) || 0) + hours);
+    });
+
+    const numbers = getJournalNumbers();
+    const students = [...appData.students].sort((a, b) => numbers[a.id] - numbers[b.id]);
+    const colCount = days.length + 3; // №, ФИО, дни, Итого
+    const last = xlsxColName(colCount - 1);
+
+    const rows = [];
+    rows.push({ height: 24, cells: [{ v: 'Сводная таблица неуважительных пропусков (часы)', s: S.title }] });
+    rows.push({ cells: [{ v: `Группа ${REPORT_GROUP} · период: ${reportFmt(start)} – ${reportFmt(end)} · сформировано: ${reportFmt(new Date())}`, s: S.subtitle }] });
+    rows.push({ cells: [
+      { v: '№', s: S.head }, { v: 'ФИО', s: S.head },
+      ...days.map(d => ({ v: d.getDate(), s: d.getDay() === 0 ? S.headSun : S.head })),
+      { v: 'Итого', s: S.head }
+    ] });
+    rows.push({ cells: [
+      { s: S.head }, { s: S.head },
+      ...days.map(d => ({ v: RU_WEEKDAYS[d.getDay()], s: d.getDay() === 0 ? S.headSun : S.head })),
+      { s: S.head }
+    ] });
+
+    students.forEach(student => {
+      const perDay = hoursMap.get(student.id);
+      let total = 0;
+      const cells = [{ v: numbers[student.id], s: S.cell }, { v: `${student.lastName} ${student.firstName}`, s: S.name }];
+      days.forEach((d, i) => {
+        const hours = perDay ? (perDay.get(i) || 0) : 0;
+        total += hours;
+        if (d.getDay() === 0) cells.push({ s: S.cellSun });
+        else if (hours > 0) cells.push({ v: hours, s: S.cellHours });
+        else cells.push({ s: S.cell });
+      });
+      cells.push(total > 0 ? { v: total, s: S.total } : { s: S.total });
+      rows.push({ cells: cells });
+    });
+
+    return {
+      name: 'Пропуски',
+      colWidths: [5, 28].concat(days.map(() => 4.6), [8]),
+      rows: rows,
+      merges: ['A1:' + last + '1', 'A2:' + last + '2', 'A3:A4', 'B3:B4', last + '3:' + last + '4'],
+      freeze: { cols: 2, rows: 4 },
+      skippedSundayHours: skippedSundayHours,
+      dayCount: days.length
+    };
+  }
+
+  // Скачивание: на телефонах — системное окно «Поделиться» (можно сохранить в «Файлы» или отправить в чат), иначе обычное скачивание
+  async function downloadBlob(blob, fileName) {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    if (isMobile && navigator.canShare && typeof File === 'function') {
+      try {
+        const file = new File([blob], fileName, { type: blob.type });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: fileName });
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // окно закрыли — повторно не скачиваем
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
+  async function downloadAttendanceReport() {
+    const period = getReportPeriod();
+    if (period.error) return alert(period.error);
+    if (appData.students.length === 0) return alert('В журнале нет студентов');
+    try {
+      const sheet = buildAttendanceSheet(period.start, period.end);
+      const blob = new Blob([buildXlsx(sheet)], { type: XLSX_MIME });
+      const fileName = `Пропуски_${REPORT_GROUP}_${docToIso(period.start)}_${docToIso(period.end)}.xlsx`;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('reportModal')).hide();
+      await downloadBlob(blob, fileName);
+      if (sheet.skippedSundayHours > 0) {
+        alert(`Внимание: ${sheet.skippedSundayHours} ч пропусков приходятся на воскресенья, в отчёт они не включены.`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Не удалось сформировать отчёт: ' + err.message);
+    }
+  }
+
+  // --- Мини-генератор .xlsx (ZIP без сжатия + XML) ---
+  function xlsxColName(index) {
+    let n = index + 1, name = '';
+    while (n > 0) {
+      const rest = (n - 1) % 26;
+      name = String.fromCharCode(65 + rest) + name;
+      n = Math.floor((n - 1) / 26);
+    }
+    return name;
+  }
+
+  function xlsxEsc(value) {
+    return String(value)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  const CRC_TABLE = (function () {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  // files: [{ name, data: Uint8Array }] -> Uint8Array с ZIP-архивом (метод STORE)
+  function zipStore(files) {
+    const enc = new TextEncoder();
+    const now = new Date();
+    const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const chunks = [], central = [];
+    let offset = 0;
+
+    files.forEach(file => {
+      const name = enc.encode(file.name);
+      const size = file.data.length;
+      const crc = crc32(file.data);
+
+      const local = new Uint8Array(30 + name.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0x0800, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, dosTime, true);
+      lv.setUint16(12, dosDate, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, name.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(name, 30);
+      chunks.push(local, file.data);
+
+      const entry = new Uint8Array(46 + name.length);
+      const ev = new DataView(entry.buffer);
+      ev.setUint32(0, 0x02014b50, true);
+      ev.setUint16(4, 20, true);
+      ev.setUint16(6, 20, true);
+      ev.setUint16(8, 0x0800, true);
+      ev.setUint16(10, 0, true);
+      ev.setUint16(12, dosTime, true);
+      ev.setUint16(14, dosDate, true);
+      ev.setUint32(16, crc, true);
+      ev.setUint32(20, size, true);
+      ev.setUint32(24, size, true);
+      ev.setUint16(28, name.length, true);
+      ev.setUint32(42, offset, true);
+      entry.set(name, 46);
+      central.push(entry);
+
+      offset += local.length + size;
+    });
+
+    const centralSize = central.reduce((sum, e) => sum + e.length, 0);
+    const end = new Uint8Array(22);
+    const dv = new DataView(end.buffer);
+    dv.setUint32(0, 0x06054b50, true);
+    dv.setUint16(8, files.length, true);
+    dv.setUint16(10, files.length, true);
+    dv.setUint32(12, centralSize, true);
+    dv.setUint32(16, offset, true);
+
+    const all = chunks.concat(central, [end]);
+    const out = new Uint8Array(all.reduce((sum, c) => sum + c.length, 0));
+    let pos = 0;
+    all.forEach(c => { out.set(c, pos); pos += c.length; });
+    return out;
+  }
+
+  const XLSX_STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="4">' +
+      '<font><sz val="11"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><b/><sz val="14"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><i/><sz val="10"/><color rgb="FF595959"/><name val="Calibri"/><family val="2"/></font>' +
+    '</fonts>' +
+    '<fills count="5">' +
+      '<fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFEDEDED"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFFCE4D6"/><bgColor indexed="64"/></patternFill></fill>' +
+    '</fills>' +
+    '<borders count="2">' +
+      '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+      '<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right>' +
+        '<top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border>' +
+    '</borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="10">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '</cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+
+  function xlsxCell(ref, cell) {
+    const style = cell.s ? ' s="' + cell.s + '"' : '';
+    if (cell.v === undefined || cell.v === null || cell.v === '') return '<c r="' + ref + '"' + style + '/>';
+    if (typeof cell.v === 'number') return '<c r="' + ref + '"' + style + '><v>' + cell.v + '</v></c>';
+    return '<c r="' + ref + '"' + style + ' t="inlineStr"><is><t xml:space="preserve">' + xlsxEsc(cell.v) + '</t></is></c>';
+  }
+
+  // sheet: { name, colWidths[], rows[{ height?, cells[{ v?, s? }] }], merges[], freeze?{ cols, rows } }
+  function buildXlsx(sheet) {
+    const enc = new TextEncoder();
+    const colCount = sheet.colWidths.length;
+
+    let pane = '';
+    if (sheet.freeze) {
+      const fc = sheet.freeze.cols, fr = sheet.freeze.rows;
+      const topLeft = xlsxColName(fc) + (fr + 1);
+      pane = '<pane xSplit="' + fc + '" ySplit="' + fr + '" topLeftCell="' + topLeft + '" activePane="bottomRight" state="frozen"/>' +
+        '<selection pane="topRight" activeCell="' + xlsxColName(fc) + '1" sqref="' + xlsxColName(fc) + '1"/>' +
+        '<selection pane="bottomLeft" activeCell="A' + (fr + 1) + '" sqref="A' + (fr + 1) + '"/>' +
+        '<selection pane="bottomRight" activeCell="' + topLeft + '" sqref="' + topLeft + '"/>';
+    }
+
+    const cols = sheet.colWidths.map((w, i) =>
+      '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + (w + 0.7109375) + '" customWidth="1"/>').join('');
+
+    const rowsXml = sheet.rows.map((row, r) => {
+      const attrs = row.height ? ' ht="' + row.height + '" customHeight="1"' : '';
+      const cells = row.cells.map((cell, c) => xlsxCell(xlsxColName(c) + (r + 1), cell)).join('');
+      return '<row r="' + (r + 1) + '"' + attrs + '>' + cells + '</row>';
+    }).join('');
+
+    const merges = sheet.merges && sheet.merges.length
+      ? '<mergeCells count="' + sheet.merges.length + '">' + sheet.merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>'
+      : '';
+
+    const worksheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+      '<dimension ref="A1:' + xlsxColName(colCount - 1) + sheet.rows.length + '"/>' +
+      '<sheetViews><sheetView showGridLines="0" tabSelected="1" workbookViewId="0">' + pane + '</sheetView></sheetViews>' +
+      '<sheetFormatPr defaultRowHeight="15"/>' +
+      '<cols>' + cols + '</cols>' +
+      '<sheetData>' + rowsXml + '</sheetData>' +
+      merges +
+      '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
+      '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>' +
+      '</worksheet>';
+
+    const workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000"/></bookViews>' +
+      '<sheets><sheet name="' + xlsxEsc(sheet.name) + '" sheetId="1" r:id="rId1"/></sheets></workbook>';
+
+    const workbookRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+      '</Relationships>';
+
+    const rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '</Relationships>';
+
+    const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      '</Types>';
+
+    return zipStore([
+      { name: '[Content_Types].xml', data: enc.encode(contentTypes) },
+      { name: '_rels/.rels', data: enc.encode(rootRels) },
+      { name: 'xl/workbook.xml', data: enc.encode(workbook) },
+      { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(workbookRels) },
+      { name: 'xl/styles.xml', data: enc.encode(XLSX_STYLES_XML) },
+      { name: 'xl/worksheets/sheet1.xml', data: enc.encode(worksheet) }
+    ]);
+  }
 
   // --- Авторизация ---
   function toggleAdminModal() {
