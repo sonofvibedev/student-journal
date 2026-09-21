@@ -166,7 +166,6 @@
     .table {
       margin-bottom: 0;
       color: #c9d1d9;
-      min-width: 680px;
       --bs-table-bg: transparent;
       --bs-table-border-color: #21262d;
     }
@@ -347,8 +346,8 @@
     /* --- Подсказка под списком предметов --- */
     .subject-hint { font-size: 12px; margin-top: 10px; line-height: 1.4; }
 
-    /* Место под колонку с номером */
-    .table { min-width: 730px; }
+    /* Таблица теперь всего из 4 узких колонок — не растягиваем, помещается без скролла */
+    .table { min-width: 0; width: 100%; }
 
     /* Предмет недоступен: лимит пар уже выбран */
     .subject-off { opacity: .4; }
