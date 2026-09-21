@@ -325,6 +325,39 @@
 
     .modal-header, .modal-footer { border-color: #21262d; }
 
+    /* Значок сортировки рядом с поиском — виден всегда */
+    .sort-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #8b949e;
+      cursor: pointer;
+    }
+    .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
+    .sort-icon-btn svg { width: 17px; height: 17px; }
+
+    /* Значок-воронка для панели фильтров — только на мобильном (см. медиа-запрос) */
+    .mobile-filter-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #8b949e;
+      cursor: pointer;
+    }
+    .mobile-filter-toggle svg { width: 17px; height: 17px; }
+
     /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
     .bottom-tabbar { display: none; }
     .tabbar-item {
@@ -431,14 +464,16 @@
         background-size: 16px;
       }
 
-      /* Фильтр типа — тоже пилюля, скрыт по умолчанию, открывается тапом по шапке */
-      #typeFilter {
+      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются тапом по шапке или значку воронки */
+      .filter-panel-group { display: none; }
+      .filter-panel-group.filter-visible { display: flex; }
+      .filter-select {
         border-radius: 999px;
         background-color: #161b22;
         border-color: #21262d;
-        display: none;
       }
-      #typeFilter.filter-visible { display: block; }
+
+      .mobile-filter-toggle { display: inline-flex; }
 
       /* Часы — сплошные цветные "чипы" вместо рамок, без подписи "часов" под числом */
       .hours-box {
@@ -776,12 +811,37 @@
 
   <!-- Панель действий -->
   <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
-    <div class="search-filter-group d-flex gap-2 flex-grow-1" style="max-width: 500px;">
+    <div class="search-filter-group d-flex gap-2 flex-grow-1" style="max-width: 560px;">
       <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
-      <select id="typeFilter" class="form-select form-select-sm" style="width: 130px;" onchange="renderTable()">
+      <div class="dropdown">
+        <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" onclick="setSort('name'); return false;">По ФИО</a></li>
+          <li><a class="dropdown-item" href="#" onclick="setSort('unexcused'); return false;">По часам (неуваж.)</a></li>
+          <li><a class="dropdown-item" href="#" onclick="setSort('excused'); return false;">По часам (уваж.)</a></li>
+          <li><a class="dropdown-item" href="#" onclick="setSort('last'); return false;">По дате пропуска</a></li>
+        </ul>
+      </div>
+      <button type="button" class="mobile-filter-toggle" onclick="toggleMobileFilterPanel()" title="Фильтры">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+      </button>
+    </div>
+
+    <div id="filterPanelGroup" class="filter-panel-group d-flex gap-2 flex-wrap">
+      <select id="typeFilter" class="form-select form-select-sm filter-select" style="width: 130px;" onchange="renderTable()">
         <option value="ALL">Все</option>
         <option value="Бюджет">Бюджет</option>
         <option value="Платное">Платники</option>
+      </select>
+      <select id="periodFilter" class="form-select form-select-sm filter-select" style="width: 130px;" onchange="renderTable()">
+        <option value="ALL">Всё время</option>
+        <option value="MONTH">Месяц</option>
+        <option value="SEMESTER">Семестр</option>
+      </select>
+      <select id="subjectFilter" class="form-select form-select-sm filter-select" style="width: 180px;" onchange="renderTable()">
+        <option value="ALL">Все предметы</option>
       </select>
     </div>
 
@@ -1149,6 +1209,7 @@
       if (!appData.subjects || appData.subjects.length === 0) {
         appData.subjects = DEFAULT_SUBJECTS;
       }
+      populateSubjectFilter();
       updateStats();
       renderTable();
     } catch (err) {
@@ -1219,10 +1280,56 @@
     });
   }
 
+  // --- Фильтры по периоду и предмету ---
+  // Осенний семестр: сентябрь–январь. Весенний: февраль–июнь.
+  function getSemesterRange(now) {
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0 = январь
+    if (month >= 8 || month === 0) {
+      const startYear = month === 0 ? year - 1 : year;
+      return { start: new Date(startYear, 8, 1), end: new Date(startYear + 1, 1, 1) };
+    }
+    return { start: new Date(year, 1, 1), end: new Date(year, 6, 1) };
+  }
+
+  function getPeriodRange() {
+    const periodFilter = document.getElementById('periodFilter').value;
+    const now = new Date();
+    if (periodFilter === 'MONTH') {
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+    }
+    if (periodFilter === 'SEMESTER') {
+      return getSemesterRange(now);
+    }
+    return null; // 'ALL' — без ограничения по датам
+  }
+
+  // Пропуски студента с учётом текущих фильтров периода и предмета (не путать с фильтром Бюджет/Платное — тот про то, какие студенты видны, а не какие их пропуски считаются)
+  function getFilteredAbsencesForStudent(studentId) {
+    const subjectFilter = document.getElementById('subjectFilter').value;
+    const range = getPeriodRange();
+    return appData.absences.filter(a => {
+      if (a.studentId !== studentId) return false;
+      if (subjectFilter !== 'ALL' && a.subject !== subjectFilter) return false;
+      if (range) {
+        const d = new Date(a.date);
+        if (isNaN(d.getTime()) || d < range.start || d >= range.end) return false;
+      }
+      return true;
+    });
+  }
+
+  function populateSubjectFilter() {
+    const select = document.getElementById('subjectFilter');
+    const current = select.value;
+    select.innerHTML = '<option value="ALL">Все предметы</option>' +
+      appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    if (appData.subjects.includes(current)) select.value = current;
+  }
+
   function getStudentStats(studentId) {
     let unexcused = 0, excused = 0, lastTs = null;
-    appData.absences.forEach(a => {
-      if (a.studentId !== studentId) return;
+    getFilteredAbsencesForStudent(studentId).forEach(a => {
       const h = Number(a.totalHours) || 0;
       if (a.isExcused) excused += h; else unexcused += h;
       const ts = new Date(a.date).getTime();
@@ -1265,9 +1372,9 @@
     };
   }
 
-  // Тап по шапке (моб. версия) — показать/скрыть фильтр "Все/Бюджет/Платное"
+  // Тап по шапке / значку воронки (моб. версия) — показать/скрыть панель фильтров (Тип/Период/Предмет)
   function toggleMobileFilterPanel() {
-    document.getElementById('typeFilter').classList.toggle('filter-visible');
+    document.getElementById('filterPanelGroup').classList.toggle('filter-visible');
   }
 
   // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
@@ -1416,7 +1523,7 @@
     updateSortIndicators();
 
     filtered.forEach(student => {
-      const studentAbsences = appData.absences.filter(a => a.studentId === student.id);
+      const studentAbsences = getFilteredAbsencesForStudent(student.id);
 
       let unexcusedHours = 0;
       let excusedHours = 0;
