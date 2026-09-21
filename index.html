@@ -1188,6 +1188,61 @@
   </div>
 </div>
 
+<!-- Модальное окно: Преподавательский состав -->
+<div class="modal fade" id="teachersModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Преподавательский состав</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="teachersList"></div>
+        <button type="button" class="btn btn-outline-light btn-sm admin-only d-none mt-2" onclick="openAddTeacherModal()">+ Добавить предмет</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Добавить / редактировать преподавателей предмета -->
+<div class="modal fade" id="teacherEditModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="teacherEditTitle">Добавить предмет</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTeacherId">
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Предмет</label>
+          <select id="teacherSubject" class="form-select"></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Преподаватель (Лекции)</label>
+          <input type="text" id="teacherLecture" class="form-control" placeholder="ФИО">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Преподаватель (Практические занятия)</label>
+          <input type="text" id="teacherPractice" class="form-control" placeholder="ФИО">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Преподаватель (Лабораторные занятия)</label>
+          <input type="text" id="teacherLab" class="form-control" placeholder="ФИО (можно с подгруппами)">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-danger me-auto" id="teacherDeleteBtn" onclick="deleteTeacher()" style="display:none;">Удалить</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-success fw-bold" onclick="saveTeacher()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const GITHUB_OWNER = 'dimpolenyshev';
@@ -1227,6 +1282,8 @@
   const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
   const ratingCalcModal = new bootstrap.Modal(document.getElementById('ratingCalcModal'));
   const personalCabinetModal = new bootstrap.Modal(document.getElementById('personalCabinetModal'));
+  const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
+  const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
 
   async function init() {
     // Инициализация Telegram Mini App
@@ -1250,6 +1307,9 @@
       appData = await response.json();
       if (!appData.subjects || appData.subjects.length === 0) {
         appData.subjects = DEFAULT_SUBJECTS;
+      }
+      if (!appData.teachers) {
+        appData.teachers = [];
       }
       populateSubjectFilter();
       updateStats();
@@ -1445,6 +1505,95 @@
     const vals = Object.values(grades);
     const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
     document.getElementById('zachetkaAverage').innerText = avg !== null ? avg.toFixed(2) : '—';
+  }
+
+  // --- Преподавательский состав ---
+  function openTeachersList() {
+    renderTeachersList();
+    updateAdminUI();
+    teachersModal.show();
+  }
+
+  function renderTeachersList() {
+    const container = document.getElementById('teachersList');
+    if (!appData.teachers || appData.teachers.length === 0) {
+      container.innerHTML = '<div class="p-3 text-secondary text-center">Список пока пуст</div>';
+      return;
+    }
+    const ordered = [...appData.teachers].sort((a, b) => a.subject.localeCompare(b.subject, 'ru'));
+    container.innerHTML = ordered.map(t => `
+      <div class="subject-slot-card mb-2">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="fw-bold text-white mb-1">${t.subject}</div>
+          <button type="button" class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openEditTeacherModal('${t.id}')">Изменить</button>
+        </div>
+        <div class="small text-secondary">Лекции: <span class="text-white">${t.lecture || '—'}</span></div>
+        <div class="small text-secondary">ПЗ: <span class="text-white">${t.practice || '—'}</span></div>
+        <div class="small text-secondary">Лаб.: <span class="text-white">${t.lab || '—'}</span></div>
+      </div>
+    `).join('');
+    updateAdminUI();
+  }
+
+  function openAddTeacherModal() {
+    document.getElementById('teacherEditTitle').innerText = 'Добавить предмет';
+    document.getElementById('editTeacherId').value = '';
+    document.getElementById('teacherSubject').innerHTML = appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    document.getElementById('teacherLecture').value = '';
+    document.getElementById('teacherPractice').value = '';
+    document.getElementById('teacherLab').value = '';
+    document.getElementById('teacherDeleteBtn').style.display = 'none';
+    teacherEditModal.show();
+  }
+
+  function openEditTeacherModal(id) {
+    const t = appData.teachers.find(x => x.id === id);
+    if (!t) return;
+    document.getElementById('teacherEditTitle').innerText = 'Редактировать предмет';
+    document.getElementById('editTeacherId').value = t.id;
+    document.getElementById('teacherSubject').innerHTML = appData.subjects.map(s =>
+      `<option value="${s}" ${s === t.subject ? 'selected' : ''}>${s}</option>`
+    ).join('');
+    document.getElementById('teacherLecture').value = t.lecture || '';
+    document.getElementById('teacherPractice').value = t.practice || '';
+    document.getElementById('teacherLab').value = t.lab || '';
+    document.getElementById('teacherDeleteBtn').style.display = 'inline-block';
+    teacherEditModal.show();
+  }
+
+  async function saveTeacher() {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+    const id = document.getElementById('editTeacherId').value;
+    const subject = document.getElementById('teacherSubject').value;
+    const lecture = document.getElementById('teacherLecture').value.trim();
+    const practice = document.getElementById('teacherPractice').value.trim();
+    const lab = document.getElementById('teacherLab').value.trim();
+
+    if (id) {
+      const t = appData.teachers.find(x => x.id === id);
+      if (t) {
+        t.subject = subject;
+        t.lecture = lecture;
+        t.practice = practice;
+        t.lab = lab;
+      }
+    } else {
+      appData.teachers.push({ id: 't-' + Date.now(), subject, lecture, practice, lab });
+    }
+
+    await saveDataToGitHub('Обновлён список преподавателей');
+    teacherEditModal.hide();
+    renderTeachersList();
+  }
+
+  async function deleteTeacher() {
+    const id = document.getElementById('editTeacherId').value;
+    if (!id) return;
+    if (!confirm('Удалить этот предмет из списка преподавателей?')) return;
+    appData.teachers = appData.teachers.filter(t => t.id !== id);
+    await saveDataToGitHub('Удалён предмет из списка преподавателей');
+    teacherEditModal.hide();
+    renderTeachersList();
   }
 
   // --- Сортировка таблицы (клик по заголовку) ---
@@ -2286,9 +2435,6 @@
     alert(FEATURE_IN_DEV_MESSAGE);
   }
 
-  // Каждой кнопке — своя функция: позже достаточно заменить тело нужной
-  function openTeachersList() { showFeatureInDevelopment(); }
-
   // --- Авторизация ---
   function toggleAdminModal() {
     if (githubToken) {
@@ -2347,7 +2493,7 @@
     <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7.5 2.5h9A2.5 2.5 0 0 1 19 5v14a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 19V5a2.5 2.5 0 0 1 2.5-2.5zM9 5.7a1 1 0 0 0-1 1v1.4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.7a1 1 0 0 0-1-1H9zM7.5 13.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM10.9 13.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM14.3 13.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM7.5 17.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM10.9 17.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM14.3 17.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0z"/></svg>
     <span>Калькулятор</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="showComingSoon()">
+  <button type="button" class="tabbar-item" onclick="openTeachersList()">
     <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4L2.5 9 12 14l9.5-5L12 4z"/><path d="M6.5 11.6v4.4c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-4.4"/><path d="M21.5 9v5.5"/></svg>
     <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4L2.5 9 12 14l9.5-5L12 4z"/><path d="M6.5 12.3v3.7c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-3.7L12 15.3 6.5 12.3z"/><rect x="20.7" y="9" width="1.6" height="5.6" rx=".8"/></svg>
     <span>Преподы</span>
