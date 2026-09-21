@@ -729,6 +729,11 @@
     </div>
   </div>
 
+  <!-- Общие объявления -->
+  <div id="generalAnnouncementsSection" class="mb-4 d-none">
+    <div id="generalAnnouncementsList"></div>
+  </div>
+
   <!-- Карточки метрик (только для администратора) -->
   <div class="stats-grid mb-4 admin-only d-none">
     <div class="stat-card">
@@ -794,7 +799,7 @@
       <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
       <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="exportToCSV()">Выгрузить</button>
-      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="generateDeanReport()">Отчёт для деканата</button>
+      <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAnnouncementModal()">Разместить объявление</button>
     </div>
   </div>
 
@@ -995,25 +1000,7 @@
           </div>
         </div>
 
-        <!-- Детализация по предметам -->
-        <h6 class="text-white mb-2">Пропуски по предметам:</h6>
-        <div class="table-responsive mb-4">
-          <table class="table table-bordered table-sm align-middle text-center">
-            <thead>
-              <tr class="table-dark">
-                <th class="text-start">Предмет</th>
-                <th>Неуваж. (ч)</th>
-                <th>Уваж. (ч)</th>
-                <th>Всего (ч)</th>
-              </tr>
-            </thead>
-            <tbody id="subjectStatsBody"></tbody>
-          </table>
-        </div>
-
-        <!-- Список записей -->
-        <h6 class="text-white mb-2">Все записи пропусков:</h6>
-        <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="historyList"></div>
+        <!-- Детализация по предметам и полный список записей теперь только в Личном кабинете -->
 
       </div>
       <div class="modal-footer">
@@ -1141,6 +1128,12 @@
             </div>
           </div>
 
+          <!-- Персональные объявления от админа -->
+          <div id="cabinetAnnouncementsSection" class="mb-3 d-none">
+            <h6 class="text-white mb-2">Объявления для меня</h6>
+            <div id="cabinetAnnouncementsList"></div>
+          </div>
+
           <h6 class="text-white mb-2">Моя статистика</h6>
           <div class="d-flex gap-2 mb-3">
             <select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
@@ -1169,8 +1162,31 @@
 
           <hr class="border-secondary">
 
+          <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+            <h6 class="text-white m-0">Мои пропуски</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
+          </div>
+          <div id="starostaPickerList" class="mb-3 d-none"></div>
+
+          <div class="table-responsive mb-3">
+            <table class="table table-bordered table-sm align-middle text-center">
+              <thead>
+                <tr class="table-dark">
+                  <th class="text-start">Предмет</th>
+                  <th>Неуваж. (ч)</th>
+                  <th>Уваж. (ч)</th>
+                  <th>Всего (ч)</th>
+                </tr>
+              </thead>
+              <tbody id="myAbsSubjectBody"></tbody>
+            </table>
+          </div>
+          <div class="list-group list-group-flush border rounded border-secondary border-opacity-25 mb-4" id="myAbsList"></div>
+
+          <hr class="border-secondary">
+
           <h6 class="text-white mb-1 mt-3">Моя зачётка</h6>
-          <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся.</p>
+          <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся. «Зачтено» в средний балл не входит.</p>
           <div id="zachetkaList" class="mb-3"></div>
           <div class="student-summary-card">
             <div class="d-flex justify-content-between align-items-center">
@@ -1243,6 +1259,39 @@
   </div>
 </div>
 
+<!-- Модальное окно: Разместить объявление -->
+<div class="modal fade" id="announcementModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Разместить объявление</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Текст объявления</label>
+          <textarea id="announcementText" class="form-control" rows="4" placeholder="Например: Зачёт по логистике переносится на..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Кому показать</label>
+          <select id="announcementTarget" class="form-select" onchange="toggleAnnouncementStudentSelect()">
+            <option value="ALL">Всей группе</option>
+            <option value="STUDENT">Конкретному студенту</option>
+          </select>
+        </div>
+        <div class="mb-3 d-none" id="announcementStudentSelectWrap">
+          <label class="form-label text-secondary small">Студент</label>
+          <select id="announcementStudent" class="form-select"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary fw-bold" onclick="saveAnnouncement()">Опубликовать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const GITHUB_OWNER = 'dimpolenyshev';
@@ -1272,6 +1321,15 @@
     return `${dd}.${mm}.${yy}`;
   }
 
+  // Формат дд.мм.гггг (полный год) — для текста сообщения старосте
+  function formatDateFull(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '—');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}.${mm}.${d.getFullYear()}`;
+  }
+
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
   let githubToken = localStorage.getItem('gh_pat') || '';
   let currentHistoryStudentId = null;
@@ -1284,6 +1342,7 @@
   const personalCabinetModal = new bootstrap.Modal(document.getElementById('personalCabinetModal'));
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
+  const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
 
   async function init() {
     // Инициализация Telegram Mini App
@@ -1311,9 +1370,13 @@
       if (!appData.teachers) {
         appData.teachers = [];
       }
+      if (!appData.announcements) {
+        appData.announcements = [];
+      }
       populateSubjectFilter();
       updateStats();
       renderTable();
+      renderGeneralAnnouncements();
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
     }
@@ -1442,7 +1505,11 @@
     subjectSelect.innerHTML = '<option value="ALL">Все предметы</option>' +
       appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
 
+    document.getElementById('starostaPickerList').classList.add('d-none');
+
     renderPersonalStats();
+    renderCabinetAnnouncements();
+    renderMyAbsences();
     renderZachetka();
     personalCabinetModal.show();
   }
@@ -1469,7 +1536,89 @@
     document.getElementById('cabinetExcused').innerText = excused;
   }
 
-  // --- Моя зачётка: оценки по предметам, вносит сам студент, хранится только локально в браузере ---
+  // Полная детализация пропусков (перенесено сюда из общей истории): таблица по предметам + список записей
+  function renderMyAbsences() {
+    if (!myStudentId) return;
+    const studentAbs = appData.absences.filter(a => a.studentId === myStudentId);
+
+    const subjectMap = buildSubjectBreakdown(studentAbs);
+    const subjectBody = document.getElementById('myAbsSubjectBody');
+    subjectBody.innerHTML = '';
+    Object.keys(subjectMap).forEach(sub => {
+      const u = subjectMap[sub].unexcused;
+      const e = subjectMap[sub].excused;
+      if (u > 0 || e > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-start fw-bold text-white">${sub}</td>
+          <td class="text-warning">${u}</td>
+          <td class="text-success">${e}</td>
+          <td class="fw-bold">${u + e}</td>
+        `;
+        subjectBody.appendChild(tr);
+      }
+    });
+
+    const listEl = document.getElementById('myAbsList');
+    listEl.innerHTML = '';
+    if (studentAbs.length === 0) {
+      listEl.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
+    } else {
+      const sorted = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      sorted.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
+        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+        item.innerHTML = `
+          <div>
+            <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
+            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+            <button class="btn btn-sm btn-outline-danger admin-only d-none" onclick="deleteAbsence('${a.id}', '${myStudentId}')">✕</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+    updateAdminUI();
+  }
+
+  // Кнопка "Написать старосте" — показывает список своих пропусков, клик по одному открывает Telegram
+  function toggleStarostaPicker() {
+    const container = document.getElementById('starostaPickerList');
+    const wasHidden = container.classList.contains('d-none');
+    container.classList.toggle('d-none');
+    if (wasHidden) renderStarostaPicker();
+  }
+
+  function renderStarostaPicker() {
+    const container = document.getElementById('starostaPickerList');
+    const starosta = getStarostaContact();
+    if (!starosta) {
+      container.innerHTML = '<div class="small text-secondary p-2">У старосты пока не указан Telegram username — попросите админа его добавить.</div>';
+      return;
+    }
+    const abs = appData.absences.filter(a => a.studentId === myStudentId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (abs.length === 0) {
+      container.innerHTML = '<div class="small text-secondary p-2">Пропусков нет.</div>';
+      return;
+    }
+    container.innerHTML = abs.map(a => {
+      const subName = a.subject || 'Предмет не указан';
+      const text = encodeURIComponent(`Привет! У меня вопрос по пропуску ${formatDateFull(a.date)} по предмету «${subName}». Можешь помочь?`);
+      return `<a class="btn btn-outline-secondary btn-sm w-100 text-start mb-2" target="_blank" rel="noopener"
+                 href="https://t.me/${starosta.telegramUsername}?text=${text}">${formatDateShort(a.date)} — ${subName}</a>`;
+    }).join('');
+  }
+
+  // --- Моя зачётка: оценки по предметам (кроме Кураторского часа и Физкультуры), вносит сам студент,
+  // хранится только локально в браузере. "Зачтено" в средний балл не входит.
+  const ZACHETKA_EXCLUDED_SUBJECTS = ['Кураторский час', 'Физическая культура'];
+  const ZACHETKA_GRADE_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
   function loadZachetkaState() {
     try {
       return JSON.parse(localStorage.getItem('zachetka_grades') || '{}');
@@ -1481,30 +1630,130 @@
   function renderZachetka() {
     const grades = loadZachetkaState();
     const container = document.getElementById('zachetkaList');
-    container.innerHTML = appData.subjects.map(subj => `
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="small text-white">${subj}</div>
-        <input type="number" class="form-control form-control-sm" style="width: 70px;" min="0" step="0.1"
-               value="${grades[subj] !== undefined ? grades[subj] : ''}"
-               onchange="updateZachetkaGrade('${subj.replace(/'/g, "\\'")}', this.value)">
-      </div>
-    `).join('');
+    const subjects = appData.subjects.filter(s => !ZACHETKA_EXCLUDED_SUBJECTS.includes(s));
+    container.innerHTML = subjects.map(subj => {
+      const current = grades[subj] !== undefined ? String(grades[subj]) : '';
+      const optionsHtml = ['<option value="">—</option>']
+        .concat(ZACHETKA_GRADE_OPTIONS.map(g => `<option value="${g}" ${current === String(g) ? 'selected' : ''}>${g}</option>`))
+        .concat([`<option value="зач" ${current === 'зач' ? 'selected' : ''}>Зачтено (зач)</option>`])
+        .join('');
+      return `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="small text-white">${subj}</div>
+          <select class="form-select form-select-sm" style="width: 110px;"
+                  onchange="updateZachetkaGrade('${subj.replace(/'/g, "\\'")}', this.value)">
+            ${optionsHtml}
+          </select>
+        </div>
+      `;
+    }).join('');
     updateZachetkaAverage(grades);
   }
 
   function updateZachetkaGrade(subject, value) {
     const grades = loadZachetkaState();
-    const num = parseFloat(value);
-    if (isNaN(num)) delete grades[subject];
-    else grades[subject] = num;
+    if (!value) delete grades[subject];
+    else if (value === 'зач') grades[subject] = 'зач';
+    else grades[subject] = Number(value);
     localStorage.setItem('zachetka_grades', JSON.stringify(grades));
     updateZachetkaAverage(grades);
   }
 
   function updateZachetkaAverage(grades) {
-    const vals = Object.values(grades);
+    const vals = Object.values(grades).filter(v => typeof v === 'number');
     const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
     document.getElementById('zachetkaAverage').innerText = avg !== null ? avg.toFixed(2) : '—';
+  }
+
+  // --- Объявления ---
+  function openAnnouncementModal() {
+    document.getElementById('announcementText').value = '';
+    document.getElementById('announcementTarget').value = 'ALL';
+    const journalNumbers = getJournalNumbers();
+    const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
+    document.getElementById('announcementStudent').innerHTML = ordered
+      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
+      .join('');
+    toggleAnnouncementStudentSelect();
+    announcementModal.show();
+  }
+
+  function toggleAnnouncementStudentSelect() {
+    const isStudent = document.getElementById('announcementTarget').value === 'STUDENT';
+    document.getElementById('announcementStudentSelectWrap').classList.toggle('d-none', !isStudent);
+  }
+
+  async function saveAnnouncement() {
+    if (!githubToken) return alert('Требуется авторизация администратора');
+    const text = document.getElementById('announcementText').value.trim();
+    if (!text) return alert('Введите текст объявления');
+
+    const target = document.getElementById('announcementTarget').value;
+    const announcement = {
+      id: 'ann-' + Date.now(),
+      text,
+      date: new Date().toISOString().slice(0, 10),
+      targetType: target
+    };
+    if (target === 'STUDENT') {
+      announcement.targetStudentId = document.getElementById('announcementStudent').value;
+    }
+
+    appData.announcements.push(announcement);
+    await saveDataToGitHub('Добавлено объявление');
+    announcementModal.hide();
+    renderGeneralAnnouncements();
+    if (myStudentId) renderCabinetAnnouncements();
+  }
+
+  async function deleteAnnouncement(id) {
+    if (!confirm('Удалить это объявление?')) return;
+    appData.announcements = appData.announcements.filter(a => a.id !== id);
+    await saveDataToGitHub('Удалено объявление');
+    renderGeneralAnnouncements();
+    if (myStudentId) renderCabinetAnnouncements();
+  }
+
+  function announcementCardHtml(a) {
+    return `
+      <div class="student-summary-card mb-2">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div>
+            <div class="small text-secondary mb-1">${formatDateShort(a.date)}</div>
+            <div class="text-white">${a.text}</div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger admin-only d-none flex-shrink-0" onclick="deleteAnnouncement('${a.id}')">✕</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderGeneralAnnouncements() {
+    const list = (appData.announcements || []).filter(a => a.targetType === 'ALL')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const section = document.getElementById('generalAnnouncementsSection');
+    if (list.length === 0) {
+      section.classList.add('d-none');
+      return;
+    }
+    section.classList.remove('d-none');
+    document.getElementById('generalAnnouncementsList').innerHTML = list.map(announcementCardHtml).join('');
+    updateAdminUI();
+  }
+
+  function renderCabinetAnnouncements() {
+    if (!myStudentId) return;
+    const list = (appData.announcements || [])
+      .filter(a => a.targetType === 'STUDENT' && a.targetStudentId === myStudentId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const section = document.getElementById('cabinetAnnouncementsSection');
+    if (list.length === 0) {
+      section.classList.add('d-none');
+      return;
+    }
+    section.classList.remove('d-none');
+    document.getElementById('cabinetAnnouncementsList').innerHTML = list.map(announcementCardHtml).join('');
+    updateAdminUI();
   }
 
   // --- Преподавательский состав ---
@@ -2109,9 +2358,6 @@
     let monthUnexcused = 0, monthExcused = 0;
     let totalUnexcused = 0, totalExcused = 0;
 
-    const subjectMap = {};
-    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
-
     studentAbs.forEach(a => {
       const h = Number(a.totalHours);
       const absDate = new Date(a.date);
@@ -2124,12 +2370,6 @@
         totalUnexcused += h;
         if (isCurrentMonth) monthUnexcused += h;
       }
-
-      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
-      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
-      
-      if (a.isExcused) subjectMap[subName].excused += h;
-      else subjectMap[subName].unexcused += h;
     });
 
     document.getElementById('historyMonthUnexcused').innerText = `${monthUnexcused} ч`;
@@ -2137,64 +2377,29 @@
     document.getElementById('historyTotalUnexcused').innerText = `${totalUnexcused} ч`;
     document.getElementById('historyTotalExcused').innerText = `${totalExcused} ч`;
 
-    const subjectBody = document.getElementById('subjectStatsBody');
-    subjectBody.innerHTML = '';
-    Object.keys(subjectMap).forEach(sub => {
-      const u = subjectMap[sub].unexcused;
-      const e = subjectMap[sub].excused;
-      if (u > 0 || e > 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="text-start fw-bold text-white">${sub}</td>
-          <td class="text-warning">${u}</td>
-          <td class="text-success">${e}</td>
-          <td class="fw-bold">${u + e}</td>
-        `;
-        subjectBody.appendChild(tr);
-      }
-    });
-
-    const historyList = document.getElementById('historyList');
-    historyList.innerHTML = '';
-
-    if (studentAbs.length === 0) {
-      historyList.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
-    } else {
-      const sortedAbs = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
-      const starosta = getStarostaContact();
-
-      sortedAbs.forEach(a => {
-        const item = document.createElement('div');
-        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
-        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
-        const starostaBtn = starosta
-          ? `<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
-                href="https://t.me/${starosta.telegramUsername}?text=${encodeURIComponent(`Здравствуйте! Хочу уточнить по поводу пропуска ${formatDateShort(a.date)} по предмету «${subName}».`)}">Старосте</a>`
-          : '';
-        item.innerHTML = `
-          <div>
-            <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
-            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
-            ${starostaBtn}
-            <button class="btn btn-sm btn-outline-danger admin-only d-none" onclick="deleteAbsence('${a.id}', '${studentId}')">✕</button>
-          </div>
-        `;
-        historyList.appendChild(item);
-      });
-    }
-
     updateAdminUI();
     studentHistoryModal.show();
+  }
+
+  // Подробная разбивка по предметам + список записей — используется в Личном кабинете (renderMyAbsences)
+  function buildSubjectBreakdown(studentAbs) {
+    const subjectMap = {};
+    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
+    studentAbs.forEach(a => {
+      const h = Number(a.totalHours);
+      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
+      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
+      if (a.isExcused) subjectMap[subName].excused += h;
+      else subjectMap[subName].unexcused += h;
+    });
+    return subjectMap;
   }
 
   async function deleteAbsence(absId, studentId) {
     if (!confirm('Удалить эту запись о пропуске?')) return;
     appData.absences = appData.absences.filter(a => a.id !== absId);
     await saveDataToGitHub('Удален пропуск');
-    openStudentHistory(studentId);
+    renderMyAbsences();
   }
 
   // Кнопки "Изменить"/"Удалить" в футере окна истории (переехали сюда со столбца "Действия")
