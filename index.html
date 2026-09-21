@@ -267,6 +267,38 @@
       margin-bottom: 12px;
     }
 
+    /* Фишки-оценки в калькуляторе рейтинга */
+    .grade-chip {
+      display: inline-flex;
+      align-items: center;
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 2px 2px 2px 10px;
+      gap: 2px;
+    }
+    .grade-chip-input {
+      width: 40px;
+      background: transparent;
+      border: none;
+      color: #f0f6fc;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 0;
+      -moz-appearance: textfield;
+    }
+    .grade-chip-input:focus { outline: none; }
+    .grade-chip-remove {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 16px;
+      line-height: 1;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+    .grade-chip-remove:hover { color: #f85149; }
+
     .form-check-input:checked {
       background-color: #238636;
       border-color: #238636;
@@ -982,6 +1014,79 @@
   </div>
 </div>
 
+<!-- Модальное окно: Калькулятор рейтинга -->
+<div class="modal fade" id="ratingCalcModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Калькулятор рейтинга</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="subject-slot-card mb-3">
+          <label class="form-label text-secondary small fw-bold mb-2">Контрольные</label>
+          <div id="controlGradesList" class="d-flex flex-wrap gap-2 mb-2"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRatingGrade('control')">+ Оценка</button>
+          <div class="small text-secondary mt-2">Средний балл: <span id="controlAvg" class="text-white fw-bold">—</span></div>
+        </div>
+
+        <div class="subject-slot-card mb-3">
+          <label class="form-label text-secondary small fw-bold mb-2">Устные</label>
+          <div id="oralGradesList" class="d-flex flex-wrap gap-2 mb-2"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRatingGrade('oral')">+ Оценка</button>
+          <div class="small text-secondary mt-2">Средний балл: <span id="oralAvg" class="text-white fw-bold">—</span></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Коэффициент (контрольные / устные)</label>
+          <select id="seminarCoefSelect" class="form-select" onchange="recalcRating()">
+            <option value="0.5">0.5 / 0.5</option>
+            <option value="0.6" selected>0.6 / 0.4</option>
+            <option value="0.7">0.7 / 0.3</option>
+          </select>
+        </div>
+
+        <div class="student-summary-card mb-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small text-secondary">Рейтинг за семинарские</div>
+            <div class="fw-bold text-white fs-4" id="seminarRatingResult">—</div>
+          </div>
+        </div>
+
+        <hr class="border-secondary">
+
+        <h6 class="text-white mb-2 mt-3">Итоговый рейтинг (с учётом экзамена)</h6>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Оценка на экзамене</label>
+          <input type="number" id="examGradeInput" class="form-control" placeholder="Например: 8" min="0" step="0.1" oninput="recalcRating()">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Вес (семестр / экзамен)</label>
+          <select id="finalCoefSelect" class="form-select" onchange="recalcRating()">
+            <option value="0.4">0.4 / 0.6</option>
+            <option value="0.5">0.5 / 0.5</option>
+          </select>
+        </div>
+
+        <div class="student-summary-card">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small text-secondary">Итоговый рейтинг</div>
+            <div class="fw-bold text-success fs-4" id="finalRatingResult">—</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="clearRatingCalc()">Очистить</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const GITHUB_OWNER = 'dimpolenyshev';
@@ -1019,6 +1124,7 @@
   const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
   const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
   const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
+  const ratingCalcModal = new bootstrap.Modal(document.getElementById('ratingCalcModal'));
 
   async function init() {
     // Инициализация Telegram Mini App
@@ -1167,6 +1273,126 @@
   // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
   function showComingSoon() {
     alert('Данная функция ещё в разработке. Ожидайте, пожалуйста, дальнейших изменений.');
+  }
+
+  // --- Калькулятор рейтинга ---
+  // Рейтинг за семинарские = средний балл(контрольные) * K1 + средний балл(устные) * (1 - K1)
+  // Итоговый рейтинг = рейтинг за семинарские * W1 + оценка на экзамене * (1 - W1)
+  // Оценки хранятся только локально в браузере студента (localStorage), в data.json не пишутся
+  let ratingCalc = { control: [], oral: [] };
+
+  function loadRatingCalcState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('rating_calc_state') || 'null');
+      if (saved && Array.isArray(saved.control) && Array.isArray(saved.oral)) {
+        ratingCalc = saved;
+      } else {
+        ratingCalc = { control: [], oral: [] };
+      }
+    } catch (e) {
+      ratingCalc = { control: [], oral: [] };
+    }
+  }
+
+  function saveRatingCalcState() {
+    localStorage.setItem('rating_calc_state', JSON.stringify(ratingCalc));
+  }
+
+  function openRatingCalculator() {
+    loadRatingCalcState();
+    renderGradesList('control');
+    renderGradesList('oral');
+
+    const savedSeminarCoef = localStorage.getItem('rating_seminar_coef');
+    if (savedSeminarCoef) document.getElementById('seminarCoefSelect').value = savedSeminarCoef;
+
+    const savedFinalCoef = localStorage.getItem('rating_final_coef');
+    if (savedFinalCoef) document.getElementById('finalCoefSelect').value = savedFinalCoef;
+
+    const savedExam = localStorage.getItem('rating_exam_grade');
+    document.getElementById('examGradeInput').value = savedExam || '';
+
+    recalcRating();
+    ratingCalcModal.show();
+  }
+
+  function renderGradesList(type) {
+    const container = document.getElementById(type === 'control' ? 'controlGradesList' : 'oralGradesList');
+    container.innerHTML = ratingCalc[type].map((g, i) => `
+      <span class="grade-chip">
+        <input type="number" class="grade-chip-input" value="${g}" min="0" step="0.1"
+               onchange="updateRatingGrade('${type}', ${i}, this.value)">
+        <button type="button" class="grade-chip-remove" onclick="removeRatingGrade('${type}', ${i})">×</button>
+      </span>
+    `).join('') || '<span class="text-secondary small">Пока нет оценок</span>';
+  }
+
+  function addRatingGrade(type) {
+    ratingCalc[type].push(0);
+    saveRatingCalcState();
+    renderGradesList(type);
+    recalcRating();
+  }
+
+  function updateRatingGrade(type, index, value) {
+    const num = parseFloat(value);
+    ratingCalc[type][index] = isNaN(num) ? 0 : num;
+    saveRatingCalcState();
+    recalcRating();
+  }
+
+  function removeRatingGrade(type, index) {
+    ratingCalc[type].splice(index, 1);
+    saveRatingCalcState();
+    renderGradesList(type);
+    recalcRating();
+  }
+
+  function avgOf(arr) {
+    if (!arr.length) return 0;
+    return arr.reduce((sum, v) => sum + Number(v), 0) / arr.length;
+  }
+
+  function recalcRating() {
+    const controlAvg = avgOf(ratingCalc.control);
+    const oralAvg = avgOf(ratingCalc.oral);
+
+    document.getElementById('controlAvg').innerText = ratingCalc.control.length ? controlAvg.toFixed(2) : '—';
+    document.getElementById('oralAvg').innerText = ratingCalc.oral.length ? oralAvg.toFixed(2) : '—';
+
+    const k1 = parseFloat(document.getElementById('seminarCoefSelect').value);
+    const k2 = 1 - k1;
+    localStorage.setItem('rating_seminar_coef', k1);
+
+    const seminarRating = controlAvg * k1 + oralAvg * k2;
+    const hasSeminarGrades = ratingCalc.control.length > 0 || ratingCalc.oral.length > 0;
+    document.getElementById('seminarRatingResult').innerText = hasSeminarGrades ? seminarRating.toFixed(2) : '—';
+
+    const examGradeRaw = document.getElementById('examGradeInput').value;
+    localStorage.setItem('rating_exam_grade', examGradeRaw || '');
+    const examGrade = parseFloat(examGradeRaw);
+
+    const w1 = parseFloat(document.getElementById('finalCoefSelect').value);
+    const w2 = 1 - w1;
+    localStorage.setItem('rating_final_coef', w1);
+
+    const finalResultEl = document.getElementById('finalRatingResult');
+    if (hasSeminarGrades && !isNaN(examGrade)) {
+      finalResultEl.innerText = (seminarRating * w1 + examGrade * w2).toFixed(2);
+    } else {
+      finalResultEl.innerText = '—';
+    }
+  }
+
+  function clearRatingCalc() {
+    if (!confirm('Очистить все введённые оценки калькулятора?')) return;
+    ratingCalc = { control: [], oral: [] };
+    localStorage.removeItem('rating_calc_state');
+    localStorage.removeItem('rating_exam_grade');
+    document.getElementById('examGradeInput').value = '';
+    renderGradesList('control');
+    renderGradesList('oral');
+    recalcRating();
   }
 
   function renderTable() {
@@ -1728,7 +1954,6 @@
   }
 
   // Каждой кнопке — своя функция: позже достаточно заменить тело нужной
-  function openRatingCalculator() { showFeatureInDevelopment(); }
   function openPersonalCabinet() { showFeatureInDevelopment(); }
   function openTeachersList() { showFeatureInDevelopment(); }
 
@@ -1785,7 +2010,7 @@
     <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7 3h8a2.5 2.5 0 0 1 2.5 2.5v13A2.5 2.5 0 0 1 15 21H7a2.5 2.5 0 0 1-2.5-2.5v-13A2.5 2.5 0 0 1 7 3zM8.8 6.4a.9.9 0 0 0-.9.9v1.2a.9.9 0 0 0 .9.9h4.4a.9.9 0 0 0 .9-.9V7.3a.9.9 0 0 0-.9-.9H8.8z"/><rect x="17.4" y="6.2" width="2.7" height="1.7" rx=".85"/><rect x="17.4" y="11.15" width="2.7" height="1.7" rx=".85"/><rect x="17.4" y="16.1" width="2.7" height="1.7" rx=".85"/></svg>
     <span>Журнал</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="showComingSoon()">
+  <button type="button" class="tabbar-item" onclick="openRatingCalculator()">
     <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.7" width="8" height="3.4" rx="1"/><path stroke-width="2.4" d="M8.6 13.2h.01M12 13.2h.01M15.4 13.2h.01M8.6 17.2h.01M12 17.2h.01M15.4 17.2h.01"/></svg>
     <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7.5 2.5h9A2.5 2.5 0 0 1 19 5v14a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 19V5a2.5 2.5 0 0 1 2.5-2.5zM9 5.7a1 1 0 0 0-1 1v1.4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.7a1 1 0 0 0-1-1H9zM7.5 13.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM10.9 13.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM14.3 13.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM7.5 17.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM10.9 17.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0zM14.3 17.2a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0 -2.2 0z"/></svg>
     <span>Калькулятор</span>
