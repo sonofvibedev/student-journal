@@ -232,6 +232,22 @@
     .hours-warning { background-color: #382403; color: #d29922; border: 1px solid #5d3d06; }
     .hours-danger { background-color: #3d1314; color: #f85149; border: 1px solid #672022; }
 
+    /* Круглый бейдж для неуваж. часов: зелёный 0-4, жёлтый 5-8, красный 9+ */
+    .hours-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffffff;
+    }
+    .hours-circle.hours-green { background-color: #2ea043; }
+    .hours-circle.hours-warning { background-color: #bf8700; border: none; }
+    .hours-circle.hours-danger { background-color: #da3633; border: none; }
+
     .quick-hour-btn {
       min-width: 50px;
       font-weight: 600;
@@ -277,6 +293,25 @@
     }
 
     .modal-header, .modal-footer { border-color: #21262d; }
+
+    /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
+    .bottom-tabbar { display: none; }
+    .tabbar-item {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 6px 2px;
+      cursor: pointer;
+    }
+    .tabbar-item svg { width: 22px; height: 22px; }
+    .tabbar-item.active { color: #58a6ff; }
     /* --- Порядковый номер по журналу --- */
     .journal-num {
       color: #8b949e;
@@ -386,6 +421,20 @@
       .hours-zero, .hours-excused { background-color: #21262d; color: #8b949e; }
       .hours-warning { background-color: #bf8700; color: #ffffff; }
       .hours-danger { background-color: #da3633; color: #ffffff; }
+
+      /* Нижняя панель навигации */
+      body { padding-bottom: 72px; }
+      .bottom-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1030;
+        background-color: #161b22;
+        border-top: 1px solid #21262d;
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+      }
     }
 
   /* v2-patch-applied: сортировка, мягкие кнопки, нейтральные уваж. часы */
@@ -657,11 +706,8 @@
           <tr>
             <th class="text-center" style="width: 54px;">№</th>
             <th class="sortable" data-sort="name" onclick="setSort('name')">ФИО<span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="status" onclick="setSort('status')">Тип<span class="sort-arrow"></span></th>
             <th class="text-center sortable" data-sort="unexcused" onclick="setSort('unexcused')">Неуваж.<span class="sort-arrow"></span></th>
             <th class="text-center sortable" data-sort="excused" onclick="setSort('excused')">Уваж.<span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="last" onclick="setSort('last')">Последний пропуск<span class="sort-arrow"></span></th>
-            <th class="text-end">Действия</th>
           </tr>
         </thead>
         <tbody id="studentsTableBody"></tbody>
@@ -848,6 +894,8 @@
 
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary admin-only d-none" onclick="editCurrentHistoryStudent()">Изменить</button>
+        <button type="button" class="btn btn-outline-danger admin-only d-none" onclick="deleteCurrentHistoryStudent()">Удалить</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
       </div>
     </div>
@@ -902,6 +950,7 @@
 
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
   let githubToken = localStorage.getItem('gh_pat') || '';
+  let currentHistoryStudentId = null;
 
   const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
   const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
@@ -1052,6 +1101,11 @@
     document.getElementById('typeFilter').classList.toggle('filter-visible');
   }
 
+  // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
+  function showComingSoon() {
+    alert('Данная функция ещё в разработке. Ожидайте, пожалуйста, дальнейших изменений.');
+  }
+
   function renderTable() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const typeFilter = document.getElementById('typeFilter').value;
@@ -1077,29 +1131,16 @@
 
       let unexcusedHours = 0;
       let excusedHours = 0;
-      let lastAbsenceDate = '—';
 
-      if (studentAbsences.length > 0) {
-        const sortedAbs = [...studentAbsences].sort((a, b) => new Date(b.date) - new Date(a.date));
-        studentAbsences.forEach(a => {
-          if (a.isExcused) excusedHours += Number(a.totalHours);
-          else unexcusedHours += Number(a.totalHours);
-        });
+      studentAbsences.forEach(a => {
+        if (a.isExcused) excusedHours += Number(a.totalHours);
+        else unexcusedHours += Number(a.totalHours);
+      });
 
-        if (sortedAbs[0].date) {
-          lastAbsenceDate = formatDateShort(sortedAbs[0].date);
-        }
-      }
-
-      let hoursClass = 'hours-zero';
-      if (unexcusedHours >= 14) hoursClass = 'hours-danger';
-      else if (unexcusedHours > 0) hoursClass = 'hours-warning';
-
-      function getHoursText(h) {
-        if (h === 1) return 'час';
-        if (h >= 2 && h <= 4) return 'часа';
-        return 'часов';
-      }
+      // Неуваж. часы: 0-4 — зелёный, 5-8 — жёлтый, 9+ — красный
+      let hoursClass = 'hours-green';
+      if (unexcusedHours >= 9) hoursClass = 'hours-danger';
+      else if (unexcusedHours >= 5) hoursClass = 'hours-warning';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -1109,27 +1150,10 @@
             ${student.lastName} ${student.firstName}
           </a>${student.role ? `<span class="role-tag">${student.role}</span>` : ''}${student.isAdmin ? `<span class="admin-badge" title="Администратор журнала"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5l-8-3zm-1.2 13.2L7 11.4l1.4-1.4 2.4 2.4 4.8-4.8L17 9l-6.2 6.2z"/></svg></span>` : ''}
         </td>
-        <td><span class="badge-type">${student.status}</span></td>
         <td class="text-center">
-          <div class="hours-box ${hoursClass}">
-            ${unexcusedHours}
-            <span class="hours-subtext">${getHoursText(unexcusedHours)}</span>
-          </div>
+          <div class="hours-circle ${hoursClass}">${unexcusedHours}</div>
         </td>
-        <td class="text-center">
-          <div class="hours-box hours-excused">
-            ${excusedHours}
-            <span class="hours-subtext">${getHoursText(excusedHours)}</span>
-          </div>
-        </td>
-        <td class="text-secondary">${lastAbsenceDate}</td>
-        <td class="text-end">
-          <div class="d-inline-flex gap-1">
-            <button class="btn btn-outline-secondary btn-sm" onclick="openStudentHistory('${student.id}')">История</button>
-            <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openEditStudentModal('${student.id}')">Изменить</button>
-            <button class="btn btn-outline-danger btn-sm admin-only d-none" onclick="deleteStudent('${student.id}')">Удалить</button>
-          </div>
-        </td>
+        <td class="text-center text-secondary fw-bold">${excusedHours}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -1309,6 +1333,7 @@
   function openStudentHistory(studentId) {
     const student = appData.students.find(s => s.id === studentId);
     if (!student) return;
+    currentHistoryStudentId = studentId;
 
     document.getElementById('historyModalTitle').innerText = `${student.lastName} ${student.firstName} (${student.status})`;
 
@@ -1397,6 +1422,21 @@
     appData.absences = appData.absences.filter(a => a.id !== absId);
     await saveDataToGitHub('Удален пропуск');
     openStudentHistory(studentId);
+  }
+
+  // Кнопки "Изменить"/"Удалить" в футере окна истории (переехали сюда со столбца "Действия")
+  function editCurrentHistoryStudent() {
+    if (!currentHistoryStudentId) return;
+    const id = currentHistoryStudentId;
+    studentHistoryModal.hide();
+    openEditStudentModal(id);
+  }
+
+  async function deleteCurrentHistoryStudent() {
+    if (!currentHistoryStudentId) return;
+    const id = currentHistoryStudentId;
+    studentHistoryModal.hide();
+    await deleteStudent(id);
   }
 
   // --- Добавить / Удалить / Редактировать студента ---
@@ -1675,5 +1715,25 @@
 
   init();
 </script>
+<!-- Нижняя панель навигации (моб.) -->
+<nav class="bottom-tabbar">
+  <button type="button" class="tabbar-item active" onclick="return false;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>
+    <span>Журнал</span>
+  </button>
+  <button type="button" class="tabbar-item" onclick="showComingSoon()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
+    <span>Калькулятор</span>
+  </button>
+  <button type="button" class="tabbar-item" onclick="showComingSoon()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12.5V17c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.5"/><path d="M22 10v6"/></svg>
+    <span>Преподы</span>
+  </button>
+  <button type="button" class="tabbar-item" onclick="showComingSoon()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+    <span>Личный кабинет</span>
+  </button>
+</nav>
+
 </body>
 </html>
