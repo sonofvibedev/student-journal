@@ -342,22 +342,6 @@
     .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
     .sort-icon-btn svg { width: 17px; height: 17px; }
 
-    /* Значок-воронка для панели фильтров — только на мобильном (см. медиа-запрос) */
-    .mobile-filter-toggle {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      flex: 0 0 auto;
-      background-color: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      color: #8b949e;
-      cursor: pointer;
-    }
-    .mobile-filter-toggle svg { width: 17px; height: 17px; }
-
     /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
     .bottom-tabbar { display: none; }
     .tabbar-item {
@@ -464,7 +448,7 @@
         background-size: 16px;
       }
 
-      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются тапом по шапке или значку воронки */
+      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются тапом по шапке */
       .filter-panel-group { display: none; }
       .filter-panel-group.filter-visible { display: flex; }
       .filter-select {
@@ -473,7 +457,6 @@
         border-color: #21262d;
       }
 
-      .mobile-filter-toggle { display: inline-flex; }
 
       /* Часы — сплошные цветные "чипы" вместо рамок, без подписи "часов" под числом */
       .hours-box {
@@ -511,41 +494,6 @@
       color: #c9d1d9;
       border: 1px solid #30363d;
     }
-
-    /* Сортировка: клик по заголовку столбца */
-    .table th.sortable {
-      cursor: pointer;
-      user-select: none;
-      -webkit-user-select: none;
-      transition: color .15s ease;
-    }
-    .table th.sortable:hover { color: #c9d1d9; }
-    .table th.sortable.asc,
-    .table th.sortable.desc { color: #58a6ff; }
-
-    /* Стрелки сортировки рисуются на CSS (без шрифтовых символов) */
-    .sort-arrow {
-      display: inline-block;
-      position: relative;
-      width: 8px;
-      height: 11px;
-      margin-left: 6px;
-      vertical-align: -1px;
-      opacity: .35;
-    }
-    .sort-arrow::before,
-    .sort-arrow::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      border-left: 4px solid transparent;
-      border-right: 4px solid transparent;
-    }
-    .sort-arrow::before { top: 0; border-bottom: 4px solid currentColor; }
-    .sort-arrow::after { bottom: 0; border-top: 4px solid currentColor; }
-    th.asc .sort-arrow, th.desc .sort-arrow { opacity: 1; }
-    th.asc .sort-arrow::after { display: none; }
-    th.desc .sort-arrow::before { display: none; }
 
     /* Панель кнопок: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
     .action-buttons-group { display: flex; }
@@ -824,9 +772,6 @@
           <li><a class="dropdown-item" href="#" onclick="setSort('last'); return false;">По дате пропуска</a></li>
         </ul>
       </div>
-      <button type="button" class="mobile-filter-toggle" onclick="toggleMobileFilterPanel()" title="Фильтры">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-      </button>
     </div>
 
     <div id="filterPanelGroup" class="filter-panel-group d-flex gap-2 flex-wrap">
@@ -860,9 +805,9 @@
         <thead>
           <tr>
             <th class="text-center" style="width: 54px;">№</th>
-            <th class="sortable" data-sort="name" onclick="setSort('name')">ФИО<span class="sort-arrow"></span></th>
-            <th class="text-center sortable" data-sort="unexcused" onclick="setSort('unexcused')">Неуваж.<span class="sort-arrow"></span></th>
-            <th class="text-center sortable" data-sort="excused" onclick="setSort('excused')">Уваж.<span class="sort-arrow"></span></th>
+            <th>ФИО</th>
+            <th class="text-center">Неуваж.</th>
+            <th class="text-center">Уваж.</th>
           </tr>
         </thead>
         <tbody id="studentsTableBody"></tbody>
@@ -1372,7 +1317,7 @@
     };
   }
 
-  // Тап по шапке / значку воронки (моб. версия) — показать/скрыть панель фильтров (Тип/Период/Предмет)
+  // Тап по шапке (моб. версия) — показать/скрыть панель фильтров (Тип/Период/Предмет)
   function toggleMobileFilterPanel() {
     document.getElementById('filterPanelGroup').classList.toggle('filter-visible');
   }
