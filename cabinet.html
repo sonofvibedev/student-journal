@@ -735,10 +735,7 @@
   <!-- Содержимое кабинета — после опознания -->
   <div id="cabinetContentSection" class="d-none">
     <div class="student-summary-card mb-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="fw-bold text-white" id="cabinetStudentName">—</div>
-        <a href="#" class="small text-secondary" onclick="resetMyIdentity(); return false;">Это не я</a>
-      </div>
+      <div class="fw-bold text-white" id="cabinetStudentName">—</div>
     </div>
 
     <!-- Персональные объявления от админа -->
@@ -927,17 +924,14 @@
       return;
     }
 
-    const skipAutoMatch = localStorage.getItem('cabinet_skip_auto_match') === 'true';
-    if (!skipAutoMatch) {
-      const tgUsername = getTelegramUsername();
-      if (tgUsername) {
-        const match = appData.students.find(s => (s.telegramUsername || '').toLowerCase() === tgUsername);
-        if (match) {
-          myStudentId = match.id;
-          localStorage.setItem('my_student_id', match.id);
-          showCabinetContent();
-          return;
-        }
+    const tgUsername = getTelegramUsername();
+    if (tgUsername) {
+      const match = appData.students.find(s => (s.telegramUsername || '').toLowerCase() === tgUsername);
+      if (match) {
+        myStudentId = match.id;
+        localStorage.setItem('my_student_id', match.id);
+        showCabinetContent();
+        return;
       }
     }
 
@@ -954,19 +948,14 @@
     document.getElementById('cabinetContentSection').classList.add('d-none');
   }
 
+  // Опознание одноразовое: как только студент опознан (по Telegram-юзернейму или ручным
+  // выбором), сохранённый id закрепляется за этим устройством навсегда — пути назад/сброса нет.
   function confirmStudentPick() {
     const id = document.getElementById('cabinetStudentPicker').value;
     if (!id) return;
     myStudentId = id;
     localStorage.setItem('my_student_id', id);
     showCabinetContent();
-  }
-
-  function resetMyIdentity() {
-    localStorage.removeItem('my_student_id');
-    localStorage.setItem('cabinet_skip_auto_match', 'true');
-    myStudentId = null;
-    showStudentPicker();
   }
 
   function showCabinetContent() {
