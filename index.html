@@ -8,6 +8,10 @@
   <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+  <!-- Аналитика (график) и Excel-отчёт для деканата -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     @font-face {
@@ -810,7 +814,22 @@
       <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
       <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="exportToCSV()">Выгрузить</button>
+      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="generateDeanReport()">Отчёт для деканата</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAnnouncementModal()">Разместить объявление</button>
+    </div>
+  </div>
+
+  <!-- Аналитика по группе (только для администратора) -->
+  <div class="mb-4 admin-only d-none">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="text-white m-0">Аналитика за семестр</h6>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary active" id="analyticsModeWeekBtn" onclick="setAnalyticsMode('week')">По неделям</button>
+        <button type="button" class="btn btn-outline-secondary" id="analyticsModeSubjectBtn" onclick="setAnalyticsMode('subject')">По предметам</button>
+      </div>
+    </div>
+    <div class="table-container" style="padding: 14px;">
+      <canvas id="analyticsChart" height="90"></canvas>
     </div>
   </div>
 
@@ -1277,6 +1296,7 @@
       renderTable();
       renderGeneralAnnouncements();
       updateCabinetUnreadBadge();
+      renderAnalyticsChart();
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
     }
@@ -1561,6 +1581,148 @@
 
   function getPeriodRange() {
     return getPeriodRangeFor(document.getElementById('periodFilter').value);
+  }
+
+  function toISODateLocal(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // --- Аналитика по группе (график) ---
+  let analyticsChartInstance = null;
+  let analyticsMode = 'week';
+
+  function setAnalyticsMode(mode) {
+    analyticsMode = mode;
+    document.getElementById('analyticsModeWeekBtn').classList.toggle('active', mode === 'week');
+    document.getElementById('analyticsModeSubjectBtn').classList.toggle('active', mode === 'subject');
+    renderAnalyticsChart();
+  }
+
+  function getWeekBuckets(range) {
+    const weeks = [];
+    const cursor = new Date(range.start);
+    const day = cursor.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    cursor.setDate(cursor.getDate() + diffToMonday);
+    while (cursor < range.end) {
+      const weekStart = new Date(cursor);
+      const weekEnd = new Date(cursor);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const label = `${String(weekStart.getDate()).padStart(2, '0')}.${String(weekStart.getMonth() + 1).padStart(2, '0')}`;
+      weeks.push({ start: weekStart, end: weekEnd, label });
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    return weeks;
+  }
+
+  function renderAnalyticsChart() {
+    const canvas = document.getElementById('analyticsChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const range = getSemesterRange(new Date());
+    let labels, values;
+
+    if (analyticsMode === 'subject') {
+      const bySubject = {};
+      appData.subjects.forEach(s => { bySubject[s] = 0; });
+      appData.absences.forEach(a => {
+        if (a.isExcused) return;
+        const d = new Date(a.date);
+        if (isNaN(d.getTime()) || d < range.start || d >= range.end) return;
+        const subj = a.subject || 'Без предмета';
+        bySubject[subj] = (bySubject[subj] || 0) + Number(a.totalHours);
+      });
+      const entries = Object.entries(bySubject).filter(([, h]) => h > 0).sort((a, b) => b[1] - a[1]);
+      labels = entries.map(([s]) => s.length > 18 ? s.slice(0, 17) + '…' : s);
+      values = entries.map(([, h]) => h);
+    } else {
+      const weeks = getWeekBuckets(range);
+      labels = weeks.map(w => w.label);
+      values = weeks.map(w => {
+        return appData.absences
+          .filter(a => {
+            if (a.isExcused) return false;
+            const d = new Date(a.date);
+            return !isNaN(d.getTime()) && d >= w.start && d < w.end;
+          })
+          .reduce((sum, a) => sum + Number(a.totalHours), 0);
+      });
+    }
+
+    if (analyticsChartInstance) analyticsChartInstance.destroy();
+    analyticsChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Неуваж. часов',
+          data: values,
+          backgroundColor: '#bf8700',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // --- Отчёт для деканата (Excel): строки — студенты, столбцы — дни периода, ---
+  // --- в ячейке — часы неуважительного пропуска (пусто, если 0 или воскресенье) ---
+  function generateDeanReport() {
+    if (typeof XLSX === 'undefined') {
+      alert('Библиотека для Excel ещё загружается — подождите секунду и попробуйте снова.');
+      return;
+    }
+
+    const periodFilter = document.getElementById('periodFilter').value;
+    let range, periodLabel;
+    if (periodFilter === 'SEMESTER') {
+      range = getSemesterRange(new Date());
+      periodLabel = 'семестр';
+    } else {
+      const now = new Date();
+      range = { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+      periodLabel = 'месяц';
+    }
+
+    const days = [];
+    for (let d = new Date(range.start); d < range.end; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d));
+    }
+
+    const journalNumbers = getJournalNumbers();
+    const orderedStudents = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
+
+    const header = ['№', 'ФИО', ...days.map(d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`)];
+    const rows = [header];
+
+    orderedStudents.forEach(s => {
+      const row = [journalNumbers[s.id], `${s.lastName} ${s.firstName}`];
+      days.forEach(day => {
+        if (day.getDay() === 0) { row.push(''); return; }
+        const dayStr = toISODateLocal(day);
+        const hours = appData.absences
+          .filter(a => a.studentId === s.id && !a.isExcused && a.date === dayStr)
+          .reduce((sum, a) => sum + Number(a.totalHours), 0);
+        row.push(hours > 0 ? hours : '');
+      });
+      rows.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 4 }, { wch: 28 }, ...days.map(() => ({ wch: 6 }))];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Отчёт');
+    XLSX.writeFile(wb, `Отчет_деканат_${periodLabel}_${toISODateLocal(new Date())}.xlsx`);
   }
 
   // Пропуски студента с учётом текущих фильтров периода и предмета (не путать с фильтром Бюджет/Платное — тот про то, какие студенты видны, а не какие их пропуски считаются)
