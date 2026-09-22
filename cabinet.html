@@ -857,6 +857,24 @@
   </button>
 </nav>
 
+<!-- Что нового -->
+<div class="modal fade" id="whatsNewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Что нового</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="text-white ps-3 mb-0" id="whatsNewList"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary fw-bold w-100" data-bs-dismiss="modal">Понятно</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const DEFAULT_SUBJECTS = [
@@ -912,6 +930,31 @@
     }
 
     openPersonalCabinet();
+    checkWhatsNew();
+  }
+
+  // "Что нового" — тот же список и та же версия/ключ localStorage, что в index.html,
+  // так что увиденное здесь не покажется повторно на главной странице (и наоборот).
+  const WHATS_NEW_VERSION = 1;
+  const WHATS_NEW_ITEMS = [
+    'Личный кабинет теперь на вкладках: Статистика / Зачётка / Объявления',
+    'В «Мои пропуски» виден статус справки — сдана, просрочена или ожидается',
+    '«Место в группе» — сравнение по количеству неуваж. часов с одногруппниками',
+    'У админа: расширенная статистика, резервная копия и подробная статистика по каждому студенту',
+    'Красивые всплывающие окна вместо системных alert/confirm браузера'
+  ];
+
+  function checkWhatsNew() {
+    const seenVersion = Number(localStorage.getItem('whats_new_seen') || 0);
+    if (seenVersion >= WHATS_NEW_VERSION) return;
+
+    document.getElementById('whatsNewList').innerHTML = WHATS_NEW_ITEMS.map(i => `<li class="mb-1">${i}</li>`).join('');
+    const modalEl = document.getElementById('whatsNewModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      localStorage.setItem('whats_new_seen', String(WHATS_NEW_VERSION));
+    }, { once: true });
+    modal.show();
   }
 
   function getJournalNumbers() {
