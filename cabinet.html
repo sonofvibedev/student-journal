@@ -670,6 +670,17 @@
       transition: color .15s ease, opacity .15s ease;
     }
     .tabbar-item.active { color: #ffffff; font-weight: 600; }
+
+    .tabbar-badge-dot {
+      position: absolute;
+      top: 2px;
+      right: 18%;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: #da3633;
+      border: 2px solid #0d1117;
+    }
     .tabbar-item:active { opacity: 0.6; }
     .tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -3px; }
 
@@ -726,7 +737,7 @@
 </head>
 <body>
 
-<div class="container my-3" style="max-width: 640px;">
+<div class="container my-3" style="max-width: 640px; padding-bottom: 90px;">
   <a href="index.html" class="back-link">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     Назад в журнал
@@ -746,74 +757,105 @@
       <div class="fw-bold text-white" id="cabinetStudentName">—</div>
     </div>
 
-    <!-- Персональные объявления от админа -->
-    <div id="cabinetAnnouncementsSection" class="mb-3 d-none">
+    <!-- ===== Раздел: Статистика ===== -->
+    <div id="cabinetSectionStats">
+      <h6 class="text-white mb-2">Моя статистика</h6>
+      <div class="d-flex gap-2 mb-3">
+        <select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
+          <option value="WEEK">Неделя</option>
+          <option value="MONTH" selected>Месяц</option>
+          <option value="SEMESTER">Семестр</option>
+        </select>
+        <select id="cabinetSubject" class="form-select form-select-sm" onchange="renderPersonalStats()">
+          <option value="ALL">Все предметы</option>
+        </select>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <div class="stat-card">
+            <div class="stat-value" id="cabinetUnexcused">0</div>
+            <div class="stat-label">Неуваж. часов</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="stat-card">
+            <div class="stat-value" id="cabinetExcused">0</div>
+            <div class="stat-label">Уваж. часов</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Место в группе по посещаемости -->
+      <div id="groupStandingCard" class="student-summary-card mb-4 d-none">
+        <div class="small text-secondary mb-1">Место в группе</div>
+        <div class="text-white" id="groupStandingText">—</div>
+      </div>
+
+      <hr class="border-secondary">
+
+      <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+        <h6 class="text-white m-0">Мои пропуски</h6>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
+      </div>
+      <div id="starostaPickerList" class="mb-3 d-none"></div>
+
+      <div class="table-responsive mb-3">
+        <table class="table table-bordered table-sm align-middle text-center">
+          <thead>
+            <tr class="table-dark">
+              <th class="text-start">Предмет</th>
+              <th>Неуваж. (ч)</th>
+              <th>Уваж. (ч)</th>
+              <th>Всего (ч)</th>
+            </tr>
+          </thead>
+          <tbody id="myAbsSubjectBody"></tbody>
+        </table>
+      </div>
+      <div class="list-group list-group-flush border rounded border-secondary border-opacity-25 mb-4" id="myAbsList"></div>
+    </div>
+
+    <!-- ===== Раздел: Зачётка ===== -->
+    <div id="cabinetSectionGrades" class="d-none">
+      <h6 class="text-white mb-1">Моя зачётка</h6>
+      <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся. «Зачтено» в средний балл не входит.</p>
+      <div id="zachetkaList" class="mb-3"></div>
+      <div class="student-summary-card mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="small text-secondary">Средний балл за сессию</div>
+          <div class="fw-bold text-success fs-4" id="zachetkaAverage">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Раздел: Объявления ===== -->
+    <div id="cabinetSectionAnnouncements" class="d-none">
       <h6 class="text-white mb-2">Объявления для меня</h6>
       <div id="cabinetAnnouncementsList"></div>
-    </div>
-
-    <h6 class="text-white mb-2">Моя статистика</h6>
-    <div class="d-flex gap-2 mb-3">
-      <select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
-        <option value="WEEK">Неделя</option>
-        <option value="MONTH" selected>Месяц</option>
-        <option value="SEMESTER">Семестр</option>
-      </select>
-      <select id="cabinetSubject" class="form-select form-select-sm" onchange="renderPersonalStats()">
-        <option value="ALL">Все предметы</option>
-      </select>
-    </div>
-    <div class="row g-2 mb-4">
-      <div class="col-6">
-        <div class="stat-card">
-          <div class="stat-value" id="cabinetUnexcused">0</div>
-          <div class="stat-label">Неуваж. часов</div>
-        </div>
-      </div>
-      <div class="col-6">
-        <div class="stat-card">
-          <div class="stat-value" id="cabinetExcused">0</div>
-          <div class="stat-label">Уваж. часов</div>
-        </div>
-      </div>
-    </div>
-
-    <hr class="border-secondary">
-
-    <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
-      <h6 class="text-white m-0">Мои пропуски</h6>
-      <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
-    </div>
-    <div id="starostaPickerList" class="mb-3 d-none"></div>
-
-    <div class="table-responsive mb-3">
-      <table class="table table-bordered table-sm align-middle text-center">
-        <thead>
-          <tr class="table-dark">
-            <th class="text-start">Предмет</th>
-            <th>Неуваж. (ч)</th>
-            <th>Уваж. (ч)</th>
-            <th>Всего (ч)</th>
-          </tr>
-        </thead>
-        <tbody id="myAbsSubjectBody"></tbody>
-      </table>
-    </div>
-    <div class="list-group list-group-flush border rounded border-secondary border-opacity-25 mb-4" id="myAbsList"></div>
-
-    <hr class="border-secondary">
-
-    <h6 class="text-white mb-1 mt-3">Моя зачётка</h6>
-    <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся. «Зачтено» в средний балл не входит.</p>
-    <div id="zachetkaList" class="mb-3"></div>
-    <div class="student-summary-card mb-4">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="small text-secondary">Средний балл за сессию</div>
-        <div class="fw-bold text-success fs-4" id="zachetkaAverage">—</div>
-      </div>
+      <div id="cabinetAnnouncementsEmpty" class="text-secondary small d-none">Пока нет объявлений, адресованных лично вам.</div>
     </div>
   </div>
 </div>
+
+<!-- Нижняя панель навигации по разделам кабинета (моб.) -->
+<nav class="bottom-tabbar" aria-label="Разделы кабинета">
+  <button type="button" class="tabbar-item active" id="cabinetTabStats" onclick="setCabinetSection('stats')">
+    <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="20" y1="20" x2="20" y2="10"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+    <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="11" width="4" height="9" rx="1"/><rect x="10" y="5" width="4" height="15" rx="1"/><rect x="17.5" y="9" width="4" height="11" rx="1"/></svg>
+    <span>Статистика</span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabGrades" onclick="setCabinetSection('grades')">
+    <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22V4.5z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M8 9l2 2 4-4"/></svg>
+    <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5v-13A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <span>Зачётка</span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabAnnouncements" onclick="setCabinetSection('announcements')" style="position: relative;">
+    <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 0 0-6 6c0 7-3 9-3 9h18s-3-2-3-9a6 6 0 0 0-6-6z"/><path d="M13.7 21a2 2 0 0 1-3.4 0z"/></svg>
+    <span>Объявления</span>
+    <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none"></span>
+  </button>
+</nav>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -981,9 +1023,28 @@
     document.getElementById('starostaPickerList').classList.add('d-none');
 
     renderPersonalStats();
+    renderGroupStanding();
     renderCabinetAnnouncements();
     renderMyAbsences();
     renderZachetka();
+    setCabinetSection('stats');
+  }
+
+  // Переключение разделов кабинета (Статистика / Зачётка / Объявления) — тот же таб-бар,
+  // что и на главной странице, но переключает не страницы, а блоки внутри этой
+  function setCabinetSection(section) {
+    const sections = { stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', announcements: 'cabinetSectionAnnouncements' };
+    const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', announcements: 'cabinetTabAnnouncements' };
+
+    Object.keys(sections).forEach(key => {
+      document.getElementById(sections[key]).classList.toggle('d-none', key !== section);
+      document.getElementById(tabs[key]).classList.toggle('active', key === section);
+    });
+
+    if (section === 'announcements') {
+      markAnnouncementsSeen(currentPersonalAnnouncements);
+      updateAnnouncementsUnreadDot();
+    }
   }
 
   function renderPersonalStats() {
@@ -1052,18 +1113,61 @@
       const sorted = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
       sorted.forEach(a => {
         const item = document.createElement('div');
-        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25';
         const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+        const badge = certStatusBadge(a);
         item.innerHTML = `
-          <div>
-            <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
-            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
+              <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+            </div>
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'} flex-shrink-0">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
           </div>
-          <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+          ${badge ? `<div class="mt-2">${badge}</div>` : ''}
         `;
         listEl.appendChild(item);
       });
     }
+  }
+
+  // Бейдж по справке для уважительного пропуска: сдана / просрочена / ожидается — та же логика,
+  // что видит админ в "Подробной статистике"
+  function certStatusBadge(a) {
+    if (!a.isExcused || !a.certType) return '';
+    if (a.certSubmitted) {
+      return `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">${a.certType}: сдана</span>`;
+    }
+    if (a.certDueDate) {
+      const due = new Date(a.certDueDate);
+      if (!isNaN(due.getTime()) && due < new Date()) {
+        return `<span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50">${a.certType}: просрочена (до ${formatDateShort(due)})</span>`;
+      }
+      return `<span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50">${a.certType}: ожидается до ${formatDateShort(due)}</span>`;
+    }
+    return `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50">${a.certType}: не сдана</span>`;
+  }
+
+  // Место в группе: сколько % одногруппников имеют БОЛЬШЕ неуваж. часов, чем я
+  function renderGroupStanding() {
+    if (!myStudentId) return;
+    const card = document.getElementById('groupStandingCard');
+    if (appData.students.length < 2) { card.classList.add('d-none'); return; }
+
+    const totals = appData.students.map(s => {
+      const hours = appData.absences
+        .filter(a => a.studentId === s.id && !a.isExcused)
+        .reduce((sum, a) => sum + Number(a.totalHours), 0);
+      return { id: s.id, hours };
+    });
+    const myTotal = totals.find(t => t.id === myStudentId).hours;
+    const others = totals.filter(t => t.id !== myStudentId);
+    const better = others.filter(t => t.hours > myTotal).length;
+    const percentile = Math.round((better / others.length) * 100);
+
+    card.classList.remove('d-none');
+    document.getElementById('groupStandingText').innerText =
+      `Неуважительных часов меньше, чем у ${percentile}% одногруппников`;
   }
 
   function toggleStarostaPicker() {
@@ -1156,24 +1260,39 @@
   }
 
   // --- Объявления, адресованные лично мне ---
+  let currentPersonalAnnouncements = [];
+
   function renderCabinetAnnouncements() {
     if (!myStudentId) return;
     const list = (appData.announcements || [])
       .filter(a => a.targetType === 'STUDENT' && a.targetStudentId === myStudentId)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-    const section = document.getElementById('cabinetAnnouncementsSection');
+    currentPersonalAnnouncements = list;
+
+    const listEl = document.getElementById('cabinetAnnouncementsList');
+    const emptyEl = document.getElementById('cabinetAnnouncementsEmpty');
+
     if (list.length === 0) {
-      section.classList.add('d-none');
-      return;
+      listEl.innerHTML = '';
+      emptyEl.classList.remove('d-none');
+    } else {
+      emptyEl.classList.add('d-none');
+      listEl.innerHTML = list.map(a => `
+        <div class="student-summary-card mb-2">
+          <div class="small text-secondary mb-1">${formatDateShort(a.date)}</div>
+          <div class="text-white">${a.text}</div>
+        </div>
+      `).join('');
     }
-    section.classList.remove('d-none');
-    document.getElementById('cabinetAnnouncementsList').innerHTML = list.map(a => `
-      <div class="student-summary-card mb-2">
-        <div class="small text-secondary mb-1">${formatDateShort(a.date)}</div>
-        <div class="text-white">${a.text}</div>
-      </div>
-    `).join('');
-    markAnnouncementsSeen(list);
+
+    updateAnnouncementsUnreadDot();
+  }
+
+  function updateAnnouncementsUnreadDot() {
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    const hasUnread = currentPersonalAnnouncements.some(a => !seen.includes(a.id));
+    document.getElementById('cabinetAnnouncementsDot').classList.toggle('d-none', !hasUnread);
   }
 
   // Отмечает объявления прочитанными (та же localStorage-запись, что читает
