@@ -663,6 +663,7 @@
     }
     .tabbar-item.active { color: #ffffff; font-weight: 600; }
     .tabbar-item:active { opacity: 0.6; }
+    a.tabbar-item { text-decoration: none; }
     .tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -3px; }
 
     /* Иконки: контурные у неактивных вкладок, залитые у активной */
@@ -774,7 +775,6 @@
           <li><a class="dropdown-item" href="#" onclick="setSort('name'); return false;">По ФИО</a></li>
           <li><a class="dropdown-item" href="#" onclick="setSort('unexcused'); return false;">По часам (неуваж.)</a></li>
           <li><a class="dropdown-item" href="#" onclick="setSort('excused'); return false;">По часам (уваж.)</a></li>
-          <li><a class="dropdown-item" href="#" onclick="setSort('last'); return false;">По дате пропуска</a></li>
         </ul>
       </div>
     </div>
@@ -1102,108 +1102,6 @@
   </div>
 </div>
 
-<!-- Модальное окно: Личный кабинет -->
-<div class="modal fade" id="personalCabinetModal" tabindex="-1">
-  <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-white">Личный кабинет</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-
-        <!-- Выбор себя — если не удалось опознать по Telegram -->
-        <div id="cabinetPickerSection" class="d-none">
-          <p class="small text-secondary mb-3">Не удалось определить вас автоматически по Telegram. Выберите себя из списка:</p>
-          <select id="cabinetStudentPicker" class="form-select mb-3"></select>
-          <button type="button" class="btn btn-primary w-100 fw-bold" onclick="confirmStudentPick()">Это я</button>
-        </div>
-
-        <!-- Содержимое кабинета — после опознания -->
-        <div id="cabinetContentSection" class="d-none">
-          <div class="student-summary-card mb-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <div class="fw-bold text-white" id="cabinetStudentName">—</div>
-              <a href="#" class="small text-secondary" onclick="resetMyIdentity(); return false;">Это не я</a>
-            </div>
-          </div>
-
-          <!-- Персональные объявления от админа -->
-          <div id="cabinetAnnouncementsSection" class="mb-3 d-none">
-            <h6 class="text-white mb-2">Объявления для меня</h6>
-            <div id="cabinetAnnouncementsList"></div>
-          </div>
-
-          <h6 class="text-white mb-2">Моя статистика</h6>
-          <div class="d-flex gap-2 mb-3">
-            <select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
-              <option value="WEEK">Неделя</option>
-              <option value="MONTH" selected>Месяц</option>
-              <option value="SEMESTER">Семестр</option>
-            </select>
-            <select id="cabinetSubject" class="form-select form-select-sm" onchange="renderPersonalStats()">
-              <option value="ALL">Все предметы</option>
-            </select>
-          </div>
-          <div class="row g-2 mb-4">
-            <div class="col-6">
-              <div class="stat-card">
-                <div class="stat-value" id="cabinetUnexcused">0</div>
-                <div class="stat-label">Неуваж. часов</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="stat-card">
-                <div class="stat-value" id="cabinetExcused">0</div>
-                <div class="stat-label">Уваж. часов</div>
-              </div>
-            </div>
-          </div>
-
-          <hr class="border-secondary">
-
-          <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
-            <h6 class="text-white m-0">Мои пропуски</h6>
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
-          </div>
-          <div id="starostaPickerList" class="mb-3 d-none"></div>
-
-          <div class="table-responsive mb-3">
-            <table class="table table-bordered table-sm align-middle text-center">
-              <thead>
-                <tr class="table-dark">
-                  <th class="text-start">Предмет</th>
-                  <th>Неуваж. (ч)</th>
-                  <th>Уваж. (ч)</th>
-                  <th>Всего (ч)</th>
-                </tr>
-              </thead>
-              <tbody id="myAbsSubjectBody"></tbody>
-            </table>
-          </div>
-          <div class="list-group list-group-flush border rounded border-secondary border-opacity-25 mb-4" id="myAbsList"></div>
-
-          <hr class="border-secondary">
-
-          <h6 class="text-white mb-1 mt-3">Моя зачётка</h6>
-          <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся. «Зачтено» в средний балл не входит.</p>
-          <div id="zachetkaList" class="mb-3"></div>
-          <div class="student-summary-card">
-            <div class="d-flex justify-content-between align-items-center">
-              <div class="small text-secondary">Средний балл за сессию</div>
-              <div class="fw-bold text-success fs-4" id="zachetkaAverage">—</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Модальное окно: Преподавательский состав -->
 <div class="modal fade" id="teachersModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -1321,15 +1219,6 @@
     return `${dd}.${mm}.${yy}`;
   }
 
-  // Формат дд.мм.гггг (полный год) — для текста сообщения старосте
-  function formatDateFull(dateInput) {
-    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
-    if (isNaN(d.getTime())) return String(dateInput || '—');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `${dd}.${mm}.${d.getFullYear()}`;
-  }
-
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
   let githubToken = localStorage.getItem('gh_pat') || '';
   let currentHistoryStudentId = null;
@@ -1339,7 +1228,6 @@
   const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
   const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
   const ratingCalcModal = new bootstrap.Modal(document.getElementById('ratingCalcModal'));
-  const personalCabinetModal = new bootstrap.Modal(document.getElementById('personalCabinetModal'));
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
@@ -1422,249 +1310,6 @@
     return map;
   }
 
-  // Ищет старосту с заполненным telegram-юзернеймом (сначала точное совпадение роли,
-  // затем любую роль, содержащую "старост" — покрывает и "Зам. старосты")
-  function getStarostaContact() {
-    const exact = appData.students.find(s => s.telegramUsername && (s.role || '').trim().toLowerCase() === 'староста');
-    if (exact) return exact;
-    return appData.students.find(s => s.telegramUsername && (s.role || '').toLowerCase().includes('старост'));
-  }
-
-  // --- Личный кабинет ---
-  // Опознание: сначала сохранённый ранее выбор (localStorage), затем Telegram-юзернейм
-  // (initDataUnsafe.user — без криптопроверки, для статического сайта без бэкенда это
-  // максимум возможного), запасной вариант — ручной выбор из списка.
-  let myStudentId = null;
-
-  function getTelegramUsername() {
-    try {
-      const u = window.Telegram && window.Telegram.WebApp &&
-                window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
-      return (u && u.username) ? u.username.toLowerCase() : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function openPersonalCabinet() {
-    const savedId = localStorage.getItem('my_student_id');
-    if (savedId && appData.students.find(s => s.id === savedId)) {
-      myStudentId = savedId;
-      showCabinetContent();
-      return;
-    }
-
-    const tgUsername = getTelegramUsername();
-    if (tgUsername) {
-      const match = appData.students.find(s => (s.telegramUsername || '').toLowerCase() === tgUsername);
-      if (match) {
-        myStudentId = match.id;
-        localStorage.setItem('my_student_id', match.id);
-        showCabinetContent();
-        return;
-      }
-    }
-
-    showStudentPicker();
-  }
-
-  function showStudentPicker() {
-    const journalNumbers = getJournalNumbers();
-    const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
-    document.getElementById('cabinetStudentPicker').innerHTML = ordered
-      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
-      .join('');
-    document.getElementById('cabinetPickerSection').classList.remove('d-none');
-    document.getElementById('cabinetContentSection').classList.add('d-none');
-    personalCabinetModal.show();
-  }
-
-  function confirmStudentPick() {
-    const id = document.getElementById('cabinetStudentPicker').value;
-    if (!id) return;
-    myStudentId = id;
-    localStorage.setItem('my_student_id', id);
-    showCabinetContent();
-  }
-
-  function resetMyIdentity() {
-    localStorage.removeItem('my_student_id');
-    myStudentId = null;
-    showStudentPicker();
-  }
-
-  function showCabinetContent() {
-    const student = appData.students.find(s => s.id === myStudentId);
-    if (!student) { showStudentPicker(); return; }
-
-    document.getElementById('cabinetPickerSection').classList.add('d-none');
-    document.getElementById('cabinetContentSection').classList.remove('d-none');
-    document.getElementById('cabinetStudentName').innerText = `${student.lastName} ${student.firstName}`;
-
-    const subjectSelect = document.getElementById('cabinetSubject');
-    subjectSelect.innerHTML = '<option value="ALL">Все предметы</option>' +
-      appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
-
-    document.getElementById('starostaPickerList').classList.add('d-none');
-
-    renderPersonalStats();
-    renderCabinetAnnouncements();
-    renderMyAbsences();
-    renderZachetka();
-    personalCabinetModal.show();
-  }
-
-  function renderPersonalStats() {
-    if (!myStudentId) return;
-    const period = document.getElementById('cabinetPeriod').value;
-    const subject = document.getElementById('cabinetSubject').value;
-    const range = getPeriodRangeFor(period);
-
-    let unexcused = 0, excused = 0;
-    appData.absences.forEach(a => {
-      if (a.studentId !== myStudentId) return;
-      if (subject !== 'ALL' && a.subject !== subject) return;
-      if (range) {
-        const d = new Date(a.date);
-        if (isNaN(d.getTime()) || d < range.start || d >= range.end) return;
-      }
-      if (a.isExcused) excused += Number(a.totalHours);
-      else unexcused += Number(a.totalHours);
-    });
-
-    document.getElementById('cabinetUnexcused').innerText = unexcused;
-    document.getElementById('cabinetExcused').innerText = excused;
-  }
-
-  // Полная детализация пропусков (перенесено сюда из общей истории): таблица по предметам + список записей
-  function renderMyAbsences() {
-    if (!myStudentId) return;
-    const studentAbs = appData.absences.filter(a => a.studentId === myStudentId);
-
-    const subjectMap = buildSubjectBreakdown(studentAbs);
-    const subjectBody = document.getElementById('myAbsSubjectBody');
-    subjectBody.innerHTML = '';
-    Object.keys(subjectMap).forEach(sub => {
-      const u = subjectMap[sub].unexcused;
-      const e = subjectMap[sub].excused;
-      if (u > 0 || e > 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="text-start fw-bold text-white">${sub}</td>
-          <td class="text-warning">${u}</td>
-          <td class="text-success">${e}</td>
-          <td class="fw-bold">${u + e}</td>
-        `;
-        subjectBody.appendChild(tr);
-      }
-    });
-
-    const listEl = document.getElementById('myAbsList');
-    listEl.innerHTML = '';
-    if (studentAbs.length === 0) {
-      listEl.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
-    } else {
-      const sorted = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
-      sorted.forEach(a => {
-        const item = document.createElement('div');
-        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
-        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
-        item.innerHTML = `
-          <div>
-            <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
-            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
-            <button class="btn btn-sm btn-outline-danger admin-only d-none" onclick="deleteAbsence('${a.id}', '${myStudentId}')">✕</button>
-          </div>
-        `;
-        listEl.appendChild(item);
-      });
-    }
-    updateAdminUI();
-  }
-
-  // Кнопка "Написать старосте" — показывает список своих пропусков, клик по одному открывает Telegram
-  function toggleStarostaPicker() {
-    const container = document.getElementById('starostaPickerList');
-    const wasHidden = container.classList.contains('d-none');
-    container.classList.toggle('d-none');
-    if (wasHidden) renderStarostaPicker();
-  }
-
-  function renderStarostaPicker() {
-    const container = document.getElementById('starostaPickerList');
-    const starosta = getStarostaContact();
-    if (!starosta) {
-      container.innerHTML = '<div class="small text-secondary p-2">У старосты пока не указан Telegram username — попросите админа его добавить.</div>';
-      return;
-    }
-    const abs = appData.absences.filter(a => a.studentId === myStudentId)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    if (abs.length === 0) {
-      container.innerHTML = '<div class="small text-secondary p-2">Пропусков нет.</div>';
-      return;
-    }
-    container.innerHTML = abs.map(a => {
-      const subName = a.subject || 'Предмет не указан';
-      const text = encodeURIComponent(`Привет! У меня вопрос по пропуску ${formatDateFull(a.date)} по предмету «${subName}». Можешь помочь?`);
-      return `<a class="btn btn-outline-secondary btn-sm w-100 text-start mb-2" target="_blank" rel="noopener"
-                 href="https://t.me/${starosta.telegramUsername}?text=${text}">${formatDateShort(a.date)} — ${subName}</a>`;
-    }).join('');
-  }
-
-  // --- Моя зачётка: оценки по предметам (кроме Кураторского часа и Физкультуры), вносит сам студент,
-  // хранится только локально в браузере. "Зачтено" в средний балл не входит.
-  const ZACHETKA_EXCLUDED_SUBJECTS = ['Кураторский час', 'Физическая культура'];
-  const ZACHETKA_GRADE_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-
-  function loadZachetkaState() {
-    try {
-      return JSON.parse(localStorage.getItem('zachetka_grades') || '{}');
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function renderZachetka() {
-    const grades = loadZachetkaState();
-    const container = document.getElementById('zachetkaList');
-    const subjects = appData.subjects.filter(s => !ZACHETKA_EXCLUDED_SUBJECTS.includes(s));
-    container.innerHTML = subjects.map(subj => {
-      const current = grades[subj] !== undefined ? String(grades[subj]) : '';
-      const optionsHtml = ['<option value="">—</option>']
-        .concat(ZACHETKA_GRADE_OPTIONS.map(g => `<option value="${g}" ${current === String(g) ? 'selected' : ''}>${g}</option>`))
-        .concat([`<option value="зач" ${current === 'зач' ? 'selected' : ''}>Зачтено (зач)</option>`])
-        .join('');
-      return `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div class="small text-white">${subj}</div>
-          <select class="form-select form-select-sm" style="width: 110px;"
-                  onchange="updateZachetkaGrade('${subj.replace(/'/g, "\\'")}', this.value)">
-            ${optionsHtml}
-          </select>
-        </div>
-      `;
-    }).join('');
-    updateZachetkaAverage(grades);
-  }
-
-  function updateZachetkaGrade(subject, value) {
-    const grades = loadZachetkaState();
-    if (!value) delete grades[subject];
-    else if (value === 'зач') grades[subject] = 'зач';
-    else grades[subject] = Number(value);
-    localStorage.setItem('zachetka_grades', JSON.stringify(grades));
-    updateZachetkaAverage(grades);
-  }
-
-  function updateZachetkaAverage(grades) {
-    const vals = Object.values(grades).filter(v => typeof v === 'number');
-    const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
-    document.getElementById('zachetkaAverage').innerText = avg !== null ? avg.toFixed(2) : '—';
-  }
-
   // --- Объявления ---
   function openAnnouncementModal() {
     document.getElementById('announcementText').value = '';
@@ -1703,7 +1348,6 @@
     await saveDataToGitHub('Добавлено объявление');
     announcementModal.hide();
     renderGeneralAnnouncements();
-    if (myStudentId) renderCabinetAnnouncements();
   }
 
   async function deleteAnnouncement(id) {
@@ -1711,7 +1355,6 @@
     appData.announcements = appData.announcements.filter(a => a.id !== id);
     await saveDataToGitHub('Удалено объявление');
     renderGeneralAnnouncements();
-    if (myStudentId) renderCabinetAnnouncements();
   }
 
   function announcementCardHtml(a) {
@@ -1738,21 +1381,6 @@
     }
     section.classList.remove('d-none');
     document.getElementById('generalAnnouncementsList').innerHTML = list.map(announcementCardHtml).join('');
-    updateAdminUI();
-  }
-
-  function renderCabinetAnnouncements() {
-    if (!myStudentId) return;
-    const list = (appData.announcements || [])
-      .filter(a => a.targetType === 'STUDENT' && a.targetStudentId === myStudentId)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    const section = document.getElementById('cabinetAnnouncementsSection');
-    if (list.length === 0) {
-      section.classList.add('d-none');
-      return;
-    }
-    section.classList.remove('d-none');
-    document.getElementById('cabinetAnnouncementsList').innerHTML = list.map(announcementCardHtml).join('');
     updateAdminUI();
   }
 
@@ -2381,27 +2009,6 @@
     studentHistoryModal.show();
   }
 
-  // Подробная разбивка по предметам + список записей — используется в Личном кабинете (renderMyAbsences)
-  function buildSubjectBreakdown(studentAbs) {
-    const subjectMap = {};
-    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
-    studentAbs.forEach(a => {
-      const h = Number(a.totalHours);
-      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
-      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
-      if (a.isExcused) subjectMap[subName].excused += h;
-      else subjectMap[subName].unexcused += h;
-    });
-    return subjectMap;
-  }
-
-  async function deleteAbsence(absId, studentId) {
-    if (!confirm('Удалить эту запись о пропуске?')) return;
-    appData.absences = appData.absences.filter(a => a.id !== absId);
-    await saveDataToGitHub('Удален пропуск');
-    renderMyAbsences();
-  }
-
   // Кнопки "Изменить"/"Удалить" в футере окна истории (переехали сюда со столбца "Действия")
   function editCurrentHistoryStudent() {
     if (!currentHistoryStudentId) return;
@@ -2703,11 +2310,11 @@
     <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4L2.5 9 12 14l9.5-5L12 4z"/><path d="M6.5 12.3v3.7c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-3.7L12 15.3 6.5 12.3z"/><rect x="20.7" y="9" width="1.6" height="5.6" rx=".8"/></svg>
     <span>Преподы</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="openPersonalCabinet()">
+  <a class="tabbar-item" href="cabinet.html">
     <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.3 18.2c1.4-2.2 3.4-3.2 5.7-3.2s4.3 1 5.7 3.2"/></svg>
     <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6.6 17.6c1.5-1.9 3.4-2.9 5.4-2.9s3.9 1 5.4 2.9a7.6 7.6 0 0 1-10.8 0z"/></svg>
     <span>Личный кабинет</span>
-  </button>
+  </a>
 </nav>
 
 </body>

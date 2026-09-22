@@ -1,0 +1,1184 @@
+﻿<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный кабинет — Журнал 24ДММ-2</title>
+
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Light.ttf') format('truetype');
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-LightItalic.ttf') format('truetype');
+      font-weight: 300;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-RegularItalic.ttf') format('truetype');
+      font-weight: 400;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Medium.ttf') format('truetype');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-MediumItalic.ttf') format('truetype');
+      font-weight: 500;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Semibold.ttf') format('truetype');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-SemiboldItalic.ttf') format('truetype');
+      font-weight: 600;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-BoldItalic.ttf') format('truetype');
+      font-weight: 700;
+      font-style: italic;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-Heavy.ttf') format('truetype');
+      font-weight: 800;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'SF Pro Text';
+      src: url('fonts/SFProText-HeavyItalic.ttf') format('truetype');
+      font-weight: 800;
+      font-style: italic;
+      font-display: swap;
+    }
+
+    html, body {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .container { max-width: 1100px; }
+
+    .app-header { padding: 20px 0 10px 0; }
+
+    .group-badge {
+      background-color: rgba(56, 139, 253, 0.15);
+      color: #58a6ff;
+      border: 1px solid rgba(56, 139, 253, 0.4);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+
+    /* Карточки метрик: авто-подбор колонок, никогда не сжимаются в нечитаемую ширину */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-card {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 84px;
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: #f0f6fc;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 4px;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    .table-container {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table-responsive {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+      margin-bottom: 0;
+      color: #c9d1d9;
+      --bs-table-bg: transparent;
+      --bs-table-border-color: #21262d;
+    }
+
+    .table th {
+      background-color: #161b22;
+      color: #8b949e;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid #30363d;
+      white-space: nowrap;
+    }
+
+    .table td {
+      padding: 10px 14px;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .table-hover tbody tr:hover { background-color: #1c2128; }
+
+    .student-name {
+      font-weight: 600;
+      color: #58a6ff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .student-name:hover { text-decoration: underline; }
+
+    .badge-type {
+      background-color: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .hours-box {
+      width: 65px;
+      text-align: center;
+      padding: 4px 0;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.1;
+      display: inline-block;
+    }
+
+    .hours-subtext {
+      font-size: 9px;
+      font-weight: 400;
+      display: block;
+      opacity: 0.85;
+    }
+
+    .hours-zero { background-color: #0f2d1e; color: #3fb950; border: 1px solid #1a4d31; }
+    .hours-warning { background-color: #382403; color: #d29922; border: 1px solid #5d3d06; }
+    .hours-danger { background-color: #3d1314; color: #f85149; border: 1px solid #672022; }
+
+    /* Круглый бейдж для неуваж. часов: зелёный 0-4, жёлтый 5-8, красный 9+ */
+    .hours-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffffff;
+    }
+    .hours-circle.hours-green { background-color: #2ea043; }
+    .hours-circle.hours-warning { background-color: #bf8700; border: none; }
+    .hours-circle.hours-danger { background-color: #da3633; border: none; }
+
+    .quick-hour-btn {
+      min-width: 50px;
+      font-weight: 600;
+    }
+
+    .student-summary-card {
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px 16px;
+    }
+
+    .subject-slot-card {
+      background-color: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* Фишки-оценки в калькуляторе рейтинга */
+    .grade-chip {
+      display: inline-flex;
+      align-items: center;
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 2px 2px 2px 10px;
+      gap: 2px;
+    }
+    .grade-chip-input {
+      width: 40px;
+      background: transparent;
+      border: none;
+      color: #f0f6fc;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 0;
+      -moz-appearance: textfield;
+    }
+    .grade-chip-input:focus { outline: none; }
+    .grade-chip-remove {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 16px;
+      line-height: 1;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+    .grade-chip-remove:hover { color: #f85149; }
+
+    .form-check-input:checked {
+      background-color: #238636;
+      border-color: #238636;
+    }
+
+    .form-control, .form-select {
+      background-color: #0d1117;
+      border-color: #30363d;
+      color: #f0f6fc;
+    }
+
+    .form-control:focus, .form-select:focus {
+      background-color: #0d1117;
+      border-color: #58a6ff;
+      color: #f0f6fc;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+    }
+
+    .modal-content {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+
+    .modal-header, .modal-footer { border-color: #21262d; }
+
+    /* Значок сортировки рядом с поиском — виден всегда */
+    .sort-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #8b949e;
+      cursor: pointer;
+    }
+    .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
+    .sort-icon-btn svg { width: 17px; height: 17px; }
+
+    /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
+    .bottom-tabbar { display: none; }
+    .tabbar-item {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 6px 2px;
+      cursor: pointer;
+    }
+    .tabbar-item svg { width: 22px; height: 22px; }
+    .tabbar-item.active { color: #58a6ff; }
+    /* --- Порядковый номер по журналу --- */
+    .journal-num {
+      color: #8b949e;
+      font-weight: 700;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- Кнопка входа для администратора --- */
+    .admin-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #1a73ff;
+      border: none;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1;
+      padding: 10px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background-color .15s ease, transform .1s ease;
+    }
+
+    .admin-btn:hover { background-color: #0f5ce0; }
+    .admin-btn:active { transform: scale(0.97); }
+    .admin-btn:focus-visible { outline: 2px solid #8fc0ff; outline-offset: 2px; }
+    .admin-btn .admin-btn-icon { width: 22px; height: 22px; flex: 0 0 auto; }
+    .admin-btn.is-admin { background-color: #da3633; }
+    .admin-btn.is-admin:hover { background-color: #b02a27; }
+
+    /* --- Подсказка под списком предметов --- */
+    .subject-hint { font-size: 12px; margin-top: 10px; line-height: 1.4; }
+
+    /* Таблица теперь всего из 4 узких колонок — не растягиваем, помещается без скролла */
+    .table { min-width: 0; width: 100%; }
+
+    /* Предмет недоступен: лимит пар уже выбран */
+    .subject-off { opacity: .4; }
+
+    /* Предмет недоступен: лимит пар уже выбран */
+    .subject-off { opacity: .4; }
+
+    /* ===== Мобильная адаптация (телефоны, Telegram Mini App) ===== */
+    @media (max-width: 576px) {
+      .container { padding-left: 12px; padding-right: 12px; }
+
+      .app-header { padding: 14px 0 6px 0; }
+      .app-header h2 { font-size: 1.3rem; }
+      .app-header .group-badge { font-size: 12px; padding: 4px 9px; }
+      .app-header > div:last-child { width: 100%; }
+      .admin-btn { width: 100%; justify-content: center; }
+
+      /* Карточки метрик: компактная сетка 3×2 вместо авто-подбора */
+      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-card { padding: 10px; min-height: 68px; }
+      .stat-value { font-size: 19px; }
+      .stat-label { font-size: 10px; }
+
+      /* Панель поиска/фильтра — занимает всю ширину */
+      .search-filter-group { max-width: none; width: 100%; }
+      .search-filter-group .form-select { width: 110px; }
+
+      /* Кнопки действий — на всю ширину построчно, удобнее тапать */
+      .action-buttons-group { width: 100%; }
+      .action-buttons-group .btn { flex: 1 1 auto; }
+
+      /* iOS зумит инпуты с font-size меньше 16px при фокусе — фиксируем */
+      .form-control, .form-select { font-size: 16px !important; }
+
+      .table td, .table th { padding: 10px; font-size: 13px; }
+      .modal-body { padding: 14px; }
+
+      /* ===== Telegram Mini App: вид "по скриншоту" ===== */
+
+      /* Поисковая строка — пилюля с иконкой лупы */
+      #searchInput {
+        border-radius: 999px;
+        background-color: #161b22;
+        border-color: #21262d;
+        padding-left: 38px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 12px center;
+        background-size: 16px;
+      }
+
+      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются тапом по шапке */
+      .filter-panel-group { display: none; }
+      .filter-panel-group.filter-visible { display: flex; }
+      .filter-select {
+        border-radius: 999px;
+        background-color: #161b22;
+        border-color: #21262d;
+      }
+
+
+      /* Часы — сплошные цветные "чипы" вместо рамок, без подписи "часов" под числом */
+      .hours-box {
+        border-radius: 999px;
+        border: none;
+        min-width: 34px;
+        width: auto;
+        padding: 6px 12px;
+      }
+      .hours-subtext { display: none; }
+      .hours-zero, .hours-excused { background-color: #21262d; color: #8b949e; }
+      .hours-warning { background-color: #bf8700; color: #ffffff; }
+      .hours-danger { background-color: #da3633; color: #ffffff; }
+
+      /* Нижняя панель навигации */
+      body { padding-bottom: 72px; }
+      .bottom-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1030;
+        background-color: #161b22;
+        border-top: 1px solid #21262d;
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+  /* v2-patch-applied: сортировка, мягкие кнопки, нейтральные уваж. часы */
+
+    /* Уважительные часы — без зелёного фона */
+    .hours-excused {
+      background-color: transparent;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+
+    /* Панель кнопок: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
+    .action-buttons-group { display: flex; }
+
+    /* Мягкие кнопки: скруглённые углы + приглушённые границы */
+    .btn { --bs-btn-border-radius: 10px; }
+    .btn-outline-secondary { --bs-btn-border-color: rgba(139, 148, 158, 0.35); }
+    .btn-outline-light { --bs-btn-border-color: rgba(240, 246, 252, 0.28); }
+    .btn-outline-danger { --bs-btn-border-color: rgba(248, 81, 73, 0.45); }
+
+  /* v3-patch-applied (chat): дата дд.мм.гг, теги ролей, admin-badge, красная кнопка выхода */
+
+    /* Тег роли рядом с ФИО (например "Староста") */
+    .role-tag {
+      display: inline-block;
+      background-color: rgba(210, 153, 34, 0.15);
+      color: #d29922;
+      border: 1px solid rgba(210, 153, 34, 0.4);
+      font-weight: 600;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      white-space: nowrap;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* Значок администратора рядом с ФИО */
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      vertical-align: middle;
+      margin-left: 6px;
+      color: #58a6ff;
+    }
+    .admin-badge svg { width: 100%; height: 100%; }
+  /* v5-feature-tiles-applied: квадратные кнопки разделов в цветах приложения + отступы под интерфейс Telegram */
+
+    /* Telegram в полноэкранном режиме рисует свои кнопки («Закрыть», меню) и системную строку
+       поверх страницы. Размеры этих зон Telegram отдаёт в переменных --tg-*.
+       В обычном режиме они равны 0, и ничего не меняется. */
+    :root {
+      --app-inset-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+      --app-inset-right: calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px));
+      --app-inset-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+      --app-inset-left: calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px));
+    }
+    body {
+      padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
+    }
+    /* окна (история, добавление и т.д.) тоже не должны уезжать под кнопки Telegram */
+    .modal {
+      padding-top: var(--app-inset-top);
+      padding-bottom: var(--app-inset-bottom);
+    }
+
+    /* Кнопки разделов: три квадрата в ряд. Тонированные карточки в стиле .group-badge:
+       фон карточки приложения + лёгкий цветной оттенок, цветная рамка и иконка */
+    .feature-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      max-width: 480px;
+    }
+
+    .feature-btn {
+      --fb-accent: #58a6ff;
+      --fb-tint: 56, 139, 253;
+      -webkit-appearance: none;
+      appearance: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      min-width: 0;
+      aspect-ratio: 1 / 1;
+      padding: 14px 6px 8px;
+      border: 1px solid rgba(var(--fb-tint), 0.40);
+      border-radius: 16px;
+      background-color: #161b22;
+      background-image: linear-gradient(160deg, rgba(var(--fb-tint), 0.22), rgba(var(--fb-tint), 0.08));
+      color: #e6edf3;
+      font-size: clamp(10.5px, 3.1vw, 13px);
+      font-weight: 600;
+      line-height: 1.2;
+      text-align: center;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: border-color .15s ease, transform .1s ease;
+    }
+    .feature-btn:active { transform: scale(0.97); }
+    .feature-btn:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 2px; }
+    @media (hover: hover) {
+      .feature-btn:hover { border-color: rgba(var(--fb-tint), 0.75); }
+    }
+
+    .feature-btn-icon { display: flex; color: var(--fb-accent); }
+    .feature-btn-icon svg {
+      width: 30px;
+      height: 30px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .feature-btn-label { display: block; max-width: 100%; }
+
+    .feature-btn--blue { --fb-accent: #58a6ff; --fb-tint: 56, 139, 253; }
+    .feature-btn--purple { --fb-accent: #a371f7; --fb-tint: 163, 113, 247; }
+    .feature-btn--green { --fb-accent: #3fb950; --fb-tint: 46, 160, 67; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .feature-btn { transition: none; }
+      .feature-btn:active { transform: none; }
+    }
+  /* v6-tabbar-applied: плавающий тап-бар «как на скриншоте» и отступ под него */
+
+    :root {
+      --tabbar-h: 68px;
+      --tabbar-gap: 12px;
+      /* безопасная зона снизу: берём большее из системной и от Telegram (чтобы не сложились дважды) */
+      --tabbar-inset: max(env(safe-area-inset-bottom, 0px), var(--app-inset-bottom, 0px));
+    }
+
+    /* Плавающая панель: тёмное «стекло» со скруглёнными краями */
+    .bottom-tabbar {
+      left: 16px;
+      right: 16px;
+      bottom: calc(var(--tabbar-inset) + var(--tabbar-gap));
+      justify-content: space-around;
+      align-items: center;
+      height: var(--tabbar-h);
+      padding: 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      background: rgba(22, 27, 34, 0.72);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      backdrop-filter: blur(22px) saturate(160%);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .bottom-tabbar { background: rgba(22, 27, 34, 0.96); }
+    }
+
+    .tabbar-item {
+      flex: 0 1 auto;
+      min-width: 0;
+      height: 100%;
+      justify-content: center;
+      gap: 4px;
+      padding: 0 3px;
+      color: #8b949e;
+      font-size: clamp(10px, 2.8vw, 11px);
+      font-weight: 500;
+      line-height: 1.15;
+      white-space: nowrap;
+      border-radius: 999px;
+      -webkit-tap-highlight-color: transparent;
+      transition: color .15s ease, opacity .15s ease;
+    }
+    .tabbar-item.active { color: #ffffff; font-weight: 600; }
+    .tabbar-item:active { opacity: 0.6; }
+    .tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -3px; }
+
+    /* Иконки: контурные у неактивных вкладок, залитые у активной */
+    .tabbar-item .tab-ico {
+      flex: none;
+      width: 26px;
+      height: 26px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .tabbar-item .tab-ico--solid { display: none; fill: currentColor; stroke: none; }
+    .tabbar-item.active .tab-ico--line { display: none; }
+    .tabbar-item.active .tab-ico--solid { display: block; }
+
+    @media (max-width: 340px) {
+      .bottom-tabbar { left: 8px; right: 8px; padding: 0 4px; }
+      .tabbar-item { padding: 0 2px; }
+    }
+
+    @media (max-width: 576px) {
+      /* Исправление: место под панель внизу страницы, чтобы последняя строка не пряталась под ней */
+      body { padding-bottom: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 24px); }
+
+      /* Мягкое затухание строк под панелью */
+      body::after {
+        content: '';
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1020;
+        height: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 28px);
+        background: linear-gradient(to top, rgba(13, 17, 23, 0.9) 0%, rgba(13, 17, 23, 0.55) 55%, rgba(13, 17, 23, 0) 100%);
+        pointer-events: none;
+      }
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+    .back-link:hover { color: #f0f6fc; }
+    .back-link svg { width: 16px; height: 16px; }
+  </style>
+</head>
+<body>
+
+<div class="container my-3" style="max-width: 640px;">
+  <a href="index.html" class="back-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    Назад в журнал
+  </a>
+  <h2 class="fw-bold text-white mb-3">Личный кабинет</h2>
+
+  <!-- Выбор себя — если не удалось опознать по Telegram -->
+  <div id="cabinetPickerSection" class="d-none">
+    <p class="small text-secondary mb-3">Не удалось определить вас автоматически по Telegram. Выберите себя из списка:</p>
+    <select id="cabinetStudentPicker" class="form-select mb-3"></select>
+    <button type="button" class="btn btn-primary w-100 fw-bold" onclick="confirmStudentPick()">Это я</button>
+  </div>
+
+  <!-- Содержимое кабинета — после опознания -->
+  <div id="cabinetContentSection" class="d-none">
+    <div class="student-summary-card mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-white" id="cabinetStudentName">—</div>
+        <a href="#" class="small text-secondary" onclick="resetMyIdentity(); return false;">Это не я</a>
+      </div>
+    </div>
+
+    <!-- Персональные объявления от админа -->
+    <div id="cabinetAnnouncementsSection" class="mb-3 d-none">
+      <h6 class="text-white mb-2">Объявления для меня</h6>
+      <div id="cabinetAnnouncementsList"></div>
+    </div>
+
+    <h6 class="text-white mb-2">Моя статистика</h6>
+    <div class="d-flex gap-2 mb-3">
+      <select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
+        <option value="WEEK">Неделя</option>
+        <option value="MONTH" selected>Месяц</option>
+        <option value="SEMESTER">Семестр</option>
+      </select>
+      <select id="cabinetSubject" class="form-select form-select-sm" onchange="renderPersonalStats()">
+        <option value="ALL">Все предметы</option>
+      </select>
+    </div>
+    <div class="row g-2 mb-4">
+      <div class="col-6">
+        <div class="stat-card">
+          <div class="stat-value" id="cabinetUnexcused">0</div>
+          <div class="stat-label">Неуваж. часов</div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="stat-card">
+          <div class="stat-value" id="cabinetExcused">0</div>
+          <div class="stat-label">Уваж. часов</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="border-secondary">
+
+    <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+      <h6 class="text-white m-0">Мои пропуски</h6>
+      <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
+    </div>
+    <div id="starostaPickerList" class="mb-3 d-none"></div>
+
+    <div class="table-responsive mb-3">
+      <table class="table table-bordered table-sm align-middle text-center">
+        <thead>
+          <tr class="table-dark">
+            <th class="text-start">Предмет</th>
+            <th>Неуваж. (ч)</th>
+            <th>Уваж. (ч)</th>
+            <th>Всего (ч)</th>
+          </tr>
+        </thead>
+        <tbody id="myAbsSubjectBody"></tbody>
+      </table>
+    </div>
+    <div class="list-group list-group-flush border rounded border-secondary border-opacity-25 mb-4" id="myAbsList"></div>
+
+    <hr class="border-secondary">
+
+    <h6 class="text-white mb-1 mt-3">Моя зачётка</h6>
+    <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся. «Зачтено» в средний балл не входит.</p>
+    <div id="zachetkaList" class="mb-3"></div>
+    <div class="student-summary-card mb-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small text-secondary">Средний балл за сессию</div>
+        <div class="fw-bold text-success fs-4" id="zachetkaAverage">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const DEFAULT_SUBJECTS = [
+    "Интегрированные маркетинговые коммуникации",
+    "Кураторский час",
+    "Логистика",
+    "Маркетинг инноваций",
+    "Маркетинг услуг",
+    "Маркетинговые исследования и аналитика",
+    "Стратегический маркетинг",
+    "Физическая культура",
+    "Функционально-стоимостный анализ",
+    "Эконометрика"
+  ];
+
+  function formatDateShort(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '—');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}.${mm}.${yy}`;
+  }
+
+  function formatDateFull(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '—');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}.${mm}.${d.getFullYear()}`;
+  }
+
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], announcements: [] };
+  let myStudentId = null;
+
+  async function init() {
+    if (window.Telegram && window.Telegram.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.expand();
+      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+      tg.ready();
+    }
+
+    try {
+      const response = await fetch(`./data.json?t=${Date.now()}`);
+      appData = await response.json();
+      if (!appData.subjects || appData.subjects.length === 0) appData.subjects = DEFAULT_SUBJECTS;
+      if (!appData.teachers) appData.teachers = [];
+      if (!appData.announcements) appData.announcements = [];
+    } catch (err) {
+      console.error('Ошибка загрузки данных:', err);
+      return;
+    }
+
+    openPersonalCabinet();
+  }
+
+  function getJournalNumbers() {
+    const ordered = [...appData.students].sort((a, b) =>
+      `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'ru')
+    );
+    const map = {};
+    ordered.forEach((s, i) => { map[s.id] = i + 1; });
+    return map;
+  }
+
+  function getStarostaContact() {
+    const exact = appData.students.find(s => s.telegramUsername && (s.role || '').trim().toLowerCase() === 'староста');
+    if (exact) return exact;
+    return appData.students.find(s => s.telegramUsername && (s.role || '').toLowerCase().includes('старост'));
+  }
+
+  function getSemesterRange(now) {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    if (month >= 8 || month === 0) {
+      const startYear = month === 0 ? year - 1 : year;
+      return { start: new Date(startYear, 8, 1), end: new Date(startYear + 1, 1, 1) };
+    }
+    return { start: new Date(year, 1, 1), end: new Date(year, 6, 1) };
+  }
+
+  function getPeriodRangeFor(periodValue) {
+    const now = new Date();
+    if (periodValue === 'WEEK') {
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+      return { start, end };
+    }
+    if (periodValue === 'MONTH') {
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+    }
+    if (periodValue === 'SEMESTER') return getSemesterRange(now);
+    return null;
+  }
+
+  function getTelegramUsername() {
+    try {
+      const u = window.Telegram && window.Telegram.WebApp &&
+                window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
+      return (u && u.username) ? u.username.toLowerCase() : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // --- Опознание студента ---
+  function openPersonalCabinet() {
+    const savedId = localStorage.getItem('my_student_id');
+    if (savedId && appData.students.find(s => s.id === savedId)) {
+      myStudentId = savedId;
+      showCabinetContent();
+      return;
+    }
+
+    const skipAutoMatch = localStorage.getItem('cabinet_skip_auto_match') === 'true';
+    if (!skipAutoMatch) {
+      const tgUsername = getTelegramUsername();
+      if (tgUsername) {
+        const match = appData.students.find(s => (s.telegramUsername || '').toLowerCase() === tgUsername);
+        if (match) {
+          myStudentId = match.id;
+          localStorage.setItem('my_student_id', match.id);
+          showCabinetContent();
+          return;
+        }
+      }
+    }
+
+    showStudentPicker();
+  }
+
+  function showStudentPicker() {
+    const journalNumbers = getJournalNumbers();
+    const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
+    document.getElementById('cabinetStudentPicker').innerHTML = ordered
+      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
+      .join('');
+    document.getElementById('cabinetPickerSection').classList.remove('d-none');
+    document.getElementById('cabinetContentSection').classList.add('d-none');
+  }
+
+  function confirmStudentPick() {
+    const id = document.getElementById('cabinetStudentPicker').value;
+    if (!id) return;
+    myStudentId = id;
+    localStorage.setItem('my_student_id', id);
+    showCabinetContent();
+  }
+
+  function resetMyIdentity() {
+    localStorage.removeItem('my_student_id');
+    localStorage.setItem('cabinet_skip_auto_match', 'true');
+    myStudentId = null;
+    showStudentPicker();
+  }
+
+  function showCabinetContent() {
+    const student = appData.students.find(s => s.id === myStudentId);
+    if (!student) { showStudentPicker(); return; }
+
+    document.getElementById('cabinetPickerSection').classList.add('d-none');
+    document.getElementById('cabinetContentSection').classList.remove('d-none');
+    document.getElementById('cabinetStudentName').innerText = `${student.lastName} ${student.firstName}`;
+
+    const subjectSelect = document.getElementById('cabinetSubject');
+    subjectSelect.innerHTML = '<option value="ALL">Все предметы</option>' +
+      appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    document.getElementById('starostaPickerList').classList.add('d-none');
+
+    renderPersonalStats();
+    renderCabinetAnnouncements();
+    renderMyAbsences();
+    renderZachetka();
+  }
+
+  function renderPersonalStats() {
+    if (!myStudentId) return;
+    const period = document.getElementById('cabinetPeriod').value;
+    const subject = document.getElementById('cabinetSubject').value;
+    const range = getPeriodRangeFor(period);
+
+    let unexcused = 0, excused = 0;
+    appData.absences.forEach(a => {
+      if (a.studentId !== myStudentId) return;
+      if (subject !== 'ALL' && a.subject !== subject) return;
+      if (range) {
+        const d = new Date(a.date);
+        if (isNaN(d.getTime()) || d < range.start || d >= range.end) return;
+      }
+      if (a.isExcused) excused += Number(a.totalHours);
+      else unexcused += Number(a.totalHours);
+    });
+
+    document.getElementById('cabinetUnexcused').innerText = unexcused;
+    document.getElementById('cabinetExcused').innerText = excused;
+  }
+
+  function buildSubjectBreakdown(studentAbs) {
+    const subjectMap = {};
+    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
+    studentAbs.forEach(a => {
+      const h = Number(a.totalHours);
+      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
+      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
+      if (a.isExcused) subjectMap[subName].excused += h;
+      else subjectMap[subName].unexcused += h;
+    });
+    return subjectMap;
+  }
+
+  // Только просмотр — редактирование и удаление пропусков остаются в основном журнале у администратора
+  function renderMyAbsences() {
+    if (!myStudentId) return;
+    const studentAbs = appData.absences.filter(a => a.studentId === myStudentId);
+
+    const subjectMap = buildSubjectBreakdown(studentAbs);
+    const subjectBody = document.getElementById('myAbsSubjectBody');
+    subjectBody.innerHTML = '';
+    Object.keys(subjectMap).forEach(sub => {
+      const u = subjectMap[sub].unexcused;
+      const e = subjectMap[sub].excused;
+      if (u > 0 || e > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-start fw-bold text-white">${sub}</td>
+          <td class="text-warning">${u}</td>
+          <td class="text-success">${e}</td>
+          <td class="fw-bold">${u + e}</td>
+        `;
+        subjectBody.appendChild(tr);
+      }
+    });
+
+    const listEl = document.getElementById('myAbsList');
+    listEl.innerHTML = '';
+    if (studentAbs.length === 0) {
+      listEl.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
+    } else {
+      const sorted = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      sorted.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center';
+        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+        item.innerHTML = `
+          <div>
+            <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
+            <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+          </div>
+          <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+  }
+
+  function toggleStarostaPicker() {
+    const container = document.getElementById('starostaPickerList');
+    const wasHidden = container.classList.contains('d-none');
+    container.classList.toggle('d-none');
+    if (wasHidden) renderStarostaPicker();
+  }
+
+  function renderStarostaPicker() {
+    const container = document.getElementById('starostaPickerList');
+    const starosta = getStarostaContact();
+    if (!starosta) {
+      container.innerHTML = '<div class="small text-secondary p-2">У старосты пока не указан Telegram username — попросите админа его добавить.</div>';
+      return;
+    }
+    const abs = appData.absences.filter(a => a.studentId === myStudentId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (abs.length === 0) {
+      container.innerHTML = '<div class="small text-secondary p-2">Пропусков нет.</div>';
+      return;
+    }
+    container.innerHTML = abs.map(a => {
+      const subName = a.subject || 'Предмет не указан';
+      const text = encodeURIComponent(`Привет! У меня вопрос по пропуску ${formatDateFull(a.date)} по предмету «${subName}». Можешь помочь?`);
+      const url = `https://t.me/${starosta.telegramUsername}?text=${text}`;
+      return `<button type="button" class="btn btn-outline-secondary btn-sm w-100 text-start mb-2"
+                 onclick="openTelegramChat('${url}')">${formatDateShort(a.date)} — ${subName}</button>`;
+    }).join('');
+  }
+
+  function openTelegramChat(url) {
+    try {
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(url);
+        return;
+      }
+    } catch (e) {}
+    window.open(url, '_blank');
+  }
+
+  // --- Моя зачётка ---
+  const ZACHETKA_EXCLUDED_SUBJECTS = ['Кураторский час', 'Физическая культура'];
+  const ZACHETKA_GRADE_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
+  function loadZachetkaState() {
+    try {
+      return JSON.parse(localStorage.getItem('zachetka_grades') || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function renderZachetka() {
+    const grades = loadZachetkaState();
+    const container = document.getElementById('zachetkaList');
+    const subjects = appData.subjects.filter(s => !ZACHETKA_EXCLUDED_SUBJECTS.includes(s));
+    container.innerHTML = subjects.map(subj => {
+      const current = grades[subj] !== undefined ? String(grades[subj]) : '';
+      const optionsHtml = ['<option value="">—</option>']
+        .concat(ZACHETKA_GRADE_OPTIONS.map(g => `<option value="${g}" ${current === String(g) ? 'selected' : ''}>${g}</option>`))
+        .concat([`<option value="зач" ${current === 'зач' ? 'selected' : ''}>Зачтено (зач)</option>`])
+        .join('');
+      return `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="small text-white">${subj}</div>
+          <select class="form-select form-select-sm" style="width: 110px;"
+                  onchange="updateZachetkaGrade('${subj.replace(/'/g, "\\'")}', this.value)">
+            ${optionsHtml}
+          </select>
+        </div>
+      `;
+    }).join('');
+    updateZachetkaAverage(grades);
+  }
+
+  function updateZachetkaGrade(subject, value) {
+    const grades = loadZachetkaState();
+    if (!value) delete grades[subject];
+    else if (value === 'зач') grades[subject] = 'зач';
+    else grades[subject] = Number(value);
+    localStorage.setItem('zachetka_grades', JSON.stringify(grades));
+    updateZachetkaAverage(grades);
+  }
+
+  function updateZachetkaAverage(grades) {
+    const vals = Object.values(grades).filter(v => typeof v === 'number');
+    const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+    document.getElementById('zachetkaAverage').innerText = avg !== null ? avg.toFixed(2) : '—';
+  }
+
+  // --- Объявления, адресованные лично мне ---
+  function renderCabinetAnnouncements() {
+    if (!myStudentId) return;
+    const list = (appData.announcements || [])
+      .filter(a => a.targetType === 'STUDENT' && a.targetStudentId === myStudentId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const section = document.getElementById('cabinetAnnouncementsSection');
+    if (list.length === 0) {
+      section.classList.add('d-none');
+      return;
+    }
+    section.classList.remove('d-none');
+    document.getElementById('cabinetAnnouncementsList').innerHTML = list.map(a => `
+      <div class="student-summary-card mb-2">
+        <div class="small text-secondary mb-1">${formatDateShort(a.date)}</div>
+        <div class="text-white">${a.text}</div>
+      </div>
+    `).join('');
+  }
+
+  init();
+</script>
+</body>
+</html>
