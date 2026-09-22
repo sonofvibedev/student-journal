@@ -736,7 +736,7 @@
   <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <div id="headerTapArea" onclick="toggleMobileFilterPanel()" style="cursor: pointer;">
       <div class="d-flex align-items-center gap-2">
-        <h2 class="m-0 fw-bold text-white">Журнал</h2>
+        <h2 class="m-0 fw-bold text-white" id="appTitle">Журнал</h2>
         <span class="group-badge">24ДММ-2</span>
       </div>
       <div class="text-secondary small mt-1" id="currentPeriodText">Текущий период: Сентябрь 2026</div>
@@ -823,7 +823,39 @@
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
       <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="exportToCSV()">Выгрузить</button>
       <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="generateDeanReport()">Отчёт для деканата</button>
+      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="downloadBackup()">Резервная копия</button>
       <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAnnouncementModal()">Разместить объявление</button>
+    </div>
+  </div>
+
+  <!-- Расширенная статистика по группе (только для администратора) -->
+  <div class="mb-4 admin-only d-none">
+    <h6 class="text-white mb-2">Расширенная статистика</h6>
+    <div class="row g-2">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-value" id="extStatAvgHours">0</div>
+          <div class="stat-label">Среднее неуваж. часов на студента</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 15px; line-height: 1.3;" id="extStatWorstSubject">—</div>
+          <div class="stat-label">Самый пропускаемый предмет</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-value text-danger" id="extStatOverdueCerts">0</div>
+          <div class="stat-label">Просрочено справок</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-value text-success" id="extStatPerfect">0</div>
+          <div class="stat-label">Студентов без пропусков</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1228,6 +1260,35 @@
   </div>
 </div>
 
+<!-- Замена стандартного showAlert() -->
+<div class="modal fade" id="customAlertModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body py-4 text-center">
+        <div id="customAlertMessage" class="text-white"></div>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0">
+        <button type="button" class="btn btn-primary fw-bold px-4" data-bs-dismiss="modal">Ок</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Замена стандартного confirm() -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body py-4 text-center">
+        <div id="customConfirmMessage" class="text-white"></div>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-danger fw-bold px-4" id="customConfirmOkBtn">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const GITHUB_OWNER = 'dimpolenyshev';
@@ -1269,6 +1330,37 @@
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
+  const customAlertModal = new bootstrap.Modal(document.getElementById('customAlertModal'));
+  const customConfirmModal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
+
+  // Замена браузерных showAlert()/confirm() на модалки в стиле приложения.
+  // showAlert — просто показать сообщение, ждать не обязательно (сразу продолжаем/выходим).
+  // showConfirm — возвращает Promise<boolean>, обязательно await перед проверкой результата.
+  function showAlert(message) {
+    document.getElementById('customAlertMessage').innerText = message;
+    customAlertModal.show();
+  }
+
+  function showConfirm(message) {
+    return new Promise((resolve) => {
+      document.getElementById('customConfirmMessage').innerText = message;
+      const modalEl = document.getElementById('customConfirmModal');
+      const okBtn = document.getElementById('customConfirmOkBtn');
+      let confirmed = false;
+
+      const onOk = () => { confirmed = true; customConfirmModal.hide(); };
+      const onHidden = () => {
+        okBtn.removeEventListener('click', onOk);
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        resolve(confirmed);
+      };
+
+      okBtn.addEventListener('click', onOk);
+      modalEl.addEventListener('hidden.bs.modal', onHidden);
+      customConfirmModal.show();
+    });
+  }
+
 
   async function init() {
     // Инициализация Telegram Mini App
@@ -1304,6 +1396,7 @@
       renderTable();
       renderGeneralAnnouncements();
       updateCabinetUnreadBadge();
+      renderExtendedStats();
       renderAnalyticsChart();
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
@@ -1388,9 +1481,9 @@
   }
 
   async function saveAnnouncement() {
-    if (!githubToken) return alert('Требуется авторизация администратора');
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
     const text = document.getElementById('announcementText').value.trim();
-    if (!text) return alert('Введите текст объявления');
+    if (!text) return showAlert('Введите текст объявления');
 
     const target = document.getElementById('announcementTarget').value;
     const announcement = {
@@ -1411,7 +1504,7 @@
   }
 
   async function deleteAnnouncement(id) {
-    if (!confirm('Удалить это объявление?')) return;
+    if (!(await showConfirm('Удалить это объявление?'))) return;
     appData.announcements = appData.announcements.filter(a => a.id !== id);
     await saveDataToGitHub('Удалено объявление');
     renderGeneralAnnouncements();
@@ -1500,7 +1593,7 @@
   }
 
   async function saveTeacher() {
-    if (!githubToken) return alert('Требуется авторизация администратора');
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
     const id = document.getElementById('editTeacherId').value;
     const subject = document.getElementById('teacherSubject').value;
     const lecture = document.getElementById('teacherLecture').value.trim();
@@ -1527,7 +1620,7 @@
   async function deleteTeacher() {
     const id = document.getElementById('editTeacherId').value;
     if (!id) return;
-    if (!confirm('Удалить этот предмет из списка преподавателей?')) return;
+    if (!(await showConfirm('Удалить этот предмет из списка преподавателей?'))) return;
     appData.teachers = appData.teachers.filter(t => t.id !== id);
     await saveDataToGitHub('Удалён предмет из списка преподавателей');
     teacherEditModal.hide();
@@ -1626,6 +1719,39 @@
     return weeks;
   }
 
+  // --- Расширенная статистика по группе ---
+  function renderExtendedStats() {
+    const totalStudents = appData.students.length;
+
+    let totalUnexcused = 0;
+    appData.absences.forEach(a => { if (!a.isExcused) totalUnexcused += Number(a.totalHours); });
+    const avgHours = totalStudents ? (totalUnexcused / totalStudents) : 0;
+    document.getElementById('extStatAvgHours').innerText = avgHours.toFixed(1);
+
+    const bySubject = {};
+    appData.absences.forEach(a => {
+      if (a.isExcused) return;
+      const s = a.subject || 'Без предмета';
+      bySubject[s] = (bySubject[s] || 0) + Number(a.totalHours);
+    });
+    const worstEntry = Object.entries(bySubject).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById('extStatWorstSubject').innerText = worstEntry ? `${worstEntry[0]} (${worstEntry[1]} ч)` : '—';
+
+    // Справка просрочена: пропуск уважительный, справка не сдана, срок сдачи уже прошёл
+    const today = new Date();
+    let overdueCerts = 0;
+    appData.absences.forEach(a => {
+      if (!a.isExcused || a.certSubmitted || !a.certDueDate) return;
+      const due = new Date(a.certDueDate);
+      if (!isNaN(due.getTime()) && due < today) overdueCerts++;
+    });
+    document.getElementById('extStatOverdueCerts').innerText = overdueCerts;
+
+    const studentsWithAbsences = new Set(appData.absences.map(a => a.studentId));
+    const perfectCount = appData.students.filter(s => !studentsWithAbsences.has(s.id)).length;
+    document.getElementById('extStatPerfect').innerText = perfectCount;
+  }
+
   function renderAnalyticsChart() {
     const canvas = document.getElementById('analyticsChart');
     if (!canvas || typeof Chart === 'undefined') return;
@@ -1687,7 +1813,7 @@
   // --- в ячейке — часы неуважительного пропуска (пусто, если 0 или воскресенье) ---
   function generateDeanReport() {
     if (typeof XLSX === 'undefined') {
-      alert('Библиотека для Excel ещё загружается — подождите секунду и попробуйте снова.');
+      showAlert('Библиотека для Excel ещё загружается — подождите секунду и попробуйте снова.');
       return;
     }
 
@@ -1731,6 +1857,16 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Отчёт');
     XLSX.writeFile(wb, `Отчет_деканат_${periodLabel}_${toISODateLocal(new Date())}.xlsx`);
+  }
+
+  // Резервная копия текущего data.json — на случай ручного редактирования на GitHub
+  function downloadBackup() {
+    const json = JSON.stringify(appData, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `data_backup_${toISODateLocal(new Date())}.json`;
+    link.click();
   }
 
   // Пропуски студента с учётом текущих фильтров периода и предмета (не путать с фильтром Бюджет/Платное — тот про то, какие студенты видны, а не какие их пропуски считаются)
@@ -1808,7 +1944,7 @@
 
   // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
   function showComingSoon() {
-    alert('Данная функция ещё в разработке. Ожидайте, пожалуйста, дальнейших изменений.');
+    showAlert('Данная функция ещё в разработке. Ожидайте, пожалуйста, дальнейших изменений.');
   }
 
   // --- Калькулятор рейтинга ---
@@ -1920,8 +2056,8 @@
     }
   }
 
-  function clearRatingCalc() {
-    if (!confirm('Очистить все введённые оценки калькулятора?')) return;
+  async function clearRatingCalc() {
+    if (!(await showConfirm('Очистить все введённые оценки калькулятора?'))) return;
     ratingCalc = { control: [], oral: [] };
     localStorage.removeItem('rating_calc_state');
     localStorage.removeItem('rating_exam_grade');
@@ -2127,22 +2263,22 @@
   }
 
   async function submitAbsence() {
-    if (!githubToken) return alert('Требуется авторизация администратора');
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
 
     const studentId = document.getElementById('absenceStudent').value;
     const date = document.getElementById('absenceDate').value;
     const isExcused = document.getElementById('absenceIsExcused').checked;
     const comment = document.getElementById('absenceComment').value.trim();
 
-    if (!date) return alert('Укажите дату пропуска');
+    if (!date) return showAlert('Укажите дату пропуска');
 
     const hours = getAbsenceHours();
     const limit = subjectLimit(hours);
     const selected = getSelectedSubjects();
 
-    if (selected.length === 0) return alert('Отметьте хотя бы один предмет');
+    if (selected.length === 0) return showAlert('Отметьте хотя бы один предмет');
     if (selected.length > limit) {
-      return alert(`При ${hours} ч можно отметить не больше ${limit} ${pairWord(limit)}`);
+      return showAlert(`При ${hours} ч можно отметить не больше ${limit} ${pairWord(limit)}`);
     }
 
     // Справка — одна на весь день (одну причину пропуска), а не на предмет
@@ -2289,13 +2425,13 @@
   }
 
   async function deleteAbsencesByDate() {
-    if (!githubToken) return alert('Требуется авторизация администратора');
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
     const studentId = document.getElementById('editStudentId').value;
     const date = document.getElementById('deleteAbsByDateSelect').value;
     if (!studentId || !date) return;
 
     const count = appData.absences.filter(a => a.studentId === studentId && a.date === date).length;
-    if (!confirm(`Удалить ${count} запис${count === 1 ? 'ь' : 'и'} пропуска за ${formatDateShort(date)}?`)) return;
+    if (!(await showConfirm(`Удалить ${count} запис${count === 1 ? 'ь' : 'и'} пропуска за ${formatDateShort(date)}?`))) return;
 
     appData.absences = appData.absences.filter(a => !(a.studentId === studentId && a.date === date));
     await saveDataToGitHub('Удалены пропуски за день');
@@ -2303,13 +2439,13 @@
   }
 
   async function deleteAbsencesBySubject() {
-    if (!githubToken) return alert('Требуется авторизация администратора');
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
     const studentId = document.getElementById('editStudentId').value;
     const subject = document.getElementById('deleteAbsBySubjectSelect').value;
     if (!studentId || !subject) return;
 
     const count = appData.absences.filter(a => a.studentId === studentId && (a.subject || 'Без предмета') === subject).length;
-    if (!confirm(`Удалить ${count} запис${count === 1 ? 'ь' : 'и'} пропуска по предмету «${subject}»?`)) return;
+    if (!(await showConfirm(`Удалить ${count} запис${count === 1 ? 'ь' : 'и'} пропуска по предмету «${subject}»?`))) return;
 
     appData.absences = appData.absences.filter(a => !(a.studentId === studentId && (a.subject || 'Без предмета') === subject));
     await saveDataToGitHub('Удалены пропуски по предмету');
@@ -2317,7 +2453,7 @@
   }
 
   async function saveStudent() {
-    if (!githubToken) return alert('Требуется авторизация администратора');
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
     const id = document.getElementById('editStudentId').value;
     const lastName = document.getElementById('studentLastName').value.trim();
     const firstName = document.getElementById('studentFirstName').value.trim();
@@ -2326,7 +2462,7 @@
     const telegramUsername = document.getElementById('studentTelegramUsername').value.trim().replace(/^@/, '');
     const isAdmin = document.getElementById('studentIsAdmin').checked;
 
-    if (!lastName || !firstName) return alert('Заполните ФИО студента');
+    if (!lastName || !firstName) return showAlert('Заполните ФИО студента');
 
     if (id) {
       const student = appData.students.find(s => s.id === id);
@@ -2356,7 +2492,7 @@
   }
 
   async function deleteStudent(id) {
-    if (!confirm('Вы действительно хотите удалить студента и все его пропуски?')) return;
+    if (!(await showConfirm('Вы действительно хотите удалить студента и все его пропуски?'))) return;
     appData.students = appData.students.filter(s => s.id !== id);
     appData.absences = appData.absences.filter(a => a.studentId !== id);
     await saveDataToGitHub('Удален студент');
@@ -2391,7 +2527,7 @@
 
     if (!getFileRes.ok) {
       const errJson = await getFileRes.json();
-      return alert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
+      return showAlert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
     }
 
     const fileData = await getFileRes.json();
@@ -2415,14 +2551,14 @@
     if (putRes.ok) {
       updateStats();
       renderTable();
-      alert('Изменения успешно сохранены!');
+      showAlert('Изменения успешно сохранены!');
     } else {
       const errorData = await putRes.json();
-      alert('Ошибка сохранения на GitHub: ' + errorData.message);
+      showAlert('Ошибка сохранения на GitHub: ' + errorData.message);
     }
   } catch (err) {
     console.error(err);
-    alert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
+    showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
   }
 }
 
@@ -2447,13 +2583,13 @@
         featurePopupOpen = false;
       }
     }
-    alert(FEATURE_IN_DEV_MESSAGE);
+    showAlert(FEATURE_IN_DEV_MESSAGE);
   }
 
   // --- Авторизация ---
-  function toggleAdminModal() {
+  async function toggleAdminModal() {
     if (githubToken) {
-      if (confirm('Выйти из режима администратора?')) logoutAdmin();
+      if (await showConfirm('Выйти из режима администратора?')) logoutAdmin();
     } else {
       adminModal.show();
     }
@@ -2461,7 +2597,7 @@
 
   function saveAdminToken() {
     const token = document.getElementById('githubTokenInput').value.trim();
-    if (!token) return alert('Введите токен!');
+    if (!token) return showAlert('Введите токен!');
     githubToken = token;
     localStorage.setItem('gh_pat', token);
     adminModal.hide();
@@ -2480,17 +2616,20 @@
     document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!githubToken));
     const adminBtn = document.getElementById('adminBtn');
     const adminBtnText = document.getElementById('adminBtnText');
+    const appTitle = document.getElementById('appTitle');
 
     if (githubToken) {
       adminElements.forEach(el => el.classList.remove('d-none'));
       adminBtn.classList.add('is-admin');
       adminBtn.title = 'Вы вошли как администратор — нажмите, чтобы выйти';
       if (adminBtnText) adminBtnText.innerText = 'Выйти';
+      if (appTitle) appTitle.innerText = 'Admin Workspace';
     } else {
       adminElements.forEach(el => el.classList.add('d-none'));
       adminBtn.classList.remove('is-admin');
       adminBtn.title = 'Вход для администратора';
       if (adminBtnText) adminBtnText.innerText = 'Админ';
+      if (appTitle) appTitle.innerText = 'Журнал';
     }
   }
 
