@@ -1096,8 +1096,45 @@
 
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary admin-only d-none" onclick="openDetailedStudentStats()">Подробная статистика</button>
         <button type="button" class="btn btn-outline-secondary admin-only d-none" onclick="editCurrentHistoryStudent()">Изменить</button>
         <button type="button" class="btn btn-outline-danger admin-only d-none" onclick="deleteCurrentHistoryStudent()">Удалить</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Подробная статистика студента (только админ) -->
+<div class="modal fade" id="studentDetailedStatsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="detailedStatsTitle">Подробная статистика</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <h6 class="text-white mb-2">Пропуски по предметам:</h6>
+        <div class="table-responsive mb-4">
+          <table class="table table-bordered table-sm align-middle text-center">
+            <thead>
+              <tr class="table-dark">
+                <th class="text-start">Предмет</th>
+                <th>Неуваж. (ч)</th>
+                <th>Уваж. (ч)</th>
+                <th>Всего (ч)</th>
+              </tr>
+            </thead>
+            <tbody id="detailedStatsSubjectBody"></tbody>
+          </table>
+        </div>
+
+        <h6 class="text-white mb-2">Все записи пропусков:</h6>
+        <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="detailedStatsList"></div>
+
+      </div>
+      <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
       </div>
     </div>
@@ -1347,6 +1384,7 @@
   const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
   const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
   const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
+  const studentDetailedStatsModal = new bootstrap.Modal(document.getElementById('studentDetailedStatsModal'));
   const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
   const ratingCalcModal = new bootstrap.Modal(document.getElementById('ratingCalcModal'));
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
@@ -2368,6 +2406,91 @@
 
     updateAdminUI();
     studentHistoryModal.show();
+  }
+
+  // Подробная разбивка по предметам + полный список записей (для админа — по кнопке "Подробная статистика")
+  function buildSubjectBreakdown(studentAbs) {
+    const subjectMap = {};
+    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
+    studentAbs.forEach(a => {
+      const h = Number(a.totalHours);
+      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
+      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
+      if (a.isExcused) subjectMap[subName].excused += h;
+      else subjectMap[subName].unexcused += h;
+    });
+    return subjectMap;
+  }
+
+  // Бейдж по справке для уважительного пропуска: сдана / просрочена / ожидается
+  function certStatusBadge(a) {
+    if (!a.isExcused || !a.certType) return '';
+    if (a.certSubmitted) {
+      return `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">${a.certType}: сдана</span>`;
+    }
+    if (a.certDueDate) {
+      const due = new Date(a.certDueDate);
+      if (!isNaN(due.getTime()) && due < new Date()) {
+        return `<span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50">${a.certType}: просрочена (до ${formatDateShort(due)})</span>`;
+      }
+      return `<span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50">${a.certType}: ожидается до ${formatDateShort(due)}</span>`;
+    }
+    return `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50">${a.certType}: не сдана</span>`;
+  }
+
+  function openDetailedStudentStats() {
+    if (!currentHistoryStudentId) return;
+    const student = appData.students.find(s => s.id === currentHistoryStudentId);
+    if (!student) return;
+
+    document.getElementById('detailedStatsTitle').innerText = `${student.lastName} ${student.firstName} — подробная статистика`;
+
+    const studentAbs = appData.absences.filter(a => a.studentId === currentHistoryStudentId);
+
+    const subjectMap = buildSubjectBreakdown(studentAbs);
+    const subjectBody = document.getElementById('detailedStatsSubjectBody');
+    subjectBody.innerHTML = '';
+    Object.keys(subjectMap).forEach(sub => {
+      const u = subjectMap[sub].unexcused;
+      const e = subjectMap[sub].excused;
+      if (u > 0 || e > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-start fw-bold text-white">${sub}</td>
+          <td class="text-warning">${u}</td>
+          <td class="text-success">${e}</td>
+          <td class="fw-bold">${u + e}</td>
+        `;
+        subjectBody.appendChild(tr);
+      }
+    });
+
+    const listEl = document.getElementById('detailedStatsList');
+    listEl.innerHTML = '';
+    if (studentAbs.length === 0) {
+      listEl.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
+    } else {
+      const sorted = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      sorted.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25';
+        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+        const badge = certStatusBadge(a);
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
+              <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+            </div>
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'} flex-shrink-0">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+          </div>
+          ${badge ? `<div class="mt-2">${badge}</div>` : ''}
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    studentDetailedStatsModal.show();
   }
 
   // Кнопки "Изменить"/"Удалить" в футере окна истории (переехали сюда со столбца "Действия")
