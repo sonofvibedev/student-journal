@@ -354,6 +354,13 @@
     .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
     .sort-icon-btn svg { width: 17px; height: 17px; }
 
+    .btn-icon {
+      width: 14px;
+      height: 14px;
+      margin-right: 5px;
+      vertical-align: -2px;
+    }
+
     /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
     .bottom-tabbar { display: none; }
     .tabbar-item {
@@ -819,12 +826,27 @@
     </div>
 
     <div class="action-buttons-group admin-only d-none gap-2 flex-wrap">
-      <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">+ Внести пропуски</button>
-      <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">+ Добавить студента</button>
-      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="exportToCSV()">Выгрузить</button>
-      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="generateDeanReport()">Отчёт для деканата</button>
-      <button class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="downloadBackup()">Резервная копия</button>
-      <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAnnouncementModal()">Разместить объявление</button>
+      <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+        Внести пропуски
+      </button>
+      <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+        Добавить студента
+      </button>
+      <div class="dropdown admin-only d-none">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          Ещё
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" onclick="exportToCSV(); return false;">Выгрузить CSV</a></li>
+          <li><a class="dropdown-item" href="#" onclick="generateDeanReport(); return false;">Отчёт для деканата</a></li>
+          <li><a class="dropdown-item" href="#" onclick="downloadBackup(); return false;">Резервная копия</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick="openAnnouncementModal(); return false;">Разместить объявление</a></li>
+        </ul>
+      </div>
     </div>
   </div>
 
