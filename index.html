@@ -840,6 +840,8 @@
           Ещё
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" onclick="openGroupAbsenceModal(); return false;">Внести пропуски группой</a></li>
+          <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="#" onclick="exportToCSV(); return false;">Выгрузить CSV</a></li>
           <li><a class="dropdown-item" href="#" onclick="generateDeanReport(); return false;">Отчёт для деканата</a></li>
           <li><a class="dropdown-item" href="#" onclick="downloadBackup(); return false;">Резервная копия</a></li>
@@ -994,6 +996,86 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
         <button type="button" class="btn btn-primary fw-bold" onclick="submitAbsence()">Ввести</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Внести пропуски группой (один предмет/день — сразу нескольким студентам) -->
+<div class="modal fade" id="groupAbsenceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Внести пропуски группой</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-secondary mb-3">Один предмет и одна дата — сразу для нескольких студентов (например, вся подгруппа пропустила пару).</p>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Предмет</label>
+          <select id="groupAbsenceSubject" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Дата</label>
+          <input type="date" id="groupAbsenceDate" class="form-control">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Часы (одинаковые для всех выбранных)</label>
+          <div class="d-flex gap-2 mb-2">
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setGroupQuickHours(2)">2</button>
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setGroupQuickHours(4)">4</button>
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setGroupQuickHours(6)">6</button>
+            <button type="button" class="btn btn-outline-secondary quick-hour-btn" onclick="setGroupQuickHours(8)">8</button>
+          </div>
+          <input type="number" id="groupAbsenceHours" class="form-control" placeholder="Своё количество часов" min="1" value="2">
+        </div>
+
+        <div class="mb-3 form-check">
+          <input type="checkbox" id="groupAbsenceIsExcused" class="form-check-input" onchange="toggleGroupCertFields()">
+          <label class="form-check-label text-secondary small" for="groupAbsenceIsExcused">Уважительный пропуск</label>
+        </div>
+
+        <div id="groupCertFieldsContainer" class="subject-slot-card mb-3 d-none">
+          <label class="form-label text-secondary small fw-bold mb-2">Справка</label>
+          <div class="mb-2">
+            <select id="groupCertType" class="form-select form-select-sm">
+              <option value="Больничный">Больничный</option>
+              <option value="Заявление">Заявление</option>
+              <option value="Освобождение">Освобождение</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label text-secondary small">Срок сдачи справки</label>
+            <input type="date" id="groupCertDueDate" class="form-control form-control-sm">
+          </div>
+          <div class="form-check">
+            <input type="checkbox" id="groupCertSubmitted" class="form-check-input">
+            <label class="form-check-label text-secondary small" for="groupCertSubmitted">Справка уже сдана</label>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label text-secondary small">Примечание (необязательно, общее для всех)</label>
+          <input type="text" id="groupAbsenceComment" class="form-control" placeholder="Например: Выезд на конференцию">
+        </div>
+
+        <div class="mb-2 d-flex justify-content-between align-items-center">
+          <label class="form-label text-secondary small m-0">Студенты</label>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAllGroupStudents(true)">Все</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAllGroupStudents(false)">Никто</button>
+          </div>
+        </div>
+        <input type="text" id="groupStudentSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО..." oninput="renderGroupStudentsList()">
+        <div id="groupStudentsList" class="subject-slot-card" style="max-height: 260px; overflow-y: auto;"></div>
+        <div class="small text-secondary mt-2">Выбрано: <span id="groupSelectedCount">0</span></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary fw-bold" onclick="submitGroupAbsence()">Внести всем выбранным</button>
       </div>
     </div>
   </div>
@@ -1400,6 +1482,7 @@
   let currentHistoryStudentId = null;
 
   const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
+  const groupAbsenceModal = new bootstrap.Modal(document.getElementById('groupAbsenceModal'));
   const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
   const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
   const studentDetailedStatsModal = new bootstrap.Modal(document.getElementById('studentDetailedStatsModal'));
@@ -2255,6 +2338,118 @@
   function toggleCertFields() {
     const isExcused = document.getElementById('absenceIsExcused').checked;
     document.getElementById('certFieldsContainer').classList.toggle('d-none', !isExcused);
+  }
+
+  // --- Внести пропуски группой: один предмет/день сразу нескольким студентам ---
+  let groupSelectedStudentIds = new Set();
+
+  function openGroupAbsenceModal() {
+    document.getElementById('groupAbsenceSubject').innerHTML = appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    document.getElementById('groupAbsenceDate').valueAsDate = new Date();
+    document.getElementById('groupAbsenceHours').value = 2;
+    document.getElementById('groupAbsenceComment').value = '';
+    document.getElementById('groupAbsenceIsExcused').checked = false;
+    document.getElementById('groupCertType').value = 'Больничный';
+    document.getElementById('groupCertDueDate').value = '';
+    document.getElementById('groupCertSubmitted').checked = false;
+    document.getElementById('groupStudentSearch').value = '';
+    toggleGroupCertFields();
+
+    groupSelectedStudentIds = new Set();
+    renderGroupStudentsList();
+    groupAbsenceModal.show();
+  }
+
+  function setGroupQuickHours(val) {
+    document.getElementById('groupAbsenceHours').value = val;
+  }
+
+  function toggleGroupCertFields() {
+    const isExcused = document.getElementById('groupAbsenceIsExcused').checked;
+    document.getElementById('groupCertFieldsContainer').classList.toggle('d-none', !isExcused);
+  }
+
+  function renderGroupStudentsList() {
+    const search = document.getElementById('groupStudentSearch').value.toLowerCase();
+    const journalNumbers = getJournalNumbers();
+    const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
+    const filtered = ordered.filter(s => `${s.lastName} ${s.firstName}`.toLowerCase().includes(search));
+
+    const container = document.getElementById('groupStudentsList');
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="text-secondary small p-1">Никого не найдено</div>';
+    } else {
+      container.innerHTML = filtered.map(s => `
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input group-student-check" id="gs_${s.id}" value="${s.id}"
+                 ${groupSelectedStudentIds.has(s.id) ? 'checked' : ''} onchange="toggleGroupStudent('${s.id}', this.checked)">
+          <label class="form-check-label text-white small" for="gs_${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</label>
+        </div>
+      `).join('');
+    }
+    updateGroupSelectedCount();
+  }
+
+  function toggleGroupStudent(id, checked) {
+    if (checked) groupSelectedStudentIds.add(id);
+    else groupSelectedStudentIds.delete(id);
+    updateGroupSelectedCount();
+  }
+
+  // "Все"/"Никто" применяются к тем, кто сейчас виден под текущим поиском — не к всей группе целиком
+  function setAllGroupStudents(select) {
+    document.querySelectorAll('.group-student-check').forEach(cb => {
+      cb.checked = select;
+      if (select) groupSelectedStudentIds.add(cb.value);
+      else groupSelectedStudentIds.delete(cb.value);
+    });
+    updateGroupSelectedCount();
+  }
+
+  function updateGroupSelectedCount() {
+    document.getElementById('groupSelectedCount').innerText = groupSelectedStudentIds.size;
+  }
+
+  async function submitGroupAbsence() {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+
+    const subject = document.getElementById('groupAbsenceSubject').value;
+    const date = document.getElementById('groupAbsenceDate').value;
+    const hours = parseInt(document.getElementById('groupAbsenceHours').value) || 0;
+    const isExcused = document.getElementById('groupAbsenceIsExcused').checked;
+    const comment = document.getElementById('groupAbsenceComment').value.trim();
+
+    if (!date) return showAlert('Укажите дату пропуска');
+    if (hours < 1) return showAlert('Укажите количество часов');
+    if (groupSelectedStudentIds.size === 0) return showAlert('Отметьте хотя бы одного студента');
+
+    const certType = document.getElementById('groupCertType').value;
+    const certDueDate = document.getElementById('groupCertDueDate').value || null;
+    const certSubmitted = document.getElementById('groupCertSubmitted').checked;
+
+    const stamp = Date.now();
+    let i = 0;
+    groupSelectedStudentIds.forEach(studentId => {
+      const record = {
+        id: 'abs-' + stamp + '-g' + i + '-' + Math.floor(Math.random() * 1000),
+        studentId,
+        date,
+        totalHours: hours,
+        isExcused,
+        subject,
+        comment
+      };
+      if (isExcused) {
+        record.certType = certType;
+        record.certDueDate = certDueDate;
+        record.certSubmitted = certSubmitted;
+      }
+      appData.absences.push(record);
+      i++;
+    });
+
+    await saveDataToGitHub(`Внесены пропуски группой (${groupSelectedStudentIds.size} студ.)`);
+    groupAbsenceModal.hide();
   }
 
   // --- Один список предметов: одна пара (2 ч) на предмет ---
