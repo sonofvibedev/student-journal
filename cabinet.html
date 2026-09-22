@@ -744,17 +744,28 @@
   </a>
   <h2 class="fw-bold text-white mb-3">Личный кабинет</h2>
 
-  <!-- Выбор себя — если не удалось опознать по Telegram -->
-  <div id="cabinetPickerSection" class="d-none">
-    <p class="small text-secondary mb-3">Не удалось определить вас автоматически по Telegram. Выберите себя из списка:</p>
-    <select id="cabinetStudentPicker" class="form-select mb-3"></select>
-    <button type="button" class="btn btn-primary w-100 fw-bold" onclick="confirmStudentPick()">Это я</button>
+  <!-- Вход в личный кабинет -->
+  <div id="cabinetLoginSection" class="d-none">
+    <p class="small text-secondary mb-3">Войдите в личный кабинет</p>
+    <div class="mb-2">
+      <label class="form-label text-secondary small">Логин</label>
+      <input type="text" id="cabinetLoginInput" class="form-control" placeholder="user01" autocomplete="username" onkeydown="if(event.key==='Enter') attemptLogin()">
+    </div>
+    <div class="mb-3">
+      <label class="form-label text-secondary small">Пароль</label>
+      <input type="password" id="cabinetPasswordInput" class="form-control" placeholder="user01" autocomplete="current-password" onkeydown="if(event.key==='Enter') attemptLogin()">
+    </div>
+    <div id="cabinetLoginError" class="text-danger small mb-3 d-none">Неверный логин или пароль</div>
+    <button type="button" class="btn btn-primary w-100 fw-bold" onclick="attemptLogin()">Войти</button>
   </div>
 
-  <!-- Содержимое кабинета — после опознания -->
+  <!-- Содержимое кабинета — после входа -->
   <div id="cabinetContentSection" class="d-none">
     <div class="student-summary-card mb-3">
-      <div class="fw-bold text-white" id="cabinetStudentName">—</div>
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-white" id="cabinetStudentName">—</div>
+        <a href="#" class="small text-secondary" onclick="logoutCabinet(); return false;">Выйти</a>
+      </div>
     </div>
 
     <!-- ===== Раздел: Статистика ===== -->
@@ -998,17 +1009,7 @@
     return null;
   }
 
-  function getTelegramUsername() {
-    try {
-      const u = window.Telegram && window.Telegram.WebApp &&
-                window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
-      return (u && u.username) ? u.username.toLowerCase() : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // --- Опознание студента ---
+  // --- Вход в личный кабинет: логин/пароль user## (## — номер в журнале), выйти можно всегда ---
   function openPersonalCabinet() {
     const savedId = localStorage.getItem('my_student_id');
     if (savedId && appData.students.find(s => s.id === savedId)) {
@@ -1016,46 +1017,53 @@
       showCabinetContent();
       return;
     }
-
-    const tgUsername = getTelegramUsername();
-    if (tgUsername) {
-      const match = appData.students.find(s => (s.telegramUsername || '').toLowerCase() === tgUsername);
-      if (match) {
-        myStudentId = match.id;
-        localStorage.setItem('my_student_id', match.id);
-        showCabinetContent();
-        return;
-      }
-    }
-
-    showStudentPicker();
+    showLoginForm();
   }
 
-  function showStudentPicker() {
-    const journalNumbers = getJournalNumbers();
-    const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
-    document.getElementById('cabinetStudentPicker').innerHTML = ordered
-      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
-      .join('');
-    document.getElementById('cabinetPickerSection').classList.remove('d-none');
+  function showLoginForm() {
+    document.getElementById('cabinetLoginInput').value = '';
+    document.getElementById('cabinetPasswordInput').value = '';
+    document.getElementById('cabinetLoginError').classList.add('d-none');
+    document.getElementById('cabinetLoginSection').classList.remove('d-none');
     document.getElementById('cabinetContentSection').classList.add('d-none');
   }
 
-  // Опознание одноразовое: как только студент опознан (по Telegram-юзернейму или ручным
-  // выбором), сохранённый id закрепляется за этим устройством навсегда — пути назад/сброса нет.
-  function confirmStudentPick() {
-    const id = document.getElementById('cabinetStudentPicker').value;
-    if (!id) return;
-    myStudentId = id;
-    localStorage.setItem('my_student_id', id);
+  function attemptLogin() {
+    const login = document.getElementById('cabinetLoginInput').value.trim().toLowerCase();
+    const password = document.getElementById('cabinetPasswordInput').value.trim().toLowerCase();
+    const errorEl = document.getElementById('cabinetLoginError');
+
+    const match = login.match(/^user(\d{1,2})$/);
+    if (!match || login !== password) {
+      errorEl.classList.remove('d-none');
+      return;
+    }
+
+    const num = parseInt(match[1], 10);
+    const journalNumbers = getJournalNumbers();
+    const studentId = Object.keys(journalNumbers).find(id => journalNumbers[id] === num);
+    if (!studentId) {
+      errorEl.classList.remove('d-none');
+      return;
+    }
+
+    errorEl.classList.add('d-none');
+    myStudentId = studentId;
+    localStorage.setItem('my_student_id', studentId);
     showCabinetContent();
+  }
+
+  function logoutCabinet() {
+    localStorage.removeItem('my_student_id');
+    myStudentId = null;
+    showLoginForm();
   }
 
   function showCabinetContent() {
     const student = appData.students.find(s => s.id === myStudentId);
-    if (!student) { showStudentPicker(); return; }
+    if (!student) { showLoginForm(); return; }
 
-    document.getElementById('cabinetPickerSection').classList.add('d-none');
+    document.getElementById('cabinetLoginSection').classList.add('d-none');
     document.getElementById('cabinetContentSection').classList.remove('d-none');
     document.getElementById('cabinetStudentName').innerText = `${student.lastName} ${student.firstName}`;
 
