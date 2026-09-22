@@ -2721,7 +2721,10 @@
               <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
               <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
             </div>
-            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'} flex-shrink-0">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'}">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+              <button class="btn btn-sm btn-outline-danger" title="Удалить эту запись" onclick="deleteDetailedAbsence('${a.id}')">✕</button>
+            </div>
           </div>
           ${badge ? `<div class="mt-2">${badge}</div>` : ''}
         `;
@@ -2730,6 +2733,14 @@
     }
 
     studentDetailedStatsModal.show();
+  }
+
+  // Удаление конкретной записи пропуска прямо из "Подробной статистики"
+  async function deleteDetailedAbsence(absId) {
+    if (!(await showConfirm('Удалить эту запись о пропуске?'))) return;
+    appData.absences = appData.absences.filter(a => a.id !== absId);
+    await saveDataToGitHub('Удалён пропуск (подробная статистика)');
+    openDetailedStudentStats();
   }
 
   // Кнопки "Изменить"/"Удалить" в футере окна истории (переехали сюда со столбца "Действия")
