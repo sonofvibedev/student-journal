@@ -1165,6 +1165,17 @@
         <div class="text-white">${a.text}</div>
       </div>
     `).join('');
+    markAnnouncementsSeen(list);
+  }
+
+  // Отмечает объявления прочитанными (та же localStorage-запись, что читает
+  // index.html для красной точки на вкладке "Личный кабинет" в таб-баре)
+  function markAnnouncementsSeen(list) {
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    const ids = list.map(a => a.id);
+    const merged = Array.from(new Set(seen.concat(ids)));
+    localStorage.setItem('seen_announcements', JSON.stringify(merged));
   }
 
   init();
