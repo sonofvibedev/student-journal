@@ -808,6 +808,7 @@
         <h6 class="text-white m-0">Мои пропуски</h6>
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
       </div>
+      <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
       <div id="starostaPickerList" class="mb-3 d-none"></div>
 
       <div class="table-responsive mb-3">
@@ -949,7 +950,7 @@
   // увиденное здесь не покажется повторно на главной странице (и наоборот). WHATS_NEW_DATE
   // подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое.
   const WHATS_NEW_VERSION = 2;
-  const WHATS_NEW_DATE = '23.09.2026, 22:12';
+  const WHATS_NEW_DATE = '23.09.2026, 22:18';
   const WHATS_NEW_ITEMS = [
     'У преподавателей — форма контроля по предмету: зачёт или экзамен',
     'В зачётку добавлена «Летняя практика»',
@@ -1138,7 +1139,24 @@
   }
 
   // Только просмотр — редактирование и удаление пропусков остаются в основном журнале у администратора
+  // Показывает "Пропуски актуальны на: ..." — та же метка, что видит админ на главной
+  // странице; появляется, как только data.json хоть раз сохранён после этого обновления
+  function renderDataLastUpdated() {
+    const el = document.getElementById('dataLastUpdated');
+    if (!el) return;
+    if (!appData.lastUpdated) { el.innerText = ''; return; }
+    const d = new Date(appData.lastUpdated);
+    if (isNaN(d.getTime())) { el.innerText = ''; return; }
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    el.innerText = `Пропуски актуальны на: ${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+  }
+
   function renderMyAbsences() {
+    renderDataLastUpdated();
     if (!myStudentId) return;
     const studentAbs = appData.absences.filter(a => a.studentId === myStudentId);
 

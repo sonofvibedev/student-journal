@@ -898,6 +898,7 @@
   </div>
 
   <!-- Таблица студентов -->
+  <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
   <div class="table-container mb-4">
     <div class="table-responsive">
       <table class="table table-hover align-middle">
@@ -1548,7 +1549,7 @@
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
   const WHATS_NEW_VERSION = 2;
-  const WHATS_NEW_DATE = '23.09.2026, 22:12';
+  const WHATS_NEW_DATE = '23.09.2026, 22:18';
   const WHATS_NEW_ITEMS = [
     'У преподавателей — форма контроля по предмету: зачёт или экзамен',
     'В зачётку добавлена «Летняя практика»',
@@ -2270,7 +2271,24 @@
     recalcRating();
   }
 
+  // Показывает "Пропуски актуальны на: ..." над таблицей — appData.lastUpdated
+  // проставляется автоматически при каждом сохранении админом (saveDataToGitHub)
+  function renderDataLastUpdated() {
+    const el = document.getElementById('dataLastUpdated');
+    if (!el) return;
+    if (!appData.lastUpdated) { el.innerText = ''; return; }
+    const d = new Date(appData.lastUpdated);
+    if (isNaN(d.getTime())) { el.innerText = ''; return; }
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    el.innerText = `Пропуски актуальны на: ${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+  }
+
   function renderTable() {
+    renderDataLastUpdated();
     const search = document.getElementById('searchInput').value.toLowerCase();
     const typeFilter = document.getElementById('typeFilter').value;
     const tbody = document.getElementById('studentsTableBody');
@@ -2962,6 +2980,7 @@
     }
 
     const fileData = await getFileRes.json();
+    appData.lastUpdated = new Date().toISOString();
     const updatedJsonStr = JSON.stringify(appData, null, 2);
     const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
     const base64Content = btoa(String.fromCharCode(...utf8Bytes));
