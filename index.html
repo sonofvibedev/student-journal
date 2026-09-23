@@ -113,7 +113,7 @@
     }
 
     body {
-      background-color: #0d1117;
+      background-color: #060606;
       color: #c9d1d9;
       font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
     }
@@ -204,7 +204,7 @@
 
     .student-name {
       font-weight: 600;
-      color: #58a6ff;
+      color: #08f;
       cursor: pointer;
       text-decoration: none;
     }
@@ -392,34 +392,157 @@
       width: 34px;
       height: 34px;
       flex: 0 0 auto;
-      background-color: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      color: #8b949e;
+      background-color: #0f0f0f;
+      border: none;
+      border-radius: 12px;
+      color: #ffffff;
       cursor: pointer;
     }
-    .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
+    .sort-icon-btn:hover { color: #58a6ff; }
     .sort-icon-btn svg { width: 17px; height: 17px; }
 
-    /* Кнопка "Фильтр" — раскрывает filterPanelGroup, замена жеста "тап по шапке" */
+    /* Кнопка "Фильтр" — раскрывает filterModal */
     .filter-toggle-btn {
       display: inline-flex;
       align-items: center;
       gap: 7px;
       height: 34px;
       padding: 0 14px;
-      background-color: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 999px;
-      color: #c9d1d9;
+      background-color: #0f0f0f;
+      border: none;
+      border-radius: 12px;
+      color: #ffffff;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
     }
-    .filter-toggle-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
+    .filter-toggle-btn:hover { color: #58a6ff; }
     .filter-toggle-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
     .filter-toggle-btn .chevron { width: 13px; height: 13px; transition: transform 0.15s ease; }
-    .filter-toggle-btn.filter-open .chevron { transform: rotate(180deg); }
+
+    /* Меню сортировки — карточка в стиле Figma: заголовок, зелёная "таблетка" с галочкой
+       у активного варианта, остальные — простые строки через тонкий разделитель */
+    .sort-dropdown-menu {
+      background-color: #0f0f0f;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 15px 22px;
+      min-width: 200px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .sort-dropdown-title {
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 510;
+      margin-bottom: 14px;
+    }
+    .sort-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 15px;
+      text-decoration: none;
+    }
+    .sort-dropdown-item .check-icon { display: none; width: 18px; height: 18px; flex-shrink: 0; }
+    .sort-dropdown-item.active {
+      background-color: #0b662e;
+      border-radius: 296px;
+      display: inline-flex;
+      width: auto;
+    }
+    .sort-dropdown-item.active .check-icon { display: inline-flex; }
+    .sort-divider { border-color: #2b2b2b; opacity: 1; margin: 10px 0; }
+
+    /* Полноэкранный лист "Фильтры" */
+    .filter-sheet {
+      background-color: #0a0a0a !important;
+      border: none !important;
+      border-radius: 38px 38px 0 0 !important;
+      color: #ffffff;
+    }
+    .filter-sheet-handle {
+      width: 36px;
+      height: 5px;
+      border-radius: 296px;
+      background-color: #ffffff;
+      margin: 10px auto 0;
+      flex-shrink: 0;
+    }
+    .filter-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      flex-shrink: 0;
+    }
+    .filter-sheet-back {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 17px;
+      padding: 0;
+      cursor: pointer;
+    }
+    .filter-sheet-title {
+      font-size: 17px;
+      font-weight: 590;
+      color: #ffffff;
+    }
+    .filter-sheet-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 20px 16px 0;
+    }
+    .filter-section { margin-bottom: 30px; }
+    .filter-section-title {
+      font-size: 22px;
+      font-weight: 590;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+    .filter-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 4px 10px;
+      border-radius: 295px;
+      border: 1.5px solid #363636;
+      background: none;
+      color: #ffffff;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .filter-chip .chip-check { display: none; width: 18px; height: 18px; flex-shrink: 0; }
+    .filter-chip.active {
+      background-color: #0b662e;
+      border-color: #0b662e;
+    }
+    .filter-chip.active .chip-check { display: inline-flex; }
+    .filter-sheet-footer {
+      padding: 16px 26px calc(16px + env(safe-area-inset-bottom, 0px));
+      flex-shrink: 0;
+    }
+    .filter-sheet-apply {
+      display: block;
+      width: 100%;
+      min-height: 48px;
+      background-color: #0b662e;
+      border: none;
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
 
     .btn-icon {
       width: 14px;
@@ -525,26 +648,21 @@
       /* Поисковая строка — пилюля с иконкой лупы */
       #searchInput {
         border-radius: 999px;
-        background-color: #161b22;
-        border-color: #21262d;
+        background-color: #0f0f0f;
+        border-color: #0f0f0f;
         height: 48px;
         padding-left: 40px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
+        color: #ffffff;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c6c71' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: 14px center;
         background-size: 16px;
       }
+      #searchInput::placeholder { color: #6c6c71; }
 
       .app-header h2 { font-size: 1.9rem; }
+      #dataLastUpdated { color: #6c6c71 !important; }
 
-      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются кнопкой "Фильтр" */
-      .filter-panel-group { display: none; }
-      .filter-panel-group.filter-visible { display: flex; }
-      .filter-select {
-        border-radius: 999px;
-        background-color: #161b22;
-        border-color: #21262d;
-      }
       .filter-toggle-btn { height: 44px; padding: 0 18px; }
       .sort-icon-btn { width: 44px; height: 44px; }
       .sort-icon-btn svg { width: 19px; height: 19px; }
@@ -743,15 +861,15 @@
       align-items: center;
       height: var(--tabbar-h);
       padding: 0 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 999px;
-      background: rgba(22, 27, 34, 0.72);
+      background: rgba(17, 17, 17, 0.8);
       -webkit-backdrop-filter: blur(22px) saturate(160%);
       backdrop-filter: blur(22px) saturate(160%);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .bottom-tabbar { background: rgba(22, 27, 34, 0.96); }
+      .bottom-tabbar { background: rgba(17, 17, 17, 0.96); }
     }
 
     .tabbar-item {
@@ -897,7 +1015,7 @@
 
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
       <div class="d-flex gap-2">
-        <button type="button" class="filter-toggle-btn d-sm-none" onclick="toggleMobileFilterPanel()" id="filterToggleBtn">
+        <button type="button" class="filter-toggle-btn" onclick="openFilterModal()" id="filterToggleBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
           Фильтр
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -906,11 +1024,28 @@
           <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
           </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" onclick="setSort('name'); return false;">По ФИО</a></li>
-            <li><a class="dropdown-item" href="#" onclick="setSort('unexcused'); return false;">По часам (неуваж.)</a></li>
-            <li><a class="dropdown-item" href="#" onclick="setSort('excused'); return false;">По часам (уваж.)</a></li>
-          </ul>
+          <div class="dropdown-menu dropdown-menu-end sort-dropdown-menu" id="sortDropdownMenu">
+            <div class="sort-dropdown-title">Сортировать по:</div>
+            <a href="#" class="sort-dropdown-item" data-sort-key="number" onclick="setSort('number'); return false;">
+              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>По номеру</span>
+            </a>
+            <hr class="sort-divider">
+            <a href="#" class="sort-dropdown-item" data-sort-key="name" onclick="setSort('name'); return false;">
+              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>По ФИО</span>
+            </a>
+            <hr class="sort-divider">
+            <a href="#" class="sort-dropdown-item" data-sort-key="unexcused" onclick="setSort('unexcused'); return false;">
+              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>По неуваж-ам</span>
+            </a>
+            <hr class="sort-divider">
+            <a href="#" class="sort-dropdown-item" data-sort-key="excused" onclick="setSort('excused'); return false;">
+              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>По уваж-ам</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -941,18 +1076,21 @@
       </div>
     </div>
 
-    <div id="filterPanelGroup" class="filter-panel-group d-flex gap-2 flex-wrap mt-2">
-      <select id="typeFilter" class="form-select form-select-sm filter-select" style="width: 130px;" onchange="renderTable()">
+    <!-- Скрытые select-ы — реальное хранилище значений фильтра, читается остальным кодом как раньше.
+         Видимый UI теперь — filterModal (открывается кнопкой "Фильтр"). -->
+    <div style="display: none;">
+      <select id="typeFilter" onchange="renderTable()">
         <option value="ALL">Все</option>
         <option value="Бюджет">Бюджет</option>
         <option value="Платное">Платники</option>
       </select>
-      <select id="periodFilter" class="form-select form-select-sm filter-select" style="width: 130px;" onchange="renderTable()">
+      <select id="periodFilter" onchange="renderTable()">
         <option value="ALL">Всё время</option>
+        <option value="WEEK">Неделя</option>
         <option value="MONTH">Месяц</option>
         <option value="SEMESTER">Семестр</option>
       </select>
-      <select id="subjectFilter" class="form-select form-select-sm filter-select" style="width: 180px;" onchange="renderTable()">
+      <select id="subjectFilter" onchange="renderTable()">
         <option value="ALL">Все предметы</option>
       </select>
     </div>
@@ -1504,6 +1642,69 @@
   </div>
 </div>
 
+<!-- Модальное окно: Фильтры (полноэкранный лист в стиле Figma) -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content filter-sheet">
+      <div class="filter-sheet-handle"></div>
+      <div class="filter-sheet-header">
+        <button type="button" class="filter-sheet-back" data-bs-dismiss="modal">Назад</button>
+        <div class="filter-sheet-title">Фильтры</div>
+        <div style="width: 51px;"></div>
+      </div>
+      <div class="filter-sheet-body">
+        <div class="filter-section">
+          <div class="filter-section-title">Форма обучения</div>
+          <div class="filter-chip-row" id="filterChipsType">
+            <button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip('typeFilter','ALL','filterChipsType',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Все</span>
+            </button>
+            <button type="button" class="filter-chip" data-value="Платное" onclick="selectFilterChip('typeFilter','Платное','filterChipsType',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Платник</span>
+            </button>
+            <button type="button" class="filter-chip" data-value="Бюджет" onclick="selectFilterChip('typeFilter','Бюджет','filterChipsType',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Бюджет</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-section-title">Период</div>
+          <div class="filter-chip-row" id="filterChipsPeriod">
+            <button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip('periodFilter','ALL','filterChipsPeriod',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Всё время</span>
+            </button>
+            <button type="button" class="filter-chip" data-value="WEEK" onclick="selectFilterChip('periodFilter','WEEK','filterChipsPeriod',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Неделя</span>
+            </button>
+            <button type="button" class="filter-chip" data-value="MONTH" onclick="selectFilterChip('periodFilter','MONTH','filterChipsPeriod',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Месяц</span>
+            </button>
+            <button type="button" class="filter-chip" data-value="SEMESTER" onclick="selectFilterChip('periodFilter','SEMESTER','filterChipsPeriod',this)">
+              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span>Семестр</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <div class="filter-section-title">Предмет</div>
+          <div class="filter-chip-row" id="filterChipsSubject"></div>
+        </div>
+      </div>
+      <div class="filter-sheet-footer">
+        <button type="button" class="filter-sheet-apply" data-bs-dismiss="modal">Поиск</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Замена стандартного showAlert() -->
 <div class="modal fade" id="customAlertModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -1595,6 +1796,7 @@
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
+  const filterModal = new bootstrap.Modal(document.getElementById('filterModal'));
   const customAlertModal = new bootstrap.Modal(document.getElementById('customAlertModal'));
   const customConfirmModal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
 
@@ -1650,7 +1852,7 @@
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
   const WHATS_NEW_VERSION = 2;
-  const WHATS_NEW_DATE = '23.09.2026, 23:59';
+  const WHATS_NEW_DATE = '24.09.2026, 00:16';
   const WHATS_NEW_ITEMS = [
     'У преподавателей — форма контроля по предмету: зачёт или экзамен',
     'В зачётку добавлена «Летняя практика»',
@@ -1932,10 +2134,10 @@
     renderTeachersList();
   }
 
-  // --- Сортировка таблицы (клик по заголовку) ---
-  // Первый клик: ФИО и тип — по алфавиту; часы и даты — сначала бо́льшие/свежие
-  const SORT_DEFAULT_DIR = { name: 'asc', status: 'asc', unexcused: 'desc', excused: 'desc', last: 'desc' };
-  let sortState = { key: 'name', dir: 'asc' };
+  // --- Сортировка таблицы ---
+  // Первый клик: ФИО, номер и тип — по алфавиту/возрастанию; часы и даты — сначала бо́льшие/свежие
+  const SORT_DEFAULT_DIR = { number: 'asc', name: 'asc', status: 'asc', unexcused: 'desc', excused: 'desc', last: 'desc' };
+  let sortState = { key: 'number', dir: 'asc' };
 
   function setSort(key) {
     if (sortState.key === key) {
@@ -1952,6 +2154,9 @@
       th.classList.toggle('asc', active && sortState.dir === 'asc');
       th.classList.toggle('desc', active && sortState.dir === 'desc');
       th.setAttribute('aria-sort', active ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+    });
+    document.querySelectorAll('#sortDropdownMenu .sort-dropdown-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.sortKey === sortState.key);
     });
   }
 
@@ -2215,6 +2420,7 @@
     return (a, b) => {
       let cmp = 0;
       switch (sortState.key) {
+        case 'number':
         case 'name':
           return mul * byName(a, b);
         case 'status':
@@ -2242,10 +2448,34 @@
     };
   }
 
-  // Тап по шапке (моб. версия) — показать/скрыть панель фильтров (Тип/Период/Предмет)
-  function toggleMobileFilterPanel() {
-    document.getElementById('filterPanelGroup').classList.toggle('filter-visible');
-    document.getElementById('filterToggleBtn').classList.toggle('filter-open');
+  // Открыть полноэкранный лист фильтров — синхронизирует активные "таблетки" с текущими
+  // значениями скрытых select-ов и строит чипы предметов заново (список может меняться)
+  function openFilterModal() {
+    const subjectContainer = document.getElementById('filterChipsSubject');
+    const currentSubject = document.getElementById('subjectFilter').value;
+    subjectContainer.innerHTML = '<button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip(\'subjectFilter\',\'ALL\',\'filterChipsSubject\',this)"><span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Все предметы</span></button>' +
+      appData.subjects.map(s => `<button type="button" class="filter-chip" data-value="${s}" onclick="selectFilterChip('subjectFilter','${s.replace(/'/g, "\\'")}','filterChipsSubject',this)"><span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>${s}</span></button>`).join('');
+
+    syncFilterChipGroup('filterChipsType', document.getElementById('typeFilter').value);
+    syncFilterChipGroup('filterChipsPeriod', document.getElementById('periodFilter').value);
+    syncFilterChipGroup('filterChipsSubject', currentSubject);
+
+    filterModal.show();
+  }
+
+  function syncFilterChipGroup(containerId, value) {
+    document.querySelectorAll(`#${containerId} .filter-chip`).forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.value === value);
+    });
+  }
+
+  // Клик по "таблетке" фильтра — пишет значение в скрытый select (та же логика фильтрации,
+  // что и раньше) и сразу применяет фильтр, не дожидаясь нажатия "Поиск"
+  function selectFilterChip(selectId, value, groupContainerId, clickedEl) {
+    document.getElementById(selectId).value = value;
+    document.querySelectorAll(`#${groupContainerId} .filter-chip`).forEach(chip => chip.classList.remove('active'));
+    clickedEl.classList.add('active');
+    renderTable();
   }
 
   // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
