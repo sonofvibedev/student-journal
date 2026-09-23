@@ -259,6 +259,53 @@
     .hours-circle.hours-warning { background-color: #bf8700; border: none; }
     .hours-circle.hours-danger { background-color: #da3633; border: none; }
 
+    /* Список студентов (замена <table>): по умолчанию — компактные строки в общем
+       контейнере, похоже на прежнюю таблицу. На мобильном (см. медиа-запрос ниже)
+       превращается в отдельные карточки в стиле дизайна из Figma. */
+    .students-list-container {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .students-list-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #30363d;
+      color: #8b949e;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .students-list-header .col-num { width: 32px; flex-shrink: 0; }
+    .students-list-header .col-name { flex: 1 1 auto; }
+    .students-list-header .col-hours-labels { display: flex; gap: 20px; flex-shrink: 0; }
+    .students-list-header .col-hours-labels span:first-child { width: 34px; text-align: center; }
+    .students-list-header .col-hours-labels span:last-child { width: 34px; text-align: center; }
+
+    .student-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #21262d;
+    }
+    .student-row:last-child { border-bottom: none; }
+    .student-row:hover { background-color: #1c2128; }
+    .student-row .col-num { width: 32px; flex-shrink: 0; text-align: center; }
+    .student-row .col-name { flex: 1 1 auto; min-width: 0; }
+    .student-row .col-hours-values { display: flex; gap: 20px; align-items: center; flex-shrink: 0; }
+    .student-row .col-hours-values .hours-circle { width: 34px; }
+    .student-row .col-hours-values .uvazh-value {
+      width: 34px;
+      text-align: center;
+      font-weight: 700;
+      color: #8b949e;
+    }
+
     .quick-hour-btn {
       min-width: 50px;
       font-weight: 600;
@@ -353,6 +400,26 @@
     }
     .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
     .sort-icon-btn svg { width: 17px; height: 17px; }
+
+    /* Кнопка "Фильтр" — раскрывает filterPanelGroup, замена жеста "тап по шапке" */
+    .filter-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 34px;
+      padding: 0 14px;
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 999px;
+      color: #c9d1d9;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .filter-toggle-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
+    .filter-toggle-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .filter-toggle-btn .chevron { width: 13px; height: 13px; transition: transform 0.15s ease; }
+    .filter-toggle-btn.filter-open .chevron { transform: rotate(180deg); }
 
     .btn-icon {
       width: 14px;
@@ -460,14 +527,17 @@
         border-radius: 999px;
         background-color: #161b22;
         border-color: #21262d;
-        padding-left: 38px;
+        height: 48px;
+        padding-left: 40px;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
-        background-position: 12px center;
+        background-position: 14px center;
         background-size: 16px;
       }
 
-      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются тапом по шапке */
+      .app-header h2 { font-size: 1.9rem; }
+
+      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются кнопкой "Фильтр" */
       .filter-panel-group { display: none; }
       .filter-panel-group.filter-visible { display: flex; }
       .filter-select {
@@ -475,6 +545,26 @@
         background-color: #161b22;
         border-color: #21262d;
       }
+      .filter-toggle-btn { height: 44px; padding: 0 18px; }
+      .sort-icon-btn { width: 44px; height: 44px; }
+      .sort-icon-btn svg { width: 19px; height: 19px; }
+
+      /* Список студентов на мобильном — отдельные скруглённые карточки (Figma), а не общий
+         контейнер с внутренними разделителями */
+      .students-list-container { background: none; border: none; }
+      .students-list-header {
+        background: none;
+        border: none;
+        padding: 4px 6px 8px;
+      }
+      .student-row {
+        background-color: #0a0a0a;
+        border: none;
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+      }
+      .student-row:hover { background-color: #0a0a0a; }
 
 
       /* Часы — сплошные цветные "чипы" вместо рамок, без подписи "часов" под числом */
@@ -680,9 +770,17 @@
       -webkit-tap-highlight-color: transparent;
       transition: color .15s ease, opacity .15s ease;
     }
-    .tabbar-item.active { color: #ffffff; font-weight: 600; }
+    .tabbar-item.active { color: #58a6ff; font-weight: 600; }
     .tabbar-item:active { opacity: 0.6; }
     a.tabbar-item { text-decoration: none; }
+
+    .tabbar-item.active .tab-ico {
+      background-color: rgba(88, 166, 255, 0.15);
+      border-radius: 999px;
+      padding: 4px;
+      box-sizing: content-box;
+      margin: -4px;
+    }
 
     .tabbar-badge-dot {
       position: absolute;
@@ -741,12 +839,12 @@
   
   <!-- Заголовок страницы -->
   <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-    <div id="headerTapArea" onclick="toggleMobileFilterPanel()" style="cursor: pointer;">
+    <div id="headerTapArea">
       <div class="d-flex align-items-center gap-2">
         <h2 class="m-0 fw-bold text-white" id="appTitle">Журнал</h2>
         <span class="group-badge">24ДММ-2</span>
       </div>
-      <div class="text-secondary small mt-1" id="currentPeriodText">Текущий период: Сентябрь 2026</div>
+      <div class="text-secondary small mt-1" id="dataLastUpdated"></div>
     </div>
     <div>
       <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
@@ -794,22 +892,56 @@
   </div>
 
   <!-- Панель действий -->
-  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
-    <div class="search-filter-group d-flex gap-2 flex-grow-1" style="max-width: 560px;">
-      <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Поиск по ФИО..." oninput="renderTable()">
-      <div class="dropdown">
-        <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+  <div class="mb-4">
+    <input type="text" id="searchInput" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО..." oninput="renderTable()">
+
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <div class="d-flex gap-2">
+        <button type="button" class="filter-toggle-btn d-sm-none" onclick="toggleMobileFilterPanel()" id="filterToggleBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          Фильтр
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#" onclick="setSort('name'); return false;">По ФИО</a></li>
-          <li><a class="dropdown-item" href="#" onclick="setSort('unexcused'); return false;">По часам (неуваж.)</a></li>
-          <li><a class="dropdown-item" href="#" onclick="setSort('excused'); return false;">По часам (уваж.)</a></li>
-        </ul>
+        <div class="dropdown">
+          <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="setSort('name'); return false;">По ФИО</a></li>
+            <li><a class="dropdown-item" href="#" onclick="setSort('unexcused'); return false;">По часам (неуваж.)</a></li>
+            <li><a class="dropdown-item" href="#" onclick="setSort('excused'); return false;">По часам (уваж.)</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="action-buttons-group admin-only d-none gap-2 flex-wrap">
+        <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+          Внести пропуски
+        </button>
+        <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+          Добавить студента
+        </button>
+        <div class="dropdown admin-only d-none">
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            Ещё
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="openGroupAbsenceModal(); return false;">Внести пропуски группой</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="exportToCSV(); return false;">Выгрузить CSV</a></li>
+            <li><a class="dropdown-item" href="#" onclick="generateDeanReport(); return false;">Отчёт для деканата</a></li>
+            <li><a class="dropdown-item" href="#" onclick="downloadBackup(); return false;">Резервная копия</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="openAnnouncementModal(); return false;">Разместить объявление</a></li>
+          </ul>
+        </div>
       </div>
     </div>
 
-    <div id="filterPanelGroup" class="filter-panel-group d-flex gap-2 flex-wrap">
+    <div id="filterPanelGroup" class="filter-panel-group d-flex gap-2 flex-wrap mt-2">
       <select id="typeFilter" class="form-select form-select-sm filter-select" style="width: 130px;" onchange="renderTable()">
         <option value="ALL">Все</option>
         <option value="Бюджет">Бюджет</option>
@@ -823,32 +955,6 @@
       <select id="subjectFilter" class="form-select form-select-sm filter-select" style="width: 180px;" onchange="renderTable()">
         <option value="ALL">Все предметы</option>
       </select>
-    </div>
-
-    <div class="action-buttons-group admin-only d-none gap-2 flex-wrap">
-      <button class="btn btn-primary btn-sm fw-bold admin-only d-none" onclick="openAddAbsenceModal()">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
-        Внести пропуски
-      </button>
-      <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
-        Добавить студента
-      </button>
-      <div class="dropdown admin-only d-none">
-        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-          Ещё
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#" onclick="openGroupAbsenceModal(); return false;">Внести пропуски группой</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick="exportToCSV(); return false;">Выгрузить CSV</a></li>
-          <li><a class="dropdown-item" href="#" onclick="generateDeanReport(); return false;">Отчёт для деканата</a></li>
-          <li><a class="dropdown-item" href="#" onclick="downloadBackup(); return false;">Резервная копия</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick="openAnnouncementModal(); return false;">Разместить объявление</a></li>
-        </ul>
-      </div>
     </div>
   </div>
 
@@ -897,22 +1003,17 @@
     </div>
   </div>
 
-  <!-- Таблица студентов -->
-  <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
-  <div class="table-container mb-4">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead>
-          <tr>
-            <th class="text-center" style="width: 54px;">№</th>
-            <th>ФИО</th>
-            <th class="text-center">Неуваж.</th>
-            <th class="text-center">Уваж.</th>
-          </tr>
-        </thead>
-        <tbody id="studentsTableBody"></tbody>
-      </table>
+  <!-- Таблица/список студентов -->
+  <div class="students-list-container mb-4">
+    <div class="students-list-header">
+      <span class="col-num">№</span>
+      <span class="col-name d-none d-sm-inline">ФИО</span>
+      <span class="col-hours-labels">
+        <span>НЕУВАЖ</span>
+        <span>УВАЖ</span>
+      </span>
     </div>
+    <div id="studentsTableBody"></div>
   </div>
 </div>
 
@@ -1549,7 +1650,7 @@
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
   const WHATS_NEW_VERSION = 2;
-  const WHATS_NEW_DATE = '23.09.2026, 22:18';
+  const WHATS_NEW_DATE = '23.09.2026, 23:59';
   const WHATS_NEW_ITEMS = [
     'У преподавателей — форма контроля по предмету: зачёт или экзамен',
     'В зачётку добавлена «Летняя практика»',
@@ -2144,6 +2245,7 @@
   // Тап по шапке (моб. версия) — показать/скрыть панель фильтров (Тип/Период/Предмет)
   function toggleMobileFilterPanel() {
     document.getElementById('filterPanelGroup').classList.toggle('filter-visible');
+    document.getElementById('filterToggleBtn').classList.toggle('filter-open');
   }
 
   // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
@@ -2324,20 +2426,21 @@
       if (unexcusedHours >= 9) hoursClass = 'hours-danger';
       else if (unexcusedHours >= 5) hoursClass = 'hours-warning';
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="text-center journal-num">${journalNumbers[student.id]}</td>
-        <td>
+      const row = document.createElement('div');
+      row.className = 'student-row';
+      row.innerHTML = `
+        <span class="col-num journal-num">${journalNumbers[student.id]}</span>
+        <span class="col-name">
           <a class="student-name" onclick="openStudentHistory('${student.id}')">
             ${student.lastName} ${student.firstName}
           </a>${student.role ? `<span class="role-tag">${student.role}</span>` : ''}${student.isAdmin ? `<span class="admin-badge" title="Администратор журнала"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.2 3.4 9.9 8 11 4.6-1.1 8-5.8 8-11V5l-8-3zm-1.2 13.2L7 11.4l1.4-1.4 2.4 2.4 4.8-4.8L17 9l-6.2 6.2z"/></svg></span>` : ''}
-        </td>
-        <td class="text-center">
-          <div class="hours-circle ${hoursClass}">${unexcusedHours}</div>
-        </td>
-        <td class="text-center text-secondary fw-bold">${excusedHours}</td>
+        </span>
+        <span class="col-hours-values">
+          <span class="hours-circle ${hoursClass}">${unexcusedHours}</span>
+          <span class="uvazh-value">${excusedHours}</span>
+        </span>
       `;
-      tbody.appendChild(tr);
+      tbody.appendChild(row);
     });
 
     updateAdminUI();
