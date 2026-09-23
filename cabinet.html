@@ -877,6 +877,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div class="small text-secondary mb-2" id="whatsNewDate"></div>
         <ul class="text-white ps-3 mb-0" id="whatsNewList"></ul>
       </div>
       <div class="modal-footer">
@@ -944,21 +945,24 @@
     checkWhatsNew();
   }
 
-  // "Что нового" — тот же список и та же версия/ключ localStorage, что в index.html,
-  // так что увиденное здесь не покажется повторно на главной странице (и наоборот).
-  const WHATS_NEW_VERSION = 1;
+  // "Что нового" — тот же список, версия и ключ localStorage, что в index.html, так что
+  // увиденное здесь не покажется повторно на главной странице (и наоборот). WHATS_NEW_DATE
+  // подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое.
+  const WHATS_NEW_VERSION = 2;
+  const WHATS_NEW_DATE = '23.09.2026, 22:12';
   const WHATS_NEW_ITEMS = [
-    'Личный кабинет теперь на вкладках: Статистика / Зачётка / Объявления',
-    'В «Мои пропуски» виден статус справки — сдана, просрочена или ожидается',
-    '«Место в группе» — сравнение по количеству неуваж. часов с одногруппниками',
-    'У админа: расширенная статистика, резервная копия и подробная статистика по каждому студенту',
-    'Красивые всплывающие окна вместо системных alert/confirm браузера'
+    'У преподавателей — форма контроля по предмету: зачёт или экзамен',
+    'В зачётку добавлена «Летняя практика»',
+    'Админ может удалить отдельную запись пропуска прямо в подробной статистике',
+    'При внесении пропусков сразу видно, на какую дату они вносятся',
+    'В окне «Что нового» теперь видна дата последнего обновления сайта'
   ];
 
   function checkWhatsNew() {
     const seenVersion = Number(localStorage.getItem('whats_new_seen') || 0);
     if (seenVersion >= WHATS_NEW_VERSION) return;
 
+    document.getElementById('whatsNewDate').innerText = `Обновлено: ${WHATS_NEW_DATE}`;
     document.getElementById('whatsNewList').innerHTML = WHATS_NEW_ITEMS.map(i => `<li class="mb-1">${i}</li>`).join('');
     const modalEl = document.getElementById('whatsNewModal');
     const modal = new bootstrap.Modal(modalEl);
@@ -1262,6 +1266,8 @@
 
   // --- Моя зачётка ---
   const ZACHETKA_EXCLUDED_SUBJECTS = ['Кураторский час', 'Физическая культура'];
+  // Не входит в общий список предметов журнала (нет посещаемости/преподавателя) — только строка в зачётке
+  const ZACHETKA_EXTRA_SUBJECTS = ['Летняя практика'];
   const ZACHETKA_GRADE_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 
   function loadZachetkaState() {
@@ -1275,7 +1281,7 @@
   function renderZachetka() {
     const grades = loadZachetkaState();
     const container = document.getElementById('zachetkaList');
-    const subjects = appData.subjects.filter(s => !ZACHETKA_EXCLUDED_SUBJECTS.includes(s));
+    const subjects = appData.subjects.filter(s => !ZACHETKA_EXCLUDED_SUBJECTS.includes(s)).concat(ZACHETKA_EXTRA_SUBJECTS);
     container.innerHTML = subjects.map(subj => {
       const current = grades[subj] !== undefined ? String(grades[subj]) : '';
       const optionsHtml = ['<option value="">—</option>']

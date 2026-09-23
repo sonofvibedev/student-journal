@@ -961,7 +961,8 @@
 
         <div class="mb-3">
           <label class="form-label text-secondary small">Дата</label>
-          <input type="date" id="absenceDate" class="form-control">
+          <input type="date" id="absenceDate" class="form-control" oninput="updateAbsenceDateCaption()">
+          <div class="small text-secondary mt-1" id="absenceDateCaption"></div>
         </div>
 
         <div class="mb-3 form-check">
@@ -1439,6 +1440,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div class="small text-secondary mb-2" id="whatsNewDate"></div>
         <ul class="text-white ps-3 mb-0" id="whatsNewList"></ul>
       </div>
       <div class="modal-footer">
@@ -1542,20 +1544,24 @@
 
   // "Что нового" — короткий список последних изменений, показывается один раз после
   // обновления сайта (localStorage 'whats_new_seen' общий с cabinet.html, тот же ключ).
-  // При каждом заметном обновлении: поднять WHATS_NEW_VERSION и заменить WHATS_NEW_ITEMS.
-  const WHATS_NEW_VERSION = 1;
+  // WHATS_NEW_DATE подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое —
+  // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
+  // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
+  const WHATS_NEW_VERSION = 2;
+  const WHATS_NEW_DATE = '23.09.2026, 22:12';
   const WHATS_NEW_ITEMS = [
-    'Личный кабинет теперь на вкладках: Статистика / Зачётка / Объявления',
-    'В «Мои пропуски» виден статус справки — сдана, просрочена или ожидается',
-    '«Место в группе» — сравнение по количеству неуваж. часов с одногруппниками',
-    'У админа: расширенная статистика, резервная копия и подробная статистика по каждому студенту',
-    'Красивые всплывающие окна вместо системных alert/confirm браузера'
+    'У преподавателей — форма контроля по предмету: зачёт или экзамен',
+    'В зачётку добавлена «Летняя практика»',
+    'Админ может удалить отдельную запись пропуска прямо в подробной статистике',
+    'При внесении пропусков сразу видно, на какую дату они вносятся',
+    'В окне «Что нового» теперь видна дата последнего обновления сайта'
   ];
 
   function checkWhatsNew() {
     const seenVersion = Number(localStorage.getItem('whats_new_seen') || 0);
     if (seenVersion >= WHATS_NEW_VERSION) return;
 
+    document.getElementById('whatsNewDate').innerText = `Обновлено: ${WHATS_NEW_DATE}`;
     document.getElementById('whatsNewList').innerHTML = WHATS_NEW_ITEMS.map(i => `<li class="mb-1">${i}</li>`).join('');
     const modalEl = document.getElementById('whatsNewModal');
     const modal = new bootstrap.Modal(modalEl);
@@ -1732,6 +1738,12 @@
     teachersModal.show();
   }
 
+  // Форма контроля по предмету: зачёт или экзамен (список зачётных предметов фиксирован — как в учебном плане)
+  const ZACHET_SUBJECTS = ['Маркетинг инноваций', 'Функционально-стоимостный анализ', 'Логистика'];
+  function getExamType(subject) {
+    return ZACHET_SUBJECTS.includes(subject) ? 'зачёт' : 'экзамен';
+  }
+
   function renderTeachersList() {
     const container = document.getElementById('teachersList');
     if (!appData.teachers || appData.teachers.length === 0) {
@@ -1739,17 +1751,21 @@
       return;
     }
     const ordered = [...appData.teachers].sort((a, b) => a.subject.localeCompare(b.subject, 'ru'));
-    container.innerHTML = ordered.map(t => `
+    container.innerHTML = ordered.map(t => {
+      const examType = getExamType(t.subject);
+      const badgeClass = examType === 'зачёт' ? 'bg-success' : 'bg-primary';
+      return `
       <div class="subject-slot-card mb-2">
         <div class="d-flex justify-content-between align-items-start">
-          <div class="fw-bold text-white mb-1">${t.subject}</div>
+          <div class="fw-bold text-white mb-1">${t.subject} <span class="badge ${badgeClass} bg-opacity-75 fw-normal">${examType}</span></div>
           <button type="button" class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openEditTeacherModal('${t.id}')">Изменить</button>
         </div>
         <div class="small text-secondary">Лекции: <span class="text-white">${t.lecture || '—'}</span></div>
         <div class="small text-secondary">ПЗ: <span class="text-white">${t.practice || '—'}</span></div>
         <div class="small text-secondary">Лаб.: <span class="text-white">${t.lab || '—'}</span></div>
       </div>
-    `).join('');
+    `;
+    }).join('');
     updateAdminUI();
   }
 
@@ -2310,6 +2326,25 @@
   }
 
   // --- Внести пропуски с Radio Buttons для предметов ---
+  const WEEKDAYS_FULL = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+
+  // Живая подпись под датой в форме "Внести пропуски" — чтобы сразу было видно,
+  // на какой день фактически вносится запись, а не только цифры в календаре
+  function updateAbsenceDateCaption() {
+    const input = document.getElementById('absenceDate');
+    const caption = document.getElementById('absenceDateCaption');
+    if (!input.value) { caption.innerText = ''; return; }
+    const d = new Date(input.value + 'T00:00:00');
+    if (isNaN(d.getTime())) { caption.innerText = ''; return; }
+    const weekday = WEEKDAYS_FULL[d.getDay()];
+    const dateStr = formatDateShort(d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isFuture = d > today;
+    caption.innerText = `Пропуски вносятся за: ${weekday}, ${dateStr}${isFuture ? ' (дата в будущем)' : ''}`;
+    caption.className = 'small mt-1 ' + (isFuture ? 'text-warning' : 'text-secondary');
+  }
+
   function openAddAbsenceModal() {
     const journalNumbers = getJournalNumbers();
     const ordered = [...appData.students].sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id]);
@@ -2320,6 +2355,7 @@
       .join('');
 
     document.getElementById('absenceDate').valueAsDate = new Date();
+    updateAbsenceDateCaption();
     document.getElementById('absenceHours').value = 2;
     document.getElementById('absenceComment').value = '';
     document.getElementById('absenceIsExcused').checked = false;
