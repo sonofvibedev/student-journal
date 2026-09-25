@@ -271,6 +271,7 @@
     .students-list-header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 14px;
       padding: 12px 14px;
       border-bottom: 1px solid #30363d;
@@ -325,6 +326,55 @@
       padding: 12px;
       margin-bottom: 12px;
     }
+
+    /* Карточки преподавателей (список "Преподы") — цветной акцент по краю + инициалы вместо фото */
+    .teacher-card {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+      border-left: 4px solid #388bfd;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .teacher-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .teacher-card-edit-btn {
+      background: none;
+      border: none;
+      color: #8b949e;
+      padding: 2px;
+      cursor: pointer;
+      line-height: 0;
+    }
+    .teacher-card-edit-btn:hover { color: #f0f6fc; }
+    .teacher-card-edit-btn svg { width: 16px; height: 16px; }
+    .teacher-card-title {
+      font-weight: 700;
+      color: #ffffff;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+    .teacher-card-avatars { display: flex; margin-bottom: 10px; }
+    .teacher-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      border: 2px solid #161b22;
+      margin-left: -8px;
+      flex-shrink: 0;
+    }
+    .teacher-avatar:first-child { margin-left: 0; }
+    .teacher-card-details { font-size: 13px; }
+    .teacher-card-details > div { margin-bottom: 2px; }
 
     /* Фишки-оценки в калькуляторе рейтинга */
     .grade-chip {
@@ -1756,99 +1806,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Анимации: библиотека Motion (motion.dev), версия для обычного JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/motion@12/dist/motion.js"></script>
-<script>
-  // FX — маленькая обёртка над Motion. Если библиотека не загрузилась (нет сети, CDN недоступен)
-  // или у пользователя включено «уменьшение движения», все функции просто ничего не делают —
-  // сайт работает как раньше, без анимаций.
-  const FX = (() => {
-    const lib = window.Motion;
-    const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    const on = !!(lib && typeof lib.animate === 'function') && !reduce;
-    const ease = [0.22, 1, 0.36, 1];
-
-    function toList(target) {
-      if (!target) return [];
-      if (typeof target === 'string') return Array.from(document.querySelectorAll(target));
-      if (target instanceof Element) return [target];
-      return Array.from(target);
-    }
-
-    function isShown(el) { return el.getClientRects().length > 0; }
-
-    // После анимации убираем инлайн-стили, чтобы transform не ломал position: fixed,
-    // выпадающие меню и прочую вёрстку внутри элемента
-    function cleanup(el) {
-      el.style.removeProperty('opacity');
-      el.style.removeProperty('transform');
-    }
-
-    function run(el, keyframes, options) {
-      try {
-        const controls = lib.animate(el, keyframes, options);
-        const done = controls && (controls.finished || (typeof controls.then === 'function' ? controls : null));
-        if (done && typeof done.then === 'function') done.then(() => cleanup(el), () => cleanup(el));
-        else setTimeout(() => cleanup(el), ((options.delay || 0) + (options.duration || 0.4)) * 1000 + 50);
-      } catch (e) {
-        cleanup(el);
-      }
-    }
-
-    // Плавное появление снизу вверх, элементы по очереди.
-    // y: 0 — только прозрачность (для строк таблиц <tr>, где transform ведёт себя капризно)
-    function reveal(target, opts = {}) {
-      if (!on) return;
-      const { y = 12, delay = 0, step = 0.04, max = 12, duration = 0.4, includeHidden = false } = opts;
-      const els = toList(target).filter(el => includeHidden || isShown(el));
-      els.forEach((el, i) => {
-        const keyframes = y ? { opacity: [0, 1], transform: [`translateY(${y}px)`, 'translateY(0px)'] } : { opacity: [0, 1] };
-        run(el, keyframes, { duration, delay: delay + Math.min(i, max) * step, ease });
-      });
-    }
-
-    // Лёгкое «пружинящее» нажатие — для иконок таб-бара
-    function pop(target) {
-      if (!on) return;
-      toList(target).forEach(el => run(el, { transform: ['scale(1)', 'scale(0.82)', 'scale(1)'] }, { duration: 0.3, ease }));
-    }
-
-    // Число «набегает» от текущего значения к новому
-    function count(el, to) {
-      if (!el) return;
-      const target = Number(to);
-      const from = parseFloat(el.innerText) || 0;
-      if (!on || !Number.isFinite(target) || !Number.isInteger(target) || !Number.isInteger(from) || from === target) {
-        el.innerText = to;
-        return;
-      }
-      try {
-        lib.animate(from, target, {
-          duration: 0.7,
-          ease,
-          onUpdate: v => { el.innerText = Math.round(v); },
-          onComplete: () => { el.innerText = to; }
-        });
-      } catch (e) {
-        el.innerText = to;
-      }
-    }
-
-    if (on) {
-      // Нажатие на вкладку нижней панели
-      document.addEventListener('click', e => {
-        const item = e.target.closest && e.target.closest('.tabbar-item');
-        if (item) pop(item.querySelectorAll('.tab-ico'));
-      });
-      // Содержимое любого окна Bootstrap появляется плавно, по очереди
-      document.addEventListener('show.bs.modal', e => {
-        reveal(e.target.querySelectorAll('.modal-body > *'), { y: 8, step: 0.03, max: 8, duration: 0.35, includeHidden: true });
-      });
-    }
-
-    return { enabled: on, reveal, pop, count };
-  })();
-</script>
 <script>
   const GITHUB_OWNER = 'dimpolenyshev';
   const GITHUB_REPO = 'student-journal';
@@ -1947,7 +1904,7 @@
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
   const WHATS_NEW_VERSION = 2;
-  const WHATS_NEW_DATE = '24.09.2026, 07:07';
+  const WHATS_NEW_DATE = '25.09.2026, 23:41';
   const WHATS_NEW_ITEMS = [
     'У преподавателей — форма контроля по предмету: зачёт или экзамен',
     'В зачётку добавлена «Летняя практика»',
@@ -1990,10 +1947,6 @@
       updateCabinetUnreadBadge();
       renderExtendedStats();
       renderAnalyticsChart();
-
-      // Анимация: строки журнала и объявления появляются по очереди
-      FX.reveal('#generalAnnouncementsList > *', { step: 0.06 });
-      FX.reveal('#studentsTableBody .student-row', { step: 0.025, max: 16 });
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
     }
@@ -2040,12 +1993,12 @@
       if (unexcused >= 14) redZoneCount++;
     });
 
-    FX.count(document.getElementById('statTotalStudents'), totalStudents);
-    FX.count(document.getElementById('statBudget'), budget);
-    FX.count(document.getElementById('statPaid'), paid);
-    FX.count(document.getElementById('statUnexcusedHours'), unexcusedTotal);
-    FX.count(document.getElementById('statExcusedHours'), excusedTotal);
-    FX.count(document.getElementById('statRedZone'), redZoneCount);
+    document.getElementById('statTotalStudents').innerText = totalStudents;
+    document.getElementById('statBudget').innerText = budget;
+    document.getElementById('statPaid').innerText = paid;
+    document.getElementById('statUnexcusedHours').innerText = unexcusedTotal;
+    document.getElementById('statExcusedHours').innerText = excusedTotal;
+    document.getElementById('statRedZone').innerText = redZoneCount;
   }
 
   // --- Номера по журналу: по алфавиту, 1..N, одни и те же при любом фильтре ---
@@ -2147,6 +2100,16 @@
     return ZACHET_SUBJECTS.includes(subject) ? 'зачёт' : 'экзамен';
   }
 
+  // Цветной акцент карточки преподавателя — по кругу, чтобы список не выглядел монотонно
+  // (переиспользует уже существующие в приложении цвета: зелёный/жёлтый/красный/синий)
+  const TEACHER_ACCENT_COLORS = ['#2ea043', '#bf8700', '#da3633', '#388bfd'];
+
+  function getInitials(fullName) {
+    if (!fullName) return '—';
+    const parts = fullName.trim().split(/\s+/);
+    return parts.slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  }
+
   function renderTeachersList() {
     const container = document.getElementById('teachersList');
     if (!appData.teachers || appData.teachers.length === 0) {
@@ -2154,18 +2117,33 @@
       return;
     }
     const ordered = [...appData.teachers].sort((a, b) => a.subject.localeCompare(b.subject, 'ru'));
-    container.innerHTML = ordered.map(t => {
+    container.innerHTML = ordered.map((t, i) => {
       const examType = getExamType(t.subject);
       const badgeClass = examType === 'зачёт' ? 'bg-success' : 'bg-primary';
+      const accent = TEACHER_ACCENT_COLORS[i % TEACHER_ACCENT_COLORS.length];
+      const roles = [
+        { label: 'Лекции', name: t.lecture },
+        { label: 'ПЗ', name: t.practice },
+        { label: 'Лаб.', name: t.lab }
+      ].filter(r => r.name);
+      const avatarsHtml = roles.map(r =>
+        `<span class="teacher-avatar" style="background-color: ${accent};" title="${r.label}: ${r.name}">${getInitials(r.name)}</span>`
+      ).join('');
       return `
-      <div class="subject-slot-card mb-2">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="fw-bold text-white mb-1">${t.subject} <span class="badge ${badgeClass} bg-opacity-75 fw-normal">${examType}</span></div>
-          <button type="button" class="btn btn-outline-secondary btn-sm admin-only d-none" onclick="openEditTeacherModal('${t.id}')">Изменить</button>
+      <div class="teacher-card mb-2" style="border-left-color: ${accent};">
+        <div class="teacher-card-header">
+          <span class="badge ${badgeClass} bg-opacity-75 fw-normal">${examType}</span>
+          <button type="button" class="teacher-card-edit-btn admin-only d-none" onclick="openEditTeacherModal('${t.id}')" title="Изменить">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
         </div>
-        <div class="small text-secondary">Лекции: <span class="text-white">${t.lecture || '—'}</span></div>
-        <div class="small text-secondary">ПЗ: <span class="text-white">${t.practice || '—'}</span></div>
-        <div class="small text-secondary">Лаб.: <span class="text-white">${t.lab || '—'}</span></div>
+        <div class="teacher-card-title">${t.subject}</div>
+        <div class="teacher-card-avatars">${avatarsHtml}</div>
+        <div class="teacher-card-details">
+          <div><span class="text-secondary">Лекции:</span> <span class="text-white">${t.lecture || '—'}</span></div>
+          <div><span class="text-secondary">ПЗ:</span> <span class="text-white">${t.practice || '—'}</span></div>
+          <div><span class="text-secondary">Лаб.:</span> <span class="text-white">${t.lab || '—'}</span></div>
+        </div>
       </div>
     `;
     }).join('');
@@ -2245,7 +2223,6 @@
       sortState = { key: key, dir: SORT_DEFAULT_DIR[key] || 'asc' };
     }
     renderTable();
-    FX.reveal('#studentsTableBody .student-row', { y: 6, step: 0.015, max: 16, duration: 0.3 });
   }
 
   function updateSortIndicators() {
@@ -3500,13 +3477,9 @@
     const adminBtn = document.getElementById('adminBtn');
     const adminBtnText = document.getElementById('adminBtnText');
     const appTitle = document.getElementById('appTitle');
-    const statsGrid = document.querySelector('.stats-grid.admin-only');
-    const statsWereHidden = !!(statsGrid && statsGrid.classList.contains('d-none'));
 
     if (githubToken) {
       adminElements.forEach(el => el.classList.remove('d-none'));
-      // Анимация: карточки статистики появляются по очереди при входе администратора
-      if (statsWereHidden) FX.reveal('.stats-grid .stat-card', { step: 0.05 });
       adminBtn.classList.add('is-admin');
       adminBtn.title = 'Вы вошли как администратор — нажмите, чтобы выйти';
       if (adminBtnText) adminBtnText.innerText = 'Выйти';
