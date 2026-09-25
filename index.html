@@ -369,23 +369,26 @@
       color: #ffffff;
       font-size: 15px;
     }
-    .teacher-card-avatars { display: flex; margin-bottom: 10px; }
-    .teacher-avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      color: #ffffff;
-      border: 2px solid #161b22;
-      margin-left: -8px;
-      flex-shrink: 0;
+    .teacher-card {
+      cursor: pointer;
     }
-    .teacher-avatar:first-child { margin-left: 0; }
-    .teacher-card-details { font-size: 13px; }
+    .teacher-card-chevron {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      color: #8b949e;
+      transition: transform 0.15s ease;
+      margin-left: auto;
+    }
+    .teacher-card.expanded .teacher-card-chevron { transform: rotate(180deg); }
+    .teacher-card-details {
+      font-size: 13px;
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #21262d;
+    }
+    .teacher-card.expanded .teacher-card-details { display: block; }
     .teacher-card-details > div { margin-bottom: 2px; }
 
     /* Фишки-оценки в калькуляторе рейтинга */
@@ -1916,7 +1919,7 @@
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
   const WHATS_NEW_VERSION = 2;
-  const WHATS_NEW_DATE = '25.09.2026, 23:47';
+  const WHATS_NEW_DATE = '25.09.2026, 23:52';
   const WHATS_NEW_ITEMS = [
     'У преподавателей — форма контроля по предмету: зачёт или экзамен',
     'В зачётку добавлена «Летняя практика»',
@@ -2131,12 +2134,6 @@
   };
   const DEFAULT_SUBJECT_ICON = '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 2-2 3.5"/><circle cx="12" cy="17" r="0.3" fill="currentColor"/>';
 
-  function getInitials(fullName) {
-    if (!fullName) return '—';
-    const parts = fullName.trim().split(/\s+/);
-    return parts.slice(0, 2).map(p => p[0]).join('').toUpperCase();
-  }
-
   function renderTeachersList() {
     const container = document.getElementById('teachersList');
     if (!appData.teachers || appData.teachers.length === 0) {
@@ -2149,19 +2146,11 @@
       const badgeClass = examType === 'зачёт' ? 'bg-success' : 'bg-primary';
       const accent = TEACHER_ACCENT_COLORS[i % TEACHER_ACCENT_COLORS.length];
       const iconPath = SUBJECT_ICONS[t.subject] || DEFAULT_SUBJECT_ICON;
-      const roles = [
-        { label: 'Лекции', name: t.lecture },
-        { label: 'ПЗ', name: t.practice },
-        { label: 'Лаб.', name: t.lab }
-      ].filter(r => r.name);
-      const avatarsHtml = roles.map(r =>
-        `<span class="teacher-avatar" style="background-color: ${accent};" title="${r.label}: ${r.name}">${getInitials(r.name)}</span>`
-      ).join('');
       return `
-      <div class="teacher-card mb-2" style="border-left-color: ${accent};">
+      <div class="teacher-card mb-2" style="border-left-color: ${accent};" onclick="toggleTeacherCard(this)">
         <div class="teacher-card-header">
           <span class="badge ${badgeClass} bg-opacity-75 fw-normal">${examType}</span>
-          <button type="button" class="teacher-card-edit-btn admin-only d-none" onclick="openEditTeacherModal('${t.id}')" title="Изменить">
+          <button type="button" class="teacher-card-edit-btn admin-only d-none" onclick="event.stopPropagation(); openEditTeacherModal('${t.id}')" title="Изменить">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </button>
         </div>
@@ -2170,8 +2159,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg>
           </span>
           <div class="teacher-card-title">${t.subject}</div>
+          <svg class="teacher-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </div>
-        <div class="teacher-card-avatars">${avatarsHtml}</div>
         <div class="teacher-card-details">
           <div><span class="text-secondary">Лекции:</span> <span class="text-white">${t.lecture || '—'}</span></div>
           <div><span class="text-secondary">ПЗ:</span> <span class="text-white">${t.practice || '—'}</span></div>
@@ -2181,6 +2170,12 @@
     `;
     }).join('');
     updateAdminUI();
+  }
+
+  // Клик по карточке преподавателя — показать/скрыть Лекции/ПЗ/Лаб (кнопка "Изменить" внутри
+  // сама останавливает всплытие, чтобы не переключать карточку заодно)
+  function toggleTeacherCard(el) {
+    el.classList.toggle('expanded');
   }
 
   function openAddTeacherModal() {
