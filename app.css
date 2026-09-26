@@ -1,0 +1,626 @@
+﻿/* Журнал 24ДММ-2 — общая дизайн-система для index.html и cabinet.html.
+   Цвета, радиусы, размеры и шрифты — из Figma (journaldima: design system 10-612,
+   главная 0-76, фильтры 0-665, сортировка 0-654, таб-бар 0-382).
+   Подключается после Bootstrap 5.3.2, стили конкретной страницы — в её <style>. */
+
+/* ===== Шрифт SF Pro Text (в интерфейсе используются 400/500/600/700) ===== */
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Semibold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+
+/* ===== Токены ===== */
+:root,
+[data-bs-theme=dark] {
+  /* Поверхности: от фона к «приподнятым» слоям */
+  --color-bg: #060606;
+  --color-surface-sunken: #0a0a0a;   /* карточка студента, лист фильтров */
+  --color-surface: #0f0f0f;          /* поиск, кнопки, меню, карточки */
+  --color-surface-2: #111111;        /* таб-бар, модальные окна */
+  --color-surface-3: #1a1a1a;        /* карточки и поля внутри окон, hover */
+  --color-border: #363636;           /* обводка чипов и контурных кнопок */
+  --color-separator: #2b2b2b;
+  --color-selection: rgba(101, 101, 101, 0.2);
+
+  /* Текст */
+  --color-text: #ffffff;
+  --color-text-2: #e5e5ea;
+  --color-text-secondary: #8e8e93;
+  --color-text-tertiary: #6c6c71;    /* подписи и плейсхолдеры из Figma */
+  --color-text-muted: #7d7d7d;
+  --color-text-disabled: #4d4d4d;    /* неактивная вкладка */
+
+  /* Акценты */
+  --color-accent: #0088ff;
+  --color-accent-rgb: 0, 136, 255;
+  --color-accent-hover: #3aa0ff;
+  --color-green: #0b662e;            /* Figma Color/Green — активный чип, «Поиск», «Сохранить» */
+  --color-green-line: #5fe08c;
+  --color-red: #840e0a;              /* Figma Color/Red */
+  --color-yellow-bg: #66460b;        /* кружок часов: жёлтый */
+  --color-yellow-line: #fff262;
+  --color-danger-bg: #660b17;        /* кружок часов: красный */
+  --color-danger-line: #ff628f;
+  --color-success-text: #34c759;
+
+  /* Радиусы */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 12px;                 /* кнопки */
+  --radius-lg: 14px;                 /* карточки, поиск, меню */
+  --radius-xl: 24px;                 /* модальные окна */
+  --radius-sheet: 38px;              /* верх листа фильтров */
+  --radius-pill: 999px;
+
+  /* Отступы (шаг 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Тени */
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sheet: 0 -10px 40px rgba(0, 0, 0, 0.55);
+
+  /* Размеры элементов */
+  --control-h-sm: 34px;
+  --control-h: 44px;
+  --control-h-lg: 48px;
+  --search-h: 56px;
+  --row-h: 68px;
+  --hours-size: 40px;
+  --tab-icon: 28px;
+
+  /* Типографика */
+  --font-sans: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fs-title: 34px;
+  --fs-h2: 22px;
+  --fs-body: 17px;
+  --fs-button: 16px;
+  --fs-chip: 15px;
+  --fs-caption: 14px;
+  --fs-small: 12px;
+  --fs-tab: 11px;
+  --tracking: -0.43px;
+
+  /* Анимации: только transform/opacity, 150–350 мс */
+  --dur-fast: 150ms;
+  --dur: 220ms;
+  --dur-slow: 320ms;
+  --stagger: 25ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Безопасные зоны. Telegram отдаёт свои в --tg-*-inset-* (в полноэкранном режиме — под
+     системную строку и свои кнопки), iOS/PWA — в env(). Берём большее, чтобы не сложить дважды. */
+  --app-inset-top: max(env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
+  --app-inset-right: max(env(safe-area-inset-right, 0px), calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px)));
+  --app-inset-bottom: max(env(safe-area-inset-bottom, 0px), calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px)));
+  --app-inset-left: max(env(safe-area-inset-left, 0px), calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px)));
+
+  /* Плавающий таб-бар */
+  --tabbar-h: 72px;
+  --tabbar-gap: 12px;
+  --tabbar-inset: var(--app-inset-bottom);
+  --tabbar-space: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 24px);
+
+  /* Bootstrap: те же токены, чтобы модалки, кнопки и формы приняли палитру без правки разметки */
+  --bs-body-bg: var(--color-bg);
+  --bs-body-bg-rgb: 6, 6, 6;
+  --bs-body-color: var(--color-text-2);
+  --bs-body-font-family: var(--font-sans);
+  --bs-emphasis-color: var(--color-text);
+  --bs-secondary-color: var(--color-text-secondary);
+  --bs-secondary-bg: var(--color-surface-3);
+  --bs-tertiary-bg: var(--color-surface);
+  --bs-border-color: var(--color-separator);
+  --bs-border-radius: var(--radius-md);
+  --bs-border-radius-sm: var(--radius-sm);
+  --bs-border-radius-lg: var(--radius-lg);
+  --bs-link-color: var(--color-accent);
+  --bs-link-color-rgb: var(--color-accent-rgb);
+  --bs-link-hover-color: var(--color-accent-hover);
+  --bs-link-hover-color-rgb: 58, 160, 255;
+  --bs-primary: var(--color-accent);
+  --bs-primary-rgb: var(--color-accent-rgb);
+  --bs-secondary-rgb: 142, 142, 147;
+  --bs-success-rgb: 52, 199, 89;
+  --bs-warning-rgb: 255, 242, 98;
+  --bs-danger-rgb: 255, 98, 143;
+  --bs-dark-rgb: 15, 15, 15;
+}
+
+/* ===== База ===== */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-2);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Не уезжаем под системные зоны и кнопки Telegram */
+  padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
+}
+
+html { background-color: var(--color-bg); }
+
+h5, .h5 { font-weight: 600; letter-spacing: var(--tracking); }
+h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tracking); color: var(--color-text); }
+
+/* ===== Заголовок экрана — Figma: 34/40 bold, подпись 14px ===== */
+.app-title {
+  margin: 0;
+  font-size: clamp(28px, 8.2vw, var(--fs-title));
+  line-height: 1.18;
+  font-weight: 700;
+  letter-spacing: var(--tracking);
+  color: var(--color-text);
+}
+.app-subtitle {
+  margin-top: 2px;
+  font-size: var(--fs-caption);
+  line-height: 24px;
+  letter-spacing: var(--tracking);
+  color: var(--color-text-tertiary);
+}
+
+/* ===== Карточки ===== */
+.stat-card,
+.table-container,
+.student-summary-card,
+.subject-slot-card {
+  background-color: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+}
+.stat-card { padding: 14px 16px; min-height: 84px; }
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+.student-summary-card { padding: 12px 16px; }
+.subject-slot-card { padding: 12px; margin-bottom: 12px; }
+.modal .stat-card,
+.modal .student-summary-card,
+.modal .subject-slot-card { background-color: var(--color-surface-3); }
+
+/* ===== Кнопки — Figma Button: Bordered prominent / Bordering / Green / Red, радиус 12 ===== */
+.btn {
+  --bs-btn-padding-x: 16px;
+  --bs-btn-padding-y: 9px;
+  --bs-btn-font-size: var(--fs-button);
+  --bs-btn-font-weight: 500;
+  --bs-btn-border-radius: var(--radius-md);
+  --bs-btn-focus-box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.35);
+  letter-spacing: -0.3px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.btn-sm {
+  --bs-btn-padding-x: 12px;
+  --bs-btn-padding-y: 5.5px;
+  --bs-btn-font-size: var(--fs-caption);
+  --bs-btn-border-radius: var(--radius-sm);
+}
+.btn.text-start { text-align: left; }
+.btn-group-sm > .btn { --bs-btn-padding-x: 10px; white-space: nowrap; }
+.btn-primary {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-accent); --bs-btn-border-color: var(--color-accent);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--color-accent-hover); --bs-btn-hover-border-color: var(--color-accent-hover);
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--color-accent); --bs-btn-active-border-color: var(--color-accent);
+  --bs-btn-disabled-bg: var(--color-accent); --bs-btn-disabled-border-color: var(--color-accent);
+}
+.btn-success {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-green); --bs-btn-border-color: var(--color-green);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #0e7a37; --bs-btn-hover-border-color: #0e7a37;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--color-green); --bs-btn-active-border-color: var(--color-green);
+}
+.btn-danger {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-red); --bs-btn-border-color: var(--color-red);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #9c140f; --bs-btn-hover-border-color: #9c140f;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--color-red); --bs-btn-active-border-color: var(--color-red);
+}
+.btn-secondary {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-surface-3); --bs-btn-border-color: var(--color-surface-3);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #242424; --bs-btn-hover-border-color: #242424;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #242424; --bs-btn-active-border-color: #242424;
+}
+.btn-outline-secondary,
+.btn-outline-light {
+  --bs-btn-color: var(--color-text); --bs-btn-border-color: var(--color-border);
+  --bs-btn-hover-color: var(--color-text); --bs-btn-hover-bg: var(--color-surface-3); --bs-btn-hover-border-color: var(--color-border);
+  --bs-btn-active-color: var(--color-text); --bs-btn-active-bg: var(--color-surface-3); --bs-btn-active-border-color: #4a4a4a;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--color-accent); --bs-btn-border-color: rgba(var(--color-accent-rgb), 0.5);
+  --bs-btn-hover-color: var(--color-accent); --bs-btn-hover-bg: rgba(var(--color-accent-rgb), 0.12); --bs-btn-hover-border-color: rgba(var(--color-accent-rgb), 0.5);
+  --bs-btn-active-color: var(--color-accent); --bs-btn-active-bg: rgba(var(--color-accent-rgb), 0.18); --bs-btn-active-border-color: var(--color-accent);
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--color-danger-line); --bs-btn-border-color: rgba(255, 98, 143, 0.45);
+  --bs-btn-hover-color: var(--color-danger-line); --bs-btn-hover-bg: rgba(255, 98, 143, 0.12); --bs-btn-hover-border-color: rgba(255, 98, 143, 0.45);
+  --bs-btn-active-color: var(--color-danger-line); --bs-btn-active-bg: rgba(255, 98, 143, 0.18); --bs-btn-active-border-color: var(--color-danger-line);
+}
+.btn-close { --bs-btn-close-focus-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.35); }
+
+/* ===== Поля ввода ===== */
+.form-control,
+.form-select {
+  min-height: var(--control-h);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--fs-button);
+  transition: none;
+}
+.form-control-sm,
+.form-select-sm {
+  min-height: var(--control-h-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-caption);
+}
+.modal .form-control,
+.modal .form-select { background-color: var(--color-surface-3); }
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--color-surface-3);
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.25);
+}
+.form-control::placeholder { color: var(--color-text-tertiary); }
+.form-check-input {
+  background-color: var(--color-surface-3);
+  border-color: var(--color-border);
+}
+.form-check-input:checked {
+  background-color: var(--color-green);
+  border-color: var(--color-green);
+}
+.form-check-input:focus {
+  border-color: var(--color-green-line);
+  box-shadow: 0 0 0 3px rgba(11, 102, 46, 0.4);
+}
+
+/* ===== Выпадающие меню ===== */
+.dropdown-menu {
+  --bs-dropdown-bg: var(--color-surface);
+  --bs-dropdown-border-width: 0;
+  --bs-dropdown-border-radius: var(--radius-lg);
+  --bs-dropdown-padding-x: 6px;
+  --bs-dropdown-padding-y: 6px;
+  --bs-dropdown-font-size: var(--fs-chip);
+  --bs-dropdown-color: var(--color-text);
+  --bs-dropdown-link-color: var(--color-text);
+  --bs-dropdown-link-hover-color: var(--color-text);
+  --bs-dropdown-link-hover-bg: var(--color-surface-3);
+  --bs-dropdown-link-active-color: var(--color-text);
+  --bs-dropdown-link-active-bg: var(--color-surface-3);
+  --bs-dropdown-item-padding-x: 12px;
+  --bs-dropdown-item-padding-y: 10px;
+  --bs-dropdown-item-border-radius: var(--radius-sm);
+  --bs-dropdown-divider-bg: var(--color-separator);
+  --bs-dropdown-zindex: 1035;          /* поверх плавающего таб-бара (1030) */
+  box-shadow: var(--shadow-float);
+}
+
+/* ===== Модальные окна (Bootstrap 5.3.2) ===== */
+.modal {
+  --bs-modal-bg: var(--color-surface-2);
+  --bs-modal-color: var(--color-text-2);
+  --bs-modal-border-width: 0;
+  --bs-modal-border-radius: var(--radius-xl);
+  --bs-modal-inner-border-radius: var(--radius-xl);
+  --bs-modal-box-shadow: var(--shadow-float);
+  --bs-modal-header-padding: 20px 20px 8px;
+  --bs-modal-header-border-width: 0;
+  --bs-modal-padding: 12px 20px;
+  --bs-modal-footer-border-width: 0;
+  --bs-modal-footer-gap: 8px;
+  padding-top: var(--app-inset-top);
+  padding-bottom: var(--app-inset-bottom);
+}
+.modal-backdrop { --bs-backdrop-opacity: 0.6; }
+.modal-title { font-size: 20px; font-weight: 600; letter-spacing: var(--tracking); color: var(--color-text); }
+.modal-footer { padding: 8px 16px 16px; }
+
+/* На телефоне обычные окна — листы снизу (как фильтры в Figma), маленькие окна — по центру */
+@media (max-width: 576px) {
+  .modal { --bs-modal-margin: 12px; padding: 0 !important; }
+  .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 100%;
+    margin: 0;
+    padding-top: calc(var(--app-inset-top) + 40px);
+  }
+  .modal-dialog-scrollable:not(.modal-fullscreen) { height: 100%; }
+  .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) > .modal-content {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: var(--app-inset-bottom);
+    box-shadow: var(--shadow-sheet);
+  }
+  .modal-footer > .btn { flex: 1 1 auto; }
+}
+
+/* ===== Таблицы и списки ===== */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--color-text-2);
+  --bs-table-border-color: var(--color-separator);
+  margin-bottom: 0;
+}
+.table-dark {
+  --bs-table-bg: var(--color-surface);
+  --bs-table-color: var(--color-text-tertiary);
+  --bs-table-border-color: var(--color-separator);
+}
+.table th {
+  padding: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+}
+.table td { padding: 12px; vertical-align: middle; font-size: var(--fs-caption); }
+.table-bordered > :not(caption) > * { border-width: 0; }
+.table-bordered > :not(caption) > * > * { border-width: 0 0 1px; }
+.table > tbody > tr:last-child > * { border-bottom-width: 0; }
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+}
+.modal .table-responsive,
+.modal .table-dark { --bs-table-bg: var(--color-surface-3); background-color: var(--color-surface-3); }
+
+.list-group.border {
+  border-color: transparent !important;
+  border-radius: var(--radius-lg) !important;
+  background-color: var(--color-surface);
+  overflow: hidden;
+}
+.modal .list-group.border { background-color: var(--color-surface-3); }
+.modal .border.rounded.bg-dark {
+  border-color: transparent !important;
+  border-radius: var(--radius-lg) !important;
+  background-color: var(--color-surface-3) !important;
+}
+
+/* ===== Бейджи ===== */
+.badge {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.badge.bg-success:not(.bg-opacity-25) { background-color: rgba(var(--bs-success-rgb), 0.16) !important; color: var(--color-success-text); }
+.badge.bg-danger:not(.bg-opacity-25) { background-color: rgba(var(--bs-danger-rgb), 0.16) !important; color: var(--color-danger-line); }
+.badge.bg-primary:not(.bg-opacity-25) { background-color: rgba(var(--color-accent-rgb), 0.18) !important; color: #4dabff; }
+
+/* Тег роли рядом с ФИО («Староста») и значок администратора */
+.role-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(255, 242, 98, 0.12);
+  color: var(--color-yellow-line);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--color-accent);
+}
+.admin-badge svg { width: 100%; height: 100%; }
+
+/* ===== Плавающий таб-бар — Figma Tapbar (0-382): #111, высота 72, подсветка вкладки 64 ===== */
+.bottom-tabbar {
+  position: fixed;
+  z-index: 1030;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--tabbar-inset) + var(--tabbar-gap));
+  max-width: 420px;
+  height: var(--tabbar-h);
+  margin: 0 auto;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 54px;
+  background-color: var(--color-surface-2);
+  box-shadow: var(--shadow-float);
+}
+.tabbar-item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--color-text-disabled);
+  font-size: var(--fs-tab);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.tabbar-item:hover { color: var(--color-text-secondary); }
+.tabbar-item.active { color: var(--color-accent); font-weight: 500; }
+.tabbar-item .tab-ico { flex: none; width: var(--tab-icon); height: var(--tab-icon); }
+.tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -6px; border-radius: 100px; }
+/* Подсветка активной вкладки — пятно позади иконки и подписи */
+.tab-selection {
+  position: absolute;
+  inset: 4px 0;
+  z-index: -1;
+  border-radius: 100px;
+  background-color: var(--color-selection);
+  mix-blend-mode: plus-lighter;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-spring);
+}
+.tabbar-item.active .tab-selection { opacity: 1; transform: none; }
+/* Красная точка непрочитанных объявлений */
+.tabbar-badge-dot {
+  position: absolute;
+  top: 12px;
+  left: calc(50% + 7px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-surface-2);
+  border-radius: 50%;
+  background-color: #ff453a;
+}
+
+/* Место под панель и мягкое затухание контента под ней (Figma «vinget») */
+body { padding-bottom: var(--tabbar-space); }
+body::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1020;
+  height: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 28px);
+  background: linear-gradient(to top, rgba(6, 6, 6, 0.95) 10%, rgba(6, 6, 6, 0) 100%);
+  pointer-events: none;
+}
+
+@media (max-width: 576px) {
+  /* iOS увеличивает страницу при фокусе на поле со шрифтом меньше 16px */
+  .form-control, .form-select { font-size: 16px !important; }
+  /* Узкий экран: заголовки таблиц переносятся, чтобы все колонки помещались */
+  .table th { padding: 10px 8px; white-space: normal; }
+  .table td { padding: 12px 8px; }
+}
+
+/* ===== Анимации: только transform и opacity, 150–350 мс ===== */
+@keyframes fx-rise { from { opacity: 0; transform: translateY(var(--fx-y, 10px)); } }
+@keyframes fx-pop-in { from { opacity: 0; transform: scale(0.4); } }
+@keyframes fx-press { 50% { transform: scale(0.82); } }
+@keyframes fx-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* Появление: JS ставит класс и задержку --fx-delay (строки списка, разделы кабинета) */
+.fx-reveal { animation: fx-rise var(--fx-dur, var(--dur)) var(--ease-out) var(--fx-delay, 0ms) backwards; }
+/* «Пружинка» иконки вкладки при нажатии */
+.fx-pop { animation: fx-press 300ms var(--ease-out); }
+
+/* Отклик на нажатие — лёгкое сжатие */
+.dropdown-item { transition: transform var(--dur-fast) var(--ease-out); }
+.btn:active,
+.admin-btn:active,
+.filter-toggle-btn:active,
+.sort-icon-btn:active,
+.filter-sheet-apply:active,
+.back-link:active { transform: scale(0.97); }
+.filter-chip:active { transform: scale(0.95); }
+.dropdown-item:active { transform: scale(0.98); }
+.teacher-card:active { transform: scale(0.985); }
+
+/* Окна: плавное появление; на телефоне листы выезжают снизу, маленькие окна — из лёгкого масштаба.
+   Bootstrap сначала показывает затемнение и только потом окно, поэтому затемнение — самое короткое */
+.modal.fade { transition: opacity var(--dur) var(--ease-out); }
+.modal-backdrop.fade { transition: opacity var(--dur-fast) linear; }
+.modal.fade .modal-dialog { transform: translateY(16px); transition: transform var(--dur-slow) var(--ease-out); }
+.modal.fade .modal-dialog-centered { transform: scale(0.94); }
+.modal.show .modal-dialog,
+.modal.show .modal-dialog-centered { transform: none; }
+@media (max-width: 576px) {
+  .modal.fade .modal-dialog:not(.modal-dialog-centered) { transform: translateY(100%); transition-timing-function: var(--ease-sheet); }
+  .modal.show .modal-dialog:not(.modal-dialog-centered) { transform: none; }
+  /* Лист не просвечивает, пока выезжает (где поддерживается :has; иначе — мягкое затухание) */
+  .modal.fade:has(> .modal-dialog:not(.modal-dialog-centered)) { opacity: 1; }
+}
+
+/* Галочка выбранного чипа / пункта сортировки, красная точка непрочитанного — «выпрыгивают» */
+.filter-chip.active .chip-check,
+.sort-dropdown-item.active .check-icon,
+.tabbar-badge-dot { animation: fx-pop-in var(--dur) var(--ease-spring) backwards; }
+
+/* Карточка преподавателя: детали проявляются при раскрытии */
+.teacher-card.expanded .teacher-card-details { --fx-y: -6px; animation: fx-rise var(--dur) var(--ease-out); }
+
+/* Скелетоны, пока грузится data.json */
+.skel {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface-3);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: fx-shimmer 1.2s linear infinite;   /* единственное исключение из 150–350 мс: бесконечный отблеск */
+}
+.load-error {
+  padding: 24px 16px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--fs-caption);
+  text-align: center;
+}
+
+/* ===== Уменьшение движения: анимации и переходы выключены везде ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skel::after { display: none; }
+}

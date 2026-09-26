@@ -7,11 +7,12 @@
 //
 // ВАЖНО: при каждом заметном обновлении index.html/cabinet.html стоит поднять CACHE_VERSION —
 // это гарантированно подчистит старый кэш при следующем заходе.
-const CACHE_VERSION = 'journal-24dmm2-v2';
+const CACHE_VERSION = 'journal-24dmm2-v3';
 
 const PRECACHE_URLS = [
   './index.html',
   './cabinet.html',
+  './app.css',
   './manifest.json'
 ];
 

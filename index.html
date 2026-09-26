@@ -2,12 +2,12 @@
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Журнал 24ДММ-2</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#060606">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,1001 +21,448 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
+  <link href="app.css" rel="stylesheet">
   <style>
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-Light.ttf') format('truetype');
-      font-weight: 300;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-LightItalic.ttf') format('truetype');
-      font-weight: 300;
-      font-style: italic;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-Regular.ttf') format('truetype');
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-RegularItalic.ttf') format('truetype');
-      font-weight: 400;
-      font-style: italic;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-Medium.ttf') format('truetype');
-      font-weight: 500;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-MediumItalic.ttf') format('truetype');
-      font-weight: 500;
-      font-style: italic;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-Semibold.ttf') format('truetype');
-      font-weight: 600;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-SemiboldItalic.ttf') format('truetype');
-      font-weight: 600;
-      font-style: italic;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-Bold.ttf') format('truetype');
-      font-weight: 700;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-BoldItalic.ttf') format('truetype');
-      font-weight: 700;
-      font-style: italic;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-Heavy.ttf') format('truetype');
-      font-weight: 800;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SF Pro Text';
-      src: url('fonts/SFProText-HeavyItalic.ttf') format('truetype');
-      font-weight: 800;
-      font-style: italic;
-      font-display: swap;
-    }
-
-    html, body {
-      overflow-x: hidden;
-      max-width: 100%;
-    }
-
-    body {
-      background-color: #060606;
-      color: #c9d1d9;
-      font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
+    /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
 
-    .app-header { padding: 20px 0 10px 0; }
-
+    /* --- Шапка: Figma «Журнал» 34 bold + дата сохранения, справа — вход администратора --- */
+    .app-header { position: relative; padding: 16px 0 20px; }
+    .app-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-right: 100px; }
     .group-badge {
-      background-color: rgba(56, 139, 253, 0.15);
-      color: #58a6ff;
-      border: 1px solid rgba(56, 139, 253, 0.4);
-      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background-color: rgba(var(--color-accent-rgb), 0.15);
+      color: #4dabff;
       font-size: 13px;
-      padding: 5px 12px;
-      border-radius: 6px;
-      white-space: nowrap;
+      font-weight: 600;
       line-height: 1.4;
+      white-space: nowrap;
     }
+    /* Кнопка входа администратора — в правом верхнем углу, дата под заголовком остаётся в одну строку */
+    .admin-btn {
+      position: absolute;
+      top: 18px;
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: var(--control-h-sm);
+      padding: 0 12px;
+      border: 0;
+      border-radius: var(--radius-md);
+      background-color: var(--color-surface);
+      color: var(--color-text);
+      font-size: var(--fs-caption);
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out);
+    }
+    .admin-btn .admin-btn-icon { flex: none; width: 20px; height: 20px; color: var(--color-accent); }
+    .admin-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .admin-btn.is-admin { background-color: var(--color-red); }
+    .admin-btn.is-admin .admin-btn-icon { color: #fff; }
 
-    /* Карточки метрик: авто-подбор колонок, никогда не сжимаются в нечитаемую ширину */
+    /* --- Метрики администратора --- */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
     }
 
-    .stat-card {
-      background-color: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      padding: 16px;
-      min-height: 84px;
+    /* --- Поиск: Figma 56px, радиус 14, лупа слева --- */
+    #searchInput {
+      height: var(--search-h);
+      min-height: var(--search-h);
+      margin-bottom: 10px !important;
+      padding: 0 16px 0 37px;
+      border: 0;
+      border-radius: var(--radius-lg);
+      background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='%236C6C71'%3E%3Cpath fill-rule='evenodd' d='M7.42 1.712a5.708 5.708 0 1 0 0 11.416A5.708 5.708 0 0 0 7.42 1.712M0 7.42a7.42 7.42 0 1 1 14.84 0A7.42 7.42 0 0 1 0 7.42'/%3E%3Cpath fill-rule='evenodd' d='M11.952 11.951a.856.856 0 0 1 1.21 0l4.566 4.566a.856.856 0 1 1-1.21 1.21l-4.566-4.566a.856.856 0 0 1 0-1.21'/%3E%3C/svg%3E") no-repeat 11px center / 18px;
+      color: var(--color-text);
+      font-size: var(--fs-body) !important;
+      letter-spacing: var(--tracking);
+    }
+    #searchInput:focus {
+      background-color: var(--color-surface);
+      box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.5);
     }
 
-    .stat-value {
-      font-size: 26px;
-      font-weight: 700;
-      color: #f0f6fc;
-      line-height: 1.2;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: #8b949e;
-      margin-top: 4px;
-      white-space: normal;
-      line-height: 1.35;
-    }
-
-    .table-container {
-      background-color: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .table-responsive {
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .table {
-      margin-bottom: 0;
-      color: #c9d1d9;
-      --bs-table-bg: transparent;
-      --bs-table-border-color: #21262d;
-    }
-
-    .table th {
-      background-color: #161b22;
-      color: #8b949e;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-      padding: 12px 14px;
-      border-bottom: 1px solid #30363d;
-      white-space: nowrap;
-    }
-
-    .table td {
-      padding: 10px 14px;
-      vertical-align: middle;
-      font-size: 14px;
-    }
-
-    .table-hover tbody tr:hover { background-color: #1c2128; }
-
-    .student-name {
-      font-weight: 600;
-      color: #08f;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .student-name:hover { text-decoration: underline; }
-
-    .badge-type {
-      background-color: #21262d;
-      border: 1px solid #30363d;
-      color: #8b949e;
-      font-weight: 500;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-    }
-
-    .hours-box {
-      width: 65px;
-      text-align: center;
-      padding: 4px 0;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 14px;
-      line-height: 1.1;
-      display: inline-block;
-    }
-
-    .hours-subtext {
-      font-size: 9px;
-      font-weight: 400;
-      display: block;
-      opacity: 0.85;
-    }
-
-    .hours-zero { background-color: #0f2d1e; color: #3fb950; border: 1px solid #1a4d31; }
-    .hours-warning { background-color: #382403; color: #d29922; border: 1px solid #5d3d06; }
-    .hours-danger { background-color: #3d1314; color: #f85149; border: 1px solid #672022; }
-
-    /* Круглый бейдж для неуваж. часов: зелёный 0-4, жёлтый 5-8, красный 9+ */
-    .hours-circle {
-      display: inline-flex;
+    /* --- Панель: «Фильтр» слева, сортировка справа (Figma), кнопки администратора ниже --- */
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      font-weight: 700;
-      font-size: 14px;
-      color: #ffffff;
+      justify-content: space-between;
+      gap: 10px;
     }
-    .hours-circle.hours-green { background-color: #2ea043; }
-    .hours-circle.hours-warning { background-color: #bf8700; border: none; }
-    .hours-circle.hours-danger { background-color: #da3633; border: none; }
-
-    /* Список студентов (замена <table>): по умолчанию — компактные строки в общем
-       контейнере, похоже на прежнюю таблицу. На мобильном (см. медиа-запрос ниже)
-       превращается в отдельные карточки в стиле дизайна из Figma. */
-    .students-list-container {
-      background-color: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .students-list-header {
+    .toolbar-main {
+      flex: 1 1 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      padding: 12px 14px;
-      border-bottom: 1px solid #30363d;
-      color: #8b949e;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
+      gap: 10px;
     }
-    .students-list-header .col-num { width: 32px; flex-shrink: 0; }
-    .students-list-header .col-name { flex: 1 1 auto; }
-    .students-list-header .col-hours-labels { display: flex; gap: 20px; flex-shrink: 0; }
-    .students-list-header .col-hours-labels span:first-child { width: 34px; text-align: center; }
-    .students-list-header .col-hours-labels span:last-child { width: 34px; text-align: center; }
-
-    .student-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 10px 14px;
-      border-bottom: 1px solid #21262d;
-    }
-    .student-row:last-child { border-bottom: none; }
-    .student-row:hover { background-color: #1c2128; }
-    .student-row .col-num { width: 32px; flex-shrink: 0; text-align: center; }
-    .student-row .col-name { flex: 1 1 auto; min-width: 0; }
-    .student-row .col-hours-values { display: flex; gap: 20px; align-items: center; flex-shrink: 0; }
-    .student-row .col-hours-values .hours-circle { width: 34px; }
-    .student-row .col-hours-values .uvazh-value {
-      width: 34px;
-      text-align: center;
-      font-weight: 700;
-      color: #8b949e;
-    }
-
-    .quick-hour-btn {
-      min-width: 50px;
-      font-weight: 600;
-    }
-
-    .student-summary-card {
-      background-color: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 12px 16px;
-    }
-
-    .subject-slot-card {
-      background-color: #0d1117;
-      border: 1px solid #21262d;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-
-    /* Карточки преподавателей (список "Преподы") — цветной акцент по краю + инициалы вместо фото */
-    .teacher-card {
-      background-color: #161b22;
-      border: 1px solid #21262d;
-      border-left: 4px solid #388bfd;
-      border-radius: 10px;
-      padding: 14px 16px;
-    }
-    .teacher-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .teacher-card-edit-btn {
-      background: none;
-      border: none;
-      color: #8b949e;
-      padding: 2px;
-      cursor: pointer;
-      line-height: 0;
-    }
-    .teacher-card-edit-btn:hover { color: #f0f6fc; }
-    .teacher-card-edit-btn svg { width: 16px; height: 16px; }
-    .teacher-card-title-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .teacher-card-icon {
-      flex-shrink: 0;
-      display: inline-flex;
-      width: 20px;
-      height: 20px;
-    }
-    .teacher-card-icon svg { width: 100%; height: 100%; }
-    .teacher-card-title {
-      font-weight: 700;
-      color: #ffffff;
-      font-size: 15px;
-    }
-    .teacher-card {
-      cursor: pointer;
-    }
-    .teacher-card-chevron {
-      flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-      color: #8b949e;
-      transition: transform 0.15s ease;
-      margin-left: auto;
-    }
-    .teacher-card.expanded .teacher-card-chevron { transform: rotate(180deg); }
-    .teacher-card-details {
-      font-size: 13px;
-      display: none;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #21262d;
-    }
-    .teacher-card.expanded .teacher-card-details { display: block; }
-    .teacher-card-details > div { margin-bottom: 2px; }
-
-    /* Фишки-оценки в калькуляторе рейтинга */
-    .grade-chip {
-      display: inline-flex;
-      align-items: center;
-      background-color: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 2px 2px 2px 10px;
-      gap: 2px;
-    }
-    .grade-chip-input {
-      width: 40px;
-      background: transparent;
-      border: none;
-      color: #f0f6fc;
-      font-weight: 700;
-      text-align: center;
-      padding: 6px 0;
-      -moz-appearance: textfield;
-    }
-    .grade-chip-input:focus { outline: none; }
-    .grade-chip-remove {
-      background: none;
-      border: none;
-      color: #8b949e;
-      font-size: 16px;
-      line-height: 1;
-      padding: 6px 8px;
-      cursor: pointer;
-    }
-    .grade-chip-remove:hover { color: #f85149; }
-
-    .form-check-input:checked {
-      background-color: #238636;
-      border-color: #238636;
-    }
-
-    .form-control, .form-select {
-      background-color: #0d1117;
-      border-color: #30363d;
-      color: #f0f6fc;
-    }
-
-    .form-control:focus, .form-select:focus {
-      background-color: #0d1117;
-      border-color: #58a6ff;
-      color: #f0f6fc;
-      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-    }
-
-    .modal-content {
-      background-color: #161b22;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-    }
-
-    .modal-header, .modal-footer { border-color: #21262d; }
-
-    /* Значок сортировки рядом с поиском — виден всегда */
-    .sort-icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      flex: 0 0 auto;
-      background-color: #0f0f0f;
-      border: none;
-      border-radius: 12px;
-      color: #ffffff;
-      cursor: pointer;
-    }
-    .sort-icon-btn:hover { color: #58a6ff; }
-    .sort-icon-btn svg { width: 17px; height: 17px; }
-
-    /* Кнопка "Фильтр" — раскрывает filterModal */
     .filter-toggle-btn {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      height: 34px;
-      padding: 0 14px;
-      background-color: #0f0f0f;
-      border: none;
-      border-radius: 12px;
-      color: #ffffff;
-      font-size: 13px;
-      font-weight: 600;
+      gap: 6px;
+      min-height: var(--control-h-lg);
+      padding: 0 16px 0 18px;
+      border: 0;
+      border-radius: var(--radius-md);
+      background-color: var(--color-surface);
+      color: var(--color-text);
+      font-size: var(--fs-button);
+      letter-spacing: -0.63px;
       cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out);
     }
-    .filter-toggle-btn:hover { color: #58a6ff; }
-    .filter-toggle-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .filter-toggle-btn .chevron { width: 13px; height: 13px; transition: transform 0.15s ease; }
+    .filter-toggle-btn svg { flex: none; width: 18px; height: 18px; }
+    .filter-toggle-btn .chevron { width: 14px; height: 14px; color: var(--color-text-tertiary); }
+    .sort-icon-btn {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--control-h);
+      height: var(--control-h);
+      border: 0;
+      border-radius: var(--radius-md);
+      background-color: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out);
+    }
+    .sort-icon-btn svg { width: 22px; height: 22px; }
+    .filter-toggle-btn:focus-visible,
+    .sort-icon-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-    /* Меню сортировки — карточка в стиле Figma: заголовок, зелёная "таблетка" с галочкой
-       у активного варианта, остальные — простые строки через тонкий разделитель */
+    /* Панель кнопок администратора: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
+    .action-buttons-group { display: flex; }
+    .btn-icon { width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
+
+    /* --- Галочка «Done» (Figma) у активной сортировки и активного чипа --- */
+    .check-icon,
+    .chip-check { display: none; flex: none; width: 18px; height: 18px; }
+    .check-icon svg,
+    .chip-check svg { width: 100%; height: 100%; }
+
+    /* --- Меню «Сортировать по» — Figma Sorting (0-654) --- */
     .sort-dropdown-menu {
-      background-color: #0f0f0f;
-      border: none;
-      border-radius: 14px;
-      padding: 16px 15px 22px;
-      min-width: 200px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      --bs-dropdown-min-width: 200px;
+      padding: 16px 15px 20px;
     }
     .sort-dropdown-title {
-      color: #ffffff;
-      font-size: 17px;
-      font-weight: 510;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
+      color: var(--color-text);
+      font-size: var(--fs-body);
+      font-weight: 500;
+      letter-spacing: -0.63px;
     }
     .sort-dropdown-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 10px;
-      border-radius: 12px;
-      color: #ffffff;
-      font-size: 15px;
+      min-height: var(--control-h-sm);
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      color: var(--color-text);
+      font-size: var(--fs-chip);
+      letter-spacing: -0.63px;
       text-decoration: none;
     }
-    .sort-dropdown-item .check-icon { display: none; width: 18px; height: 18px; flex-shrink: 0; }
-    .sort-dropdown-item.active {
-      background-color: #0b662e;
-      border-radius: 296px;
+    .sort-dropdown-item:hover { color: var(--color-text); background-color: var(--color-surface-3); }
+    .sort-dropdown-item.active,
+    .sort-dropdown-item.active:hover {
       display: inline-flex;
-      width: auto;
+      background-color: var(--color-green);
+      border-radius: 296px;
     }
     .sort-dropdown-item.active .check-icon { display: inline-flex; }
-    .sort-divider { border-color: #2b2b2b; opacity: 1; margin: 10px 0; }
+    .sort-divider { margin: 8px 0; border-color: var(--color-separator); opacity: 1; }
 
-    /* Полноэкранный лист "Фильтры" */
-    .filter-sheet {
-      background-color: #0a0a0a !important;
-      border: none !important;
-      border-radius: 38px 38px 0 0 !important;
-      color: #ffffff;
+    /* --- Лист «Фильтры» — Figma Filtration (0-665) --- */
+    #filterModal .modal-dialog { padding-top: calc(var(--app-inset-top) + 16px); }
+    .modal-fullscreen .modal-content.filter-sheet {
+      border: 0;
+      border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+      background-color: var(--color-surface-sunken);
+      color: var(--color-text);
     }
     .filter-sheet-handle {
+      flex-shrink: 0;
       width: 36px;
       height: 5px;
+      margin: 5px auto 0;
       border-radius: 296px;
-      background-color: #ffffff;
-      margin: 10px auto 0;
-      flex-shrink: 0;
+      background-color: #fff;
     }
     .filter-sheet-header {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px;
-      flex-shrink: 0;
+      min-height: 44px;
+      margin-top: 6px;
+      padding: 0 16px;
     }
     .filter-sheet-back {
-      background: none;
-      border: none;
-      color: #ffffff;
-      font-size: 17px;
       padding: 0;
+      border: 0;
+      background: none;
+      color: var(--color-text);
+      font-size: var(--fs-body);
+      letter-spacing: var(--tracking);
       cursor: pointer;
     }
-    .filter-sheet-title {
-      font-size: 17px;
-      font-weight: 590;
-      color: #ffffff;
-    }
-    .filter-sheet-body {
-      flex: 1 1 auto;
-      overflow-y: auto;
-      padding: 20px 16px 0;
-    }
-    .filter-section { margin-bottom: 30px; }
+    .filter-sheet-title { color: var(--color-text); font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tracking); }
+    .filter-sheet-body { flex: 1 1 auto; overflow-y: auto; padding: 26px 16px 0; }
+    .filter-section { margin-bottom: 32px; }
     .filter-section-title {
-      font-size: 22px;
-      font-weight: 590;
-      color: #ffffff;
       margin-bottom: 16px;
+      color: var(--color-text);
+      font-size: var(--fs-h2);
+      font-weight: 600;
+      line-height: 22px;
+      letter-spacing: var(--tracking);
     }
-    .filter-chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 13px;
-    }
+    .filter-chip-row { display: flex; flex-wrap: wrap; gap: 13px; }
+    #filterChipsSubject { gap: 5px; }
     .filter-chip {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      min-height: 34px;
+      min-width: 75px;
+      min-height: var(--control-h-sm);
       padding: 4px 10px;
+      border: 1.5px solid var(--color-border);
       border-radius: 295px;
-      border: 1.5px solid #363636;
       background: none;
-      color: #ffffff;
-      font-size: 15px;
+      color: var(--color-text);
+      font-size: var(--fs-chip);
+      letter-spacing: -0.63px;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform var(--dur-fast) var(--ease-out);
     }
-    .filter-chip .chip-check { display: none; width: 18px; height: 18px; flex-shrink: 0; }
-    .filter-chip.active {
-      background-color: #0b662e;
-      border-color: #0b662e;
-    }
+    .filter-chip.active { border-color: var(--color-green); background-color: var(--color-green); }
     .filter-chip.active .chip-check { display: inline-flex; }
-    .filter-sheet-footer {
-      padding: 16px 26px calc(16px + env(safe-area-inset-bottom, 0px));
-      flex-shrink: 0;
-    }
+    .filter-sheet-footer { flex-shrink: 0; padding: 16px 26px calc(16px + var(--app-inset-bottom)); }
     .filter-sheet-apply {
       display: block;
       width: 100%;
-      min-height: 48px;
-      background-color: #0b662e;
-      border: none;
-      border-radius: 12px;
-      color: #ffffff;
-      font-size: 16px;
-      font-weight: 500;
+      min-height: var(--control-h-lg);
+      border: 0;
+      border-radius: var(--radius-md);
+      background-color: var(--color-green);
+      color: #fff;
+      font-size: var(--fs-button);
+      letter-spacing: -0.63px;
       cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out);
+    }
+    /* На компьютере лист не растягиваем на весь экран */
+    @media (min-width: 577px) {
+      #filterModal .modal-fullscreen { width: min(560px, 100%); margin: 0 auto; padding-top: 48px; }
     }
 
-    .btn-icon {
-      width: 14px;
-      height: 14px;
-      margin-right: 5px;
-      vertical-align: -2px;
-    }
-
-    /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
-    .bottom-tabbar { display: none; }
-    .tabbar-item {
-      flex: 1 1 0;
+    /* --- Список студентов — Figma Pass_String: карточка 68px, радиус 14 --- */
+    .students-list-header {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 3px;
-      background: none;
-      border: none;
-      color: #8b949e;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 6px 2px;
+      gap: 6px;
+      padding: 0 12px 10px;
+      color: var(--color-text-tertiary);
+      font-size: var(--fs-caption);
+      letter-spacing: var(--tracking);
+    }
+    .students-list-header .col-num { width: 28px; flex: none; padding-right: 8px; text-align: right; }
+    .students-list-header .col-hours-labels { margin-left: auto; display: flex; gap: 25px; flex: none; }
+    .students-list-header .col-hours-labels span { width: var(--hours-size); display: flex; justify-content: center; white-space: nowrap; }
+    #studentsTableBody { display: flex; flex-direction: column; gap: var(--space-4); }
+    .student-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: var(--row-h);
+      padding: 10px 12px;
+      border-radius: var(--radius-lg);
+      background-color: var(--color-surface-sunken);
+    }
+    .student-row .col-num { width: 28px; flex: none; padding-right: 8px; text-align: right; }
+    .student-row .col-name { flex: 1 1 auto; min-width: 0; line-height: 20px; }
+    .student-row .col-hours-values { flex: none; display: flex; align-items: center; gap: 25px; margin-left: 6px; }
+    .journal-num {
+      color: var(--color-text);
+      font-size: var(--fs-caption);
+      font-weight: 500;
+      letter-spacing: var(--tracking);
+      font-variant-numeric: tabular-nums;
+    }
+    .student-name {
+      color: var(--color-accent);
+      font-size: var(--fs-body);
+      line-height: 20px;
+      letter-spacing: var(--tracking);
+      text-decoration: none;
       cursor: pointer;
     }
-    .tabbar-item svg { width: 22px; height: 22px; }
-    .tabbar-item.active { color: #08f; }
-    /* --- Порядковый номер по журналу --- */
-    .journal-num {
-      color: #8b949e;
-      font-weight: 700;
-      font-size: 13px;
+    .student-name:hover { color: var(--color-accent-hover); }
+
+    /* Кружок неуваж. часов — Figma Skip: 40px. Пороги прежние: 0 / 1–4 / 5–8 / 9+ */
+    .hours-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--hours-size);
+      height: var(--hours-size);
+      border: 0.5px solid transparent;
+      border-radius: 50%;
+      color: #fff;
+      font-size: var(--fs-button);
+      font-weight: 500;
+      letter-spacing: var(--tracking);
+      font-variant-numeric: tabular-nums;
+    }
+    .hours-circle.hours-none { color: var(--color-text-muted); font-weight: 400; }
+    .hours-circle.hours-green { background-color: var(--color-green); border-color: var(--color-green-line); }
+    .hours-circle.hours-warning { background-color: var(--color-yellow-bg); border-color: var(--color-yellow-line); }
+    .hours-circle.hours-danger { background-color: var(--color-danger-bg); border-color: var(--color-danger-line); }
+    .uvazh-value {
+      width: var(--hours-size);
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: var(--fs-button);
       font-variant-numeric: tabular-nums;
     }
 
-    /* --- Кнопка входа для администратора --- */
-    .admin-btn {
+    /* Скелетон строки списка — те же размеры, что у настоящей карточки */
+    .skeleton-row { pointer-events: none; }
+    .skeleton-row .skel-num { width: 18px; height: 14px; margin: 0 8px 0 4px; }
+    .skeleton-row .skel-name { flex: 0 1 60%; height: 16px; }
+    .skeleton-row:nth-child(2n) .skel-name { flex-basis: 45%; }
+    .skeleton-row:nth-child(3n) .skel-name { flex-basis: 70%; }
+    .skeleton-row .skel-circle { flex: none; width: var(--hours-size); height: var(--hours-size); margin-left: auto; border-radius: 50%; }
+
+    /* --- Окна «Внести пропуски» --- */
+    .quick-hour-btn { min-width: 50px; font-weight: 600; }
+    .subject-hint { margin-top: 10px; font-size: var(--fs-small); line-height: 1.4; }
+    .subject-off { opacity: 0.4; }
+
+    /* --- Карточки преподавателей: цветная плашка с иконкой предмета, раскрытие по тапу --- */
+    .teacher-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-lg);
+      background-color: var(--color-surface-3);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform var(--dur-fast) var(--ease-out);
+    }
+    .teacher-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .teacher-card-edit-btn {
+      padding: 4px;
+      border: 0;
+      background: none;
+      color: var(--color-text-secondary);
+      line-height: 0;
+      cursor: pointer;
+    }
+    .teacher-card-edit-btn:hover { color: var(--color-text); }
+    .teacher-card-edit-btn svg { width: 16px; height: 16px; }
+    .teacher-card-title-row { display: flex; align-items: center; gap: 12px; }
+    .teacher-card-icon {
+      position: relative;
+      flex: none;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background-color: #1a73ff;
-      border: none;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 15px;
-      line-height: 1;
-      padding: 10px 18px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background-color .15s ease, transform .1s ease;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
     }
+    .teacher-card-icon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background-color: currentColor;
+      opacity: 0.16;
+    }
+    .teacher-card-icon svg { position: relative; width: 20px; height: 20px; }
+    .teacher-card-title { color: var(--color-text); font-size: var(--fs-chip); font-weight: 600; line-height: 1.3; }
+    .teacher-card-chevron {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      margin-left: auto;
+      color: var(--color-text-secondary);
+      transition: transform var(--dur) var(--ease-out);
+    }
+    .teacher-card.expanded .teacher-card-chevron { transform: rotate(180deg); }
+    .teacher-card-details {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--color-separator);
+      font-size: var(--fs-caption);
+    }
+    .teacher-card.expanded .teacher-card-details { display: block; }
+    .teacher-card-details > div { margin-bottom: 4px; }
 
-    .admin-btn:hover { background-color: #0f5ce0; }
-    .admin-btn:active { transform: scale(0.97); }
-    .admin-btn:focus-visible { outline: 2px solid #8fc0ff; outline-offset: 2px; }
-    .admin-btn .admin-btn-icon { width: 22px; height: 22px; flex: 0 0 auto; }
-    .admin-btn.is-admin { background-color: #da3633; }
-    .admin-btn.is-admin:hover { background-color: #b02a27; }
+    /* --- Калькулятор рейтинга: оценки-«фишки» --- */
+    .grade-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px 2px 2px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background-color: var(--color-surface-2);
+    }
+    .grade-chip-input {
+      width: 40px;
+      padding: 6px 0;
+      border: 0;
+      background: transparent;
+      color: var(--color-text);
+      font-weight: 700;
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+    .grade-chip-input:focus { outline: none; }
+    .grade-chip-remove {
+      padding: 6px 8px;
+      border: 0;
+      background: none;
+      color: var(--color-text-secondary);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .grade-chip-remove:hover { color: var(--color-danger-line); }
 
-    /* --- Подсказка под списком предметов --- */
-    .subject-hint { font-size: 12px; margin-top: 10px; line-height: 1.4; }
-
-    /* Таблица теперь всего из 4 узких колонок — не растягиваем, помещается без скролла */
-    .table { min-width: 0; width: 100%; }
-
-    /* Предмет недоступен: лимит пар уже выбран */
-    .subject-off { opacity: .4; }
-
-    /* Предмет недоступен: лимит пар уже выбран */
-    .subject-off { opacity: .4; }
-
-    /* ===== Мобильная адаптация (телефоны, Telegram Mini App) ===== */
+    /* ===== Телефоны (360–430px) ===== */
     @media (max-width: 576px) {
-      .container { padding-left: 12px; padding-right: 12px; }
-
-      .app-header { padding: 14px 0 6px 0; }
-      .app-header h2 { font-size: 1.3rem; }
-      .app-header .group-badge { font-size: 12px; padding: 4px 9px; }
-      .app-header > div:last-child { width: 100%; }
-      .admin-btn { width: 100%; justify-content: center; }
-
-      /* Карточки метрик: компактная сетка 3×2 вместо авто-подбора */
+      .container { padding-left: 16px; padding-right: 16px; }
       .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .stat-card { padding: 10px; min-height: 68px; }
       .stat-value { font-size: 19px; }
       .stat-label { font-size: 10px; }
-
-      /* Панель поиска/фильтра — занимает всю ширину */
-      .search-filter-group { max-width: none; width: 100%; }
-      .search-filter-group .form-select { width: 110px; }
-
-      /* Кнопки действий — на всю ширину построчно, удобнее тапать */
       .action-buttons-group { width: 100%; }
       .action-buttons-group .btn { flex: 1 1 auto; }
-
-      /* iOS зумит инпуты с font-size меньше 16px при фокусе — фиксируем */
-      .form-control, .form-select { font-size: 16px !important; }
-
-      .table td, .table th { padding: 10px; font-size: 13px; }
-      .modal-body { padding: 14px; }
-
-      /* ===== Telegram Mini App: вид "по скриншоту" ===== */
-
-      /* Поисковая строка — пилюля с иконкой лупы */
-      #searchInput {
-        border-radius: 999px;
-        background-color: #0f0f0f;
-        border-color: #0f0f0f;
-        height: 48px;
-        padding-left: 40px;
-        color: #ffffff;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c6c71' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: 14px center;
-        background-size: 16px;
-      }
-      #searchInput::placeholder { color: #6c6c71; }
-
-      .app-header h2 { font-size: 1.9rem; }
-      #dataLastUpdated { color: #6c6c71 !important; }
-
-      .filter-toggle-btn { height: 44px; padding: 0 18px; }
-      .sort-icon-btn { width: 44px; height: 44px; }
-      .sort-icon-btn svg { width: 19px; height: 19px; }
-
-      /* Список студентов на мобильном — отдельные скруглённые карточки (Figma), а не общий
-         контейнер с внутренними разделителями */
-      .students-list-container { background: none; border: none; }
-      .students-list-header {
-        background: none;
-        border: none;
-        padding: 4px 6px 8px;
-      }
-      .student-row {
-        background-color: #0a0a0a;
-        border: none;
-        border-radius: 14px;
-        padding: 12px 14px;
-        margin-bottom: 10px;
-      }
-      .student-row:hover { background-color: #0a0a0a; }
-
-
-      /* Часы — сплошные цветные "чипы" вместо рамок, без подписи "часов" под числом */
-      .hours-box {
-        border-radius: 999px;
-        border: none;
-        min-width: 34px;
-        width: auto;
-        padding: 6px 12px;
-      }
-      .hours-subtext { display: none; }
-      .hours-zero, .hours-excused { background-color: #21262d; color: #8b949e; }
-      .hours-warning { background-color: #bf8700; color: #ffffff; }
-      .hours-danger { background-color: #da3633; color: #ffffff; }
-
-      /* Нижняя панель навигации */
-      body { padding-bottom: 72px; }
-      .bottom-tabbar {
-        display: flex;
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1030;
-        background-color: #161b22;
-        border-top: 1px solid #21262d;
-        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
-      }
     }
-
-  /* v2-patch-applied: сортировка, мягкие кнопки, нейтральные уваж. часы */
-
-    /* Уважительные часы — без зелёного фона */
-    .hours-excused {
-      background-color: transparent;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+    @media (max-width: 370px) {
+      .student-name { font-size: 16px; }
+      .students-list-header { font-size: var(--fs-small); }
+      .students-list-header .col-hours-labels,
+      .student-row .col-hours-values { gap: 16px; }
     }
-
-    /* Панель кнопок: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
-    .action-buttons-group { display: flex; }
-
-    /* Мягкие кнопки: скруглённые углы + приглушённые границы */
-    .btn { --bs-btn-border-radius: 10px; }
-    .btn-outline-secondary { --bs-btn-border-color: rgba(139, 148, 158, 0.35); }
-    .btn-outline-light { --bs-btn-border-color: rgba(240, 246, 252, 0.28); }
-    .btn-outline-danger { --bs-btn-border-color: rgba(248, 81, 73, 0.45); }
-
-  /* v3-patch-applied (chat): дата дд.мм.гг, теги ролей, admin-badge, красная кнопка выхода */
-
-    /* Тег роли рядом с ФИО (например "Староста") */
-    .role-tag {
-      display: inline-block;
-      background-color: rgba(210, 153, 34, 0.15);
-      color: #d29922;
-      border: 1px solid rgba(210, 153, 34, 0.4);
-      font-weight: 600;
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 5px;
-      white-space: nowrap;
-      vertical-align: middle;
-      margin-left: 6px;
-    }
-
-    /* Значок администратора рядом с ФИО */
-    .admin-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 15px;
-      height: 15px;
-      vertical-align: middle;
-      margin-left: 6px;
-      color: #58a6ff;
-    }
-    .admin-badge svg { width: 100%; height: 100%; }
-  /* v5-feature-tiles-applied: квадратные кнопки разделов в цветах приложения + отступы под интерфейс Telegram */
-
-    /* Telegram в полноэкранном режиме рисует свои кнопки («Закрыть», меню) и системную строку
-       поверх страницы. Размеры этих зон Telegram отдаёт в переменных --tg-*.
-       В обычном режиме они равны 0, и ничего не меняется. */
-    :root {
-      --app-inset-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
-      --app-inset-right: calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px));
-      --app-inset-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
-      --app-inset-left: calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px));
-    }
-    body {
-      padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
-    }
-    /* окна (история, добавление и т.д.) тоже не должны уезжать под кнопки Telegram */
-    .modal {
-      padding-top: var(--app-inset-top);
-      padding-bottom: var(--app-inset-bottom);
-    }
-
-    /* Кнопки разделов: три квадрата в ряд. Тонированные карточки в стиле .group-badge:
-       фон карточки приложения + лёгкий цветной оттенок, цветная рамка и иконка */
-    .feature-buttons {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      max-width: 480px;
-    }
-
-    .feature-btn {
-      --fb-accent: #58a6ff;
-      --fb-tint: 56, 139, 253;
-      -webkit-appearance: none;
-      appearance: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 8px;
-      min-width: 0;
-      aspect-ratio: 1 / 1;
-      padding: 14px 6px 8px;
-      border: 1px solid rgba(var(--fb-tint), 0.40);
-      border-radius: 16px;
-      background-color: #161b22;
-      background-image: linear-gradient(160deg, rgba(var(--fb-tint), 0.22), rgba(var(--fb-tint), 0.08));
-      color: #e6edf3;
-      font-size: clamp(10.5px, 3.1vw, 13px);
-      font-weight: 600;
-      line-height: 1.2;
-      text-align: center;
-      overflow-wrap: anywhere;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      transition: border-color .15s ease, transform .1s ease;
-    }
-    .feature-btn:active { transform: scale(0.97); }
-    .feature-btn:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 2px; }
-    @media (hover: hover) {
-      .feature-btn:hover { border-color: rgba(var(--fb-tint), 0.75); }
-    }
-
-    .feature-btn-icon { display: flex; color: var(--fb-accent); }
-    .feature-btn-icon svg {
-      width: 30px;
-      height: 30px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .feature-btn-label { display: block; max-width: 100%; }
-
-    .feature-btn--blue { --fb-accent: #58a6ff; --fb-tint: 56, 139, 253; }
-    .feature-btn--purple { --fb-accent: #a371f7; --fb-tint: 163, 113, 247; }
-    .feature-btn--green { --fb-accent: #3fb950; --fb-tint: 46, 160, 67; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .feature-btn { transition: none; }
-      .feature-btn:active { transform: none; }
-    }
-  /* v6-tabbar-applied: плавающий тап-бар «как на скриншоте» и отступ под него */
-
-    :root {
-      --tabbar-h: 68px;
-      --tabbar-gap: 12px;
-      /* безопасная зона снизу: берём большее из системной и от Telegram (чтобы не сложились дважды) */
-      --tabbar-inset: max(env(safe-area-inset-bottom, 0px), var(--app-inset-bottom, 0px));
-    }
-
-    /* Плавающая панель: тёмное «стекло» со скруглёнными краями */
-    .bottom-tabbar {
-      left: 16px;
-      right: 16px;
-      bottom: calc(var(--tabbar-inset) + var(--tabbar-gap));
-      justify-content: space-around;
-      align-items: center;
-      height: var(--tabbar-h);
-      padding: 0 12px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 999px;
-      background: rgba(17, 17, 17, 0.8);
-      -webkit-backdrop-filter: blur(22px) saturate(160%);
-      backdrop-filter: blur(22px) saturate(160%);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .bottom-tabbar { background: rgba(17, 17, 17, 0.96); }
-    }
-
-    .tabbar-item {
-      flex: 0 1 auto;
-      min-width: 0;
-      height: 100%;
-      justify-content: center;
-      gap: 4px;
-      padding: 0 3px;
-      color: #8b949e;
-      font-size: clamp(10px, 2.8vw, 11px);
-      font-weight: 500;
-      line-height: 1.15;
-      white-space: nowrap;
-      border-radius: 999px;
-      -webkit-tap-highlight-color: transparent;
-      transition: color .15s ease, opacity .15s ease;
-    }
-    .tabbar-item { position: relative; }
-    .tabbar-item.active { color: #08f; font-weight: 600; }
-    .tabbar-item:active { opacity: 0.6; }
-    a.tabbar-item { text-decoration: none; }
-
-    /* Подсветка активной вкладки — широкое пятно позади иконки+подписи, как в Figma */
-    .tab-selection {
-      display: none;
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: -3px;
-      height: 64px;
-      border-radius: 100px;
-      background-color: rgba(101, 101, 101, 0.2);
-      mix-blend-mode: plus-lighter;
-      z-index: -1;
-    }
-    .tabbar-item.active .tab-selection { display: block; }
-
-    .tabbar-badge-dot {
-      position: absolute;
-      top: 2px;
-      right: 18%;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background-color: #da3633;
-      border: 2px solid #0d1117;
-    }
-    .tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -3px; }
-
-    /* Иконки таб-бара: один SVG на вкладку, цвет меняется вместе с .active (не пара line/solid) */
-    .tabbar-item .tab-ico {
-      flex: none;
-      width: 26px;
-      height: 26px;
-      color: #4d4d4d;
-    }
-    .tabbar-item.active .tab-ico { color: #08f; }
-
-    @media (max-width: 340px) {
-      .bottom-tabbar { left: 8px; right: 8px; padding: 0 4px; }
-      .tabbar-item { padding: 0 2px; }
-    }
-
-    @media (max-width: 576px) {
-      /* Исправление: место под панель внизу страницы, чтобы последняя строка не пряталась под ней */
-      body { padding-bottom: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 24px); }
-
-      /* Мягкое затухание строк под панелью */
-      body::after {
-        content: '';
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1020;
-        height: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 28px);
-        background: linear-gradient(to top, rgba(13, 17, 23, 0.9) 0%, rgba(13, 17, 23, 0.55) 55%, rgba(13, 17, 23, 0) 100%);
-        pointer-events: none;
-      }
-    }
+    /* Цифры и «ч» в истории студента не разрываем по строкам */
+    #studentHistoryModal strong { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -1023,25 +470,23 @@
 <div class="container my-3">
   
   <!-- Заголовок страницы -->
-  <div class="app-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-    <div id="headerTapArea">
-      <div class="d-flex align-items-center gap-2">
-        <h2 class="m-0 fw-bold text-white" id="appTitle">Журнал</h2>
+  <header class="app-header">
+    <div id="headerTapArea" class="app-header-main">
+      <div class="app-title-row">
+        <h2 class="app-title" id="appTitle">Журнал</h2>
         <span class="group-badge">24ДММ-2</span>
       </div>
-      <div class="text-secondary small mt-1" id="dataLastUpdated"></div>
+      <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
-    <div>
-      <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
+    <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
         <svg class="admin-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="8" cy="7" r="4.3"/>
           <path d="M8 13.2c-3.6 0-6.6 2.4-6.9 5.5-.1.6.4 1.1 1 1.1h9.6c-1.2-1.3-1.9-3-1.9-4.9v-1.1c0-.2 0-.3.1-.5-.6-.1-1.2-.1-1.9-.1z"/>
           <path fill-rule="evenodd" d="M17.5 9.3l4.5 1.8v3.5c0 2.8-1.9 5.3-4.5 6.1-2.6-.8-4.5-3.3-4.5-6.1v-3.5zm0 2.3l2.6 1v2.1c0 1.7-1 3.3-2.6 4.1z"/>
         </svg>
         <span id="adminBtnText">Админ</span>
-      </button>
-    </div>
-  </div>
+    </button>
+  </header>
 
   <!-- Общие объявления -->
   <div id="generalAnnouncementsSection" class="mb-4 d-none">
@@ -1080,36 +525,36 @@
   <div class="mb-4">
     <input type="text" id="searchInput" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО..." oninput="renderTable()">
 
-    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
-      <div class="d-flex gap-2">
+    <div class="toolbar-row">
+      <div class="toolbar-main">
         <button type="button" class="filter-toggle-btn" onclick="openFilterModal()" id="filterToggleBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <svg viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><path d="M5.72052 2.87842C7.11775 3.0204 8.20862 4.2006 8.2088 5.63525L8.19415 5.91846C8.05221 7.31575 6.87202 8.40658 5.43732 8.40674L5.15411 8.39209C3.95514 8.27049 2.98458 7.38436 2.73224 6.229H1.87384C1.54595 6.22891 1.28009 5.96317 1.28009 5.63525C1.28038 5.30758 1.54612 5.04159 1.87384 5.0415H2.73126C3.00338 3.7966 4.11084 2.86377 5.43732 2.86377L5.72052 2.87842ZM5.43732 4.05127C4.56285 4.05127 3.85352 4.76083 3.85333 5.63525C3.85345 6.50974 4.56281 7.21826 5.43732 7.21826C6.31168 7.21809 7.0202 6.50963 7.02032 5.63525C7.02013 4.76094 6.31164 4.05144 5.43732 4.05127ZM16.1258 5.0415C16.4536 5.0415 16.7193 5.30753 16.7195 5.63525C16.7195 5.96322 16.4538 6.229 16.1258 6.229H8.53888C8.58062 6.03775 8.60431 5.83902 8.60431 5.63525C8.60428 5.43145 8.58067 5.23278 8.53888 5.0415H16.1258Z"/><path d="M12.2795 9.60864C10.8822 9.75066 9.79126 10.9307 9.79126 12.3655L9.80591 12.6487C9.94788 14.0459 11.1281 15.1368 12.5627 15.137L12.8459 15.1223C14.0448 15.0007 15.0153 14.1144 15.2678 12.9592H16.1262C16.454 12.9591 16.7198 12.6932 16.72 12.3655C16.72 12.0376 16.4541 11.7718 16.1262 11.7717H15.2688C14.9968 10.5266 13.8894 9.59399 12.5627 9.59399L12.2795 9.60864ZM12.5627 10.7815C13.4373 10.7815 14.1467 11.4909 14.1467 12.3655C14.1466 13.2399 13.4372 13.9485 12.5627 13.9485C11.6884 13.9483 10.9799 13.2398 10.9797 12.3655C10.9797 11.491 11.6883 10.7817 12.5627 10.7815ZM1.87427 11.7717C1.5463 11.7717 1.28052 12.0375 1.28052 12.3655C1.28071 12.6933 1.54642 12.9592 1.87427 12.9592H9.46118C9.41937 12.7679 9.39578 12.5693 9.39575 12.3655C9.39575 12.1617 9.41944 11.963 9.46118 11.7717H1.87427Z"/></svg>
           Фильтр
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          <svg class="chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5l5 5 5-5"/></svg>
         </button>
         <div class="dropdown">
-          <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+          <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка" aria-label="Сортировка">
+            <svg viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><path d="M3 6.66667C3 6.35725 3.12292 6.0605 3.34171 5.84171C3.5605 5.62292 3.85725 5.5 4.16667 5.5H15.8333C16.1428 5.5 16.4395 5.62292 16.6583 5.84171C16.8771 6.0605 17 6.35725 17 6.66667C17 6.97609 16.8771 7.27283 16.6583 7.49162C16.4395 7.71042 16.1428 7.83333 15.8333 7.83333H4.16667C3.85725 7.83333 3.5605 7.71042 3.34171 7.49162C3.12292 7.27283 3 6.97609 3 6.66667ZM5.33333 11.3333C5.33333 11.0239 5.45625 10.7272 5.67504 10.5084C5.89383 10.2896 6.19058 10.1667 6.5 10.1667H13.5C13.8094 10.1667 14.1062 10.2896 14.325 10.5084C14.5437 10.7272 14.6667 11.0239 14.6667 11.3333C14.6667 11.6428 14.5437 11.9395 14.325 12.1583C14.1062 12.3771 13.8094 12.5 13.5 12.5H6.5C6.19058 12.5 5.89383 12.3771 5.67504 12.1583C5.45625 11.9395 5.33333 11.6428 5.33333 11.3333ZM8.83333 14.8333C8.52391 14.8333 8.22717 14.9563 8.00838 15.175C7.78958 15.3938 7.66667 15.6906 7.66667 16C7.66667 16.3094 7.78958 16.6062 8.00838 16.825C8.22717 17.0438 8.52391 17.1667 8.83333 17.1667H11.1667C11.4761 17.1667 11.7728 17.0438 11.9916 16.825C12.2104 16.6062 12.3333 16.3094 12.3333 16C12.3333 15.6906 12.2104 15.3938 11.9916 15.175C11.7728 14.9563 11.4761 14.8333 11.1667 14.8333H8.83333Z"/></svg>
           </button>
           <div class="dropdown-menu dropdown-menu-end sort-dropdown-menu" id="sortDropdownMenu">
             <div class="sort-dropdown-title">Сортировать по:</div>
             <a href="#" class="sort-dropdown-item" data-sort-key="number" onclick="setSort('number'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>По номеру</span>
             </a>
             <hr class="sort-divider">
             <a href="#" class="sort-dropdown-item" data-sort-key="name" onclick="setSort('name'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>По ФИО</span>
             </a>
             <hr class="sort-divider">
             <a href="#" class="sort-dropdown-item" data-sort-key="unexcused" onclick="setSort('unexcused'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>По неуваж-ам</span>
             </a>
             <hr class="sort-divider">
             <a href="#" class="sort-dropdown-item" data-sort-key="excused" onclick="setSort('excused'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>По уваж-ам</span>
             </a>
           </div>
@@ -1218,7 +663,15 @@
         <span>УВАЖ</span>
       </span>
     </div>
-    <div id="studentsTableBody"></div>
+    <div id="studentsTableBody" aria-busy="true">
+      <!-- Скелетоны, пока грузится data.json (renderTable заменит их списком) -->
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+    </div>
   </div>
 </div>
 
@@ -1724,15 +1177,15 @@
           <div class="filter-section-title">Форма обучения</div>
           <div class="filter-chip-row" id="filterChipsType">
             <button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip('typeFilter','ALL','filterChipsType',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Все</span>
             </button>
             <button type="button" class="filter-chip" data-value="Платное" onclick="selectFilterChip('typeFilter','Платное','filterChipsType',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Платник</span>
             </button>
             <button type="button" class="filter-chip" data-value="Бюджет" onclick="selectFilterChip('typeFilter','Бюджет','filterChipsType',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Бюджет</span>
             </button>
           </div>
@@ -1742,19 +1195,19 @@
           <div class="filter-section-title">Период</div>
           <div class="filter-chip-row" id="filterChipsPeriod">
             <button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip('periodFilter','ALL','filterChipsPeriod',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Всё время</span>
             </button>
             <button type="button" class="filter-chip" data-value="WEEK" onclick="selectFilterChip('periodFilter','WEEK','filterChipsPeriod',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Неделя</span>
             </button>
             <button type="button" class="filter-chip" data-value="MONTH" onclick="selectFilterChip('periodFilter','MONTH','filterChipsPeriod',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Месяц</span>
             </button>
             <button type="button" class="filter-chip" data-value="SEMESTER" onclick="selectFilterChip('periodFilter','SEMESTER','filterChipsPeriod',this)">
-              <span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Семестр</span>
             </button>
           </div>
@@ -1864,8 +1317,108 @@
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
   const filterModal = new bootstrap.Modal(document.getElementById('filterModal'));
+  document.getElementById('filterModal').addEventListener('hide.bs.modal', () => {
+    if (!filtersChangedInSheet) return;
+    filtersChangedInSheet = false;
+    animateRowsNext = true;
+    renderTable();
+  });
   const customAlertModal = new bootstrap.Modal(document.getElementById('customAlertModal'));
   const customConfirmModal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
+
+  // --- Telegram Mini App: цвета оболочки, вибрация, кнопка «Назад» ---
+  // Работает только внутри Telegram (есть initData). В обычном браузере и в PWA TG = null,
+  // и функции ниже ничего не делают.
+  const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
+  const APP_BG_COLOR = '#060606';
+
+  function tgSupports(version) {
+    return !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(version));
+  }
+
+  // Короткая вибрация: 'impact' — нажатие, 'selection' — выбор, 'success' / 'error' — итог действия
+  function haptic(kind) {
+    if (!tgSupports('6.1') || !TG.HapticFeedback) return;
+    try {
+      if (kind === 'success' || kind === 'error') TG.HapticFeedback.notificationOccurred(kind);
+      else if (kind === 'selection') TG.HapticFeedback.selectionChanged();
+      else TG.HapticFeedback.impactOccurred('light');
+    } catch (e) {}
+  }
+
+  // Шапка, фон и нижняя панель Telegram — в цвет приложения. Приложение всегда тёмное (как в Figma),
+  // схему Telegram (colorScheme) только отмечаем в data-атрибуте <html>.
+  function applyTelegramTheme() {
+    if (!TG) return;
+    document.documentElement.dataset.tgScheme = TG.colorScheme || 'dark';
+    try {
+      if (tgSupports('6.1')) {
+        TG.setHeaderColor(APP_BG_COLOR);
+        TG.setBackgroundColor(APP_BG_COLOR);
+      }
+      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(APP_BG_COLOR);
+    } catch (e) {}
+  }
+
+  // «Назад» в Telegram закрывает верхнее открытое окно
+  function syncTelegramBackButton() {
+    if (!tgSupports('6.1') || !TG.BackButton) return;
+    if (document.querySelector('.modal.show')) TG.BackButton.show();
+    else TG.BackButton.hide();
+  }
+
+  function onTelegramBack() {
+    const open = document.querySelectorAll('.modal.show');
+    if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
+  }
+
+  function setupTelegram() {
+    if (!TG) return;
+    applyTelegramTheme();
+    if (TG.onEvent) TG.onEvent('themeChanged', applyTelegramTheme);
+    if (tgSupports('6.1') && TG.BackButton) {
+      TG.BackButton.onClick(onTelegramBack);
+      document.addEventListener('shown.bs.modal', syncTelegramBackButton);
+      document.addEventListener('hidden.bs.modal', syncTelegramBackButton);
+      syncTelegramBackButton();
+    }
+  }
+
+  // Перезапуск CSS-анимации элемента (классы анимаций — в app.css)
+  function restartAnimation(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  // Нажатия: вкладки — вибрация и «пружинка» иконки, чипы фильтра и сортировка — вибрация выбора
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest && e.target.closest('.tabbar-item, .filter-chip, .sort-dropdown-item');
+    if (!target) return;
+    const isTab = target.classList.contains('tabbar-item');
+    haptic(isTab ? 'impact' : 'selection');
+    if (isTab) restartAnimation(target.querySelector('.tab-ico'), 'fx-pop');
+  });
+
+  // Пока открыт «Калькулятор» или «Преподы», подсвечена их вкладка; после закрытия — снова «Журнал»
+  function setActiveTab(tab) {
+    document.querySelectorAll('.bottom-tabbar .tabbar-item').forEach(t => {
+      const on = t === tab;
+      t.classList.toggle('active', on);
+      if (on) t.setAttribute('aria-current', 'page');
+      else t.removeAttribute('aria-current');
+    });
+  }
+  document.addEventListener('show.bs.modal', (e) => {
+    const tab = document.querySelector(`.tabbar-item[data-tab-modal="${e.target.id}"]`);
+    if (tab) setActiveTab(tab);
+  });
+  document.addEventListener('hidden.bs.modal', (e) => {
+    if (document.querySelector(`.tabbar-item[data-tab-modal="${e.target.id}"]`)) {
+      setActiveTab(document.querySelector('.tabbar-item[data-tab-home]'));
+    }
+  });
 
   // Замена браузерных showAlert()/confirm() на модалки в стиле приложения.
   // showAlert — просто показать сообщение, ждать не обязательно (сразу продолжаем/выходим).
@@ -1906,6 +1459,7 @@
       }
       tg.ready();
     }
+    setupTelegram();
 
     updateAdminUI();
     await loadData();
@@ -1918,14 +1472,14 @@
   // WHATS_NEW_DATE подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое —
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
-  const WHATS_NEW_VERSION = 2;
+  const WHATS_NEW_VERSION = 3;
   const WHATS_NEW_DATE = '25.09.2026, 23:52';
   const WHATS_NEW_ITEMS = [
-    'У преподавателей — форма контроля по предмету: зачёт или экзамен',
-    'В зачётку добавлена «Летняя практика»',
-    'Админ может удалить отдельную запись пропуска прямо в подробной статистике',
-    'При внесении пропусков сразу видно, на какую дату они вносятся',
-    'В окне «Что нового» теперь видна дата последнего обновления сайта'
+    'Новый дизайн: журнал и личный кабинет в едином тёмном стиле',
+    'Плавные анимации: карточки появляются по очереди, окна выезжают снизу',
+    'Пока загружаются данные, вместо пустого экрана видны заготовки строк',
+    'Нижняя панель с разделами теперь есть и на компьютере',
+    'В Telegram: шапка в цвет приложения, лёгкая вибрация при нажатиях и кнопка «Назад»'
   ];
 
   function checkWhatsNew() {
@@ -1941,6 +1495,11 @@
     }, { once: true });
     modal.show();
   }
+
+  // Строки списка появляются по очереди только после загрузки, смены сортировки или фильтров —
+  // не на каждую букву в поиске и не после сохранения
+  let animateRowsNext = true;
+  let filtersChangedInSheet = false;
 
   async function loadData() {
     try {
@@ -1964,6 +1523,11 @@
       renderAnalyticsChart();
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
+      const tbody = document.getElementById('studentsTableBody');
+      if (tbody.querySelector('.skeleton-row')) {
+        tbody.removeAttribute('aria-busy');
+        tbody.innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
+      }
     }
   }
 
@@ -2116,8 +1680,8 @@
   }
 
   // Цветной акцент карточки преподавателя — по кругу, чтобы список не выглядел монотонно
-  // (переиспользует уже существующие в приложении цвета: зелёный/жёлтый/красный/синий)
-  const TEACHER_ACCENT_COLORS = ['#2ea043', '#bf8700', '#da3633', '#388bfd'];
+  // (цвета дизайн-системы: зелёный/жёлтый/розово-красный/синий акцент)
+  const TEACHER_ACCENT_COLORS = ['#34c759', '#ffd60a', '#ff628f', '#0088ff'];
 
   // Иконка по смыслу дисциплины (не декоративная — конкретно под тему предмета)
   const SUBJECT_ICONS = {
@@ -2250,6 +1814,7 @@
     } else {
       sortState = { key: key, dir: SORT_DEFAULT_DIR[key] || 'asc' };
     }
+    animateRowsNext = true;
     renderTable();
   }
 
@@ -2409,16 +1974,16 @@
         datasets: [{
           label: 'Неуваж. часов',
           data: values,
-          backgroundColor: '#bf8700',
-          borderRadius: 4
+          backgroundColor: '#0088ff',
+          borderRadius: 6
         }]
       },
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { display: false } },
-          y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' }, beginAtZero: true }
+          x: { ticks: { color: '#6c6c71', font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#6c6c71' }, grid: { color: '#1f1f1f' }, beginAtZero: true }
         }
       }
     });
@@ -2558,8 +2123,8 @@
   function openFilterModal() {
     const subjectContainer = document.getElementById('filterChipsSubject');
     const currentSubject = document.getElementById('subjectFilter').value;
-    subjectContainer.innerHTML = '<button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip(\'subjectFilter\',\'ALL\',\'filterChipsSubject\',this)"><span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Все предметы</span></button>' +
-      appData.subjects.map(s => `<button type="button" class="filter-chip" data-value="${s}" onclick="selectFilterChip('subjectFilter','${s.replace(/'/g, "\\'")}','filterChipsSubject',this)"><span class="chip-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>${s}</span></button>`).join('');
+    subjectContainer.innerHTML = '<button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip(\'subjectFilter\',\'ALL\',\'filterChipsSubject\',this)"><span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span><span>Все предметы</span></button>' +
+      appData.subjects.map(s => `<button type="button" class="filter-chip" data-value="${s}" onclick="selectFilterChip('subjectFilter','${s.replace(/'/g, "\\'")}','filterChipsSubject',this)"><span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span><span>${s}</span></button>`).join('');
 
     syncFilterChipGroup('filterChipsType', document.getElementById('typeFilter').value);
     syncFilterChipGroup('filterChipsPeriod', document.getElementById('periodFilter').value);
@@ -2580,6 +2145,7 @@
     document.getElementById(selectId).value = value;
     document.querySelectorAll(`#${groupContainerId} .filter-chip`).forEach(chip => chip.classList.remove('active'));
     clickedEl.classList.add('active');
+    filtersChangedInSheet = true;
     renderTable();
   }
 
@@ -2730,6 +2296,9 @@
     const typeFilter = document.getElementById('typeFilter').value;
     const tbody = document.getElementById('studentsTableBody');
     tbody.innerHTML = '';
+    tbody.removeAttribute('aria-busy');
+    const animateRows = animateRowsNext;
+    animateRowsNext = false;
 
     const journalNumbers = getJournalNumbers();
 
@@ -2745,7 +2314,7 @@
     filtered.sort(makeComparator(statsById, journalNumbers));
     updateSortIndicators();
 
-    filtered.forEach(student => {
+    filtered.forEach((student, index) => {
       const studentAbsences = getFilteredAbsencesForStudent(student.id);
 
       let unexcusedHours = 0;
@@ -2757,7 +2326,7 @@
       });
 
       // Неуваж. часы: 0-4 — зелёный, 5-8 — жёлтый, 9+ — красный
-      let hoursClass = 'hours-green';
+      let hoursClass = unexcusedHours === 0 ? 'hours-none' : 'hours-green';
       if (unexcusedHours >= 9) hoursClass = 'hours-danger';
       else if (unexcusedHours >= 5) hoursClass = 'hours-warning';
 
@@ -2775,6 +2344,10 @@
           <span class="uvazh-value">${excusedHours}</span>
         </span>
       `;
+      if (animateRows && index < 12) {
+        row.classList.add('fx-reveal');
+        row.style.setProperty('--fx-delay', `${index * 25}ms`);
+      }
       tbody.appendChild(row);
     });
 
@@ -3414,6 +2987,7 @@
 
     if (!getFileRes.ok) {
       const errJson = await getFileRes.json();
+      haptic('error');
       return showAlert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
     }
 
@@ -3439,13 +3013,16 @@
     if (putRes.ok) {
       updateStats();
       renderTable();
+      haptic('success');
       showAlert('Изменения успешно сохранены!');
     } else {
       const errorData = await putRes.json();
+      haptic('error');
       showAlert('Ошибка сохранения на GitHub: ' + errorData.message);
     }
   } catch (err) {
     console.error(err);
+    haptic('error');
     showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
   }
 }
@@ -3488,6 +3065,7 @@
     if (!token) return showAlert('Введите токен!');
     githubToken = token;
     localStorage.setItem('gh_pat', token);
+    haptic('success');
     adminModal.hide();
     updateAdminUI();
   }
@@ -3532,46 +3110,24 @@
 </script>
 <!-- Нижняя панель навигации (моб.) -->
 <nav class="bottom-tabbar" aria-label="Разделы">
-  <button type="button" class="tabbar-item active" aria-current="page" onclick="return false;">
+  <button type="button" class="tabbar-item active" aria-current="page" data-tab-home onclick="return false;">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="3" y="7" width="18" height="13" rx="2.2"/>
-      <path d="M8.5 7V5.3A1.8 1.8 0 0 1 10.3 3.5h3.4A1.8 1.8 0 0 1 15.5 5.3V7"/>
-      <path d="M3 12.3h18"/>
-      <path d="M10.5 12.3v1.6M13.5 12.3v1.6"/>
-    </svg>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M18.8738 2C19.57 2 20.2377 2.27656 20.73 2.76884C21.2223 3.26113 21.4988 3.92881 21.4988 4.625V22.7083C21.4988 23.4045 21.2223 24.0722 20.73 24.5645C20.2377 25.0568 19.57 25.3333 18.8738 25.3333H6.625C5.92881 25.3333 5.26113 25.0568 4.76884 24.5645C4.27656 24.0722 4 23.4045 4 22.7083V4.625C4 3.92881 4.27656 3.26113 4.76884 2.76884C5.26113 2.27656 5.92881 2 6.625 2H18.8738ZM22.6667 17.169H23.5417C23.7531 17.169 23.9574 17.2456 24.1168 17.3846C24.2761 17.5235 24.3797 17.7155 24.4085 17.925L24.4167 18.044V19.7917C24.4167 20.0031 24.3401 20.2074 24.2011 20.3668C24.0621 20.5261 23.8701 20.6297 23.6607 20.6585L23.5417 20.6667H22.6667V17.169ZM22.6667 12.5023H23.5417C23.7531 12.5023 23.9574 12.5789 24.1168 12.7179C24.2761 12.8569 24.3797 13.0489 24.4085 13.2583L24.4167 13.3773V15.125C24.4167 15.3364 24.3401 15.5407 24.2011 15.7001C24.0621 15.8594 23.8701 15.9631 23.6607 15.9918L23.5417 16H22.6667V12.5023ZM22.6667 7.83567H23.5417C23.7531 7.83568 23.9574 7.91225 24.1168 8.05123C24.2761 8.19021 24.3797 8.38219 24.4085 8.59167L24.4167 8.71067V10.4583C24.4167 10.6698 24.3401 10.8741 24.2011 11.0334C24.0621 11.1928 23.8701 11.2964 23.6607 11.3252L23.5417 11.3333H22.6667V7.83567ZM16.5463 6.07983H8.95833C8.74671 6.07988 8.54228 6.15662 8.3829 6.29583C8.22352 6.43505 8.12 6.62731 8.0915 6.837L8.08333 6.95483V8.7095C8.08333 9.15283 8.4135 9.518 8.8405 9.57633L8.95833 9.5845H16.5452C16.7566 9.58449 16.9609 9.50792 17.1203 9.36894C17.2796 9.22996 17.3832 9.03798 17.412 8.8285L17.4202 8.7095V6.95483C17.4202 6.72277 17.328 6.50021 17.1639 6.33612C16.9998 6.17202 16.7784 6.07983 16.5463 6.07983Z"/></svg>
     <span>Журнал</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="openRatingCalculator()">
+  <button type="button" class="tabbar-item" data-tab-modal="ratingCalcModal" onclick="openRatingCalculator()">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="4.5" y="2.5" width="15" height="19" rx="2" fill="currentColor"/>
-      <rect x="7" y="5" width="10" height="4" rx="0.6" fill="#111"/>
-      <rect x="7" y="11.3" width="2.4" height="2.4" rx="0.5" fill="#111"/>
-      <rect x="10.8" y="11.3" width="2.4" height="2.4" rx="0.5" fill="#111"/>
-      <rect x="14.6" y="11.3" width="2.4" height="2.4" rx="0.5" fill="#111"/>
-      <rect x="7" y="15.1" width="2.4" height="2.4" rx="0.5" fill="#111"/>
-      <rect x="10.8" y="15.1" width="2.4" height="2.4" rx="0.5" fill="#111"/>
-      <rect x="14.6" y="15.1" width="2.4" height="6.4" rx="0.5" fill="#111"/>
-      <rect x="7" y="18.9" width="6.2" height="2.4" rx="0.5" fill="#111"/>
-    </svg>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M5 5C5 4.20435 5.31607 3.44129 5.87868 2.87868C6.44129 2.31607 7.20435 2 8 2H20C20.7956 2 21.5587 2.31607 22.1213 2.87868C22.6839 3.44129 23 4.20435 23 5V23C23 23.7956 22.6839 24.5587 22.1213 25.1213C21.5587 25.6839 20.7956 26 20 26H8C7.20435 26 6.44129 25.6839 5.87868 25.1213C5.31607 24.5587 5 23.7956 5 23V5ZM8 5.75V8.75C8 8.94891 8.07902 9.13968 8.21967 9.28033C8.36032 9.42098 8.55109 9.5 8.75 9.5H19.25C19.4489 9.5 19.6397 9.42098 19.7803 9.28033C19.921 9.13968 20 8.94891 20 8.75V5.75C20 5.55109 19.921 5.36032 19.7803 5.21967C19.6397 5.07902 19.4489 5 19.25 5H8.75C8.55109 5 8.36032 5.07902 8.21967 5.21967C8.07902 5.36032 8 5.55109 8 5.75ZM8 11.75V13.25C8 13.4489 8.07902 13.6397 8.21967 13.7803C8.36032 13.921 8.55109 14 8.75 14H10.25C10.4489 14 10.6397 13.921 10.7803 13.7803C10.921 13.6397 11 13.4489 11 13.25V11.75C11 11.5511 10.921 11.3603 10.7803 11.2197C10.6397 11.079 10.4489 11 10.25 11H8.75C8.55109 11 8.36032 11.079 8.21967 11.2197C8.07902 11.3603 8 11.5511 8 11.75ZM8.75 15.5C8.55109 15.5 8.36032 15.579 8.21967 15.7197C8.07902 15.8603 8 16.0511 8 16.25V17.75C8 17.9489 8.07902 18.1397 8.21967 18.2803C8.36032 18.421 8.55109 18.5 8.75 18.5H10.25C10.4489 18.5 10.6397 18.421 10.7803 18.2803C10.921 18.1397 11 17.9489 11 17.75V16.25C11 16.0511 10.921 15.8603 10.7803 15.7197C10.6397 15.579 10.4489 15.5 10.25 15.5H8.75ZM8 20.75V22.25C8 22.4489 8.07902 22.6397 8.21967 22.7803C8.36032 22.921 8.55109 23 8.75 23H10.25C10.4489 23 10.6397 22.921 10.7803 22.7803C10.921 22.6397 11 22.4489 11 22.25V20.75C11 20.5511 10.921 20.3603 10.7803 20.2197C10.6397 20.079 10.4489 20 10.25 20H8.75C8.55109 20 8.36032 20.079 8.21967 20.2197C8.07902 20.3603 8 20.5511 8 20.75ZM13.25 11C13.0511 11 12.8603 11.079 12.7197 11.2197C12.579 11.3603 12.5 11.5511 12.5 11.75V13.25C12.5 13.4489 12.579 13.6397 12.7197 13.7803C12.8603 13.921 13.0511 14 13.25 14H14.75C14.9489 14 15.1397 13.921 15.2803 13.7803C15.421 13.6397 15.5 13.4489 15.5 13.25V11.75C15.5 11.5511 15.421 11.3603 15.2803 11.2197C15.1397 11.079 14.9489 11 14.75 11H13.25ZM12.5 16.25V17.75C12.5 17.9489 12.579 18.1397 12.7197 18.2803C12.8603 18.421 13.0511 18.5 13.25 18.5H14.75C14.9489 18.5 15.1397 18.421 15.2803 18.2803C15.421 18.1397 15.5 17.9489 15.5 17.75V16.25C15.5 16.0511 15.421 15.8603 15.2803 15.7197C15.1397 15.579 14.9489 15.5 14.75 15.5H13.25C13.0511 15.5 12.8603 15.579 12.7197 15.7197C12.579 15.8603 12.5 16.0511 12.5 16.25ZM13.25 20C13.0511 20 12.8603 20.079 12.7197 20.2197C12.579 20.3603 12.5 20.5511 12.5 20.75V22.25C12.5 22.4489 12.579 22.6397 12.7197 22.7803C12.8603 22.921 13.0511 23 13.25 23H14.75C14.9489 23 15.1397 22.921 15.2803 22.7803C15.421 22.6397 15.5 22.4489 15.5 22.25V20.75C15.5 20.5511 15.421 20.3603 15.2803 20.2197C15.1397 20.079 14.9489 20 14.75 20H13.25ZM17 11.75V13.25C17 13.4489 17.079 13.6397 17.2197 13.7803C17.3603 13.921 17.5511 14 17.75 14H19.25C19.4489 14 19.6397 13.921 19.7803 13.7803C19.921 13.6397 20 13.4489 20 13.25V11.75C20 11.5511 19.921 11.3603 19.7803 11.2197C19.6397 11.079 19.4489 11 19.25 11H17.75C17.5511 11 17.3603 11.079 17.2197 11.2197C17.079 11.3603 17 11.5511 17 11.75ZM17.75 15.5C17.5511 15.5 17.3603 15.579 17.2197 15.7197C17.079 15.8603 17 16.0511 17 16.25V22.25C17 22.4489 17.079 22.6397 17.2197 22.7803C17.3603 22.921 17.5511 23 17.75 23H19.25C19.4489 23 19.6397 22.921 19.7803 22.7803C19.921 22.6397 20 22.4489 20 22.25V16.25C20 16.0511 19.921 15.8603 19.7803 15.7197C19.6397 15.579 19.4489 15.5 19.25 15.5H17.75Z"/></svg>
     <span>Калькулятор</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="openTeachersList()">
+  <button type="button" class="tabbar-item" data-tab-modal="teachersModal" onclick="openTeachersList()">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 3L2 8l10 5 8-4v6h1.6V8L12 3z"/>
-      <path d="M6.5 11.3v4.4c0 1.6 2.5 3.3 5.5 3.3s5.5-1.7 5.5-3.3v-4.4L12 13.7l-5.5-2.4z"/>
-    </svg>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M14 20.125C13.8477 20.125 13.698 20.0852 13.5658 20.0096L5.90625 15.6319C5.83969 15.5934 5.76419 15.5732 5.68734 15.5732C5.61049 15.5733 5.535 15.5935 5.46847 15.632C5.40194 15.6705 5.34672 15.7258 5.30837 15.7924C5.27002 15.859 5.24989 15.9345 5.25 16.0114V20.125C5.24987 20.2812 5.29154 20.4345 5.37068 20.5691C5.44983 20.7038 5.56356 20.8148 5.70008 20.8906L13.5751 25.2656C13.7051 25.3378 13.8513 25.3757 14 25.3757C14.1487 25.3757 14.2949 25.3378 14.4249 25.2656L22.2999 20.8906C22.4364 20.8148 22.5502 20.7038 22.6293 20.5691C22.7085 20.4345 22.7501 20.2812 22.75 20.125V16.0114C22.7501 15.9345 22.73 15.859 22.6916 15.7924C22.6533 15.7258 22.5981 15.6705 22.5315 15.632C22.465 15.5935 22.3895 15.5733 22.3127 15.5732C22.2358 15.5732 22.1603 15.5934 22.0938 15.6319L14.4342 20.0096C14.302 20.0852 14.1523 20.125 14 20.125Z"/><path d="M27.1207 10.4179V10.4119C27.1065 10.2732 27.0594 10.1399 26.9833 10.0231C26.9072 9.90627 26.8043 9.80933 26.6832 9.74034L14.4332 2.74034C14.3009 2.66476 14.1513 2.625 13.9989 2.625C13.8466 2.625 13.697 2.66476 13.5647 2.74034L1.31472 9.74034C1.18084 9.81689 1.06957 9.92746 0.992175 10.0609C0.914784 10.1943 0.874023 10.3457 0.874023 10.5C0.874023 10.6542 0.914784 10.8057 0.992175 10.939C1.06957 11.0724 1.18084 11.183 1.31472 11.2596L13.5647 18.2596C13.697 18.3351 13.8466 18.3749 13.9989 18.3749C14.1513 18.3749 14.3009 18.3351 14.4332 18.2596L25.211 12.1012C25.2276 12.0916 25.2465 12.0865 25.2658 12.0865C25.285 12.0866 25.3039 12.0917 25.3205 12.1013C25.3372 12.111 25.351 12.1248 25.3605 12.1415C25.3701 12.1582 25.3751 12.1771 25.375 12.1964V20.1003C25.375 20.5712 25.7371 20.9753 26.2079 20.9989C26.3262 21.0046 26.4445 20.9862 26.5555 20.9448C26.6665 20.9035 26.7679 20.84 26.8537 20.7583C26.9394 20.6766 27.0077 20.5784 27.0543 20.4695C27.101 20.3606 27.125 20.2434 27.125 20.125V10.5C27.1249 10.4726 27.1235 10.4452 27.1207 10.4179Z"/></svg>
     <span>Преподы</span>
   </button>
   <a class="tabbar-item" href="cabinet.html">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.2"/>
-      <circle cx="12" cy="10" r="3"/>
-      <path d="M6.2 18.3c1.3-2.3 3.4-3.4 5.8-3.4s4.5 1.1 5.8 3.4"/>
-    </svg>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.8098 25.6652L14 25.6667C13.7425 25.6667 13.485 25.6583 13.2279 25.6416C12.9099 25.6207 12.5928 25.587 12.2775 25.5404C11.9112 25.4861 11.5476 25.4145 11.1882 25.3256C10.8338 25.2379 10.4838 25.1335 10.1392 25.0128L10.1373 25.0121C9.57 24.8131 9.019 24.5703 8.48933 24.2858C8.1134 24.084 7.74886 23.8617 7.39733 23.6198C7.00202 23.348 6.6238 23.0521 6.2648 22.7339C6.13937 22.6227 6.01634 22.5089 5.89577 22.3925C3.69925 20.2708 2.33337 17.2949 2.33337 14C2.33337 7.55674 7.55674 2.33337 14 2.33337C15.5321 2.33337 17.0492 2.63513 18.4647 3.22143C19.8801 3.80773 21.1663 4.66709 22.2496 5.75044C23.333 6.83379 24.1923 8.11991 24.7787 9.53538C25.365 10.9508 25.6667 12.4679 25.6667 14C25.6667 17.2951 24.3007 20.271 22.1042 22.3926C22.1041 22.3927 22.1041 22.393 22.1042 22.3932C21.5516 22.9266 20.948 23.4045 20.302 23.8199L20.293 23.8257C20.1465 23.9198 19.9979 24.0105 19.8473 24.0979L19.8314 24.1071C19.5679 24.2594 19.2985 24.4013 19.0239 24.5326C18.9165 24.5838 18.8083 24.6335 18.6994 24.6816C18.5858 24.7315 18.4714 24.7797 18.3564 24.8262C18.2448 24.871 18.1326 24.9142 18.0198 24.9557C17.9057 24.9975 17.791 25.0375 17.6758 25.0759C17.5625 25.1134 17.4486 25.1492 17.3343 25.1833C17.2131 25.2193 17.0914 25.2534 16.9691 25.2856C16.8501 25.3167 16.7307 25.346 16.6108 25.3735C16.4912 25.4008 16.3712 25.4262 16.2507 25.4498C15.7599 25.5457 15.2635 25.6099 14.7644 25.6421C14.6404 25.6501 14.5162 25.6562 14.392 25.6603L14.3896 25.6603C14.1964 25.6667 14.0031 25.6683 13.8098 25.6652ZM15.1667 18.6667H12.8334C10.9749 18.6667 9.34956 19.7603 8.60237 21.3593L8.51787 21.553L8.59099 21.6071C9.92077 22.5543 11.5095 23.1616 13.2304 23.3021C13.2817 23.3063 13.3332 23.3101 13.3848 23.3134L13.2375 23.3026C13.2876 23.3067 13.3378 23.3104 13.3882 23.3136L13.3848 23.3134C13.4347 23.3167 13.4846 23.3196 13.5346 23.322L13.3882 23.3136C13.4401 23.317 13.4922 23.32 13.5445 23.3224L13.5346 23.322C13.5721 23.3238 13.6097 23.3254 13.6472 23.3268L14 23.3334L14.1463 23.3323C14.2001 23.3315 14.2539 23.3302 14.3076 23.3285L14.16 23.332C14.2097 23.3312 14.2594 23.33 14.309 23.3283L14.3076 23.3284C14.3576 23.3268 14.4075 23.3248 14.4574 23.3224L14.309 23.3283C14.3604 23.3266 14.4118 23.3246 14.4632 23.3221L14.4574 23.3224C14.5093 23.3198 14.5611 23.3169 14.6127 23.3136L14.4632 23.3221C14.5137 23.3196 14.5642 23.3167 14.6147 23.3135L14.6127 23.3136C14.6633 23.3103 14.7137 23.3066 14.764 23.3026L14.6146 23.3135C14.666 23.3101 14.7174 23.3064 14.7687 23.3022L14.764 23.3026C14.8129 23.2986 14.8616 23.2942 14.9102 23.2896L14.7687 23.3022C14.8197 23.298 14.8706 23.2934 14.9215 23.2885L14.9102 23.2896C16.5736 23.1286 18.1092 22.5309 19.4011 21.6127L19.481 21.553L19.3978 21.3595C18.6833 19.83 17.1651 18.7628 15.4078 18.6729L15.1667 18.6667ZM14 4.66673C8.8454 4.66673 4.66673 8.8454 4.66673 14C4.66673 16.226 5.44597 18.27 6.74655 19.874C7.9512 17.7591 10.2258 16.3334 12.8334 16.3334H15.1667C17.7744 16.3334 20.049 17.7592 21.2534 19.8738C22.5541 18.27 23.3334 16.226 23.3334 14C23.3334 8.8454 19.1547 4.66673 14 4.66673ZM14 5.83337C16.5774 5.83337 18.6667 7.92271 18.6667 10.5C18.6667 12.9992 16.7021 15.0396 14.2329 15.161L14 15.1667C11.4227 15.1667 9.33337 13.0774 9.33337 10.5C9.33337 8.0008 11.298 5.96041 13.7671 5.83906L14 5.83337ZM14 8.16673C12.7114 8.16673 11.6667 9.21137 11.6667 10.5C11.6667 11.7887 12.7114 12.8334 14 12.8334C15.2887 12.8334 16.3334 11.7887 16.3334 10.5C16.3334 9.21137 15.2887 8.16673 14 8.16673Z"/></svg>
     <span>Кабинет</span>
     <span id="cabinetUnreadDot" class="tabbar-badge-dot d-none"></span>
   </a>
