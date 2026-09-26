@@ -2,12 +2,12 @@
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Личный кабинет — Журнал 24ДММ-2</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#060606">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -340,6 +340,63 @@
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], announcements: [] };
   let myStudentId = null;
 
+  // --- Telegram Mini App: цвета оболочки, вибрация, кнопка «Назад» ---
+  // Работает только внутри Telegram (есть initData). В обычном браузере и в PWA TG = null,
+  // и функции ниже ничего не делают.
+  const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
+  const APP_BG_COLOR = '#060606';
+
+  function tgSupports(version) {
+    return !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(version));
+  }
+
+  // Короткая вибрация: 'impact' — нажатие, 'selection' — выбор, 'success' / 'error' — итог действия
+  function haptic(kind) {
+    if (!tgSupports('6.1') || !TG.HapticFeedback) return;
+    try {
+      if (kind === 'success' || kind === 'error') TG.HapticFeedback.notificationOccurred(kind);
+      else if (kind === 'selection') TG.HapticFeedback.selectionChanged();
+      else TG.HapticFeedback.impactOccurred('light');
+    } catch (e) {}
+  }
+
+  // Шапка, фон и нижняя панель Telegram — в цвет приложения. Приложение всегда тёмное (как в Figma),
+  // схему Telegram (colorScheme) только отмечаем в data-атрибуте <html>.
+  function applyTelegramTheme() {
+    if (!TG) return;
+    document.documentElement.dataset.tgScheme = TG.colorScheme || 'dark';
+    try {
+      if (tgSupports('6.1')) {
+        TG.setHeaderColor(APP_BG_COLOR);
+        TG.setBackgroundColor(APP_BG_COLOR);
+      }
+      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(APP_BG_COLOR);
+    } catch (e) {}
+  }
+
+  // «Назад» в Telegram закрывает верхнее открытое окно; без окон — возвращает в журнал.
+  // В кабинете кнопка видна всегда: это второй экран приложения.
+  function onTelegramBack() {
+    const open = document.querySelectorAll('.modal.show');
+    if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
+    else location.href = 'index.html';
+  }
+
+  function setupTelegram() {
+    if (!TG) return;
+    applyTelegramTheme();
+    if (TG.onEvent) TG.onEvent('themeChanged', applyTelegramTheme);
+    if (tgSupports('6.1') && TG.BackButton) {
+      TG.BackButton.onClick(onTelegramBack);
+      TG.BackButton.show();
+    }
+  }
+
+  // Вибрация при переключении разделов кабинета
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('.tabbar-item')) haptic('impact');
+  });
+
   async function init() {
     if (window.Telegram && window.Telegram.WebApp) {
       const tg = window.Telegram.WebApp;
@@ -347,6 +404,7 @@
       if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
       tg.ready();
     }
+    setupTelegram();
 
     try {
       const response = await fetch(`./data.json?t=${Date.now()}`);
@@ -459,6 +517,7 @@
     const match = login.match(/^user(\d{1,2})$/);
     if (!match || login !== password) {
       errorEl.classList.remove('d-none');
+      haptic('error');
       return;
     }
 
@@ -467,12 +526,14 @@
     const studentId = Object.keys(journalNumbers).find(id => journalNumbers[id] === num);
     if (!studentId) {
       errorEl.classList.remove('d-none');
+      haptic('error');
       return;
     }
 
     errorEl.classList.add('d-none');
     myStudentId = studentId;
     localStorage.setItem('my_student_id', studentId);
+    haptic('success');
     showCabinetContent();
   }
 

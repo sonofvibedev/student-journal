@@ -2,12 +2,12 @@
 <html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Журнал 24ДММ-2</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#060606">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1304,6 +1304,89 @@
   const customAlertModal = new bootstrap.Modal(document.getElementById('customAlertModal'));
   const customConfirmModal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
 
+  // --- Telegram Mini App: цвета оболочки, вибрация, кнопка «Назад» ---
+  // Работает только внутри Telegram (есть initData). В обычном браузере и в PWA TG = null,
+  // и функции ниже ничего не делают.
+  const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
+  const APP_BG_COLOR = '#060606';
+
+  function tgSupports(version) {
+    return !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(version));
+  }
+
+  // Короткая вибрация: 'impact' — нажатие, 'selection' — выбор, 'success' / 'error' — итог действия
+  function haptic(kind) {
+    if (!tgSupports('6.1') || !TG.HapticFeedback) return;
+    try {
+      if (kind === 'success' || kind === 'error') TG.HapticFeedback.notificationOccurred(kind);
+      else if (kind === 'selection') TG.HapticFeedback.selectionChanged();
+      else TG.HapticFeedback.impactOccurred('light');
+    } catch (e) {}
+  }
+
+  // Шапка, фон и нижняя панель Telegram — в цвет приложения. Приложение всегда тёмное (как в Figma),
+  // схему Telegram (colorScheme) только отмечаем в data-атрибуте <html>.
+  function applyTelegramTheme() {
+    if (!TG) return;
+    document.documentElement.dataset.tgScheme = TG.colorScheme || 'dark';
+    try {
+      if (tgSupports('6.1')) {
+        TG.setHeaderColor(APP_BG_COLOR);
+        TG.setBackgroundColor(APP_BG_COLOR);
+      }
+      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(APP_BG_COLOR);
+    } catch (e) {}
+  }
+
+  // «Назад» в Telegram закрывает верхнее открытое окно
+  function syncTelegramBackButton() {
+    if (!tgSupports('6.1') || !TG.BackButton) return;
+    if (document.querySelector('.modal.show')) TG.BackButton.show();
+    else TG.BackButton.hide();
+  }
+
+  function onTelegramBack() {
+    const open = document.querySelectorAll('.modal.show');
+    if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
+  }
+
+  function setupTelegram() {
+    if (!TG) return;
+    applyTelegramTheme();
+    if (TG.onEvent) TG.onEvent('themeChanged', applyTelegramTheme);
+    if (tgSupports('6.1') && TG.BackButton) {
+      TG.BackButton.onClick(onTelegramBack);
+      document.addEventListener('shown.bs.modal', syncTelegramBackButton);
+      document.addEventListener('hidden.bs.modal', syncTelegramBackButton);
+      syncTelegramBackButton();
+    }
+  }
+
+  // Вибрация на ключевых нажатиях: вкладки, чипы фильтра, пункты сортировки
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest && e.target.closest('.tabbar-item, .filter-chip, .sort-dropdown-item');
+    if (target) haptic(target.classList.contains('tabbar-item') ? 'impact' : 'selection');
+  });
+
+  // Пока открыт «Калькулятор» или «Преподы», подсвечена их вкладка; после закрытия — снова «Журнал»
+  function setActiveTab(tab) {
+    document.querySelectorAll('.bottom-tabbar .tabbar-item').forEach(t => {
+      const on = t === tab;
+      t.classList.toggle('active', on);
+      if (on) t.setAttribute('aria-current', 'page');
+      else t.removeAttribute('aria-current');
+    });
+  }
+  document.addEventListener('show.bs.modal', (e) => {
+    const tab = document.querySelector(`.tabbar-item[data-tab-modal="${e.target.id}"]`);
+    if (tab) setActiveTab(tab);
+  });
+  document.addEventListener('hidden.bs.modal', (e) => {
+    if (document.querySelector(`.tabbar-item[data-tab-modal="${e.target.id}"]`)) {
+      setActiveTab(document.querySelector('.tabbar-item[data-tab-home]'));
+    }
+  });
+
   // Замена браузерных showAlert()/confirm() на модалки в стиле приложения.
   // showAlert — просто показать сообщение, ждать не обязательно (сразу продолжаем/выходим).
   // showConfirm — возвращает Promise<boolean>, обязательно await перед проверкой результата.
@@ -1343,6 +1426,7 @@
       }
       tg.ready();
     }
+    setupTelegram();
 
     updateAdminUI();
     await loadData();
@@ -2851,6 +2935,7 @@
 
     if (!getFileRes.ok) {
       const errJson = await getFileRes.json();
+      haptic('error');
       return showAlert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
     }
 
@@ -2876,13 +2961,16 @@
     if (putRes.ok) {
       updateStats();
       renderTable();
+      haptic('success');
       showAlert('Изменения успешно сохранены!');
     } else {
       const errorData = await putRes.json();
+      haptic('error');
       showAlert('Ошибка сохранения на GitHub: ' + errorData.message);
     }
   } catch (err) {
     console.error(err);
+    haptic('error');
     showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
   }
 }
@@ -2925,6 +3013,7 @@
     if (!token) return showAlert('Введите токен!');
     githubToken = token;
     localStorage.setItem('gh_pat', token);
+    haptic('success');
     adminModal.hide();
     updateAdminUI();
   }
@@ -2969,17 +3058,17 @@
 </script>
 <!-- Нижняя панель навигации (моб.) -->
 <nav class="bottom-tabbar" aria-label="Разделы">
-  <button type="button" class="tabbar-item active" aria-current="page" onclick="return false;">
+  <button type="button" class="tabbar-item active" aria-current="page" data-tab-home onclick="return false;">
     <span class="tab-selection"></span>
     <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M18.8738 2C19.57 2 20.2377 2.27656 20.73 2.76884C21.2223 3.26113 21.4988 3.92881 21.4988 4.625V22.7083C21.4988 23.4045 21.2223 24.0722 20.73 24.5645C20.2377 25.0568 19.57 25.3333 18.8738 25.3333H6.625C5.92881 25.3333 5.26113 25.0568 4.76884 24.5645C4.27656 24.0722 4 23.4045 4 22.7083V4.625C4 3.92881 4.27656 3.26113 4.76884 2.76884C5.26113 2.27656 5.92881 2 6.625 2H18.8738ZM22.6667 17.169H23.5417C23.7531 17.169 23.9574 17.2456 24.1168 17.3846C24.2761 17.5235 24.3797 17.7155 24.4085 17.925L24.4167 18.044V19.7917C24.4167 20.0031 24.3401 20.2074 24.2011 20.3668C24.0621 20.5261 23.8701 20.6297 23.6607 20.6585L23.5417 20.6667H22.6667V17.169ZM22.6667 12.5023H23.5417C23.7531 12.5023 23.9574 12.5789 24.1168 12.7179C24.2761 12.8569 24.3797 13.0489 24.4085 13.2583L24.4167 13.3773V15.125C24.4167 15.3364 24.3401 15.5407 24.2011 15.7001C24.0621 15.8594 23.8701 15.9631 23.6607 15.9918L23.5417 16H22.6667V12.5023ZM22.6667 7.83567H23.5417C23.7531 7.83568 23.9574 7.91225 24.1168 8.05123C24.2761 8.19021 24.3797 8.38219 24.4085 8.59167L24.4167 8.71067V10.4583C24.4167 10.6698 24.3401 10.8741 24.2011 11.0334C24.0621 11.1928 23.8701 11.2964 23.6607 11.3252L23.5417 11.3333H22.6667V7.83567ZM16.5463 6.07983H8.95833C8.74671 6.07988 8.54228 6.15662 8.3829 6.29583C8.22352 6.43505 8.12 6.62731 8.0915 6.837L8.08333 6.95483V8.7095C8.08333 9.15283 8.4135 9.518 8.8405 9.57633L8.95833 9.5845H16.5452C16.7566 9.58449 16.9609 9.50792 17.1203 9.36894C17.2796 9.22996 17.3832 9.03798 17.412 8.8285L17.4202 8.7095V6.95483C17.4202 6.72277 17.328 6.50021 17.1639 6.33612C16.9998 6.17202 16.7784 6.07983 16.5463 6.07983Z"/></svg>
     <span>Журнал</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="openRatingCalculator()">
+  <button type="button" class="tabbar-item" data-tab-modal="ratingCalcModal" onclick="openRatingCalculator()">
     <span class="tab-selection"></span>
     <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M5 5C5 4.20435 5.31607 3.44129 5.87868 2.87868C6.44129 2.31607 7.20435 2 8 2H20C20.7956 2 21.5587 2.31607 22.1213 2.87868C22.6839 3.44129 23 4.20435 23 5V23C23 23.7956 22.6839 24.5587 22.1213 25.1213C21.5587 25.6839 20.7956 26 20 26H8C7.20435 26 6.44129 25.6839 5.87868 25.1213C5.31607 24.5587 5 23.7956 5 23V5ZM8 5.75V8.75C8 8.94891 8.07902 9.13968 8.21967 9.28033C8.36032 9.42098 8.55109 9.5 8.75 9.5H19.25C19.4489 9.5 19.6397 9.42098 19.7803 9.28033C19.921 9.13968 20 8.94891 20 8.75V5.75C20 5.55109 19.921 5.36032 19.7803 5.21967C19.6397 5.07902 19.4489 5 19.25 5H8.75C8.55109 5 8.36032 5.07902 8.21967 5.21967C8.07902 5.36032 8 5.55109 8 5.75ZM8 11.75V13.25C8 13.4489 8.07902 13.6397 8.21967 13.7803C8.36032 13.921 8.55109 14 8.75 14H10.25C10.4489 14 10.6397 13.921 10.7803 13.7803C10.921 13.6397 11 13.4489 11 13.25V11.75C11 11.5511 10.921 11.3603 10.7803 11.2197C10.6397 11.079 10.4489 11 10.25 11H8.75C8.55109 11 8.36032 11.079 8.21967 11.2197C8.07902 11.3603 8 11.5511 8 11.75ZM8.75 15.5C8.55109 15.5 8.36032 15.579 8.21967 15.7197C8.07902 15.8603 8 16.0511 8 16.25V17.75C8 17.9489 8.07902 18.1397 8.21967 18.2803C8.36032 18.421 8.55109 18.5 8.75 18.5H10.25C10.4489 18.5 10.6397 18.421 10.7803 18.2803C10.921 18.1397 11 17.9489 11 17.75V16.25C11 16.0511 10.921 15.8603 10.7803 15.7197C10.6397 15.579 10.4489 15.5 10.25 15.5H8.75ZM8 20.75V22.25C8 22.4489 8.07902 22.6397 8.21967 22.7803C8.36032 22.921 8.55109 23 8.75 23H10.25C10.4489 23 10.6397 22.921 10.7803 22.7803C10.921 22.6397 11 22.4489 11 22.25V20.75C11 20.5511 10.921 20.3603 10.7803 20.2197C10.6397 20.079 10.4489 20 10.25 20H8.75C8.55109 20 8.36032 20.079 8.21967 20.2197C8.07902 20.3603 8 20.5511 8 20.75ZM13.25 11C13.0511 11 12.8603 11.079 12.7197 11.2197C12.579 11.3603 12.5 11.5511 12.5 11.75V13.25C12.5 13.4489 12.579 13.6397 12.7197 13.7803C12.8603 13.921 13.0511 14 13.25 14H14.75C14.9489 14 15.1397 13.921 15.2803 13.7803C15.421 13.6397 15.5 13.4489 15.5 13.25V11.75C15.5 11.5511 15.421 11.3603 15.2803 11.2197C15.1397 11.079 14.9489 11 14.75 11H13.25ZM12.5 16.25V17.75C12.5 17.9489 12.579 18.1397 12.7197 18.2803C12.8603 18.421 13.0511 18.5 13.25 18.5H14.75C14.9489 18.5 15.1397 18.421 15.2803 18.2803C15.421 18.1397 15.5 17.9489 15.5 17.75V16.25C15.5 16.0511 15.421 15.8603 15.2803 15.7197C15.1397 15.579 14.9489 15.5 14.75 15.5H13.25C13.0511 15.5 12.8603 15.579 12.7197 15.7197C12.579 15.8603 12.5 16.0511 12.5 16.25ZM13.25 20C13.0511 20 12.8603 20.079 12.7197 20.2197C12.579 20.3603 12.5 20.5511 12.5 20.75V22.25C12.5 22.4489 12.579 22.6397 12.7197 22.7803C12.8603 22.921 13.0511 23 13.25 23H14.75C14.9489 23 15.1397 22.921 15.2803 22.7803C15.421 22.6397 15.5 22.4489 15.5 22.25V20.75C15.5 20.5511 15.421 20.3603 15.2803 20.2197C15.1397 20.079 14.9489 20 14.75 20H13.25ZM17 11.75V13.25C17 13.4489 17.079 13.6397 17.2197 13.7803C17.3603 13.921 17.5511 14 17.75 14H19.25C19.4489 14 19.6397 13.921 19.7803 13.7803C19.921 13.6397 20 13.4489 20 13.25V11.75C20 11.5511 19.921 11.3603 19.7803 11.2197C19.6397 11.079 19.4489 11 19.25 11H17.75C17.5511 11 17.3603 11.079 17.2197 11.2197C17.079 11.3603 17 11.5511 17 11.75ZM17.75 15.5C17.5511 15.5 17.3603 15.579 17.2197 15.7197C17.079 15.8603 17 16.0511 17 16.25V22.25C17 22.4489 17.079 22.6397 17.2197 22.7803C17.3603 22.921 17.5511 23 17.75 23H19.25C19.4489 23 19.6397 22.921 19.7803 22.7803C19.921 22.6397 20 22.4489 20 22.25V16.25C20 16.0511 19.921 15.8603 19.7803 15.7197C19.6397 15.579 19.4489 15.5 19.25 15.5H17.75Z"/></svg>
     <span>Калькулятор</span>
   </button>
-  <button type="button" class="tabbar-item" onclick="openTeachersList()">
+  <button type="button" class="tabbar-item" data-tab-modal="teachersModal" onclick="openTeachersList()">
     <span class="tab-selection"></span>
     <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M14 20.125C13.8477 20.125 13.698 20.0852 13.5658 20.0096L5.90625 15.6319C5.83969 15.5934 5.76419 15.5732 5.68734 15.5732C5.61049 15.5733 5.535 15.5935 5.46847 15.632C5.40194 15.6705 5.34672 15.7258 5.30837 15.7924C5.27002 15.859 5.24989 15.9345 5.25 16.0114V20.125C5.24987 20.2812 5.29154 20.4345 5.37068 20.5691C5.44983 20.7038 5.56356 20.8148 5.70008 20.8906L13.5751 25.2656C13.7051 25.3378 13.8513 25.3757 14 25.3757C14.1487 25.3757 14.2949 25.3378 14.4249 25.2656L22.2999 20.8906C22.4364 20.8148 22.5502 20.7038 22.6293 20.5691C22.7085 20.4345 22.7501 20.2812 22.75 20.125V16.0114C22.7501 15.9345 22.73 15.859 22.6916 15.7924C22.6533 15.7258 22.5981 15.6705 22.5315 15.632C22.465 15.5935 22.3895 15.5733 22.3127 15.5732C22.2358 15.5732 22.1603 15.5934 22.0938 15.6319L14.4342 20.0096C14.302 20.0852 14.1523 20.125 14 20.125Z"/><path d="M27.1207 10.4179V10.4119C27.1065 10.2732 27.0594 10.1399 26.9833 10.0231C26.9072 9.90627 26.8043 9.80933 26.6832 9.74034L14.4332 2.74034C14.3009 2.66476 14.1513 2.625 13.9989 2.625C13.8466 2.625 13.697 2.66476 13.5647 2.74034L1.31472 9.74034C1.18084 9.81689 1.06957 9.92746 0.992175 10.0609C0.914784 10.1943 0.874023 10.3457 0.874023 10.5C0.874023 10.6542 0.914784 10.8057 0.992175 10.939C1.06957 11.0724 1.18084 11.183 1.31472 11.2596L13.5647 18.2596C13.697 18.3351 13.8466 18.3749 13.9989 18.3749C14.1513 18.3749 14.3009 18.3351 14.4332 18.2596L25.211 12.1012C25.2276 12.0916 25.2465 12.0865 25.2658 12.0865C25.285 12.0866 25.3039 12.0917 25.3205 12.1013C25.3372 12.111 25.351 12.1248 25.3605 12.1415C25.3701 12.1582 25.3751 12.1771 25.375 12.1964V20.1003C25.375 20.5712 25.7371 20.9753 26.2079 20.9989C26.3262 21.0046 26.4445 20.9862 26.5555 20.9448C26.6665 20.9035 26.7679 20.84 26.8537 20.7583C26.9394 20.6766 27.0077 20.5784 27.0543 20.4695C27.101 20.3606 27.125 20.2434 27.125 20.125V10.5C27.1249 10.4726 27.1235 10.4452 27.1207 10.4179Z"/></svg>
     <span>Преподы</span>
