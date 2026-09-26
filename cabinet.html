@@ -20,46 +20,74 @@
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
   <link href="app.css" rel="stylesheet">
   <style>
-    /* ===== Личный кабинет: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
-    .cabinet-container { max-width: 640px; }
-
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      margin: 12px 0 4px -4px;
-      padding: 4px;
-      color: var(--color-accent);
-      font-size: var(--fs-body);
-      letter-spacing: var(--tracking);
-      text-decoration: none;
-      transition: transform var(--dur-fast) var(--ease-out);
-    }
-    .back-link:hover { color: var(--color-accent-hover); }
-    .back-link svg { width: 20px; height: 20px; }
-
-    /* Вход — карточка с полями */
-    .login-card { padding: 20px 16px; border-radius: var(--radius-lg); background-color: var(--color-surface); }
-    .login-card .form-control { background-color: var(--color-surface-3); }
-
-    /* Зачётка: предмет слева, оценка справа — строками-карточками */
-    #zachetkaList > div {
-      gap: 12px;
-      min-height: 52px;
-      margin-bottom: 8px !important;
-      padding: 6px 6px 6px 16px;
-      border-radius: var(--radius-lg);
-      background-color: var(--color-surface);
-    }
-    #zachetkaList .small { font-size: var(--fs-chip) !important; line-height: 1.3; }
-    #zachetkaList .form-select { flex: none; background-color: var(--color-surface-3); }
-
-    /* Скелетон кабинета, пока грузится data.json */
+    /* ===== Личный кабинет: стили страницы (токены и общие компоненты — в app.css).
+       Статистика и объявления — вариант «Лента», зачётка — вариант «Списки» ===== */
     .cabinet-skeleton .skel-card { height: 56px; margin-bottom: 16px; border-radius: var(--radius-lg); }
     .cabinet-skeleton .skel-line { width: 45%; height: 18px; margin-bottom: 12px; }
     .cabinet-skeleton .skel-stats { display: flex; gap: 8px; margin-bottom: 16px; }
     .cabinet-skeleton .skel-stat { flex: 1; height: 84px; border-radius: var(--radius-lg); }
     .cabinet-skeleton .skel-block { height: 140px; border-radius: var(--radius-lg); }
+
+    .cab { max-width: 600px; }
+    .back-link { display: inline-flex; align-items: center; gap: 2px; margin: 12px 0 6px -4px; padding: 4px; color: var(--color-accent); text-decoration: none; font-size: var(--fs-body); }
+    .back-link svg { width: 20px; height: 20px; }
+    .login-card { padding: 24px 0; }
+    .login-card .form-control { background-color: var(--color-surface); }
+    .greet { font-size: clamp(30px, 9vw, 40px); font-weight: 700; line-height: 1.08; letter-spacing: -0.8px; color: var(--color-text); margin: 4px 0 6px; text-wrap: balance; }
+    .who { display: flex; align-items: center; gap: 10px; color: var(--color-text-tertiary); font-size: var(--fs-caption); margin-bottom: 22px; }
+    .who a { color: var(--color-text-secondary); }
+    /* Фраза-сводка: селекты встроены в текст */
+    .sentence { font-size: 22px; line-height: 1.45; font-weight: 500; color: var(--color-text-2); letter-spacing: -0.3px; margin-bottom: 20px; }
+    .sentence .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sentence .num.ok { color: var(--color-success-text); } .sentence .num.warning { color: #ffd60a; } .sentence .num.danger { color: var(--color-danger-line); }
+    .sentence select.inline { display: inline-block; width: auto; min-height: 0; padding: 0 22px 0 0; border: 0; border-bottom: 2px dotted #3a3a3a; border-radius: 0; background-color: transparent; background-position: right 0 center; background-size: 12px; color: #4dabff; font: inherit; font-size: 22px !important; field-sizing: content; max-width: 100%; text-overflow: ellipsis; }
+    .sentence select.inline:focus { box-shadow: none; border-bottom-color: var(--color-accent); }
+    #cabinetExcused { color: var(--color-success-text); }
+    /* Шкала места в группе */
+    #groupStandingCard { padding: 0; background: none; margin-bottom: 28px; }
+    .meter { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #ff628f, #ffd60a 50%, #34c759); margin: 12px 0 8px; }
+    .meter i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #060606; transform: translate(-50%, -50%); left: var(--pos, 50%); }
+    .meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-tertiary); }
+    .kicker { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); margin: 0 0 10px; }
+    .feed-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+    .feed-head .kicker { margin: 0; }
+    .feed-head .btn { white-space: nowrap; flex: none; }
+    /* Хронология: вертикальная линия и точки */
+    #myAbsList.list-group.border { background: none; border-radius: 0 !important; position: relative; padding-left: 22px; overflow: visible; }
+    #myAbsList::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: #1f1f1f; }
+    #myAbsList > div { position: relative; border: 0 !important; padding: 10px 0 14px !important; }
+    #myAbsList > div::before { content: ''; position: absolute; left: -21px; top: 16px; width: 12px; height: 12px; border-radius: 50%; background: var(--dot, #ff628f); box-shadow: 0 0 0 4px #060606; }
+    #myAbsList > div.is-excused { --dot: #34c759; }
+    #myAbsList .month { padding: 18px 0 4px !important; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    #myAbsList .month::before { display: none; }
+    #myAbsList .fw-bold { font-weight: 500 !important; font-size: 16px; }
+    details.by-subject { margin: 18px 0 28px; border-radius: var(--radius-lg); background: var(--color-surface); }
+    details.by-subject summary { padding: 14px 16px; cursor: pointer; font-weight: 600; color: var(--color-text); list-style: none; display: flex; justify-content: space-between; }
+    details.by-subject summary::after { content: '›'; transform: rotate(90deg); transition: transform var(--dur) var(--ease-out); color: var(--color-text-tertiary); }
+    details.by-subject[open] summary::after { transform: rotate(-90deg); }
+    details.by-subject .table-responsive { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    /* Объявления — «сообщения» */
+    #cabinetAnnouncementsList .student-summary-card { position: relative; max-width: 88%; padding: 12px 14px; border-radius: 18px 18px 18px 6px; background: var(--color-surface-3); margin-bottom: 12px !important; }
+    #cabinetAnnouncementsList .small { order: 2; font-size: 11px; margin: 6px 0 0 !important; }
+    #cabinetAnnouncementsList .student-summary-card { display: flex; flex-direction: column; }
+    #cabinetAnnouncementsList .text-white { order: 1; }
+
+    /* --- Зачётка: сгруппированный список --- */
+    .group-title { padding: 0 16px 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .02em; color: var(--color-text-tertiary); }
+    .group-foot { padding: 6px 16px 0; font-size: 13px; color: var(--color-text-tertiary); line-height: 1.35; }
+    .group { margin-bottom: 28px; }
+    .inset { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
+    .row-i { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 16px; position: relative; color: var(--color-text); text-decoration: none; }
+    .inset > * { position: relative; }
+    .row-i + .row-i::before, .inset > * + *::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    .row-i .lbl { flex: 1; min-width: 0; }
+    .row-i .val { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+    #zachetkaList { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
+    #zachetkaList > div { position: relative; min-height: 48px; margin: 0 !important; padding: 6px 12px 6px 16px; gap: 12px; }
+    #zachetkaList > div + div::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    #zachetkaList .small { font-size: 16px !important; color: var(--color-text) !important; line-height: 1.25; }
+    #zachetkaList .form-select { width: 96px !important; min-height: 0; border: 0; background-color: transparent; color: var(--color-accent); text-align: right; }
+    .login-card .inset { padding: 16px; }
 
     @media (max-width: 576px) {
       .container { padding-left: 16px; padding-right: 16px; }
@@ -68,14 +96,9 @@
 </head>
 <body>
 
-<div class="container cabinet-container my-3">
-  <a href="index.html" class="back-link">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-    Журнал
-  </a>
-  <h2 class="app-title mb-3">Личный кабинет</h2>
+<div class="container cab my-3">
+  <a href="index.html" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Журнал</a>
 
-  <!-- Скелетон, пока грузится data.json -->
   <div id="cabinetSkeleton" class="cabinet-skeleton" aria-hidden="true">
     <span class="skel skel-card"></span>
     <span class="skel skel-line"></span>
@@ -83,74 +106,57 @@
     <span class="skel skel-block"></span>
   </div>
 
-  <!-- Вход в личный кабинет -->
   <div id="cabinetLoginSection" class="d-none login-card">
-    <p class="small text-secondary mb-3">Войдите в личный кабинет</p>
-    <div class="mb-2">
-      <label class="form-label text-secondary small">Логин</label>
-      <input type="text" id="cabinetLoginInput" class="form-control" placeholder="user01" autocomplete="username" onkeydown="if(event.key==='Enter') attemptLogin()">
-    </div>
-    <div class="mb-3">
-      <label class="form-label text-secondary small">Пароль</label>
-      <input type="password" id="cabinetPasswordInput" class="form-control" placeholder="user01" autocomplete="current-password" onkeydown="if(event.key==='Enter') attemptLogin()">
-    </div>
-    <div id="cabinetLoginError" class="text-danger small mb-3 d-none">Неверный логин или пароль</div>
-    <button type="button" class="btn btn-primary w-100 fw-bold" onclick="attemptLogin()">Войти</button>
+    <div class="greet">Личный кабинет</div>
+    <p class="small text-secondary mb-3">Войдите, чтобы увидеть свои пропуски и зачётку</p>
+      <div class="mb-2">
+        <label class="form-label text-secondary small" for="cabinetLoginInput">Логин</label>
+        <input type="text" id="cabinetLoginInput" class="form-control" placeholder="user01" autocomplete="username" onkeydown="if(event.key==='Enter') attemptLogin()">
+      </div>
+      <div class="mb-3">
+        <label class="form-label text-secondary small" for="cabinetPasswordInput">Пароль</label>
+        <input type="password" id="cabinetPasswordInput" class="form-control" placeholder="user01" autocomplete="current-password" onkeydown="if(event.key==='Enter') attemptLogin()">
+      </div>
+      <div id="cabinetLoginError" class="text-danger small mb-3 d-none">Неверный логин или пароль</div>
+      <button type="button" class="btn btn-primary w-100 fw-bold" onclick="attemptLogin()">Войти</button>
   </div>
 
-  <!-- Содержимое кабинета — после входа -->
   <div id="cabinetContentSection" class="d-none">
-    <div class="student-summary-card mb-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="fw-bold text-white" id="cabinetStudentName">—</div>
-        <a href="#" class="small text-secondary" onclick="logoutCabinet(); return false;">Выйти</a>
-      </div>
-    </div>
+    <div class="greet" id="cabinetGreeting">Привет!</div>
+    <div class="who"><span id="cabinetStudentName">—</span>·<a href="#" onclick="logoutCabinet(); return false;">Выйти</a></div>
 
-    <!-- ===== Раздел: Статистика ===== -->
     <div id="cabinetSectionStats">
-      <h6 class="text-white mb-2">Моя статистика</h6>
-      <div class="d-flex gap-2 mb-3">
-        <select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
-          <option value="WEEK">Неделя</option>
-          <option value="MONTH" selected>Месяц</option>
-          <option value="SEMESTER">Семестр</option>
+      <p class="sentence">
+        <select class="inline" id="cabinetPeriod" onchange="renderPersonalStats()" aria-label="Период">
+          <option value="WEEK">За неделю</option>
+          <option value="MONTH" selected>За месяц</option>
+          <option value="SEMESTER">За семестр</option>
         </select>
-        <select id="cabinetSubject" class="form-select form-select-sm" onchange="renderPersonalStats()">
-          <option value="ALL">Все предметы</option>
+        по
+        <select class="inline" id="cabinetSubject" onchange="renderPersonalStats()" aria-label="Предмет">
+          <option value="ALL">всем предметам</option>
         </select>
-      </div>
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <div class="stat-card">
-            <div class="stat-value" id="cabinetUnexcused">0</div>
-            <div class="stat-label">Неуваж. часов</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="stat-card">
-            <div class="stat-value" id="cabinetExcused">0</div>
-            <div class="stat-label">Уваж. часов</div>
-          </div>
-        </div>
-      </div>
+        у тебя <span class="num" id="cabinetUnexcused">0</span> ч неуважительных и <span class="num" id="cabinetExcused">0</span> ч уважительных пропусков.
+      </p>
 
-      <!-- Место в группе по посещаемости -->
-      <div id="groupStandingCard" class="student-summary-card mb-4 d-none">
-        <div class="small text-secondary mb-1">Место в группе</div>
+      <div id="groupStandingCard" class="d-none">
+        <div class="kicker">Место в группе</div>
         <div class="text-white" id="groupStandingText">—</div>
+        <div class="meter" aria-hidden="true"><i id="groupStandingMeter"></i></div>
+        <div class="meter-labels"><span>больше пропусков</span><span>меньше пропусков</span></div>
       </div>
 
-      <hr class="border-secondary">
-
-      <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
-        <h6 class="text-white m-0">Мои пропуски</h6>
+      <div class="feed-head">
+        <div class="kicker">Хронология пропусков</div>
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
       </div>
       <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
       <div id="starostaPickerList" class="mb-3 d-none"></div>
+      <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="myAbsList"></div>
 
-      <div class="table-responsive mb-3">
+      <details class="by-subject">
+        <summary>По предметам</summary>
+        <div class="table-responsive">
         <table class="table table-bordered table-sm align-middle text-center">
           <thead>
             <tr class="table-dark">
@@ -163,25 +169,22 @@
           <tbody id="myAbsSubjectBody"></tbody>
         </table>
       </div>
-      <div class="list-group list-group-flush border rounded border-secondary border-opacity-25 mb-4" id="myAbsList"></div>
+      </details>
     </div>
 
-    <!-- ===== Раздел: Зачётка ===== -->
     <div id="cabinetSectionGrades" class="d-none">
-      <h6 class="text-white mb-1">Моя зачётка</h6>
-      <p class="small text-secondary mb-2">Оценки вносите сами — хранятся только в этом браузере, на других устройствах не появятся. «Зачтено» в средний балл не входит.</p>
-      <div id="zachetkaList" class="mb-3"></div>
-      <div class="student-summary-card mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="small text-secondary">Средний балл за сессию</div>
-          <div class="fw-bold text-success fs-4" id="zachetkaAverage">—</div>
-        </div>
+      <div class="group">
+        <div class="group-title">Зачётка</div>
+        <div id="zachetkaList"></div>
+        <div class="group-foot">Оценки вносите сами — хранятся только в этом браузере. «Зачтено» в средний балл не входит.</div>
+      </div>
+      <div class="group">
+        <div class="inset"><div class="row-i"><span class="lbl">Средний балл за сессию</span><span class="val fw-bold text-success fs-5" id="zachetkaAverage">—</span></div></div>
       </div>
     </div>
 
-    <!-- ===== Раздел: Объявления ===== -->
     <div id="cabinetSectionAnnouncements" class="d-none">
-      <h6 class="text-white mb-2">Объявления для меня</h6>
+      <div class="kicker">Сообщения от старосты и админа</div>
       <div id="cabinetAnnouncementsList"></div>
       <div id="cabinetAnnouncementsEmpty" class="text-secondary small d-none">Пока нет объявлений, адресованных лично вам.</div>
     </div>
@@ -891,6 +894,65 @@
       navigator.serviceWorker.register('sw.js').catch((err) => console.error('SW registration failed:', err));
     });
   }
+</script>
+<script>
+  // ===== Визуальные надстройки кабинета: приветствие, цвет часов, шкала места, хронология по месяцам =====
+  function periodHours() {
+    const range = getPeriodRangeFor(document.getElementById('cabinetPeriod').value);
+    const subject = document.getElementById('cabinetSubject').value;
+    let unexcused = 0, excused = 0;
+    appData.absences.forEach(a => {
+      if (a.studentId !== myStudentId) return;
+      if (subject !== 'ALL' && a.subject !== subject) return;
+      if (range) { const d = new Date(a.date); if (isNaN(d.getTime()) || d < range.start || d >= range.end) return; }
+      if (a.isExcused) excused += Number(a.totalHours); else unexcused += Number(a.totalHours);
+    });
+    return { unexcused, excused };
+  }
+  function hoursLevel(h) { return h >= 9 ? 'danger' : h >= 5 ? 'warning' : 'ok'; }
+  function afterRender(name, fn) {
+    const orig = window[name];
+    window[name] = function () { const r = orig.apply(this, arguments); try { fn(); } catch (e) { console.error(e); } return r; };
+  }
+  function currentStudent() { return appData.students.find(s => s.id === myStudentId); }
+
+  const SUBJECT_OPTION_TEXT = 'всем предметам';
+  afterRender('renderPersonalStats', () => {
+    const { unexcused } = periodHours();
+    const el = document.getElementById('cabinetUnexcused');
+    el.classList.remove('ok', 'warning', 'danger');
+    el.classList.add(hoursLevel(unexcused));
+  });
+  afterRender('renderGroupStanding', () => {
+    const m = document.getElementById('groupStandingText').innerText.match(/(\d+)%/);
+    document.getElementById('groupStandingMeter').style.setProperty('--pos', `${m ? m[1] : 50}%`);
+  });
+  const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  afterRender('renderMyAbsences', () => {
+    const list = document.getElementById('myAbsList');
+    const abs = appData.absences.filter(a => a.studentId === myStudentId).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const items = [...list.children];
+    if (!abs.length || items.length !== abs.length) return;
+    let last = '';
+    items.forEach((item, i) => {
+      const d = new Date(abs[i].date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (abs[i].isExcused) item.classList.add('is-excused');
+      if (key !== last) {
+        const h = document.createElement('div');
+        h.className = 'month';
+        h.innerText = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+        list.insertBefore(h, item);
+        last = key;
+      }
+    });
+  });
+  afterRender('showCabinetContent', () => {
+    const s = currentStudent();
+    if (s) document.getElementById('cabinetGreeting').innerText = `Привет, ${s.firstName.split(' ')[0]}!`;
+    const opt = document.querySelector('#cabinetSubject option[value="ALL"]');
+    if (opt) opt.innerText = SUBJECT_OPTION_TEXT;
+  });
 </script>
 </body>
 </html>
