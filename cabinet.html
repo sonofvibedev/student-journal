@@ -54,6 +54,13 @@
     #zachetkaList .small { font-size: var(--fs-chip) !important; line-height: 1.3; }
     #zachetkaList .form-select { flex: none; background-color: var(--color-surface-3); }
 
+    /* Скелетон кабинета, пока грузится data.json */
+    .cabinet-skeleton .skel-card { height: 56px; margin-bottom: 16px; border-radius: var(--radius-lg); }
+    .cabinet-skeleton .skel-line { width: 45%; height: 18px; margin-bottom: 12px; }
+    .cabinet-skeleton .skel-stats { display: flex; gap: 8px; margin-bottom: 16px; }
+    .cabinet-skeleton .skel-stat { flex: 1; height: 84px; border-radius: var(--radius-lg); }
+    .cabinet-skeleton .skel-block { height: 140px; border-radius: var(--radius-lg); }
+
     @media (max-width: 576px) {
       .container { padding-left: 16px; padding-right: 16px; }
     }
@@ -67,6 +74,14 @@
     Журнал
   </a>
   <h2 class="app-title mb-3">Личный кабинет</h2>
+
+  <!-- Скелетон, пока грузится data.json -->
+  <div id="cabinetSkeleton" class="cabinet-skeleton" aria-hidden="true">
+    <span class="skel skel-card"></span>
+    <span class="skel skel-line"></span>
+    <div class="skel-stats"><span class="skel skel-stat"></span><span class="skel skel-stat"></span></div>
+    <span class="skel skel-block"></span>
+  </div>
 
   <!-- Вход в личный кабинет -->
   <div id="cabinetLoginSection" class="d-none login-card">
@@ -213,17 +228,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Анимации: библиотека Motion (motion.dev), версия для обычного JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/motion@12/dist/motion.js"></script>
 <script>
-  // FX — маленькая обёртка над Motion. Если библиотека не загрузилась (нет сети, CDN недоступен)
-  // или у пользователя включено «уменьшение движения», все функции просто ничего не делают —
-  // сайт работает как раньше, без анимаций.
+  // FX — лёгкие анимации на CSS (классы .fx-reveal и .fx-pop в app.css): JS только расставляет классы
+  // и задержки, анимируются лишь transform и opacity. При «Уменьшении движения» FX выключен
+  // (и CSS всё равно гасит анимации) — сайт работает так же, просто без движения.
   const FX = (() => {
-    const lib = window.Motion;
     const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    const on = !!(lib && typeof lib.animate === 'function') && !reduce;
-    const ease = [0.22, 1, 0.36, 1];
+    const on = !reduce;
 
     function toList(target) {
       if (!target) return [];
@@ -234,43 +245,49 @@
 
     function isShown(el) { return el.getClientRects().length > 0; }
 
-    // После анимации убираем инлайн-стили, чтобы transform не ломал position: fixed,
-    // выпадающие меню и прочую вёрстку внутри элемента
+    // После анимации снимаем класс и переменные, чтобы повторный вызов проиграл её снова
     function cleanup(el) {
-      el.style.removeProperty('opacity');
-      el.style.removeProperty('transform');
+      el.classList.remove('fx-reveal', 'fx-pop');
+      ['--fx-delay', '--fx-y', '--fx-dur'].forEach(v => el.style.removeProperty(v));
     }
 
-    function run(el, keyframes, options) {
-      try {
-        const controls = lib.animate(el, keyframes, options);
-        const done = controls && (controls.finished || (typeof controls.then === 'function' ? controls : null));
-        if (done && typeof done.then === 'function') done.then(() => cleanup(el), () => cleanup(el));
-        else setTimeout(() => cleanup(el), ((options.delay || 0) + (options.duration || 0.4)) * 1000 + 50);
-      } catch (e) {
-        cleanup(el);
-      }
+    // Запуск: снять класс со всех, один пересчёт стилей, настроить и снова добавить класс
+    function run(els, cls, setup) {
+      els.forEach(el => el.classList.remove(cls));
+      if (els.length) void els[0].offsetWidth;
+      els.forEach((el, i) => {
+        setup(el, i);
+        const done = (e) => {
+          if (e.target !== el) return;
+          el.removeEventListener('animationend', done);
+          cleanup(el);
+        };
+        el.addEventListener('animationend', done);
+        el.classList.add(cls);
+      });
     }
 
-    // Плавное появление снизу вверх, элементы по очереди.
-    // y: 0 — только прозрачность (для строк таблиц <tr>, где transform ведёт себя капризно)
+    // Плавное появление снизу вверх, элементы по очереди (время — в секундах, как раньше).
+    // y: 0 — только прозрачность (для строк таблиц <tr>)
     function reveal(target, opts = {}) {
       if (!on) return;
-      const { y = 12, delay = 0, step = 0.04, max = 12, duration = 0.4, includeHidden = false } = opts;
+      const { y = 12, delay = 0, step = 0.04, max = 12, duration = 0.3, includeHidden = false } = opts;
       const els = toList(target).filter(el => includeHidden || isShown(el));
-      els.forEach((el, i) => {
-        const keyframes = y ? { opacity: [0, 1], transform: [`translateY(${y}px)`, 'translateY(0px)'] } : { opacity: [0, 1] };
-        run(el, keyframes, { duration, delay: delay + Math.min(i, max) * step, ease });
+      const ms = (sec) => `${Math.round(sec * 1000)}ms`;
+      run(els, 'fx-reveal', (el, i) => {
+        el.style.setProperty('--fx-delay', ms(delay + Math.min(i, max) * step));
+        el.style.setProperty('--fx-y', `${y}px`);
+        el.style.setProperty('--fx-dur', ms(Math.min(Math.max(duration, 0.15), 0.35)));
       });
     }
 
     // Лёгкое «пружинящее» нажатие — для иконок таб-бара
     function pop(target) {
       if (!on) return;
-      toList(target).forEach(el => run(el, { transform: ['scale(1)', 'scale(0.82)', 'scale(1)'] }, { duration: 0.3, ease }));
+      run(toList(target), 'fx-pop', () => {});
     }
 
-    // Число «набегает» от текущего значения к новому
+    // Число «набегает» от текущего значения к новому (350 мс)
     function count(el, to) {
       if (!el) return;
       const target = Number(to);
@@ -279,16 +296,15 @@
         el.innerText = to;
         return;
       }
-      try {
-        lib.animate(from, target, {
-          duration: 0.7,
-          ease,
-          onUpdate: v => { el.innerText = Math.round(v); },
-          onComplete: () => { el.innerText = to; }
-        });
-      } catch (e) {
-        el.innerText = to;
-      }
+      const token = el.__fxCount = {};
+      const start = performance.now();
+      const tick = (now) => {
+        if (el.__fxCount !== token) return;
+        const t = Math.min((now - start) / 350, 1);
+        el.innerText = t < 1 ? Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3))) : to;
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
     }
 
     if (on) {
@@ -297,9 +313,9 @@
         const item = e.target.closest && e.target.closest('.tabbar-item');
         if (item) pop(item.querySelectorAll('.tab-ico'));
       });
-      // Содержимое любого окна Bootstrap появляется плавно, по очереди
+      // Содержимое окна Bootstrap появляется по очереди
       document.addEventListener('show.bs.modal', e => {
-        reveal(e.target.querySelectorAll('.modal-body > *'), { y: 8, step: 0.03, max: 8, duration: 0.35, includeHidden: true });
+        reveal(e.target.querySelectorAll('.modal-body > *'), { y: 8, step: 0.03, max: 8, duration: 0.3, includeHidden: true });
       });
     }
 
@@ -414,9 +430,11 @@
       if (!appData.announcements) appData.announcements = [];
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
+      document.getElementById('cabinetSkeleton').innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
       return;
     }
 
+    document.getElementById('cabinetSkeleton').classList.add('d-none');
     openPersonalCabinet();
     checkWhatsNew();
   }

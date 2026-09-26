@@ -340,6 +340,14 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* Скелетон строки списка — те же размеры, что у настоящей карточки */
+    .skeleton-row { pointer-events: none; }
+    .skeleton-row .skel-num { width: 18px; height: 14px; margin: 0 8px 0 4px; }
+    .skeleton-row .skel-name { flex: 0 1 60%; height: 16px; }
+    .skeleton-row:nth-child(2n) .skel-name { flex-basis: 45%; }
+    .skeleton-row:nth-child(3n) .skel-name { flex-basis: 70%; }
+    .skeleton-row .skel-circle { flex: none; width: var(--hours-size); height: var(--hours-size); margin-left: auto; border-radius: 50%; }
+
     /* --- Окна «Внести пропуски» --- */
     .quick-hour-btn { min-width: 50px; font-weight: 600; }
     .subject-hint { margin-top: 10px; font-size: var(--fs-small); line-height: 1.4; }
@@ -655,7 +663,15 @@
         <span>УВАЖ</span>
       </span>
     </div>
-    <div id="studentsTableBody"></div>
+    <div id="studentsTableBody" aria-busy="true">
+      <!-- Скелетоны, пока грузится data.json (renderTable заменит их списком) -->
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+      <div class="student-row skeleton-row" aria-hidden="true"><span class="skel skel-num"></span><span class="skel skel-name"></span><span class="skel skel-circle"></span></div>
+    </div>
   </div>
 </div>
 
@@ -1301,6 +1317,12 @@
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
   const filterModal = new bootstrap.Modal(document.getElementById('filterModal'));
+  document.getElementById('filterModal').addEventListener('hide.bs.modal', () => {
+    if (!filtersChangedInSheet) return;
+    filtersChangedInSheet = false;
+    animateRowsNext = true;
+    renderTable();
+  });
   const customAlertModal = new bootstrap.Modal(document.getElementById('customAlertModal'));
   const customConfirmModal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
 
@@ -1362,10 +1384,21 @@
     }
   }
 
-  // Вибрация на ключевых нажатиях: вкладки, чипы фильтра, пункты сортировки
+  // Перезапуск CSS-анимации элемента (классы анимаций — в app.css)
+  function restartAnimation(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  // Нажатия: вкладки — вибрация и «пружинка» иконки, чипы фильтра и сортировка — вибрация выбора
   document.addEventListener('click', (e) => {
     const target = e.target.closest && e.target.closest('.tabbar-item, .filter-chip, .sort-dropdown-item');
-    if (target) haptic(target.classList.contains('tabbar-item') ? 'impact' : 'selection');
+    if (!target) return;
+    const isTab = target.classList.contains('tabbar-item');
+    haptic(isTab ? 'impact' : 'selection');
+    if (isTab) restartAnimation(target.querySelector('.tab-ico'), 'fx-pop');
   });
 
   // Пока открыт «Калькулятор» или «Преподы», подсвечена их вкладка; после закрытия — снова «Журнал»
@@ -1463,6 +1496,11 @@
     modal.show();
   }
 
+  // Строки списка появляются по очереди только после загрузки, смены сортировки или фильтров —
+  // не на каждую букву в поиске и не после сохранения
+  let animateRowsNext = true;
+  let filtersChangedInSheet = false;
+
   async function loadData() {
     try {
       const response = await fetch(`./data.json?t=${Date.now()}`);
@@ -1485,6 +1523,11 @@
       renderAnalyticsChart();
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
+      const tbody = document.getElementById('studentsTableBody');
+      if (tbody.querySelector('.skeleton-row')) {
+        tbody.removeAttribute('aria-busy');
+        tbody.innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
+      }
     }
   }
 
@@ -1771,6 +1814,7 @@
     } else {
       sortState = { key: key, dir: SORT_DEFAULT_DIR[key] || 'asc' };
     }
+    animateRowsNext = true;
     renderTable();
   }
 
@@ -2101,6 +2145,7 @@
     document.getElementById(selectId).value = value;
     document.querySelectorAll(`#${groupContainerId} .filter-chip`).forEach(chip => chip.classList.remove('active'));
     clickedEl.classList.add('active');
+    filtersChangedInSheet = true;
     renderTable();
   }
 
@@ -2251,6 +2296,9 @@
     const typeFilter = document.getElementById('typeFilter').value;
     const tbody = document.getElementById('studentsTableBody');
     tbody.innerHTML = '';
+    tbody.removeAttribute('aria-busy');
+    const animateRows = animateRowsNext;
+    animateRowsNext = false;
 
     const journalNumbers = getJournalNumbers();
 
@@ -2266,7 +2314,7 @@
     filtered.sort(makeComparator(statsById, journalNumbers));
     updateSortIndicators();
 
-    filtered.forEach(student => {
+    filtered.forEach((student, index) => {
       const studentAbsences = getFilteredAbsencesForStudent(student.id);
 
       let unexcusedHours = 0;
@@ -2296,6 +2344,10 @@
           <span class="uvazh-value">${excusedHours}</span>
         </span>
       `;
+      if (animateRows && index < 12) {
+        row.classList.add('fx-reveal');
+        row.style.setProperty('--fx-delay', `${index * 25}ms`);
+      }
       tbody.appendChild(row);
     });
 

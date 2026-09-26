@@ -503,8 +503,10 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
   background-color: var(--color-selection);
   mix-blend-mode: plus-lighter;
   opacity: 0;
+  transform: scale(0.85);
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-spring);
 }
-.tabbar-item.active .tab-selection { opacity: 1; }
+.tabbar-item.active .tab-selection { opacity: 1; transform: none; }
 /* Красная точка непрочитанных объявлений */
 .tabbar-badge-dot {
   position: absolute;
@@ -539,6 +541,77 @@ body::after {
   .table td { padding: 12px 8px; }
 }
 
+/* ===== Анимации: только transform и opacity, 150–350 мс ===== */
+@keyframes fx-rise { from { opacity: 0; transform: translateY(var(--fx-y, 10px)); } }
+@keyframes fx-pop-in { from { opacity: 0; transform: scale(0.4); } }
+@keyframes fx-press { 50% { transform: scale(0.82); } }
+@keyframes fx-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* Появление: JS ставит класс и задержку --fx-delay (строки списка, разделы кабинета) */
+.fx-reveal { animation: fx-rise var(--fx-dur, var(--dur)) var(--ease-out) var(--fx-delay, 0ms) backwards; }
+/* «Пружинка» иконки вкладки при нажатии */
+.fx-pop { animation: fx-press 300ms var(--ease-out); }
+
+/* Отклик на нажатие — лёгкое сжатие */
+.dropdown-item { transition: transform var(--dur-fast) var(--ease-out); }
+.btn:active,
+.admin-btn:active,
+.filter-toggle-btn:active,
+.sort-icon-btn:active,
+.filter-sheet-apply:active,
+.back-link:active { transform: scale(0.97); }
+.filter-chip:active { transform: scale(0.95); }
+.dropdown-item:active { transform: scale(0.98); }
+.teacher-card:active { transform: scale(0.985); }
+
+/* Окна: плавное появление; на телефоне листы выезжают снизу, маленькие окна — из лёгкого масштаба.
+   Bootstrap сначала показывает затемнение и только потом окно, поэтому затемнение — самое короткое */
+.modal.fade { transition: opacity var(--dur) var(--ease-out); }
+.modal-backdrop.fade { transition: opacity var(--dur-fast) linear; }
+.modal.fade .modal-dialog { transform: translateY(16px); transition: transform var(--dur-slow) var(--ease-out); }
+.modal.fade .modal-dialog-centered { transform: scale(0.94); }
+.modal.show .modal-dialog,
+.modal.show .modal-dialog-centered { transform: none; }
+@media (max-width: 576px) {
+  .modal.fade .modal-dialog:not(.modal-dialog-centered) { transform: translateY(100%); transition-timing-function: var(--ease-sheet); }
+  .modal.show .modal-dialog:not(.modal-dialog-centered) { transform: none; }
+  /* Лист не просвечивает, пока выезжает (где поддерживается :has; иначе — мягкое затухание) */
+  .modal.fade:has(> .modal-dialog:not(.modal-dialog-centered)) { opacity: 1; }
+}
+
+/* Галочка выбранного чипа / пункта сортировки, красная точка непрочитанного — «выпрыгивают» */
+.filter-chip.active .chip-check,
+.sort-dropdown-item.active .check-icon,
+.tabbar-badge-dot { animation: fx-pop-in var(--dur) var(--ease-spring) backwards; }
+
+/* Карточка преподавателя: детали проявляются при раскрытии */
+.teacher-card.expanded .teacher-card-details { --fx-y: -6px; animation: fx-rise var(--dur) var(--ease-out); }
+
+/* Скелетоны, пока грузится data.json */
+.skel {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface-3);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: fx-shimmer 1.2s linear infinite;   /* единственное исключение из 150–350 мс: бесконечный отблеск */
+}
+.load-error {
+  padding: 24px 16px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--fs-caption);
+  text-align: center;
+}
+
 /* ===== Уменьшение движения: анимации и переходы выключены везде ===== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -549,4 +622,5 @@ body::after {
     transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
+  .skel::after { display: none; }
 }
