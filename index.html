@@ -641,15 +641,9 @@
 
   <!-- Аналитика по группе (только для администратора) -->
   <div class="mb-4 admin-only d-none">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="text-white m-0">Аналитика за семестр</h6>
-      <div class="btn-group btn-group-sm">
-        <button type="button" class="btn btn-outline-secondary active" id="analyticsModeWeekBtn" onclick="setAnalyticsMode('week')">По неделям</button>
-        <button type="button" class="btn btn-outline-secondary" id="analyticsModeSubjectBtn" onclick="setAnalyticsMode('subject')">По предметам</button>
-      </div>
-    </div>
+    <h6 class="text-white mb-2">Аналитика за семестр по предметам</h6>
     <div class="table-container" style="padding: 14px;">
-      <canvas id="analyticsChart" height="90"></canvas>
+      <div class="analytics-chart-wrap"><canvas id="analyticsChart" aria-label="Неуважительные часы по предметам за семестр" role="img"></canvas></div>
     </div>
   </div>
 
@@ -1873,31 +1867,6 @@
 
   // --- Аналитика по группе (график) ---
   let analyticsChartInstance = null;
-  let analyticsMode = 'week';
-
-  function setAnalyticsMode(mode) {
-    analyticsMode = mode;
-    document.getElementById('analyticsModeWeekBtn').classList.toggle('active', mode === 'week');
-    document.getElementById('analyticsModeSubjectBtn').classList.toggle('active', mode === 'subject');
-    renderAnalyticsChart();
-  }
-
-  function getWeekBuckets(range) {
-    const weeks = [];
-    const cursor = new Date(range.start);
-    const day = cursor.getDay();
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-    cursor.setDate(cursor.getDate() + diffToMonday);
-    while (cursor < range.end) {
-      const weekStart = new Date(cursor);
-      const weekEnd = new Date(cursor);
-      weekEnd.setDate(weekEnd.getDate() + 7);
-      const label = `${String(weekStart.getDate()).padStart(2, '0')}.${String(weekStart.getMonth() + 1).padStart(2, '0')}`;
-      weeks.push({ start: weekStart, end: weekEnd, label });
-      cursor.setDate(cursor.getDate() + 7);
-    }
-    return weeks;
-  }
 
   // --- Расширенная статистика по группе ---
   function renderExtendedStats() {
@@ -1936,35 +1905,22 @@
     const canvas = document.getElementById('analyticsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
+    // Неуважительные часы за текущий семестр по предметам, по убыванию
     const range = getSemesterRange(new Date());
-    let labels, values;
-
-    if (analyticsMode === 'subject') {
-      const bySubject = {};
-      appData.subjects.forEach(s => { bySubject[s] = 0; });
-      appData.absences.forEach(a => {
-        if (a.isExcused) return;
-        const d = new Date(a.date);
-        if (isNaN(d.getTime()) || d < range.start || d >= range.end) return;
-        const subj = a.subject || 'Без предмета';
-        bySubject[subj] = (bySubject[subj] || 0) + Number(a.totalHours);
-      });
-      const entries = Object.entries(bySubject).filter(([, h]) => h > 0).sort((a, b) => b[1] - a[1]);
-      labels = entries.map(([s]) => s.length > 18 ? s.slice(0, 17) + '…' : s);
-      values = entries.map(([, h]) => h);
-    } else {
-      const weeks = getWeekBuckets(range);
-      labels = weeks.map(w => w.label);
-      values = weeks.map(w => {
-        return appData.absences
-          .filter(a => {
-            if (a.isExcused) return false;
-            const d = new Date(a.date);
-            return !isNaN(d.getTime()) && d >= w.start && d < w.end;
-          })
-          .reduce((sum, a) => sum + Number(a.totalHours), 0);
-      });
-    }
+    const bySubject = {};
+    appData.subjects.forEach(s => { bySubject[s] = 0; });
+    appData.absences.forEach(a => {
+      if (a.isExcused) return;
+      const d = new Date(a.date);
+      if (isNaN(d.getTime()) || d < range.start || d >= range.end) return;
+      const subj = a.subject || 'Без предмета';
+      bySubject[subj] = (bySubject[subj] || 0) + Number(a.totalHours);
+    });
+    const entries = Object.entries(bySubject).filter(([, h]) => h > 0).sort((a, b) => b[1] - a[1]);
+    const labels = entries.map(([s]) => s.length > 18 ? s.slice(0, 17) + '…' : s);
+    const values = entries.map(([, h]) => h);
+    // Горизонтальные столбцы: длинные названия предметов читаются целиком; высота — по числу предметов
+    canvas.parentElement.style.height = `${Math.max(entries.length, 1) * 34 + 30}px`;
 
     if (analyticsChartInstance) analyticsChartInstance.destroy();
     analyticsChartInstance = new Chart(canvas.getContext('2d'), {
@@ -1975,15 +1931,22 @@
           label: 'Неуваж. часов',
           data: values,
           backgroundColor: '#0088ff',
-          borderRadius: 6
+          borderRadius: 4,
+          borderSkipped: 'start',
+          barThickness: 18
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
-        plugins: { legend: { display: false } },
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { title: (items) => entries[items[0].dataIndex][0], label: (item) => ` ${item.raw} ч неуваж.` } }
+        },
         scales: {
-          x: { ticks: { color: '#6c6c71', font: { size: 10 } }, grid: { display: false } },
-          y: { ticks: { color: '#6c6c71' }, grid: { color: '#1f1f1f' }, beginAtZero: true }
+          x: { ticks: { color: '#6c6c71', precision: 0 }, grid: { color: '#1f1f1f' }, beginAtZero: true },
+          y: { ticks: { color: '#c7c7cc', font: { size: 12 } }, grid: { display: false } }
         }
       }
     });
