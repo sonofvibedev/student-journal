@@ -150,6 +150,392 @@ body {
   padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
 }
 
+html { background-color: var(--color-bg); }
+
+h5, .h5 { font-weight: 600; letter-spacing: var(--tracking); }
+h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tracking); color: var(--color-text); }
+
+/* ===== Заголовок экрана — Figma: 34/40 bold, подпись 14px ===== */
+.app-title {
+  margin: 0;
+  font-size: clamp(28px, 8.2vw, var(--fs-title));
+  line-height: 1.18;
+  font-weight: 700;
+  letter-spacing: var(--tracking);
+  color: var(--color-text);
+}
+.app-subtitle {
+  margin-top: 2px;
+  font-size: var(--fs-caption);
+  line-height: 24px;
+  letter-spacing: var(--tracking);
+  color: var(--color-text-tertiary);
+}
+
+/* ===== Карточки ===== */
+.stat-card,
+.table-container,
+.student-summary-card,
+.subject-slot-card {
+  background-color: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+}
+.stat-card { padding: 14px 16px; min-height: 84px; }
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+.student-summary-card { padding: 12px 16px; }
+.subject-slot-card { padding: 12px; margin-bottom: 12px; }
+.modal .stat-card,
+.modal .student-summary-card,
+.modal .subject-slot-card { background-color: var(--color-surface-3); }
+
+/* ===== Кнопки — Figma Button: Bordered prominent / Bordering / Green / Red, радиус 12 ===== */
+.btn {
+  --bs-btn-padding-x: 16px;
+  --bs-btn-padding-y: 9px;
+  --bs-btn-font-size: var(--fs-button);
+  --bs-btn-font-weight: 500;
+  --bs-btn-border-radius: var(--radius-md);
+  --bs-btn-focus-box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.35);
+  letter-spacing: -0.3px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.btn-sm {
+  --bs-btn-padding-x: 12px;
+  --bs-btn-padding-y: 5.5px;
+  --bs-btn-font-size: var(--fs-caption);
+  --bs-btn-border-radius: var(--radius-sm);
+}
+.btn.text-start { text-align: left; }
+.btn-group-sm > .btn { --bs-btn-padding-x: 10px; white-space: nowrap; }
+.btn-primary {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-accent); --bs-btn-border-color: var(--color-accent);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--color-accent-hover); --bs-btn-hover-border-color: var(--color-accent-hover);
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--color-accent); --bs-btn-active-border-color: var(--color-accent);
+  --bs-btn-disabled-bg: var(--color-accent); --bs-btn-disabled-border-color: var(--color-accent);
+}
+.btn-success {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-green); --bs-btn-border-color: var(--color-green);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #0e7a37; --bs-btn-hover-border-color: #0e7a37;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--color-green); --bs-btn-active-border-color: var(--color-green);
+}
+.btn-danger {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-red); --bs-btn-border-color: var(--color-red);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #9c140f; --bs-btn-hover-border-color: #9c140f;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--color-red); --bs-btn-active-border-color: var(--color-red);
+}
+.btn-secondary {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--color-surface-3); --bs-btn-border-color: var(--color-surface-3);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #242424; --bs-btn-hover-border-color: #242424;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #242424; --bs-btn-active-border-color: #242424;
+}
+.btn-outline-secondary,
+.btn-outline-light {
+  --bs-btn-color: var(--color-text); --bs-btn-border-color: var(--color-border);
+  --bs-btn-hover-color: var(--color-text); --bs-btn-hover-bg: var(--color-surface-3); --bs-btn-hover-border-color: var(--color-border);
+  --bs-btn-active-color: var(--color-text); --bs-btn-active-bg: var(--color-surface-3); --bs-btn-active-border-color: #4a4a4a;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--color-accent); --bs-btn-border-color: rgba(var(--color-accent-rgb), 0.5);
+  --bs-btn-hover-color: var(--color-accent); --bs-btn-hover-bg: rgba(var(--color-accent-rgb), 0.12); --bs-btn-hover-border-color: rgba(var(--color-accent-rgb), 0.5);
+  --bs-btn-active-color: var(--color-accent); --bs-btn-active-bg: rgba(var(--color-accent-rgb), 0.18); --bs-btn-active-border-color: var(--color-accent);
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--color-danger-line); --bs-btn-border-color: rgba(255, 98, 143, 0.45);
+  --bs-btn-hover-color: var(--color-danger-line); --bs-btn-hover-bg: rgba(255, 98, 143, 0.12); --bs-btn-hover-border-color: rgba(255, 98, 143, 0.45);
+  --bs-btn-active-color: var(--color-danger-line); --bs-btn-active-bg: rgba(255, 98, 143, 0.18); --bs-btn-active-border-color: var(--color-danger-line);
+}
+.btn-close { --bs-btn-close-focus-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.35); }
+
+/* ===== Поля ввода ===== */
+.form-control,
+.form-select {
+  min-height: var(--control-h);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-separator);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--fs-button);
+  transition: none;
+}
+.form-control-sm,
+.form-select-sm {
+  min-height: var(--control-h-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-caption);
+}
+.modal .form-control,
+.modal .form-select { background-color: var(--color-surface-3); }
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--color-surface-3);
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.25);
+}
+.form-control::placeholder { color: var(--color-text-tertiary); }
+.form-check-input {
+  background-color: var(--color-surface-3);
+  border-color: var(--color-border);
+}
+.form-check-input:checked {
+  background-color: var(--color-green);
+  border-color: var(--color-green);
+}
+.form-check-input:focus {
+  border-color: var(--color-green-line);
+  box-shadow: 0 0 0 3px rgba(11, 102, 46, 0.4);
+}
+
+/* ===== Выпадающие меню ===== */
+.dropdown-menu {
+  --bs-dropdown-bg: var(--color-surface);
+  --bs-dropdown-border-width: 0;
+  --bs-dropdown-border-radius: var(--radius-lg);
+  --bs-dropdown-padding-x: 6px;
+  --bs-dropdown-padding-y: 6px;
+  --bs-dropdown-font-size: var(--fs-chip);
+  --bs-dropdown-color: var(--color-text);
+  --bs-dropdown-link-color: var(--color-text);
+  --bs-dropdown-link-hover-color: var(--color-text);
+  --bs-dropdown-link-hover-bg: var(--color-surface-3);
+  --bs-dropdown-link-active-color: var(--color-text);
+  --bs-dropdown-link-active-bg: var(--color-surface-3);
+  --bs-dropdown-item-padding-x: 12px;
+  --bs-dropdown-item-padding-y: 10px;
+  --bs-dropdown-item-border-radius: var(--radius-sm);
+  --bs-dropdown-divider-bg: var(--color-separator);
+  --bs-dropdown-zindex: 1035;          /* поверх плавающего таб-бара (1030) */
+  box-shadow: var(--shadow-float);
+}
+
+/* ===== Модальные окна (Bootstrap 5.3.2) ===== */
+.modal {
+  --bs-modal-bg: var(--color-surface-2);
+  --bs-modal-color: var(--color-text-2);
+  --bs-modal-border-width: 0;
+  --bs-modal-border-radius: var(--radius-xl);
+  --bs-modal-inner-border-radius: var(--radius-xl);
+  --bs-modal-box-shadow: var(--shadow-float);
+  --bs-modal-header-padding: 20px 20px 8px;
+  --bs-modal-header-border-width: 0;
+  --bs-modal-padding: 12px 20px;
+  --bs-modal-footer-border-width: 0;
+  --bs-modal-footer-gap: 8px;
+  padding-top: var(--app-inset-top);
+  padding-bottom: var(--app-inset-bottom);
+}
+.modal-backdrop { --bs-backdrop-opacity: 0.6; }
+.modal-title { font-size: 20px; font-weight: 600; letter-spacing: var(--tracking); color: var(--color-text); }
+.modal-footer { padding: 8px 16px 16px; }
+
+/* На телефоне обычные окна — листы снизу (как фильтры в Figma), маленькие окна — по центру */
+@media (max-width: 576px) {
+  .modal { --bs-modal-margin: 12px; padding: 0 !important; }
+  .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 100%;
+    margin: 0;
+    padding-top: calc(var(--app-inset-top) + 40px);
+  }
+  .modal-dialog-scrollable:not(.modal-fullscreen) { height: 100%; }
+  .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) > .modal-content {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: var(--app-inset-bottom);
+    box-shadow: var(--shadow-sheet);
+  }
+  .modal-footer > .btn { flex: 1 1 auto; }
+}
+
+/* ===== Таблицы и списки ===== */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--color-text-2);
+  --bs-table-border-color: var(--color-separator);
+  margin-bottom: 0;
+}
+.table-dark {
+  --bs-table-bg: var(--color-surface);
+  --bs-table-color: var(--color-text-tertiary);
+  --bs-table-border-color: var(--color-separator);
+}
+.table th {
+  padding: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+}
+.table td { padding: 12px; vertical-align: middle; font-size: var(--fs-caption); }
+.table-bordered > :not(caption) > * { border-width: 0; }
+.table-bordered > :not(caption) > * > * { border-width: 0 0 1px; }
+.table > tbody > tr:last-child > * { border-bottom-width: 0; }
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+}
+.modal .table-responsive,
+.modal .table-dark { --bs-table-bg: var(--color-surface-3); background-color: var(--color-surface-3); }
+
+.list-group.border {
+  border-color: transparent !important;
+  border-radius: var(--radius-lg) !important;
+  background-color: var(--color-surface);
+  overflow: hidden;
+}
+.modal .list-group.border { background-color: var(--color-surface-3); }
+.modal .border.rounded.bg-dark {
+  border-color: transparent !important;
+  border-radius: var(--radius-lg) !important;
+  background-color: var(--color-surface-3) !important;
+}
+
+/* ===== Бейджи ===== */
+.badge {
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.badge.bg-success:not(.bg-opacity-25) { background-color: rgba(var(--bs-success-rgb), 0.16) !important; color: var(--color-success-text); }
+.badge.bg-danger:not(.bg-opacity-25) { background-color: rgba(var(--bs-danger-rgb), 0.16) !important; color: var(--color-danger-line); }
+.badge.bg-primary:not(.bg-opacity-25) { background-color: rgba(var(--color-accent-rgb), 0.18) !important; color: #4dabff; }
+
+/* Тег роли рядом с ФИО («Староста») и значок администратора */
+.role-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(255, 242, 98, 0.12);
+  color: var(--color-yellow-line);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--color-accent);
+}
+.admin-badge svg { width: 100%; height: 100%; }
+
+/* ===== Плавающий таб-бар — Figma Tapbar (0-382): #111, высота 72, подсветка вкладки 64 ===== */
+.bottom-tabbar {
+  position: fixed;
+  z-index: 1030;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--tabbar-inset) + var(--tabbar-gap));
+  max-width: 420px;
+  height: var(--tabbar-h);
+  margin: 0 auto;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 54px;
+  background-color: var(--color-surface-2);
+  box-shadow: var(--shadow-float);
+}
+.tabbar-item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--color-text-disabled);
+  font-size: var(--fs-tab);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.tabbar-item:hover { color: var(--color-text-secondary); }
+.tabbar-item.active { color: var(--color-accent); font-weight: 500; }
+.tabbar-item .tab-ico { flex: none; width: var(--tab-icon); height: var(--tab-icon); }
+.tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -6px; border-radius: 100px; }
+/* Подсветка активной вкладки — пятно позади иконки и подписи */
+.tab-selection {
+  position: absolute;
+  inset: 4px 0;
+  z-index: -1;
+  border-radius: 100px;
+  background-color: var(--color-selection);
+  mix-blend-mode: plus-lighter;
+  opacity: 0;
+}
+.tabbar-item.active .tab-selection { opacity: 1; }
+/* Красная точка непрочитанных объявлений */
+.tabbar-badge-dot {
+  position: absolute;
+  top: 12px;
+  left: calc(50% + 7px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-surface-2);
+  border-radius: 50%;
+  background-color: #ff453a;
+}
+
+/* Место под панель и мягкое затухание контента под ней (Figma «vinget») */
+body { padding-bottom: var(--tabbar-space); }
+body::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1020;
+  height: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 28px);
+  background: linear-gradient(to top, rgba(6, 6, 6, 0.95) 10%, rgba(6, 6, 6, 0) 100%);
+  pointer-events: none;
+}
+
+/* iOS увеличивает страницу при фокусе на поле со шрифтом меньше 16px */
+@media (max-width: 576px) {
+  .form-control, .form-select { font-size: 16px !important; }
+}
+
 /* ===== Уменьшение движения: анимации и переходы выключены везде ===== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
