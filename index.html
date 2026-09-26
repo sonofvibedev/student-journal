@@ -939,49 +939,31 @@
           </div>
         </div>
 
-        <!-- Детализация по предметам и полный список записей теперь только в Личном кабинете -->
+        <!-- Для администратора — подробная статистика прямо здесь: предметы, все записи, справки -->
+        <div class="admin-only d-none" id="historyAdminDetails">
+          <h6 class="text-white mb-2">Пропуски по предметам</h6>
+          <div class="table-responsive mb-4">
+            <table class="table table-bordered table-sm align-middle text-center">
+              <thead>
+                <tr class="table-dark">
+                  <th class="text-start">Предмет</th>
+                  <th>Неуваж. (ч)</th>
+                  <th>Уваж. (ч)</th>
+                  <th>Всего (ч)</th>
+                </tr>
+              </thead>
+              <tbody id="detailedStatsSubjectBody"></tbody>
+            </table>
+          </div>
 
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-primary admin-only d-none" onclick="openDetailedStudentStats()">Подробная статистика</button>
-        <button type="button" class="btn btn-outline-secondary admin-only d-none" onclick="editCurrentHistoryStudent()">Изменить</button>
-        <button type="button" class="btn btn-outline-danger admin-only d-none" onclick="deleteCurrentHistoryStudent()">Удалить</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Модальное окно: Подробная статистика студента (только админ) -->
-<div class="modal fade" id="studentDetailedStatsModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-white" id="detailedStatsTitle">Подробная статистика</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-
-        <h6 class="text-white mb-2">Пропуски по предметам:</h6>
-        <div class="table-responsive mb-4">
-          <table class="table table-bordered table-sm align-middle text-center">
-            <thead>
-              <tr class="table-dark">
-                <th class="text-start">Предмет</th>
-                <th>Неуваж. (ч)</th>
-                <th>Уваж. (ч)</th>
-                <th>Всего (ч)</th>
-              </tr>
-            </thead>
-            <tbody id="detailedStatsSubjectBody"></tbody>
-          </table>
+          <h6 class="text-white mb-2">Все записи пропусков</h6>
+          <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="detailedStatsList"></div>
         </div>
 
-        <h6 class="text-white mb-2">Все записи пропусков:</h6>
-        <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="detailedStatsList"></div>
-
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary admin-only d-none" onclick="editCurrentHistoryStudent()">Изменить</button>
+        <button type="button" class="btn btn-outline-danger admin-only d-none" onclick="deleteCurrentHistoryStudent()">Удалить</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
       </div>
     </div>
@@ -1314,7 +1296,6 @@
   const groupAbsenceModal = new bootstrap.Modal(document.getElementById('groupAbsenceModal'));
   const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
   const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
-  const studentDetailedStatsModal = new bootstrap.Modal(document.getElementById('studentDetailedStatsModal'));
   const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
   const ratingCalcModal = new bootstrap.Modal(document.getElementById('ratingCalcModal'));
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
@@ -2681,11 +2662,12 @@
     document.getElementById('historyTotalUnexcused').innerText = `${totalUnexcused} ч`;
     document.getElementById('historyTotalExcused').innerText = `${totalExcused} ч`;
 
+    if (githubToken) renderStudentDetails(studentId);
     updateAdminUI();
     studentHistoryModal.show();
   }
 
-  // Подробная разбивка по предметам + полный список записей (для админа — по кнопке "Подробная статистика")
+  // Подробная разбивка по предметам + полный список записей (для админа — сразу в окне студента)
   function buildSubjectBreakdown(studentAbs) {
     const subjectMap = {};
     appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
@@ -2715,14 +2697,8 @@
     return `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50">${a.certType}: не сдана</span>`;
   }
 
-  function openDetailedStudentStats() {
-    if (!currentHistoryStudentId) return;
-    const student = appData.students.find(s => s.id === currentHistoryStudentId);
-    if (!student) return;
-
-    document.getElementById('detailedStatsTitle').innerText = `${student.lastName} ${student.firstName} — подробная статистика`;
-
-    const studentAbs = appData.absences.filter(a => a.studentId === currentHistoryStudentId);
+  function renderStudentDetails(studentId) {
+    const studentAbs = appData.absences.filter(a => a.studentId === studentId);
 
     const subjectMap = buildSubjectBreakdown(studentAbs);
     const subjectBody = document.getElementById('detailedStatsSubjectBody');
@@ -2769,16 +2745,14 @@
         listEl.appendChild(item);
       });
     }
-
-    studentDetailedStatsModal.show();
   }
 
-  // Удаление конкретной записи пропуска прямо из "Подробной статистики"
+  // Удаление конкретной записи пропуска прямо из окна студента
   async function deleteDetailedAbsence(absId) {
     if (!(await showConfirm('Удалить эту запись о пропуске?'))) return;
     appData.absences = appData.absences.filter(a => a.id !== absId);
     await saveDataToGitHub('Удалён пропуск (подробная статистика)');
-    openDetailedStudentStats();
+    openStudentHistory(currentHistoryStudentId);
   }
 
   // Кнопки "Изменить"/"Удалить" в футере окна истории (переехали сюда со столбца "Действия")
