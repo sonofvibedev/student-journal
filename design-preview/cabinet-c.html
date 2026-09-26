@@ -1,0 +1,937 @@
+﻿<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060606">
+  <title>Кабинет · Списки — превью</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../app.css" rel="stylesheet">
+  <style>
+    /* ===== Вариант C · Списки: стили страницы (токены и компоненты — app.css) ===== */
+    .cabinet-skeleton .skel-card { height: 56px; margin-bottom: 16px; border-radius: var(--radius-lg); }
+    .cabinet-skeleton .skel-line { width: 45%; height: 18px; margin-bottom: 12px; }
+    .cabinet-skeleton .skel-stats { display: flex; gap: 8px; margin-bottom: 16px; }
+    .cabinet-skeleton .skel-stat { flex: 1; height: 84px; border-radius: var(--radius-lg); }
+    .cabinet-skeleton .skel-block { height: 140px; border-radius: var(--radius-lg); }
+
+    .cab { max-width: 560px; }
+    .nav-row { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin-top: 8px; }
+    .back-link { display: inline-flex; align-items: center; gap: 2px; color: var(--color-accent); text-decoration: none; font-size: var(--fs-body); }
+    .back-link svg { width: 22px; height: 22px; }
+    .large-title { font-size: 34px; font-weight: 700; letter-spacing: -0.4px; color: var(--color-text); margin: 2px 0 14px; }
+    .group-title { padding: 0 16px 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .02em; color: var(--color-text-tertiary); }
+    .group-foot { padding: 6px 16px 0; font-size: 13px; color: var(--color-text-tertiary); line-height: 1.35; }
+    .group { margin-bottom: 28px; }
+    .inset { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
+    .row-i { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 16px; position: relative; color: var(--color-text); text-decoration: none; }
+    .inset > * { position: relative; }
+    .row-i + .row-i::before, .inset > * + *::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    .row-i .lbl { flex: 1; min-width: 0; }
+    .row-i .val { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+    .row-i .val .stat-value { display: inline; font-size: inherit; font-weight: 600; color: inherit; }
+    .row-i .ico { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+    .row-i .ico svg { width: 18px; height: 18px; }
+    .row-i.action { color: var(--color-accent); cursor: pointer; background: none; border: 0; width: 100%; text-align: left; font: inherit; }
+    .row-i.danger { color: #ff453a; justify-content: center; }
+    .profile .avatar { width: 56px; height: 56px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #3a8dff, #0a5bd6); color: #fff; font-weight: 700; font-size: 20px; }
+    .profile #cabinetStudentName { font-size: 20px; font-weight: 600; }
+    .profile .sub { font-size: 13px; color: var(--color-text-tertiary); }
+    .seg { display: flex; padding: 2px; margin: 0 0 10px; border-radius: 9px; background: #1c1c1e; }
+    .seg button { flex: 1; min-height: 32px; border: 0; border-radius: 7px; background: none; color: var(--color-text); font-size: 13px; font-weight: 500; }
+    .seg button.active { background: #636366; }
+    .row-i select.form-select { width: auto; max-width: 60%; min-height: 0; padding: 0 28px 0 0; background-position: right 4px center; border: 0; background-color: transparent; color: var(--color-text-secondary); text-align: right; font-size: 16px !important; }
+    .row-i select.form-select:focus { box-shadow: none; }
+    #cabinetUnexcused.ok { color: var(--color-success-text) !important; } #cabinetUnexcused.warning { color: #ffd60a !important; } #cabinetUnexcused.danger { color: var(--color-danger-line) !important; }
+    #groupStandingCard { display: block; padding: 0; background: none; }
+    #groupStandingCard.d-none { display: none !important; }
+    /* Записи пропусков — строки списка */
+    #myAbsList.list-group.border { border-radius: 12px !important; background: var(--color-surface-2); }
+    #myAbsList > div { border: 0 !important; position: relative; padding: 12px 16px !important; }
+    #myAbsList > div + div::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    #myAbsList .fw-bold { font-weight: 500 !important; }
+    .group .table-responsive { border-radius: 12px; background: var(--color-surface-2); }
+    .group .table-dark { --bs-table-bg: var(--color-surface-2); }
+    #starostaPickerList .btn { border: 0; border-radius: 0; background: var(--color-surface-2); margin: 0 !important; min-height: 44px; }
+    #starostaPickerList { border-radius: 12px; overflow: hidden; }
+    /* Зачётка */
+    #zachetkaList { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
+    #zachetkaList > div { position: relative; min-height: 48px; margin: 0 !important; padding: 6px 12px 6px 16px; gap: 12px; }
+    #zachetkaList > div + div::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    #zachetkaList .small { font-size: 16px !important; color: var(--color-text) !important; line-height: 1.25; }
+    #zachetkaList .form-select { width: 96px !important; min-height: 0; border: 0; background-color: transparent; color: var(--color-accent); text-align: right; }
+    #cabinetAnnouncementsList { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
+    #cabinetAnnouncementsList .student-summary-card { position: relative; border-radius: 0; background: none; margin: 0 !important; padding: 12px 16px; }
+    #cabinetAnnouncementsList .student-summary-card + .student-summary-card::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    .login-card .inset { padding: 16px; }
+    .login-card .form-control { background-color: var(--color-surface-3); }
+
+    @media (max-width: 576px) { .container { padding-left: 16px; padding-right: 16px; } }
+  </style>
+  <style>.preview-banner{position:sticky;top:0;z-index:1040;padding:6px 16px;background:#0b2a4a;color:#bcdcff;font-size:12px;text-align:center}</style>
+</head>
+<body>
+<div class="preview-banner">Превью варианта C · Списки · данные как на сайте</div>
+<div class="container cab my-3">
+  <div class="nav-row"><a href="../index.html" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Журнал</a></div>
+  <div class="large-title">Кабинет</div>
+
+  <div id="cabinetSkeleton" class="cabinet-skeleton" aria-hidden="true">
+    <span class="skel skel-card"></span>
+    <span class="skel skel-line"></span>
+    <div class="skel-stats"><span class="skel skel-stat"></span><span class="skel skel-stat"></span></div>
+    <span class="skel skel-block"></span>
+  </div>
+
+  <div id="cabinetLoginSection" class="d-none login-card">
+    <div class="group-title">Вход</div>
+    <div class="inset">
+      <div class="mb-2">
+        <label class="form-label text-secondary small" for="cabinetLoginInput">Логин</label>
+        <input type="text" id="cabinetLoginInput" class="form-control" placeholder="user01" autocomplete="username" onkeydown="if(event.key==='Enter') attemptLogin()">
+      </div>
+      <div class="mb-3">
+        <label class="form-label text-secondary small" for="cabinetPasswordInput">Пароль</label>
+        <input type="password" id="cabinetPasswordInput" class="form-control" placeholder="user01" autocomplete="current-password" onkeydown="if(event.key==='Enter') attemptLogin()">
+      </div>
+      <div id="cabinetLoginError" class="text-danger small mb-3 d-none">Неверный логин или пароль</div>
+      <button type="button" class="btn btn-primary w-100 fw-bold" onclick="attemptLogin()">Войти</button>
+    </div>
+    <div class="group-foot">Логин и пароль — user и ваш номер в журнале, например user01.</div>
+  </div>
+
+  <div id="cabinetContentSection" class="d-none">
+    <div class="group">
+      <div class="inset">
+        <div class="row-i profile"><span class="avatar" id="variantInitials">—</span><div class="lbl"><div id="cabinetStudentName">—</div><div class="sub" id="variantSub">Студент 24ДММ-2</div></div></div>
+      </div>
+    </div>
+
+    <div id="cabinetSectionStats">
+      <div class="group">
+        <div class="seg" role="group" aria-label="Период">
+          <button type="button" data-period="WEEK" onclick="variantSetPeriod('WEEK')">Неделя</button>
+          <button type="button" data-period="MONTH" onclick="variantSetPeriod('MONTH')">Месяц</button>
+          <button type="button" data-period="SEMESTER" onclick="variantSetPeriod('SEMESTER')">Семестр</button>
+        </div>
+        <div class="d-none"><select id="cabinetPeriod" class="form-select form-select-sm" onchange="renderPersonalStats()">
+          <option value="WEEK">Неделя</option>
+          <option value="MONTH" selected>Месяц</option>
+          <option value="SEMESTER">Семестр</option>
+        </select></div>
+        <div class="inset">
+          <label class="row-i"><span class="lbl">Предмет</span><select id="cabinetSubject" class="form-select form-select-sm" onchange="renderPersonalStats()">
+          <option value="ALL">Все предметы</option>
+        </select></label>
+          <div class="row-i"><span class="ico" style="background:#3a1220;color:#ff628f"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 5v6h-2V7zm0 8v2h-2v-2z"/></svg></span><span class="lbl">Неуважительные</span><span class="val"><span class="stat-value" id="cabinetUnexcused">0</span> ч</span></div>
+          <div class="row-i"><span class="ico" style="background:#10301b;color:#34c759"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.5 14.5-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4z"/></svg></span><span class="lbl">Уважительные</span><span class="val"><span class="stat-value" id="cabinetExcused">0</span> ч</span></div>
+          <div id="groupStandingCard" class="d-none"><div class="row-i"><span class="ico" style="background:#0b2a4a;color:#4dabff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20h4V10H4zm6 0h4V4h-4zm6 0h4v-7h-4z"/></svg></span><span class="lbl" id="groupStandingText">—</span></div></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Мои пропуски</div>
+        <div class="inset mb-2">
+          <button type="button" class="row-i action" onclick="toggleStarostaPicker()">Написать старосте</button>
+        </div>
+        <div id="starostaPickerList" class="mb-2 d-none"></div>
+        <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="myAbsList"></div>
+        <div class="group-foot" id="dataLastUpdated"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">По предметам</div>
+        <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle text-center">
+          <thead>
+            <tr class="table-dark">
+              <th class="text-start">Предмет</th>
+              <th>Неуваж. (ч)</th>
+              <th>Уваж. (ч)</th>
+              <th>Всего (ч)</th>
+            </tr>
+          </thead>
+          <tbody id="myAbsSubjectBody"></tbody>
+        </table>
+      </div>
+      </div>
+
+      <div class="group">
+        <div class="inset"><a href="#" class="row-i danger" onclick="logoutCabinet(); return false;">Выйти из кабинета</a></div>
+      </div>
+    </div>
+
+    <div id="cabinetSectionGrades" class="d-none">
+      <div class="group">
+        <div class="group-title">Зачётка</div>
+        <div id="zachetkaList"></div>
+        <div class="group-foot">Оценки вносите сами — хранятся только в этом браузере. «Зачтено» в средний балл не входит.</div>
+      </div>
+      <div class="group">
+        <div class="inset"><div class="row-i"><span class="lbl">Средний балл за сессию</span><span class="val fw-bold text-success fs-5" id="zachetkaAverage">—</span></div></div>
+      </div>
+    </div>
+
+    <div id="cabinetSectionAnnouncements" class="d-none">
+      <div class="group">
+        <div class="group-title">Объявления для меня</div>
+        <div id="cabinetAnnouncementsList"></div>
+        <div id="cabinetAnnouncementsEmpty" class="group-foot d-none">Пока нет объявлений, адресованных лично вам.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Нижняя панель навигации по разделам кабинета (моб.) -->
+<nav class="bottom-tabbar" aria-label="Разделы кабинета">
+  <button type="button" class="tabbar-item active" id="cabinetTabStats" onclick="setCabinetSection('stats')">
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm10 2a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0zm-4 3a1 1 0 1 0-2 0v5a1 1 0 1 0 2 0zm8 3a1 1 0 1 0-2 0v2a1 1 0 1 0 2 0z"/></svg>
+    <span>Статистика</span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabGrades" onclick="setCabinetSection('grades')">
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 4.85c-2.195-1.022-5.52-1.565-8.633.979A1 1 0 0 0 2 6.603V19a1 1 0 0 0 1.633.774c2.736-2.236 5.734-1.31 7.367-.255zm2 0v14.669c1.633-1.056 4.63-1.981 7.367.255A1 1 0 0 0 22 19V6.603a1 1 0 0 0-.367-.774C18.52 3.285 15.195 3.828 13 4.849z"/></svg>
+    <span>Зачётка</span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabAnnouncements" onclick="setCabinetSection('announcements')">
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" d="M6 11c0-4.8 4-6 6-6c4.8 0 6 4 6 6v4l2 2H4l2-2z"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5c-2 0-6 1.2-6 6v4l-2 2h16l-2-2v-4c0-2-1.2-6-6-6m0 0V3M9 18c0 1 .6 3 3 3s3-2 3-3"/></svg>
+    <span>Объявления</span>
+    <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none"></span>
+  </button>
+</nav>
+
+<!-- Что нового -->
+<div class="modal fade" id="whatsNewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">Что нового</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-secondary mb-2" id="whatsNewDate"></div>
+        <ul class="text-white ps-3 mb-0" id="whatsNewList"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary fw-bold w-100" data-bs-dismiss="modal">Понятно</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // FX — лёгкие анимации на CSS (классы .fx-reveal и .fx-pop в app.css): JS только расставляет классы
+  // и задержки, анимируются лишь transform и opacity. При «Уменьшении движения» FX выключен
+  // (и CSS всё равно гасит анимации) — сайт работает так же, просто без движения.
+  const FX = (() => {
+    const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const on = !reduce;
+
+    function toList(target) {
+      if (!target) return [];
+      if (typeof target === 'string') return Array.from(document.querySelectorAll(target));
+      if (target instanceof Element) return [target];
+      return Array.from(target);
+    }
+
+    function isShown(el) { return el.getClientRects().length > 0; }
+
+    // После анимации снимаем класс и переменные, чтобы повторный вызов проиграл её снова
+    function cleanup(el) {
+      el.classList.remove('fx-reveal', 'fx-pop');
+      ['--fx-delay', '--fx-y', '--fx-dur'].forEach(v => el.style.removeProperty(v));
+    }
+
+    // Запуск: снять класс со всех, один пересчёт стилей, настроить и снова добавить класс
+    function run(els, cls, setup) {
+      els.forEach(el => el.classList.remove(cls));
+      if (els.length) void els[0].offsetWidth;
+      els.forEach((el, i) => {
+        setup(el, i);
+        const done = (e) => {
+          if (e.target !== el) return;
+          el.removeEventListener('animationend', done);
+          cleanup(el);
+        };
+        el.addEventListener('animationend', done);
+        el.classList.add(cls);
+      });
+    }
+
+    // Плавное появление снизу вверх, элементы по очереди (время — в секундах, как раньше).
+    // y: 0 — только прозрачность (для строк таблиц <tr>)
+    function reveal(target, opts = {}) {
+      if (!on) return;
+      const { y = 12, delay = 0, step = 0.04, max = 12, duration = 0.3, includeHidden = false } = opts;
+      const els = toList(target).filter(el => includeHidden || isShown(el));
+      const ms = (sec) => `${Math.round(sec * 1000)}ms`;
+      run(els, 'fx-reveal', (el, i) => {
+        el.style.setProperty('--fx-delay', ms(delay + Math.min(i, max) * step));
+        el.style.setProperty('--fx-y', `${y}px`);
+        el.style.setProperty('--fx-dur', ms(Math.min(Math.max(duration, 0.15), 0.35)));
+      });
+    }
+
+    // Лёгкое «пружинящее» нажатие — для иконок таб-бара
+    function pop(target) {
+      if (!on) return;
+      run(toList(target), 'fx-pop', () => {});
+    }
+
+    // Число «набегает» от текущего значения к новому (350 мс)
+    function count(el, to) {
+      if (!el) return;
+      const target = Number(to);
+      const from = parseFloat(el.innerText) || 0;
+      if (!on || !Number.isFinite(target) || !Number.isInteger(target) || !Number.isInteger(from) || from === target) {
+        el.innerText = to;
+        return;
+      }
+      const token = el.__fxCount = {};
+      const start = performance.now();
+      const tick = (now) => {
+        if (el.__fxCount !== token) return;
+        const t = Math.min((now - start) / 350, 1);
+        el.innerText = t < 1 ? Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3))) : to;
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    if (on) {
+      // Нажатие на вкладку нижней панели
+      document.addEventListener('click', e => {
+        const item = e.target.closest && e.target.closest('.tabbar-item');
+        if (item) pop(item.querySelectorAll('.tab-ico'));
+      });
+      // Содержимое окна Bootstrap появляется по очереди
+      document.addEventListener('show.bs.modal', e => {
+        reveal(e.target.querySelectorAll('.modal-body > *'), { y: 8, step: 0.03, max: 8, duration: 0.3, includeHidden: true });
+      });
+    }
+
+    return { enabled: on, reveal, pop, count };
+  })();
+</script>
+<script>
+  const DEFAULT_SUBJECTS = [
+    "Интегрированные маркетинговые коммуникации",
+    "Кураторский час",
+    "Логистика",
+    "Маркетинг инноваций",
+    "Маркетинг услуг",
+    "Маркетинговые исследования и аналитика",
+    "Стратегический маркетинг",
+    "Физическая культура",
+    "Функционально-стоимостный анализ",
+    "Эконометрика"
+  ];
+
+  function formatDateShort(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '—');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}.${mm}.${yy}`;
+  }
+
+  function formatDateFull(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '—');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}.${mm}.${d.getFullYear()}`;
+  }
+
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], announcements: [] };
+  let myStudentId = null;
+
+  // --- Telegram Mini App: цвета оболочки, вибрация, кнопка «Назад» ---
+  // Работает только внутри Telegram (есть initData). В обычном браузере и в PWA TG = null,
+  // и функции ниже ничего не делают.
+  const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
+  const APP_BG_COLOR = '#060606';
+
+  function tgSupports(version) {
+    return !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(version));
+  }
+
+  // Короткая вибрация: 'impact' — нажатие, 'selection' — выбор, 'success' / 'error' — итог действия
+  function haptic(kind) {
+    if (!tgSupports('6.1') || !TG.HapticFeedback) return;
+    try {
+      if (kind === 'success' || kind === 'error') TG.HapticFeedback.notificationOccurred(kind);
+      else if (kind === 'selection') TG.HapticFeedback.selectionChanged();
+      else TG.HapticFeedback.impactOccurred('light');
+    } catch (e) {}
+  }
+
+  // Шапка, фон и нижняя панель Telegram — в цвет приложения. Приложение всегда тёмное (как в Figma),
+  // схему Telegram (colorScheme) только отмечаем в data-атрибуте <html>.
+  function applyTelegramTheme() {
+    if (!TG) return;
+    document.documentElement.dataset.tgScheme = TG.colorScheme || 'dark';
+    try {
+      if (tgSupports('6.1')) {
+        TG.setHeaderColor(APP_BG_COLOR);
+        TG.setBackgroundColor(APP_BG_COLOR);
+      }
+      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(APP_BG_COLOR);
+    } catch (e) {}
+  }
+
+  // «Назад» в Telegram закрывает верхнее открытое окно; без окон — возвращает в журнал.
+  // В кабинете кнопка видна всегда: это второй экран приложения.
+  function onTelegramBack() {
+    const open = document.querySelectorAll('.modal.show');
+    if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
+    else location.href = '../index.html';
+  }
+
+  function setupTelegram() {
+    if (!TG) return;
+    applyTelegramTheme();
+    if (TG.onEvent) TG.onEvent('themeChanged', applyTelegramTheme);
+    if (tgSupports('6.1') && TG.BackButton) {
+      TG.BackButton.onClick(onTelegramBack);
+      TG.BackButton.show();
+    }
+  }
+
+  // Вибрация при переключении разделов кабинета
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('.tabbar-item')) haptic('impact');
+  });
+
+  async function init() {
+    if (window.Telegram && window.Telegram.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.expand();
+      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+      tg.ready();
+    }
+    setupTelegram();
+
+    try {
+      const response = await fetch(`../data.json?t=${Date.now()}`);
+      appData = await response.json();
+      if (!appData.subjects || appData.subjects.length === 0) appData.subjects = DEFAULT_SUBJECTS;
+      if (!appData.teachers) appData.teachers = [];
+      if (!appData.announcements) appData.announcements = [];
+    } catch (err) {
+      console.error('Ошибка загрузки данных:', err);
+      document.getElementById('cabinetSkeleton').innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
+      return;
+    }
+
+    document.getElementById('cabinetSkeleton').classList.add('d-none');
+    openPersonalCabinet();
+    checkWhatsNew();
+  }
+
+  // "Что нового" — тот же список, версия и ключ localStorage, что в index.html, так что
+  // увиденное здесь не покажется повторно на главной странице (и наоборот). WHATS_NEW_DATE
+  // подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое.
+  const WHATS_NEW_VERSION = 3;
+  const WHATS_NEW_DATE = '26.09.2026, 22:35';
+  const WHATS_NEW_ITEMS = [
+    'Новый дизайн: журнал и личный кабинет в едином тёмном стиле',
+    'Плавные анимации: карточки появляются по очереди, окна выезжают снизу',
+    'Пока загружаются данные, вместо пустого экрана видны заготовки строк',
+    'Нижняя панель с разделами теперь есть и на компьютере',
+    'В Telegram: шапка в цвет приложения, лёгкая вибрация при нажатиях и кнопка «Назад»'
+  ];
+
+  function checkWhatsNew() {
+    const seenVersion = Number(localStorage.getItem('whats_new_seen') || 0);
+    if (seenVersion >= WHATS_NEW_VERSION) return;
+
+    document.getElementById('whatsNewDate').innerText = `Обновлено: ${WHATS_NEW_DATE}`;
+    document.getElementById('whatsNewList').innerHTML = WHATS_NEW_ITEMS.map(i => `<li class="mb-1">${i}</li>`).join('');
+    const modalEl = document.getElementById('whatsNewModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      localStorage.setItem('whats_new_seen', String(WHATS_NEW_VERSION));
+    }, { once: true });
+    modal.show();
+  }
+
+  function getJournalNumbers() {
+    const ordered = [...appData.students].sort((a, b) =>
+      `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'ru')
+    );
+    const map = {};
+    ordered.forEach((s, i) => { map[s.id] = i + 1; });
+    return map;
+  }
+
+  function getStarostaContact() {
+    const exact = appData.students.find(s => s.telegramUsername && (s.role || '').trim().toLowerCase() === 'староста');
+    if (exact) return exact;
+    return appData.students.find(s => s.telegramUsername && (s.role || '').toLowerCase().includes('старост'));
+  }
+
+  function getSemesterRange(now) {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    if (month >= 8 || month === 0) {
+      const startYear = month === 0 ? year - 1 : year;
+      return { start: new Date(startYear, 8, 1), end: new Date(startYear + 1, 1, 1) };
+    }
+    return { start: new Date(year, 1, 1), end: new Date(year, 6, 1) };
+  }
+
+  function getPeriodRangeFor(periodValue) {
+    const now = new Date();
+    if (periodValue === 'WEEK') {
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+      return { start, end };
+    }
+    if (periodValue === 'MONTH') {
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+    }
+    if (periodValue === 'SEMESTER') return getSemesterRange(now);
+    return null;
+  }
+
+  // --- Вход в личный кабинет: логин/пароль user## (## — номер в журнале), выйти можно всегда ---
+  function openPersonalCabinet() {
+    const savedId = localStorage.getItem('my_student_id');
+    if (savedId && appData.students.find(s => s.id === savedId)) {
+      myStudentId = savedId;
+      showCabinetContent();
+      return;
+    }
+    showLoginForm();
+  }
+
+  function showLoginForm() {
+    document.getElementById('cabinetLoginInput').value = '';
+    document.getElementById('cabinetPasswordInput').value = '';
+    document.getElementById('cabinetLoginError').classList.add('d-none');
+    document.getElementById('cabinetLoginSection').classList.remove('d-none');
+    document.getElementById('cabinetContentSection').classList.add('d-none');
+    FX.reveal(document.getElementById('cabinetLoginSection').children, { step: 0.05 });
+  }
+
+  function attemptLogin() {
+    const login = document.getElementById('cabinetLoginInput').value.trim().toLowerCase();
+    const password = document.getElementById('cabinetPasswordInput').value.trim().toLowerCase();
+    const errorEl = document.getElementById('cabinetLoginError');
+
+    const match = login.match(/^user(\d{1,2})$/);
+    if (!match || login !== password) {
+      errorEl.classList.remove('d-none');
+      haptic('error');
+      return;
+    }
+
+    const num = parseInt(match[1], 10);
+    const journalNumbers = getJournalNumbers();
+    const studentId = Object.keys(journalNumbers).find(id => journalNumbers[id] === num);
+    if (!studentId) {
+      errorEl.classList.remove('d-none');
+      haptic('error');
+      return;
+    }
+
+    errorEl.classList.add('d-none');
+    myStudentId = studentId;
+    localStorage.setItem('my_student_id', studentId);
+    haptic('success');
+    showCabinetContent();
+  }
+
+  function logoutCabinet() {
+    localStorage.removeItem('my_student_id');
+    myStudentId = null;
+    showLoginForm();
+  }
+
+  function showCabinetContent() {
+    const student = appData.students.find(s => s.id === myStudentId);
+    if (!student) { showLoginForm(); return; }
+
+    document.getElementById('cabinetLoginSection').classList.add('d-none');
+    document.getElementById('cabinetContentSection').classList.remove('d-none');
+    document.getElementById('cabinetStudentName').innerText = `${student.lastName} ${student.firstName}`;
+
+    const subjectSelect = document.getElementById('cabinetSubject');
+    subjectSelect.innerHTML = '<option value="ALL">Все предметы</option>' +
+      appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    document.getElementById('starostaPickerList').classList.add('d-none');
+
+    renderPersonalStats();
+    renderGroupStanding();
+    renderCabinetAnnouncements();
+    renderMyAbsences();
+    renderZachetka();
+    FX.reveal('#cabinetContentSection > .student-summary-card');
+    setCabinetSection('stats');
+  }
+
+  // Переключение разделов кабинета (Статистика / Зачётка / Объявления) — тот же таб-бар,
+  // что и на главной странице, но переключает не страницы, а блоки внутри этой
+  function setCabinetSection(section) {
+    const sections = { stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', announcements: 'cabinetSectionAnnouncements' };
+    const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', announcements: 'cabinetTabAnnouncements' };
+
+    Object.keys(sections).forEach(key => {
+      document.getElementById(sections[key]).classList.toggle('d-none', key !== section);
+      document.getElementById(tabs[key]).classList.toggle('active', key === section);
+    });
+
+    // Анимация: содержимое открытого раздела появляется по очереди
+    FX.reveal(document.getElementById(sections[section]).children, { step: 0.04, max: 10 });
+
+    if (section === 'announcements') {
+      markAnnouncementsSeen(currentPersonalAnnouncements);
+      updateAnnouncementsUnreadDot();
+    }
+  }
+
+  function renderPersonalStats() {
+    if (!myStudentId) return;
+    const period = document.getElementById('cabinetPeriod').value;
+    const subject = document.getElementById('cabinetSubject').value;
+    const range = getPeriodRangeFor(period);
+
+    let unexcused = 0, excused = 0;
+    appData.absences.forEach(a => {
+      if (a.studentId !== myStudentId) return;
+      if (subject !== 'ALL' && a.subject !== subject) return;
+      if (range) {
+        const d = new Date(a.date);
+        if (isNaN(d.getTime()) || d < range.start || d >= range.end) return;
+      }
+      if (a.isExcused) excused += Number(a.totalHours);
+      else unexcused += Number(a.totalHours);
+    });
+
+    FX.count(document.getElementById('cabinetUnexcused'), unexcused);
+    FX.count(document.getElementById('cabinetExcused'), excused);
+  }
+
+  function buildSubjectBreakdown(studentAbs) {
+    const subjectMap = {};
+    appData.subjects.forEach(sub => { subjectMap[sub] = { unexcused: 0, excused: 0 }; });
+    studentAbs.forEach(a => {
+      const h = Number(a.totalHours);
+      const subName = a.subject || (a.subjects ? a.subjects[0] : 'Прочее');
+      if (!subjectMap[subName]) subjectMap[subName] = { unexcused: 0, excused: 0 };
+      if (a.isExcused) subjectMap[subName].excused += h;
+      else subjectMap[subName].unexcused += h;
+    });
+    return subjectMap;
+  }
+
+  // Только просмотр — редактирование и удаление пропусков остаются в основном журнале у администратора
+  // Показывает "Пропуски актуальны на: ..." — та же метка, что видит админ на главной
+  // странице; появляется, как только data.json хоть раз сохранён после этого обновления
+  function renderDataLastUpdated() {
+    const el = document.getElementById('dataLastUpdated');
+    if (!el) return;
+    if (!appData.lastUpdated) { el.innerText = ''; return; }
+    const d = new Date(appData.lastUpdated);
+    if (isNaN(d.getTime())) { el.innerText = ''; return; }
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    el.innerText = `Пропуски актуальны на: ${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+  }
+
+  function renderMyAbsences() {
+    renderDataLastUpdated();
+    if (!myStudentId) return;
+    const studentAbs = appData.absences.filter(a => a.studentId === myStudentId);
+
+    const subjectMap = buildSubjectBreakdown(studentAbs);
+    const subjectBody = document.getElementById('myAbsSubjectBody');
+    subjectBody.innerHTML = '';
+    Object.keys(subjectMap).forEach(sub => {
+      const u = subjectMap[sub].unexcused;
+      const e = subjectMap[sub].excused;
+      if (u > 0 || e > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="text-start fw-bold text-white">${sub}</td>
+          <td class="text-warning">${u}</td>
+          <td class="text-success">${e}</td>
+          <td class="fw-bold">${u + e}</td>
+        `;
+        subjectBody.appendChild(tr);
+      }
+    });
+
+    const listEl = document.getElementById('myAbsList');
+    listEl.innerHTML = '';
+    if (studentAbs.length === 0) {
+      listEl.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
+    } else {
+      const sorted = [...studentAbs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      sorted.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'p-3 border-bottom border-secondary border-opacity-25';
+        const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+        const badge = certStatusBadge(a);
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="fw-bold text-white">${formatDateShort(a.date)} — ${subName} (${a.totalHours} ч)</div>
+              <div class="small text-secondary">${a.comment || 'Без комментария'}</div>
+            </div>
+            <span class="badge ${a.isExcused ? 'bg-success' : 'bg-danger'} flex-shrink-0">${a.isExcused ? 'Уважительный' : 'Неуважительный'}</span>
+          </div>
+          ${badge ? `<div class="mt-2">${badge}</div>` : ''}
+        `;
+        listEl.appendChild(item);
+      });
+    }
+  }
+
+  // Бейдж по справке для уважительного пропуска: сдана / просрочена / ожидается — та же логика,
+  // что видит админ в "Подробной статистике"
+  function certStatusBadge(a) {
+    if (!a.isExcused || !a.certType) return '';
+    if (a.certSubmitted) {
+      return `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">${a.certType}: сдана</span>`;
+    }
+    if (a.certDueDate) {
+      const due = new Date(a.certDueDate);
+      if (!isNaN(due.getTime()) && due < new Date()) {
+        return `<span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50">${a.certType}: просрочена (до ${formatDateShort(due)})</span>`;
+      }
+      return `<span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50">${a.certType}: ожидается до ${formatDateShort(due)}</span>`;
+    }
+    return `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50">${a.certType}: не сдана</span>`;
+  }
+
+  // Место в группе: сколько % одногруппников имеют БОЛЬШЕ неуваж. часов, чем я
+  function renderGroupStanding() {
+    if (!myStudentId) return;
+    const card = document.getElementById('groupStandingCard');
+    if (appData.students.length < 2) { card.classList.add('d-none'); return; }
+
+    const totals = appData.students.map(s => {
+      const hours = appData.absences
+        .filter(a => a.studentId === s.id && !a.isExcused)
+        .reduce((sum, a) => sum + Number(a.totalHours), 0);
+      return { id: s.id, hours };
+    });
+    const myTotal = totals.find(t => t.id === myStudentId).hours;
+    const others = totals.filter(t => t.id !== myStudentId);
+    const better = others.filter(t => t.hours > myTotal).length;
+    const percentile = Math.round((better / others.length) * 100);
+
+    card.classList.remove('d-none');
+    document.getElementById('groupStandingText').innerText =
+      `Неуважительных часов меньше, чем у ${percentile}% одногруппников`;
+  }
+
+  function toggleStarostaPicker() {
+    const container = document.getElementById('starostaPickerList');
+    const wasHidden = container.classList.contains('d-none');
+    container.classList.toggle('d-none');
+    if (wasHidden) {
+      renderStarostaPicker();
+      FX.reveal(container.children, { y: 6, step: 0.03 });
+    }
+  }
+
+  function renderStarostaPicker() {
+    const container = document.getElementById('starostaPickerList');
+    const starosta = getStarostaContact();
+    if (!starosta) {
+      container.innerHTML = '<div class="small text-secondary p-2">У старосты пока не указан Telegram username — попросите админа его добавить.</div>';
+      return;
+    }
+    const abs = appData.absences.filter(a => a.studentId === myStudentId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (abs.length === 0) {
+      container.innerHTML = '<div class="small text-secondary p-2">Пропусков нет.</div>';
+      return;
+    }
+    container.innerHTML = abs.map(a => {
+      const subName = a.subject || 'Предмет не указан';
+      const text = encodeURIComponent(`Привет! У меня вопрос по пропуску ${formatDateFull(a.date)} по предмету «${subName}». Можешь помочь?`);
+      const url = `https://t.me/${starosta.telegramUsername}?text=${text}`;
+      return `<button type="button" class="btn btn-outline-secondary btn-sm w-100 text-start mb-2"
+                 onclick="openTelegramChat('${url}')">${formatDateShort(a.date)} — ${subName}</button>`;
+    }).join('');
+  }
+
+  function openTelegramChat(url) {
+    try {
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(url);
+        return;
+      }
+    } catch (e) {}
+    window.open(url, '_blank');
+  }
+
+  // --- Моя зачётка ---
+  const ZACHETKA_EXCLUDED_SUBJECTS = ['Кураторский час', 'Физическая культура'];
+  // Не входит в общий список предметов журнала (нет посещаемости/преподавателя) — только строка в зачётке
+  const ZACHETKA_EXTRA_SUBJECTS = ['Летняя практика'];
+  const ZACHETKA_GRADE_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
+  function loadZachetkaState() {
+    try {
+      return JSON.parse(localStorage.getItem('zachetka_grades') || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function renderZachetka() {
+    const grades = loadZachetkaState();
+    const container = document.getElementById('zachetkaList');
+    const subjects = appData.subjects.filter(s => !ZACHETKA_EXCLUDED_SUBJECTS.includes(s)).concat(ZACHETKA_EXTRA_SUBJECTS);
+    container.innerHTML = subjects.map(subj => {
+      const current = grades[subj] !== undefined ? String(grades[subj]) : '';
+      const optionsHtml = ['<option value="">—</option>']
+        .concat(ZACHETKA_GRADE_OPTIONS.map(g => `<option value="${g}" ${current === String(g) ? 'selected' : ''}>${g}</option>`))
+        .concat([`<option value="зач" ${current === 'зач' ? 'selected' : ''}>Зачтено (зач)</option>`])
+        .join('');
+      return `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="small text-white">${subj}</div>
+          <select class="form-select form-select-sm" style="width: 110px;"
+                  onchange="updateZachetkaGrade('${subj.replace(/'/g, "\\'")}', this.value)">
+            ${optionsHtml}
+          </select>
+        </div>
+      `;
+    }).join('');
+    updateZachetkaAverage(grades);
+  }
+
+  function updateZachetkaGrade(subject, value) {
+    const grades = loadZachetkaState();
+    if (!value) delete grades[subject];
+    else if (value === 'зач') grades[subject] = 'зач';
+    else grades[subject] = Number(value);
+    localStorage.setItem('zachetka_grades', JSON.stringify(grades));
+    updateZachetkaAverage(grades);
+  }
+
+  function updateZachetkaAverage(grades) {
+    const vals = Object.values(grades).filter(v => typeof v === 'number');
+    const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+    document.getElementById('zachetkaAverage').innerText = avg !== null ? avg.toFixed(2) : '—';
+  }
+
+  // --- Объявления, адресованные лично мне ---
+  let currentPersonalAnnouncements = [];
+
+  function renderCabinetAnnouncements() {
+    if (!myStudentId) return;
+    const list = (appData.announcements || [])
+      .filter(a => a.targetType === 'STUDENT' && a.targetStudentId === myStudentId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    currentPersonalAnnouncements = list;
+
+    const listEl = document.getElementById('cabinetAnnouncementsList');
+    const emptyEl = document.getElementById('cabinetAnnouncementsEmpty');
+
+    if (list.length === 0) {
+      listEl.innerHTML = '';
+      emptyEl.classList.remove('d-none');
+    } else {
+      emptyEl.classList.add('d-none');
+      listEl.innerHTML = list.map(a => `
+        <div class="student-summary-card mb-2">
+          <div class="small text-secondary mb-1">${formatDateShort(a.date)}</div>
+          <div class="text-white">${a.text}</div>
+        </div>
+      `).join('');
+    }
+
+    updateAnnouncementsUnreadDot();
+  }
+
+  function updateAnnouncementsUnreadDot() {
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    const hasUnread = currentPersonalAnnouncements.some(a => !seen.includes(a.id));
+    document.getElementById('cabinetAnnouncementsDot').classList.toggle('d-none', !hasUnread);
+  }
+
+  // Отмечает объявления прочитанными (та же localStorage-запись, что читает
+  // index.html для красной точки на вкладке "Личный кабинет" в таб-баре)
+  function markAnnouncementsSeen(list) {
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    const ids = list.map(a => a.id);
+    const merged = Array.from(new Set(seen.concat(ids)));
+    localStorage.setItem('seen_announcements', JSON.stringify(merged));
+  }
+
+  init();
+
+  // Превью: service worker не регистрируем
+</script>
+<script>
+  // ===== Надстройки варианта C · Списки =====
+  function variantHours() {
+    const range = getPeriodRangeFor(document.getElementById('cabinetPeriod').value);
+    const subject = document.getElementById('cabinetSubject').value;
+    let unexcused = 0, excused = 0;
+    appData.absences.forEach(a => {
+      if (a.studentId !== myStudentId) return;
+      if (subject !== 'ALL' && a.subject !== subject) return;
+      if (range) { const d = new Date(a.date); if (isNaN(d.getTime()) || d < range.start || d >= range.end) return; }
+      if (a.isExcused) excused += Number(a.totalHours); else unexcused += Number(a.totalHours);
+    });
+    return { unexcused, excused };
+  }
+  function variantLevel(h) { return h >= 9 ? 'danger' : h >= 5 ? 'warning' : 'ok'; }
+  function variantAfter(name, fn) {
+    const orig = window[name];
+    window[name] = function () { const r = orig.apply(this, arguments); try { fn(); } catch (e) { console.error(e); } return r; };
+  }
+  function variantStudent() { return appData.students.find(s => s.id === myStudentId); }
+  const PERIOD_WORD = { WEEK: 'за неделю', MONTH: 'за месяц', SEMESTER: 'за семестр' };
+  // Сегментный переключатель периода пишет в тот же select#cabinetPeriod
+  function variantSetPeriod(value) {
+    const sel = document.getElementById('cabinetPeriod');
+    sel.value = value;
+    renderPersonalStats();
+  }
+  function variantSyncPeriod() {
+    const v = document.getElementById('cabinetPeriod').value;
+    document.querySelectorAll('[data-period]').forEach(b => {
+      const on = b.dataset.period === v;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  variantAfter('renderPersonalStats', () => {
+    variantSyncPeriod();
+    const { unexcused } = variantHours();
+    const el = document.getElementById('cabinetUnexcused');
+    el.classList.remove('ok', 'warning', 'danger');
+    el.classList.add(variantLevel(unexcused));
+  });
+  variantAfter('showCabinetContent', () => {
+    const s = variantStudent();
+    if (!s) return;
+    document.getElementById('variantInitials').innerText = (s.lastName[0] || '') + (s.firstName[0] || '');
+    document.getElementById('variantSub').innerText = `${s.status === 'Бюджет' ? 'Бюджет' : 'Платное'} · 24ДММ-2`;
+  });
+</script>
+</body>
+</html>
