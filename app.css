@@ -1,0 +1,163 @@
+﻿/* Журнал 24ДММ-2 — общая дизайн-система для index.html и cabinet.html.
+   Цвета, радиусы, размеры и шрифты — из Figma (journaldima: design system 10-612,
+   главная 0-76, фильтры 0-665, сортировка 0-654, таб-бар 0-382).
+   Подключается после Bootstrap 5.3.2, стили конкретной страницы — в её <style>. */
+
+/* ===== Шрифт SF Pro Text (в интерфейсе используются 400/500/600/700) ===== */
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Semibold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+
+/* ===== Токены ===== */
+:root,
+[data-bs-theme=dark] {
+  /* Поверхности: от фона к «приподнятым» слоям */
+  --color-bg: #060606;
+  --color-surface-sunken: #0a0a0a;   /* карточка студента, лист фильтров */
+  --color-surface: #0f0f0f;          /* поиск, кнопки, меню, карточки */
+  --color-surface-2: #111111;        /* таб-бар, модальные окна */
+  --color-surface-3: #1a1a1a;        /* карточки и поля внутри окон, hover */
+  --color-border: #363636;           /* обводка чипов и контурных кнопок */
+  --color-separator: #2b2b2b;
+  --color-selection: rgba(101, 101, 101, 0.2);
+
+  /* Текст */
+  --color-text: #ffffff;
+  --color-text-2: #e5e5ea;
+  --color-text-secondary: #8e8e93;
+  --color-text-tertiary: #6c6c71;    /* подписи и плейсхолдеры из Figma */
+  --color-text-muted: #7d7d7d;
+  --color-text-disabled: #4d4d4d;    /* неактивная вкладка */
+
+  /* Акценты */
+  --color-accent: #0088ff;
+  --color-accent-rgb: 0, 136, 255;
+  --color-accent-hover: #3aa0ff;
+  --color-green: #0b662e;            /* Figma Color/Green — активный чип, «Поиск», «Сохранить» */
+  --color-green-line: #5fe08c;
+  --color-red: #840e0a;              /* Figma Color/Red */
+  --color-yellow-bg: #66460b;        /* кружок часов: жёлтый */
+  --color-yellow-line: #fff262;
+  --color-danger-bg: #660b17;        /* кружок часов: красный */
+  --color-danger-line: #ff628f;
+  --color-success-text: #34c759;
+
+  /* Радиусы */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 12px;                 /* кнопки */
+  --radius-lg: 14px;                 /* карточки, поиск, меню */
+  --radius-xl: 24px;                 /* модальные окна */
+  --radius-sheet: 38px;              /* верх листа фильтров */
+  --radius-pill: 999px;
+
+  /* Отступы (шаг 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Тени */
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sheet: 0 -10px 40px rgba(0, 0, 0, 0.55);
+
+  /* Размеры элементов */
+  --control-h-sm: 34px;
+  --control-h: 44px;
+  --control-h-lg: 48px;
+  --search-h: 56px;
+  --row-h: 68px;
+  --hours-size: 40px;
+  --tab-icon: 28px;
+
+  /* Типографика */
+  --font-sans: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fs-title: 34px;
+  --fs-h2: 22px;
+  --fs-body: 17px;
+  --fs-button: 16px;
+  --fs-chip: 15px;
+  --fs-caption: 14px;
+  --fs-small: 12px;
+  --fs-tab: 11px;
+  --tracking: -0.43px;
+
+  /* Анимации: только transform/opacity, 150–350 мс */
+  --dur-fast: 150ms;
+  --dur: 220ms;
+  --dur-slow: 320ms;
+  --stagger: 25ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Безопасные зоны. Telegram отдаёт свои в --tg-*-inset-* (в полноэкранном режиме — под
+     системную строку и свои кнопки), iOS/PWA — в env(). Берём большее, чтобы не сложить дважды. */
+  --app-inset-top: max(env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
+  --app-inset-right: max(env(safe-area-inset-right, 0px), calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px)));
+  --app-inset-bottom: max(env(safe-area-inset-bottom, 0px), calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px)));
+  --app-inset-left: max(env(safe-area-inset-left, 0px), calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px)));
+
+  /* Плавающий таб-бар */
+  --tabbar-h: 72px;
+  --tabbar-gap: 12px;
+  --tabbar-inset: var(--app-inset-bottom);
+  --tabbar-space: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 24px);
+
+  /* Bootstrap: те же токены, чтобы модалки, кнопки и формы приняли палитру без правки разметки */
+  --bs-body-bg: var(--color-bg);
+  --bs-body-bg-rgb: 6, 6, 6;
+  --bs-body-color: var(--color-text-2);
+  --bs-body-font-family: var(--font-sans);
+  --bs-emphasis-color: var(--color-text);
+  --bs-secondary-color: var(--color-text-secondary);
+  --bs-secondary-bg: var(--color-surface-3);
+  --bs-tertiary-bg: var(--color-surface);
+  --bs-border-color: var(--color-separator);
+  --bs-border-radius: var(--radius-md);
+  --bs-border-radius-sm: var(--radius-sm);
+  --bs-border-radius-lg: var(--radius-lg);
+  --bs-link-color: var(--color-accent);
+  --bs-link-color-rgb: var(--color-accent-rgb);
+  --bs-link-hover-color: var(--color-accent-hover);
+  --bs-link-hover-color-rgb: 58, 160, 255;
+  --bs-primary: var(--color-accent);
+  --bs-primary-rgb: var(--color-accent-rgb);
+  --bs-secondary-rgb: 142, 142, 147;
+  --bs-success-rgb: 52, 199, 89;
+  --bs-warning-rgb: 255, 242, 98;
+  --bs-danger-rgb: 255, 98, 143;
+  --bs-dark-rgb: 15, 15, 15;
+}
+
+/* ===== База ===== */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-2);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Не уезжаем под системные зоны и кнопки Telegram */
+  padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
+}
+
+/* ===== Уменьшение движения: анимации и переходы выключены везде ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
