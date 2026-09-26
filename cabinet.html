@@ -20,624 +20,56 @@
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
   <link href="app.css" rel="stylesheet">
   <style>
-
-    .container { max-width: 1100px; }
-
-    .app-header { padding: 20px 0 10px 0; }
-
-    .group-badge {
-      background-color: rgba(56, 139, 253, 0.15);
-      color: #58a6ff;
-      border: 1px solid rgba(56, 139, 253, 0.4);
-      font-weight: 600;
-      font-size: 13px;
-      padding: 5px 12px;
-      border-radius: 6px;
-      white-space: nowrap;
-      line-height: 1.4;
-    }
-
-    /* Карточки метрик: авто-подбор колонок, никогда не сжимаются в нечитаемую ширину */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-    }
-
-    .stat-card {
-      background-color: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      padding: 16px;
-      min-height: 84px;
-    }
-
-    .stat-value {
-      font-size: 26px;
-      font-weight: 700;
-      color: #f0f6fc;
-      line-height: 1.2;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: #8b949e;
-      margin-top: 4px;
-      white-space: normal;
-      line-height: 1.35;
-    }
-
-    .table-container {
-      background-color: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .table-responsive {
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .table {
-      margin-bottom: 0;
-      color: #c9d1d9;
-      --bs-table-bg: transparent;
-      --bs-table-border-color: #21262d;
-    }
-
-    .table th {
-      background-color: #161b22;
-      color: #8b949e;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-      padding: 12px 14px;
-      border-bottom: 1px solid #30363d;
-      white-space: nowrap;
-    }
-
-    .table td {
-      padding: 10px 14px;
-      vertical-align: middle;
-      font-size: 14px;
-    }
-
-    .table-hover tbody tr:hover { background-color: #1c2128; }
-
-    .student-name {
-      font-weight: 600;
-      color: #58a6ff;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .student-name:hover { text-decoration: underline; }
-
-    .badge-type {
-      background-color: #21262d;
-      border: 1px solid #30363d;
-      color: #8b949e;
-      font-weight: 500;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-    }
-
-    .hours-box {
-      width: 65px;
-      text-align: center;
-      padding: 4px 0;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 14px;
-      line-height: 1.1;
-      display: inline-block;
-    }
-
-    .hours-subtext {
-      font-size: 9px;
-      font-weight: 400;
-      display: block;
-      opacity: 0.85;
-    }
-
-    .hours-zero { background-color: #0f2d1e; color: #3fb950; border: 1px solid #1a4d31; }
-    .hours-warning { background-color: #382403; color: #d29922; border: 1px solid #5d3d06; }
-    .hours-danger { background-color: #3d1314; color: #f85149; border: 1px solid #672022; }
-
-    /* Круглый бейдж для неуваж. часов: зелёный 0-4, жёлтый 5-8, красный 9+ */
-    .hours-circle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      font-weight: 700;
-      font-size: 14px;
-      color: #ffffff;
-    }
-    .hours-circle.hours-green { background-color: #2ea043; }
-    .hours-circle.hours-warning { background-color: #bf8700; border: none; }
-    .hours-circle.hours-danger { background-color: #da3633; border: none; }
-
-    .quick-hour-btn {
-      min-width: 50px;
-      font-weight: 600;
-    }
-
-    .student-summary-card {
-      background-color: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 12px 16px;
-    }
-
-    .subject-slot-card {
-      background-color: #0d1117;
-      border: 1px solid #21262d;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-
-    /* Фишки-оценки в калькуляторе рейтинга */
-    .grade-chip {
-      display: inline-flex;
-      align-items: center;
-      background-color: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 2px 2px 2px 10px;
-      gap: 2px;
-    }
-    .grade-chip-input {
-      width: 40px;
-      background: transparent;
-      border: none;
-      color: #f0f6fc;
-      font-weight: 700;
-      text-align: center;
-      padding: 6px 0;
-      -moz-appearance: textfield;
-    }
-    .grade-chip-input:focus { outline: none; }
-    .grade-chip-remove {
-      background: none;
-      border: none;
-      color: #8b949e;
-      font-size: 16px;
-      line-height: 1;
-      padding: 6px 8px;
-      cursor: pointer;
-    }
-    .grade-chip-remove:hover { color: #f85149; }
-
-    .form-check-input:checked {
-      background-color: #238636;
-      border-color: #238636;
-    }
-
-    .form-control, .form-select {
-      background-color: #0d1117;
-      border-color: #30363d;
-      color: #f0f6fc;
-    }
-
-    .form-control:focus, .form-select:focus {
-      background-color: #0d1117;
-      border-color: #58a6ff;
-      color: #f0f6fc;
-      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-    }
-
-    .modal-content {
-      background-color: #161b22;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-    }
-
-    .modal-header, .modal-footer { border-color: #21262d; }
-
-    /* Значок сортировки рядом с поиском — виден всегда */
-    .sort-icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      flex: 0 0 auto;
-      background-color: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      color: #8b949e;
-      cursor: pointer;
-    }
-    .sort-icon-btn:hover { color: #f0f6fc; border-color: #58a6ff; }
-    .sort-icon-btn svg { width: 17px; height: 17px; }
-
-    /* Нижняя панель навигации — видна только на мобильном (см. медиа-запрос) */
-    .bottom-tabbar { display: none; }
-    .tabbar-item {
-      flex: 1 1 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      background: none;
-      border: none;
-      color: #8b949e;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 6px 2px;
-      cursor: pointer;
-    }
-    .tabbar-item svg { width: 22px; height: 22px; }
-    .tabbar-item.active { color: #58a6ff; }
-    /* --- Порядковый номер по журналу --- */
-    .journal-num {
-      color: #8b949e;
-      font-weight: 700;
-      font-size: 13px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* --- Кнопка входа для администратора --- */
-    .admin-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background-color: #1a73ff;
-      border: none;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 15px;
-      line-height: 1;
-      padding: 10px 18px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background-color .15s ease, transform .1s ease;
-    }
-
-    .admin-btn:hover { background-color: #0f5ce0; }
-    .admin-btn:active { transform: scale(0.97); }
-    .admin-btn:focus-visible { outline: 2px solid #8fc0ff; outline-offset: 2px; }
-    .admin-btn .admin-btn-icon { width: 22px; height: 22px; flex: 0 0 auto; }
-    .admin-btn.is-admin { background-color: #da3633; }
-    .admin-btn.is-admin:hover { background-color: #b02a27; }
-
-    /* --- Подсказка под списком предметов --- */
-    .subject-hint { font-size: 12px; margin-top: 10px; line-height: 1.4; }
-
-    /* Таблица теперь всего из 4 узких колонок — не растягиваем, помещается без скролла */
-    .table { min-width: 0; width: 100%; }
-
-    /* Предмет недоступен: лимит пар уже выбран */
-    .subject-off { opacity: .4; }
-
-    /* Предмет недоступен: лимит пар уже выбран */
-    .subject-off { opacity: .4; }
-
-    /* ===== Мобильная адаптация (телефоны, Telegram Mini App) ===== */
-    @media (max-width: 576px) {
-      .container { padding-left: 12px; padding-right: 12px; }
-
-      .app-header { padding: 14px 0 6px 0; }
-      .app-header h2 { font-size: 1.3rem; }
-      .app-header .group-badge { font-size: 12px; padding: 4px 9px; }
-      .app-header > div:last-child { width: 100%; }
-      .admin-btn { width: 100%; justify-content: center; }
-
-      /* Карточки метрик: компактная сетка 3×2 вместо авто-подбора */
-      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .stat-card { padding: 10px; min-height: 68px; }
-      .stat-value { font-size: 19px; }
-      .stat-label { font-size: 10px; }
-
-      /* Панель поиска/фильтра — занимает всю ширину */
-      .search-filter-group { max-width: none; width: 100%; }
-      .search-filter-group .form-select { width: 110px; }
-
-      /* Кнопки действий — на всю ширину построчно, удобнее тапать */
-      .action-buttons-group { width: 100%; }
-      .action-buttons-group .btn { flex: 1 1 auto; }
-
-      /* iOS зумит инпуты с font-size меньше 16px при фокусе — фиксируем */
-      .form-control, .form-select { font-size: 16px !important; }
-
-      .table td, .table th { padding: 10px; font-size: 13px; }
-      .modal-body { padding: 14px; }
-
-      /* ===== Telegram Mini App: вид "по скриншоту" ===== */
-
-      /* Поисковая строка — пилюля с иконкой лупы */
-      #searchInput {
-        border-radius: 999px;
-        background-color: #161b22;
-        border-color: #21262d;
-        padding-left: 38px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: 12px center;
-        background-size: 16px;
-      }
-
-      /* Фильтры (Тип/Период/Предмет) — пилюли, скрыты по умолчанию, открываются тапом по шапке */
-      .filter-panel-group { display: none; }
-      .filter-panel-group.filter-visible { display: flex; }
-      .filter-select {
-        border-radius: 999px;
-        background-color: #161b22;
-        border-color: #21262d;
-      }
-
-
-      /* Часы — сплошные цветные "чипы" вместо рамок, без подписи "часов" под числом */
-      .hours-box {
-        border-radius: 999px;
-        border: none;
-        min-width: 34px;
-        width: auto;
-        padding: 6px 12px;
-      }
-      .hours-subtext { display: none; }
-      .hours-zero, .hours-excused { background-color: #21262d; color: #8b949e; }
-      .hours-warning { background-color: #bf8700; color: #ffffff; }
-      .hours-danger { background-color: #da3633; color: #ffffff; }
-
-      /* Нижняя панель навигации */
-      body { padding-bottom: 72px; }
-      .bottom-tabbar {
-        display: flex;
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1030;
-        background-color: #161b22;
-        border-top: 1px solid #21262d;
-        padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
-      }
-    }
-
-  /* v2-patch-applied: сортировка, мягкие кнопки, нейтральные уваж. часы */
-
-    /* Уважительные часы — без зелёного фона */
-    .hours-excused {
-      background-color: transparent;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
-    }
-
-    /* Панель кнопок: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
-    .action-buttons-group { display: flex; }
-
-    /* Мягкие кнопки: скруглённые углы + приглушённые границы */
-    .btn { --bs-btn-border-radius: 10px; }
-    .btn-outline-secondary { --bs-btn-border-color: rgba(139, 148, 158, 0.35); }
-    .btn-outline-light { --bs-btn-border-color: rgba(240, 246, 252, 0.28); }
-    .btn-outline-danger { --bs-btn-border-color: rgba(248, 81, 73, 0.45); }
-
-  /* v3-patch-applied (chat): дата дд.мм.гг, теги ролей, admin-badge, красная кнопка выхода */
-
-    /* Тег роли рядом с ФИО (например "Староста") */
-    .role-tag {
-      display: inline-block;
-      background-color: rgba(210, 153, 34, 0.15);
-      color: #d29922;
-      border: 1px solid rgba(210, 153, 34, 0.4);
-      font-weight: 600;
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 5px;
-      white-space: nowrap;
-      vertical-align: middle;
-      margin-left: 6px;
-    }
-
-    /* Значок администратора рядом с ФИО */
-    .admin-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 15px;
-      height: 15px;
-      vertical-align: middle;
-      margin-left: 6px;
-      color: #58a6ff;
-    }
-    .admin-badge svg { width: 100%; height: 100%; }
-  /* v5-feature-tiles-applied: квадратные кнопки разделов в цветах приложения + отступы под интерфейс Telegram */
-
-    /* Telegram в полноэкранном режиме рисует свои кнопки («Закрыть», меню) и системную строку
-       поверх страницы. Размеры этих зон Telegram отдаёт в переменных --tg-*.
-       В обычном режиме они равны 0, и ничего не меняется. */
-    /* окна (история, добавление и т.д.) тоже не должны уезжать под кнопки Telegram */
-    .modal {
-      padding-top: var(--app-inset-top);
-      padding-bottom: var(--app-inset-bottom);
-    }
-
-    /* Кнопки разделов: три квадрата в ряд. Тонированные карточки в стиле .group-badge:
-       фон карточки приложения + лёгкий цветной оттенок, цветная рамка и иконка */
-    .feature-buttons {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      max-width: 480px;
-    }
-
-    .feature-btn {
-      --fb-accent: #58a6ff;
-      --fb-tint: 56, 139, 253;
-      -webkit-appearance: none;
-      appearance: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 8px;
-      min-width: 0;
-      aspect-ratio: 1 / 1;
-      padding: 14px 6px 8px;
-      border: 1px solid rgba(var(--fb-tint), 0.40);
-      border-radius: 16px;
-      background-color: #161b22;
-      background-image: linear-gradient(160deg, rgba(var(--fb-tint), 0.22), rgba(var(--fb-tint), 0.08));
-      color: #e6edf3;
-      font-size: clamp(10.5px, 3.1vw, 13px);
-      font-weight: 600;
-      line-height: 1.2;
-      text-align: center;
-      overflow-wrap: anywhere;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      transition: border-color .15s ease, transform .1s ease;
-    }
-    .feature-btn:active { transform: scale(0.97); }
-    .feature-btn:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 2px; }
-    @media (hover: hover) {
-      .feature-btn:hover { border-color: rgba(var(--fb-tint), 0.75); }
-    }
-
-    .feature-btn-icon { display: flex; color: var(--fb-accent); }
-    .feature-btn-icon svg {
-      width: 30px;
-      height: 30px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .feature-btn-label { display: block; max-width: 100%; }
-
-    .feature-btn--blue { --fb-accent: #58a6ff; --fb-tint: 56, 139, 253; }
-    .feature-btn--purple { --fb-accent: #a371f7; --fb-tint: 163, 113, 247; }
-    .feature-btn--green { --fb-accent: #3fb950; --fb-tint: 46, 160, 67; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .feature-btn { transition: none; }
-      .feature-btn:active { transform: none; }
-    }
-  /* v6-tabbar-applied: плавающий тап-бар «как на скриншоте» и отступ под него */
-
-
-    /* Плавающая панель: тёмное «стекло» со скруглёнными краями */
-    .bottom-tabbar {
-      left: 16px;
-      right: 16px;
-      bottom: calc(var(--tabbar-inset) + var(--tabbar-gap));
-      justify-content: space-around;
-      align-items: center;
-      height: var(--tabbar-h);
-      padding: 0 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 999px;
-      background: rgba(22, 27, 34, 0.72);
-      -webkit-backdrop-filter: blur(22px) saturate(160%);
-      backdrop-filter: blur(22px) saturate(160%);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
-    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .bottom-tabbar { background: rgba(22, 27, 34, 0.96); }
-    }
-
-    .tabbar-item {
-      flex: 0 1 auto;
-      min-width: 0;
-      height: 100%;
-      justify-content: center;
-      gap: 4px;
-      padding: 0 3px;
-      color: #8b949e;
-      font-size: clamp(10px, 2.8vw, 11px);
-      font-weight: 500;
-      line-height: 1.15;
-      white-space: nowrap;
-      border-radius: 999px;
-      -webkit-tap-highlight-color: transparent;
-      transition: color .15s ease, opacity .15s ease;
-    }
-    .tabbar-item.active { color: #ffffff; font-weight: 600; }
-
-    .tabbar-badge-dot {
-      position: absolute;
-      top: 2px;
-      right: 18%;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background-color: #da3633;
-      border: 2px solid #0d1117;
-    }
-    .tabbar-item:active { opacity: 0.6; }
-    .tabbar-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: -3px; }
-
-    /* Иконки: контурные у неактивных вкладок, залитые у активной */
-    .tabbar-item .tab-ico {
-      flex: none;
-      width: 26px;
-      height: 26px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.7;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .tabbar-item .tab-ico--solid { display: none; fill: currentColor; stroke: none; }
-    .tabbar-item.active .tab-ico--line { display: none; }
-    .tabbar-item.active .tab-ico--solid { display: block; }
-
-    @media (max-width: 340px) {
-      .bottom-tabbar { left: 8px; right: 8px; padding: 0 4px; }
-      .tabbar-item { padding: 0 2px; }
-    }
-
-    @media (max-width: 576px) {
-      /* Исправление: место под панель внизу страницы, чтобы последняя строка не пряталась под ней */
-      body { padding-bottom: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 24px); }
-
-      /* Мягкое затухание строк под панелью */
-      body::after {
-        content: '';
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1020;
-        height: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + 28px);
-        background: linear-gradient(to top, rgba(13, 17, 23, 0.9) 0%, rgba(13, 17, 23, 0.55) 55%, rgba(13, 17, 23, 0) 100%);
-        pointer-events: none;
-      }
-    }
+    /* ===== Личный кабинет: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
+    .cabinet-container { max-width: 640px; }
 
     .back-link {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      color: #8b949e;
+      gap: 2px;
+      margin: 12px 0 4px -4px;
+      padding: 4px;
+      color: var(--color-accent);
+      font-size: var(--fs-body);
+      letter-spacing: var(--tracking);
       text-decoration: none;
-      font-size: 14px;
-      margin-bottom: 14px;
+      transition: transform var(--dur-fast) var(--ease-out);
     }
-    .back-link:hover { color: #f0f6fc; }
-    .back-link svg { width: 16px; height: 16px; }
+    .back-link:hover { color: var(--color-accent-hover); }
+    .back-link svg { width: 20px; height: 20px; }
+
+    /* Вход — карточка с полями */
+    .login-card { padding: 20px 16px; border-radius: var(--radius-lg); background-color: var(--color-surface); }
+    .login-card .form-control { background-color: var(--color-surface-3); }
+
+    /* Зачётка: предмет слева, оценка справа — строками-карточками */
+    #zachetkaList > div {
+      gap: 12px;
+      min-height: 52px;
+      margin-bottom: 8px !important;
+      padding: 6px 6px 6px 16px;
+      border-radius: var(--radius-lg);
+      background-color: var(--color-surface);
+    }
+    #zachetkaList .small { font-size: var(--fs-chip) !important; line-height: 1.3; }
+    #zachetkaList .form-select { flex: none; background-color: var(--color-surface-3); }
+
+    @media (max-width: 576px) {
+      .container { padding-left: 16px; padding-right: 16px; }
+    }
   </style>
 </head>
 <body>
 
-<div class="container my-3" style="max-width: 640px; padding-bottom: 90px;">
+<div class="container cabinet-container my-3">
   <a href="index.html" class="back-link">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    Назад в журнал
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    Журнал
   </a>
-  <h2 class="fw-bold text-white mb-3">Личный кабинет</h2>
+  <h2 class="app-title mb-3">Личный кабинет</h2>
 
   <!-- Вход в личный кабинет -->
-  <div id="cabinetLoginSection" class="d-none">
+  <div id="cabinetLoginSection" class="d-none login-card">
     <p class="small text-secondary mb-3">Войдите в личный кабинет</p>
     <div class="mb-2">
       <label class="form-label text-secondary small">Логин</label>
@@ -744,18 +176,18 @@
 <!-- Нижняя панель навигации по разделам кабинета (моб.) -->
 <nav class="bottom-tabbar" aria-label="Разделы кабинета">
   <button type="button" class="tabbar-item active" id="cabinetTabStats" onclick="setCabinetSection('stats')">
-    <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="20" y1="20" x2="20" y2="10"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
-    <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="11" width="4" height="9" rx="1"/><rect x="10" y="5" width="4" height="15" rx="1"/><rect x="17.5" y="9" width="4" height="11" rx="1"/></svg>
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm10 2a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0zm-4 3a1 1 0 1 0-2 0v5a1 1 0 1 0 2 0zm8 3a1 1 0 1 0-2 0v2a1 1 0 1 0 2 0z"/></svg>
     <span>Статистика</span>
   </button>
   <button type="button" class="tabbar-item" id="cabinetTabGrades" onclick="setCabinetSection('grades')">
-    <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22V4.5z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M8 9l2 2 4-4"/></svg>
-    <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5v-13A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 4.85c-2.195-1.022-5.52-1.565-8.633.979A1 1 0 0 0 2 6.603V19a1 1 0 0 0 1.633.774c2.736-2.236 5.734-1.31 7.367-.255zm2 0v14.669c1.633-1.056 4.63-1.981 7.367.255A1 1 0 0 0 22 19V6.603a1 1 0 0 0-.367-.774C18.52 3.285 15.195 3.828 13 4.849z"/></svg>
     <span>Зачётка</span>
   </button>
-  <button type="button" class="tabbar-item" id="cabinetTabAnnouncements" onclick="setCabinetSection('announcements')" style="position: relative;">
-    <svg class="tab-ico tab-ico--line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-    <svg class="tab-ico tab-ico--solid" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 0 0-6 6c0 7-3 9-3 9h18s-3-2-3-9a6 6 0 0 0-6-6z"/><path d="M13.7 21a2 2 0 0 1-3.4 0z"/></svg>
+  <button type="button" class="tabbar-item" id="cabinetTabAnnouncements" onclick="setCabinetSection('announcements')">
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" d="M6 11c0-4.8 4-6 6-6c4.8 0 6 4 6 6v4l2 2H4l2-2z"/><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5c-2 0-6 1.2-6 6v4l-2 2h16l-2-2v-4c0-2-1.2-6-6-6m0 0V3M9 18c0 1 .6 3 3 3s3-2 3-3"/></svg>
     <span>Объявления</span>
     <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none"></span>
   </button>

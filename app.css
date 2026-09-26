@@ -531,9 +531,12 @@ body::after {
   pointer-events: none;
 }
 
-/* iOS увеличивает страницу при фокусе на поле со шрифтом меньше 16px */
 @media (max-width: 576px) {
+  /* iOS увеличивает страницу при фокусе на поле со шрифтом меньше 16px */
   .form-control, .form-select { font-size: 16px !important; }
+  /* Узкий экран: заголовки таблиц переносятся, чтобы все колонки помещались */
+  .table th { padding: 10px 8px; white-space: normal; }
+  .table td { padding: 12px 8px; }
 }
 
 /* ===== Уменьшение движения: анимации и переходы выключены везде ===== */
