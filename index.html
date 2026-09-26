@@ -314,25 +314,24 @@
     }
     .student-name:hover { color: var(--color-accent-hover); }
 
-    /* Кружок неуваж. часов — Figma Skip: 40px. Пороги прежние: 0 / 1–4 / 5–8 / 9+ */
+    /* Бейдж неуваж. часов — тонированная «таблетка»: приглушённый цветной фон и цветное число.
+       Пороги: 0–4 зелёный, 5–8 жёлтый, 9+ красный */
     .hours-circle {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: var(--hours-size);
-      height: var(--hours-size);
-      border: 0.5px solid transparent;
-      border-radius: 50%;
-      color: #fff;
-      font-size: var(--fs-button);
-      font-weight: 500;
-      letter-spacing: var(--tracking);
+      min-width: var(--hours-size);
+      height: 28px;
+      padding: 0 10px;
+      border-radius: var(--radius-pill);
+      font-size: var(--fs-chip);
+      font-weight: 600;
+      letter-spacing: -0.2px;
       font-variant-numeric: tabular-nums;
     }
-    .hours-circle.hours-none { color: var(--color-text-muted); font-weight: 400; }
-    .hours-circle.hours-green { background-color: var(--color-green); border-color: var(--color-green-line); }
-    .hours-circle.hours-warning { background-color: var(--color-yellow-bg); border-color: var(--color-yellow-line); }
-    .hours-circle.hours-danger { background-color: var(--color-danger-bg); border-color: var(--color-danger-line); }
+    .hours-circle.hours-green { background-color: rgba(52, 199, 89, 0.14); color: #34c759; }
+    .hours-circle.hours-warning { background-color: rgba(255, 214, 10, 0.14); color: #ffd60a; }
+    .hours-circle.hours-danger { background-color: rgba(255, 98, 143, 0.16); color: var(--color-danger-line); }
     .uvazh-value {
       width: var(--hours-size);
       text-align: center;
@@ -2283,7 +2282,7 @@
       });
 
       // Неуваж. часы: 0-4 — зелёный, 5-8 — жёлтый, 9+ — красный
-      let hoursClass = unexcusedHours === 0 ? 'hours-none' : 'hours-green';
+      let hoursClass = 'hours-green';
       if (unexcusedHours >= 9) hoursClass = 'hours-danger';
       else if (unexcusedHours >= 5) hoursClass = 'hours-warning';
 
