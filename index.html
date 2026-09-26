@@ -956,7 +956,10 @@
             </table>
           </div>
 
-          <h6 class="text-white mb-2">Все записи пропусков</h6>
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <h6 class="text-white m-0">Все записи пропусков</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary d-none" id="certConfirmAllBtn" onclick="confirmAllCerts()">Подтвердить все справки</button>
+          </div>
           <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="detailedStatsList"></div>
         </div>
 
@@ -2720,6 +2723,8 @@
 
     const listEl = document.getElementById('detailedStatsList');
     listEl.innerHTML = '';
+    const pendingCerts = studentAbs.filter(a => a.isExcused && !a.certSubmitted).length;
+    document.getElementById('certConfirmAllBtn').classList.toggle('d-none', pendingCerts === 0);
     if (studentAbs.length === 0) {
       listEl.innerHTML = '<div class="p-3 text-secondary text-center">Пропусков нет</div>';
     } else {
@@ -2727,8 +2732,14 @@
       sorted.forEach(a => {
         const item = document.createElement('div');
         item.className = 'p-3 border-bottom border-secondary border-opacity-25';
+        item.dataset.absRow = a.id;
         const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
         const badge = certStatusBadge(a);
+        // Уважительный пропуск: справку можно отметить принесённой или снять отметку, если нажали по ошибке
+        const certBtn = !a.isExcused ? ''
+          : a.certSubmitted
+            ? `<button type="button" class="btn btn-sm btn-link text-secondary p-0 cert-undo-btn" data-abs-id="${a.id}" onclick="setCertSubmitted('${a.id}', false)">Отменить отметку</button>`
+            : `<button type="button" class="btn btn-sm btn-outline-success cert-confirm-btn" data-abs-id="${a.id}" onclick="setCertSubmitted('${a.id}', true)">Справка принесена</button>`;
         item.innerHTML = `
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
@@ -2740,11 +2751,41 @@
               <button class="btn btn-sm btn-outline-danger" title="Удалить эту запись" onclick="deleteDetailedAbsence('${a.id}')">✕</button>
             </div>
           </div>
-          ${badge ? `<div class="mt-2">${badge}</div>` : ''}
+          ${badge || certBtn ? `<div class="mt-2 d-flex flex-wrap align-items-center gap-2">${badge}${certBtn}</div>` : ''}
         `;
         listEl.appendChild(item);
       });
     }
+  }
+
+  // --- Справки по уважительным пропускам (только админ) ---
+  // Отметить справку принесённой (submitted = true) или снять отметку (false)
+  async function setCertSubmitted(absId, submitted) {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    const a = appData.absences.find(x => x.id === absId);
+    if (!a) return;
+    const question = submitted ? 'Отметить, что справка принесена?' : 'Снять отметку «справка принесена»?';
+    if (!(await showConfirm(question))) return;
+    if (submitted && !a.certType) a.certType = 'Справка';
+    a.certSubmitted = submitted;
+    await saveDataToGitHub(submitted ? 'Справка принесена' : 'Снята отметка о справке');
+    renderExtendedStats();
+    openStudentHistory(currentHistoryStudentId);
+  }
+
+  // Отметить принесёнными сразу все справки студента — одним сохранением
+  async function confirmAllCerts() {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    const pending = appData.absences.filter(a => a.studentId === currentHistoryStudentId && a.isExcused && !a.certSubmitted);
+    if (pending.length === 0) return;
+    if (!(await showConfirm(`Отметить принесёнными все справки студента (${pending.length})?`))) return;
+    pending.forEach(a => {
+      if (!a.certType) a.certType = 'Справка';
+      a.certSubmitted = true;
+    });
+    await saveDataToGitHub(`Справки приняты (${pending.length})`);
+    renderExtendedStats();
+    openStudentHistory(currentHistoryStudentId);
   }
 
   // Удаление конкретной записи пропуска прямо из окна студента
