@@ -141,7 +141,8 @@
     .sort-icon-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
     /* Панель кнопок администратора: flex задаём здесь, чтобы d-none (!important) надёжно её скрывал */
-    .action-buttons-group { display: flex; }
+    .action-buttons-group { display: flex; flex-basis: 100%; }
+    .action-buttons-group .btn { white-space: nowrap; }
     .btn-icon { width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
 
     /* --- Галочка «Done» (Figma) у активной сортировки и активного чипа --- */
@@ -452,8 +453,10 @@
       .stat-card { padding: 10px; min-height: 68px; }
       .stat-value { font-size: 19px; }
       .stat-label { font-size: 10px; }
-      .action-buttons-group { width: 100%; }
-      .action-buttons-group .btn { flex: 1 1 auto; }
+      /* Кнопки администратора — сетка 2×3, ничего не прячется и не прокручивается */
+      .action-buttons-group { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+      .action-buttons-group .btn,
+      .action-buttons-group .dropdown > .btn { width: 100%; min-height: 40px; }
     }
     @media (max-width: 370px) {
       .student-name { font-size: 16px; }
@@ -566,9 +569,21 @@
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
           Внести пропуски
         </button>
+        <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openGroupAbsenceModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Пропуски группой
+        </button>
         <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAddStudentModal()">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
           Добавить студента
+        </button>
+        <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openAnnouncementModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v3a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          Объявление
+        </button>
+        <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="generateDeanReport()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M12 11v8"/></svg>
+          Отчёт для деканата
         </button>
         <div class="dropdown admin-only d-none">
           <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -576,13 +591,8 @@
             Ещё
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="#" onclick="openGroupAbsenceModal(); return false;">Внести пропуски группой</a></li>
-            <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" onclick="exportToCSV(); return false;">Выгрузить CSV</a></li>
-            <li><a class="dropdown-item" href="#" onclick="generateDeanReport(); return false;">Отчёт для деканата</a></li>
             <li><a class="dropdown-item" href="#" onclick="downloadBackup(); return false;">Резервная копия</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" onclick="openAnnouncementModal(); return false;">Разместить объявление</a></li>
           </ul>
         </div>
       </div>
