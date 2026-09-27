@@ -62,6 +62,15 @@
     .admin-btn.is-admin { background-color: var(--color-red); }
     .admin-btn.is-admin .admin-btn-icon { color: #fff; }
 
+    /* --- Дедлайны в окне администратора --- */
+    .dl-admin-item { padding: 12px 14px; margin-bottom: 8px; border-radius: var(--radius-lg); background: var(--color-surface-3); }
+    .dl-admin-item.is-past { opacity: .6; }
+    .dl-admin-subject { font-weight: 600; color: var(--color-text); }
+    .dl-admin-text { margin: 2px 0 6px; color: var(--color-text-2); white-space: pre-line; overflow-wrap: anywhere; }
+    .dl-admin-meta { font-size: 13px; color: var(--color-text-secondary); }
+    .dl-admin-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .dl-admin-group { margin: 14px 2px 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); }
+
     /* --- Шапка: аватарка вошедшего студента → личный кабинет; без входа — иконка профиля --- */
     .hdr-profile { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--color-surface); color: var(--color-text-secondary); text-decoration: none; transition: transform var(--dur-fast) var(--ease-out); }
     .hdr-profile:active { transform: scale(.94); }
@@ -597,6 +606,10 @@
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v3a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
           Объявление
         </button>
+        <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="openDeadlinesModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+          Дедлайны
+        </button>
         <button class="btn btn-outline-light btn-sm admin-only d-none" onclick="generateDeanReport()">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M12 11v8"/></svg>
           Отчёт для деканата
@@ -1062,6 +1075,52 @@
 </div>
 
 <!-- Модальное окно: Разместить объявление -->
+<!-- Модальное окно: Дедлайны (админ) -->
+<div class="modal fade" id="deadlinesModal" tabindex="-1" aria-labelledby="deadlinesModalTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="deadlinesModalTitle">Дедлайны</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <button type="button" class="btn btn-primary w-100 fw-bold mb-3" onclick="openDeadlineForm()">+ Добавить дедлайн</button>
+        <div id="deadlinesAdminList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Добавить / изменить дедлайн -->
+<div class="modal fade" id="deadlineFormModal" tabindex="-1" aria-labelledby="deadlineFormTitle">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="deadlineFormTitle">Новый дедлайн</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="deadlineSubject">Предмет</label>
+          <select id="deadlineSubject" class="form-select"></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="deadlineText">Что нужно сделать</label>
+          <textarea id="deadlineText" class="form-control" rows="4" placeholder="Например: сдать презентацию по модели 4P"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="deadlineDueDate">Срок</label>
+          <input type="date" id="deadlineDueDate" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="closeDeadlineForm()">Отмена</button>
+        <button type="button" class="btn btn-primary fw-bold" id="deadlineSaveBtn" onclick="saveDeadline()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="announcementModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -1404,9 +1463,10 @@
   // WHATS_NEW_DATE подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое —
   // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
   // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
-  const WHATS_NEW_VERSION = 6;
+  const WHATS_NEW_VERSION = 7;
   const WHATS_NEW_DATE = '27.09.2026, 19:13';
   const WHATS_NEW_ITEMS = [
+    'Дедлайны: новая вкладка в личном кабинете — что и к какому сроку сдать. Новые отмечаются красной точкой',
     'Вход в личный кабинет — по своему логину и паролю. Первый раз — по одноразовому коду от старосты во вкладке «Первый вход»',
     'Своя аватарка: нажмите на фото в кабинете, чтобы выбрать новое или сбросить',
     'Кабинет в виде студенческого билета, лента событий и календарь пропусков',
@@ -1444,6 +1504,9 @@
       }
       if (!appData.announcements) {
         appData.announcements = [];
+      }
+      if (!appData.deadlines) {
+        appData.deadlines = [];
       }
       populateSubjectFilter();
       updateStats();
@@ -1499,7 +1562,8 @@
   }
 
   // Красная точка на вкладке "Личный кабинет" в таб-баре, если у вошедшего на этом
-  // устройстве студента есть персональные объявления, которые он ещё не открывал (seen_announcements)
+  // устройстве студента есть персональные объявления, которые он ещё не открывал (seen_announcements),
+  // или новые дедлайны, которые он ещё не видел (seen_deadlines; прошедшие больше недели назад не считаются)
   function updateCabinetUnreadBadge() {
     const dot = document.getElementById('cabinetUnreadDot');
     if (!dot) return;
@@ -1513,7 +1577,12 @@
     const hasUnread = (appData.announcements || []).some(a =>
       a.targetType === 'STUDENT' && a.targetStudentId === myId && !seen.includes(a.id)
     );
-    dot.classList.toggle('d-none', !hasUnread);
+    let seenDeadlines = [];
+    try { seenDeadlines = JSON.parse(localStorage.getItem('seen_deadlines') || '[]'); } catch (e) {}
+    const hasNewDeadlines = (appData.deadlines || []).some(d =>
+      !seenDeadlines.includes(d.id) && deadlineDaysLeft(d.dueDate) >= -7
+    );
+    dot.classList.toggle('d-none', !hasUnread && !hasNewDeadlines);
   }
 
   function updateStats() {
@@ -1602,6 +1671,146 @@
     appData.announcements = appData.announcements.filter(a => a.id !== id);
     await saveDataToGitHub('Удалено объявление');
     renderGeneralAnnouncements();
+    updateCabinetUnreadBadge();
+  }
+
+  // --- Дедлайны (админ): список, добавление, изменение, удаление. Хранятся в appData.deadlines:
+  // { id, subject, text, dueDate: 'YYYY-MM-DD', createdAt }. Студенты видят их в кабинете.
+  let editingDeadlineId = null;
+
+  function deadlineDate(iso) {                 // 'YYYY-MM-DD' → локальная дата без сдвига часового пояса
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function deadlineDaysLeft(iso) {
+    const t = new Date();
+    return Math.round((deadlineDate(iso) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+  }
+  function daysWord(n) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return 'дней';
+    if (b === 1) return 'день';
+    if (b >= 2 && b <= 4) return 'дня';
+    return 'дней';
+  }
+  function deadlineRelative(iso) {
+    const n = deadlineDaysLeft(iso);
+    if (n === 0) return 'сегодня';
+    if (n === 1) return 'завтра';
+    if (n > 1) return `через ${n} ${daysWord(n)}`;
+    return `просрочено на ${-n} ${daysWord(n)}`;
+  }
+
+  function openDeadlinesModal() {
+    renderDeadlinesAdminList();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deadlinesModal')).show();
+  }
+
+  function renderDeadlinesAdminList() {
+    const list = document.getElementById('deadlinesAdminList');
+    const today = toISODateLocal(new Date());
+    const all = appData.deadlines || [];
+    const upcoming = all.filter(d => d.dueDate >= today).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    const past = all.filter(d => d.dueDate < today).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
+    list.innerHTML = '';
+    if (!all.length) {
+      list.innerHTML = '<div class="text-secondary text-center py-3">Дедлайнов пока нет</div>';
+      return;
+    }
+    const addGroup = (title, items, isPast) => {
+      if (!items.length) return;
+      const h = document.createElement('div');
+      h.className = 'dl-admin-group';
+      h.textContent = title;
+      list.appendChild(h);
+      items.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'dl-admin-item' + (isPast ? ' is-past' : '');
+        item.innerHTML = `<div class="dl-admin-subject"></div><div class="dl-admin-text"></div><div class="dl-admin-meta"></div>
+          <div class="dl-admin-actions">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-act="edit">Изменить</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-act="delete">Удалить</button>
+          </div>`;
+        item.querySelector('.dl-admin-subject').textContent = d.subject;
+        item.querySelector('.dl-admin-text').textContent = d.text;
+        item.querySelector('.dl-admin-meta').textContent = `до ${formatDateShort(deadlineDate(d.dueDate))} · ${deadlineRelative(d.dueDate)}`;
+        item.querySelector('[data-act="edit"]').addEventListener('click', () => openDeadlineForm(d.id));
+        item.querySelector('[data-act="delete"]').addEventListener('click', () => deleteDeadline(d.id));
+        list.appendChild(item);
+      });
+    };
+    addGroup('Предстоящие', upcoming, false);
+    addGroup('Прошедшие', past, true);
+  }
+
+  function openDeadlineForm(id) {
+    const existing = id ? (appData.deadlines || []).find(d => d.id === id) : null;
+    editingDeadlineId = existing ? existing.id : null;
+    const select = document.getElementById('deadlineSubject');
+    const subjects = [...appData.subjects];
+    if (existing && !subjects.includes(existing.subject)) subjects.push(existing.subject);
+    select.innerHTML = '<option value="">Выберите предмет</option>';
+    subjects.forEach(sub => { const o = document.createElement('option'); o.value = sub; o.textContent = sub; select.appendChild(o); });
+    select.value = existing ? existing.subject : '';
+    document.getElementById('deadlineText').value = existing ? existing.text : '';
+    document.getElementById('deadlineDueDate').value = existing ? existing.dueDate : '';
+    document.getElementById('deadlineFormTitle').innerText = existing ? 'Изменить дедлайн' : 'Новый дедлайн';
+    const listModal = bootstrap.Modal.getInstance(document.getElementById('deadlinesModal'));
+    if (listModal) listModal.hide();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deadlineFormModal')).show();
+  }
+
+  // Закрыть форму и вернуться к списку дедлайнов
+  function closeDeadlineForm() {
+    const formEl = document.getElementById('deadlineFormModal');
+    formEl.addEventListener('hidden.bs.modal', () => openDeadlinesModal(), { once: true });
+    bootstrap.Modal.getOrCreateInstance(formEl).hide();
+  }
+
+  async function saveDeadline() {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    const subject = document.getElementById('deadlineSubject').value;
+    const text = document.getElementById('deadlineText').value.trim();
+    const dueDate = document.getElementById('deadlineDueDate').value;
+    if (!subject) return showAlert('Выберите предмет');
+    if (!text) return showAlert('Опишите, что нужно сделать');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert('Укажите срок');
+    if (dueDate < toISODateLocal(new Date())) {
+      if (!(await showConfirm(`Срок ${formatDateShort(deadlineDate(dueDate))} уже прошёл. Всё равно сохранить дедлайн?`))) return;
+    }
+
+    const backup = JSON.parse(JSON.stringify(appData.deadlines || []));
+    let message;
+    if (editingDeadlineId) {
+      const d = appData.deadlines.find(x => x.id === editingDeadlineId);
+      Object.assign(d, { subject, text, dueDate });
+      message = `Изменён дедлайн: ${subject} — до ${formatDateShort(deadlineDate(dueDate))}`;
+    } else {
+      appData.deadlines.push({ id: 'dl-' + Date.now(), subject, text, dueDate, createdAt: new Date().toISOString() });
+      message = `Добавлен дедлайн: ${subject} — до ${formatDateShort(deadlineDate(dueDate))}`;
+    }
+
+    const btn = document.getElementById('deadlineSaveBtn');
+    btn.disabled = true;
+    const ok = await saveDataToGitHub(message);
+    btn.disabled = false;
+    if (!ok) { appData.deadlines = backup; return; }   // не сохранилось — форма остаётся с введёнными данными
+    editingDeadlineId = null;
+    // Сначала админ видит «Изменения успешно сохранены!», после закрытия — снова список дедлайнов
+    document.getElementById('customAlertModal').addEventListener('hidden.bs.modal', () => openDeadlinesModal(), { once: true });
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deadlineFormModal')).hide();
+    updateCabinetUnreadBadge();
+  }
+
+  async function deleteDeadline(id) {
+    const d = (appData.deadlines || []).find(x => x.id === id);
+    if (!d) return;
+    if (!(await showConfirm(`Удалить дедлайн «${d.subject}» до ${formatDateShort(deadlineDate(d.dueDate))}?`))) return;
+    const backup = JSON.parse(JSON.stringify(appData.deadlines));
+    appData.deadlines = appData.deadlines.filter(x => x.id !== id);
+    const ok = await saveDataToGitHub(`Удалён дедлайн: ${d.subject} — до ${formatDateShort(deadlineDate(d.dueDate))}`);
+    if (!ok) appData.deadlines = backup;
+    renderDeadlinesAdminList();
     updateCabinetUnreadBadge();
   }
 
@@ -2834,7 +3043,8 @@
     if (!getFileRes.ok) {
       const errJson = await getFileRes.json();
       haptic('error');
-      return showAlert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
+      showAlert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
+      return false;
     }
 
     const fileData = await getFileRes.json();
@@ -2861,15 +3071,18 @@
       renderTable();
       haptic('success');
       showAlert('Изменения успешно сохранены!');
+      return true;
     } else {
       const errorData = await putRes.json();
       haptic('error');
       showAlert('Ошибка сохранения на GitHub: ' + errorData.message);
+      return false;
     }
   } catch (err) {
     console.error(err);
     haptic('error');
     showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
+    return false;
   }
 }
 

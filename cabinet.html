@@ -99,6 +99,29 @@
 
     /* --- Профиль «как в Telegram»: аватарка по центру и сгруппированные списки --- */
 
+    /* --- Дедлайны --- */
+    .dl-group { margin: 18px 2px 8px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+    .dl-group:first-child { margin-top: 0; }
+    .dl-card { position: relative; margin-bottom: 8px; padding: 12px 14px 12px 16px; border-radius: 16px; background: var(--color-surface-2); overflow: hidden; }
+    .dl-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #3a3a3c; }
+    .dl-card.is-over { background: rgba(255, 98, 143, .12); }
+    .dl-card.is-over::before { background: var(--color-danger-line); }
+    .dl-card.is-soon { background: rgba(255, 214, 10, .10); }
+    .dl-card.is-soon::before { background: #ffd60a; }
+    .dl-subject { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+    .dl-text { margin: 3px 0 8px; font-size: 16px; line-height: 1.35; color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
+    .dl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+    .dl-rel { padding: 2px 9px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-weight: 600; }
+    .dl-card.is-over .dl-rel { background: rgba(255, 98, 143, .22); color: #ffb3c8; }
+    .dl-card.is-soon .dl-rel { background: rgba(255, 214, 10, .20); color: #ffe066; }
+    .dl-empty { padding: 28px 0; color: var(--color-text-tertiary); text-align: center; }
+    .dl-past { margin-top: 18px; border-radius: var(--radius-lg); background: var(--color-surface); }
+    .dl-past summary { padding: 14px 16px; cursor: pointer; font-weight: 600; color: var(--color-text); list-style: none; }
+    .dl-past summary::-webkit-details-marker { display: none; }
+    .dl-past summary span { color: var(--color-text-tertiary); font-weight: 500; }
+    .dl-past > div { padding: 0 10px 10px; }
+    .dl-past .dl-card { opacity: .7; }
+
     /* --- Студенческий билет --- */
     .id-card { position: relative; margin: 4px 0 0; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, #0d2f57, #0a1a30 55%, #101010); border: 1px solid rgba(108, 184, 255, .18); overflow: hidden; }
     .id-card::after { content: ''; position: absolute; right: -46px; top: -46px; width: 150px; height: 150px; border-radius: 50%; border: 20px solid rgba(0, 136, 255, .10); pointer-events: none; }
@@ -438,6 +461,16 @@
       </div>
     </div>
 
+    <div id="cabinetSectionDeadlines" class="d-none">
+      <div class="kicker">Дедлайны группы</div>
+      <div id="deadlinesList"></div>
+      <div id="deadlinesEmpty" class="dl-empty d-none">Дедлайнов пока нет</div>
+      <details class="dl-past d-none" id="deadlinesPast">
+        <summary>Прошедшие <span id="deadlinesPastCount"></span></summary>
+        <div id="deadlinesPastList"></div>
+      </details>
+    </div>
+
     <div id="cabinetSectionAnnouncements" class="d-none">
       <div class="kicker">Сообщения от старосты и админа</div>
       <div id="cabinetAnnouncementsList"></div>
@@ -457,6 +490,12 @@
     <span class="tab-selection"></span>
     <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 4.85c-2.195-1.022-5.52-1.565-8.633.979A1 1 0 0 0 2 6.603V19a1 1 0 0 0 1.633.774c2.736-2.236 5.734-1.31 7.367-.255zm2 0v14.669c1.633-1.056 4.63-1.981 7.367.255A1 1 0 0 0 22 19V6.603a1 1 0 0 0-.367-.774C18.52 3.285 15.195 3.828 13 4.849z"/></svg>
     <span>Зачётка</span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabDeadlines" onclick="setCabinetSection('deadlines')">
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 1.5h6a1 1 0 1 1 0 2H9a1 1 0 0 1 0-2z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12 4.5a9 9 0 1 1 0 18a9 9 0 0 1 0-18zm0 3.5a1 1 0 0 0-1 1v4.6l2.8 2.8a1 1 0 0 0 1.4-1.4L13 12.8V9a1 1 0 0 0-1-1z"/></svg>
+    <span>Дедлайны</span>
+    <span id="cabinetDeadlinesDot" class="tabbar-badge-dot d-none"></span>
   </button>
   <button type="button" class="tabbar-item" id="cabinetTabAnnouncements" onclick="setCabinetSection('announcements')">
     <span class="tab-selection"></span>
@@ -716,6 +755,7 @@
       if (!appData.subjects || appData.subjects.length === 0) appData.subjects = DEFAULT_SUBJECTS;
       if (!appData.teachers) appData.teachers = [];
       if (!appData.announcements) appData.announcements = [];
+      if (!appData.deadlines) appData.deadlines = [];
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
       document.getElementById('cabinetSkeleton').innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
@@ -730,9 +770,10 @@
   // "Что нового" — тот же список, версия и ключ localStorage, что в index.html, так что
   // увиденное здесь не покажется повторно на главной странице (и наоборот). WHATS_NEW_DATE
   // подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое.
-  const WHATS_NEW_VERSION = 6;
+  const WHATS_NEW_VERSION = 7;
   const WHATS_NEW_DATE = '27.09.2026, 19:13';
   const WHATS_NEW_ITEMS = [
+    'Дедлайны: новая вкладка в личном кабинете — что и к какому сроку сдать. Новые отмечаются красной точкой',
     'Вход в личный кабинет — по своему логину и паролю. Первый раз — по одноразовому коду от старосты во вкладке «Первый вход»',
     'Своя аватарка: нажмите на фото в кабинете, чтобы выбрать новое или сбросить',
     'Кабинет в виде студенческого билета, лента событий и календарь пропусков',
@@ -1295,6 +1336,7 @@
     renderPersonalStats();
     renderGroupStanding();
     renderCabinetAnnouncements();
+    renderDeadlines();
     renderMyAbsences();
     renderZachetka();
     setGradesTab(localStorage.getItem('grades_tab'));
@@ -1305,8 +1347,8 @@
   // Переключение разделов кабинета (Статистика / Зачётка / Объявления) — тот же таб-бар,
   // что и на главной странице, но переключает не страницы, а блоки внутри этой
   function setCabinetSection(section) {
-    const sections = { stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', announcements: 'cabinetSectionAnnouncements' };
-    const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', announcements: 'cabinetTabAnnouncements' };
+    const sections = { stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', deadlines: 'cabinetSectionDeadlines', announcements: 'cabinetSectionAnnouncements' };
+    const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', deadlines: 'cabinetTabDeadlines', announcements: 'cabinetTabAnnouncements' };
 
     Object.keys(sections).forEach(key => {
       document.getElementById(sections[key]).classList.toggle('d-none', key !== section);
@@ -1319,6 +1361,10 @@
     if (section === 'announcements') {
       markAnnouncementsSeen(currentPersonalAnnouncements);
       updateAnnouncementsUnreadDot();
+    }
+    if (section === 'deadlines') {
+      markDeadlinesSeen();
+      updateDeadlinesDot();
     }
   }
 
@@ -1590,6 +1636,92 @@
     try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
     const hasUnread = currentPersonalAnnouncements.some(a => !seen.includes(a.id));
     document.getElementById('cabinetAnnouncementsDot').classList.toggle('d-none', !hasUnread);
+  }
+
+  // --- Дедлайны группы: appData.deadlines { id, subject, text, dueDate: 'YYYY-MM-DD', createdAt } ---
+  // Группы по сроку; просроченные больше недели назад — в свёрнутом блоке «Прошедшие».
+  // Новые (ещё не просмотренные) — красная точка на вкладке, ключ localStorage seen_deadlines.
+  function deadlineDate(iso) {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function deadlineDaysLeft(iso) {
+    const t = new Date();
+    return Math.round((deadlineDate(iso) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+  }
+  function daysWord(n) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return 'дней';
+    if (b === 1) return 'день';
+    if (b >= 2 && b <= 4) return 'дня';
+    return 'дней';
+  }
+  function deadlineRelative(n) {
+    if (n === 0) return 'сегодня';
+    if (n === 1) return 'завтра';
+    if (n > 1) return `через ${n} ${daysWord(n)}`;
+    return `просрочено на ${-n} ${daysWord(n)}`;
+  }
+  const activeDeadlines = () => (appData.deadlines || []).filter(d => deadlineDaysLeft(d.dueDate) >= -7);
+
+  function deadlineCard(d) {
+    const n = deadlineDaysLeft(d.dueDate);
+    const card = document.createElement('div');
+    card.className = 'dl-card' + (n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
+    card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
+    card.querySelector('.dl-subject').textContent = d.subject;
+    card.querySelector('.dl-text').textContent = d.text;
+    card.querySelector('.dl-date').textContent = `до ${formatDateFull(deadlineDate(d.dueDate))}`;
+    card.querySelector('.dl-rel').textContent = deadlineRelative(n);
+    return card;
+  }
+
+  function renderDeadlines() {
+    const list = document.getElementById('deadlinesList');
+    const pastList = document.getElementById('deadlinesPastList');
+    list.innerHTML = '';
+    pastList.innerHTML = '';
+    const all = [...(appData.deadlines || [])].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
+    const groups = [['Просрочено', []], ['Сегодня', []], ['На этой неделе', []], ['Позже', []]];
+    const past = [];
+    all.forEach(d => {
+      const n = deadlineDaysLeft(d.dueDate);
+      if (n < -7) past.push(d);
+      else if (n < 0) groups[0][1].push(d);
+      else if (n === 0) groups[1][1].push(d);
+      else if (n <= toSunday) groups[2][1].push(d);
+      else groups[3][1].push(d);
+    });
+    groups.forEach(([title, items]) => {
+      if (!items.length) return;
+      const h = document.createElement('div');
+      h.className = 'dl-group';
+      h.textContent = title;
+      list.appendChild(h);
+      items.forEach(d => list.appendChild(deadlineCard(d)));
+    });
+    past.reverse().forEach(d => pastList.appendChild(deadlineCard(d)));
+    document.getElementById('deadlinesPastCount').textContent = past.length ? `(${past.length})` : '';
+    document.getElementById('deadlinesPast').classList.toggle('d-none', past.length === 0);
+    document.getElementById('deadlinesEmpty').classList.toggle('d-none', all.length > 0);
+    updateDeadlinesDot();
+  }
+
+  function readSeenDeadlines() {
+    try { return JSON.parse(localStorage.getItem('seen_deadlines') || '[]'); } catch (e) { return []; }
+  }
+  function updateDeadlinesDot() {
+    const seen = readSeenDeadlines();
+    const hasNew = activeDeadlines().some(d => !seen.includes(d.id));
+    document.getElementById('cabinetDeadlinesDot').classList.toggle('d-none', !hasNew);
+  }
+  // Та же логика, что у объявлений: всё, что видно во вкладке, отмечаем просмотренным
+  // (эту же запись читает index.html для красной точки на «Личном кабинете»)
+  function markDeadlinesSeen() {
+    const ids = (appData.deadlines || []).map(d => d.id);
+    const merged = Array.from(new Set(readSeenDeadlines().concat(ids)));
+    try { localStorage.setItem('seen_deadlines', JSON.stringify(merged)); } catch (e) {}
   }
 
   // Отмечает объявления прочитанными (та же localStorage-запись, что читает
