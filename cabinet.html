@@ -21,7 +21,7 @@
   <link href="app.css" rel="stylesheet">
   <style>
     /* ===== Личный кабинет: стили страницы (токены и общие компоненты — в app.css).
-       Статистика и объявления — вариант «Лента», зачётка — вариант «Списки» ===== */
+       Шапка и статистика — вариант «Как в Telegram», хронология и объявления — «Лента», зачётка — «Списки» ===== */
     .cabinet-skeleton .skel-card { height: 56px; margin-bottom: 16px; border-radius: var(--radius-lg); }
     .cabinet-skeleton .skel-line { width: 45%; height: 18px; margin-bottom: 12px; }
     .cabinet-skeleton .skel-stats { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -34,15 +34,6 @@
     .login-card { padding: 24px 0; }
     .login-card .form-control { background-color: var(--color-surface); }
     .greet { font-size: clamp(30px, 9vw, 40px); font-weight: 700; line-height: 1.08; letter-spacing: -0.8px; color: var(--color-text); margin: 4px 0 6px; text-wrap: balance; }
-    .who { display: flex; align-items: center; gap: 10px; color: var(--color-text-tertiary); font-size: var(--fs-caption); margin-bottom: 22px; }
-    .who a { color: var(--color-text-secondary); }
-    /* Фраза-сводка: селекты встроены в текст */
-    .sentence { font-size: 22px; line-height: 1.45; font-weight: 500; color: var(--color-text-2); letter-spacing: -0.3px; margin-bottom: 20px; }
-    .sentence .num { font-weight: 700; font-variant-numeric: tabular-nums; }
-    .sentence .num.ok { color: var(--color-success-text); } .sentence .num.warning { color: #ffd60a; } .sentence .num.danger { color: var(--color-danger-line); }
-    .sentence select.inline { display: inline-block; width: auto; min-height: 0; padding: 0 22px 0 0; border: 0; border-bottom: 2px dotted #3a3a3a; border-radius: 0; background-color: transparent; background-position: right 0 center; background-size: 12px; color: #4dabff; font: inherit; font-size: 22px !important; field-sizing: content; max-width: 100%; text-overflow: ellipsis; }
-    .sentence select.inline:focus { box-shadow: none; border-bottom-color: var(--color-accent); }
-    #cabinetExcused { color: var(--color-success-text); }
     /* Шкала места в группе */
     #groupStandingCard { padding: 0; background: none; margin-bottom: 28px; }
     .meter { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #ff628f, #ffd60a 50%, #34c759); margin: 12px 0 8px; }
@@ -105,6 +96,31 @@
     #gradesPaneCalc .inset > * + *::before { display: none; }
     #gradesPaneCalc .form-select, #gradesPaneCalc .form-control { background-color: var(--color-surface-3); }
 
+    /* --- Профиль «как в Telegram»: аватарка по центру и сгруппированные списки --- */
+    /* --- Аватарка: фото из Telegram или инициалы на цветном фоне (палитра Telegram) --- */
+    .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, #2c2c2e); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; letter-spacing: .01em; line-height: 1; user-select: none; }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
+    .avatar.has-photo img { opacity: 1; }
+    .tg-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 0 24px; }
+    .tg-head .avatar { margin-bottom: 12px; }
+    .tg-name { font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.3px; color: var(--color-text); text-wrap: balance; }
+    .tg-sub { margin-top: 2px; font-size: 15px; color: var(--color-text-secondary); }
+    .group { margin-bottom: 22px; }
+    .row-i { width: 100%; border: 0; background: none; text-align: left; font-size: 17px; cursor: pointer; }
+    #cabinetSectionStats .inset > * + *::before { left: 60px; }
+    .ic { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--ic); color: #fff; }
+    .ic svg { width: 18px; height: 18px; }
+    .row-sel { min-width: 0; max-width: 55%; padding: 0 2px; border: 0; background: none; color: var(--color-text-secondary); font: inherit; text-align: right; text-overflow: ellipsis; appearance: none; cursor: pointer; }
+    .row-sel:focus-visible { outline: 2px solid var(--color-accent); border-radius: 4px; }
+    .row-i:has(.row-sel)::after { content: '›'; color: var(--color-text-tertiary); font-size: 20px; line-height: 1; margin-left: -6px; }
+    .row-i .val { font-size: 17px; }
+    #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
+    .chev { color: var(--color-text-tertiary); font-size: 20px; line-height: 1; }
+    .tg-exit .lbl { color: #ff453a; }
+    .tg-standing { padding: 14px 16px; }
+    .tg-standing > *::before { display: none; }
+    .feed-head .group-title { margin: 0; }
+
     @media (max-width: 576px) {
       .container { padding-left: 16px; padding-right: 16px; }
     }
@@ -138,34 +154,49 @@
   </div>
 
   <div id="cabinetContentSection" class="d-none">
-    <div class="greet" id="cabinetGreeting">Привет!</div>
-    <div class="who"><span id="cabinetStudentName">—</span>·<a href="#" onclick="logoutCabinet(); return false;">Выйти</a></div>
+    <div id="cabinetGreeting" class="visually-hidden">Привет!</div>
 
     <div id="cabinetSectionStats">
-      <p class="sentence">
-        <select class="inline" id="cabinetPeriod" onchange="renderPersonalStats()" aria-label="Период">
-          <option value="WEEK">За неделю</option>
+      <div class="tg-head">
+        <div class="avatar js-avatar" style="--av: 100px"></div>
+        <div class="tg-name" id="cabinetStudentName">—</div>
+        <div class="tg-sub"><span class="js-role">Студент</span>, группа 24ДММ-2</div>
+      </div>
+
+      <div class="group">
+        <div class="inset">
+          <label class="row-i"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="lbl">Период</span>
+            <select id="cabinetPeriod" class="row-sel" onchange="renderPersonalStats()">
+              <option value="WEEK">За неделю</option>
           <option value="MONTH" selected>За месяц</option>
           <option value="SEMESTER">За семестр</option>
-        </select>
-        по
-        <select class="inline" id="cabinetSubject" onchange="renderPersonalStats()" aria-label="Предмет">
-          <option value="ALL">всем предметам</option>
-        </select>
-        у тебя <span class="num" id="cabinetUnexcused">0</span> ч неуважительных и <span class="num" id="cabinetExcused">0</span> ч уважительных пропусков.
-      </p>
+            </select></label>
+          <label class="row-i"><span class="ic" style="--ic: #665fff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h13"/></svg></span><span class="lbl">Предмет</span>
+            <select id="cabinetSubject" class="row-sel" onchange="renderPersonalStats()">
+              <option value="ALL">Все предметы</option>
+            </select></label>
+          <div class="row-i"><span class="ic" style="--ic: #ff516a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg></span><span class="lbl">Неуважительные</span><span class="val"><span id="cabinetUnexcused">0</span> ч</span></div>
+          <div class="row-i"><span class="ic" style="--ic: #54cb68"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span><span class="lbl">Уважительные</span><span class="val"><span id="cabinetExcused">0</span> ч</span></div>
+        </div>
+      </div>
 
-      <div id="groupStandingCard" class="d-none">
-        <div class="kicker">Место в группе</div>
-        <div class="text-white" id="groupStandingText">—</div>
+      <div class="group d-none" id="groupStandingCard">
+        <div class="group-title">Место в группе</div>
+        <div class="inset tg-standing">
+          <div class="text-white" id="groupStandingText">—</div>
         <div class="meter" aria-hidden="true"><i id="groupStandingMeter"></i></div>
         <div class="meter-labels"><span>больше пропусков</span><span>меньше пропусков</span></div>
+        </div>
       </div>
 
-      <div class="feed-head">
-        <div class="kicker">Хронология пропусков</div>
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="toggleStarostaPicker()">Написать старосте</button>
+      <div class="group">
+        <div class="inset">
+          <button type="button" class="row-i" onclick="toggleStarostaPicker()"><span class="ic" style="--ic: #28c9b7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2 2 6 3-4 5 4Z"/></svg></span><span class="lbl">Написать старосте</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i tg-exit" onclick="logoutCabinet()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></span><span class="lbl">Выйти</span></button>
+        </div>
       </div>
+
+      <div class="feed-head"><div class="group-title px-0 pb-0">Хронология пропусков</div></div>
       <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
       <div id="starostaPickerList" class="mb-3 d-none"></div>
       <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="myAbsList"></div>
@@ -541,7 +572,8 @@
   const WHATS_NEW_DATE = '26.09.2026, 22:35';
   const WHATS_NEW_ITEMS = [
     'Калькулятор рейтинга переехал в личный кабинет: «Зачётка» → вкладка «Калькулятор». Введённые оценки сохранились',
-    'Внизу теперь три вкладки: «Статистика», «Преподаватели» и «Личный кабинет»'
+    'Внизу теперь три вкладки: «Статистика», «Преподаватели» и «Личный кабинет»',
+    'Личный кабинет в стиле профиля Telegram: аватарка, роль и все показатели списком. Если кабинет открыт в Telegram с твоего аккаунта, на аватарке будет твоё фото'
   ];
 
   function checkWhatsNew() {
@@ -1144,7 +1176,7 @@
   }
 </script>
 <script>
-  // ===== Визуальные надстройки кабинета: приветствие, цвет часов, шкала места, хронология по месяцам =====
+  // ===== Визуальные надстройки кабинета: приветствие, цвет часов, шкала места, хронология по месяцам, аватарка =====
   function periodHours() {
     const range = getPeriodRangeFor(document.getElementById('cabinetPeriod').value);
     const subject = document.getElementById('cabinetSubject').value;
@@ -1164,7 +1196,6 @@
   }
   function currentStudent() { return appData.students.find(s => s.id === myStudentId); }
 
-  const SUBJECT_OPTION_TEXT = 'всем предметам';
   afterRender('renderPersonalStats', () => {
     const { unexcused } = periodHours();
     const el = document.getElementById('cabinetUnexcused');
@@ -1198,9 +1229,51 @@
   afterRender('showCabinetContent', () => {
     const s = currentStudent();
     if (s) document.getElementById('cabinetGreeting').innerText = `Привет, ${s.firstName.split(' ')[0]}!`;
-    const opt = document.querySelector('#cabinetSubject option[value="ALL"]');
-    if (opt) opt.innerText = SUBJECT_OPTION_TEXT;
   });
+
+  // ===== Аватарка. Фото берём только из того, что Telegram уже передал в initData
+  // (initDataUnsafe.user.photo_url) и только если это тот же человек: username в Telegram
+  // совпадает с telegramUsername открытого студента. Иначе — инициалы. Никаких запросов к Bot API.
+  const AVATAR_COLORS = [['#ff885e', '#ff516a'], ['#ffcd6a', '#ffa85c'], ['#82b1ff', '#665fff'], ['#a0de7e', '#54cb68'],
+    ['#53edd6', '#28c9b7'], ['#72d5fd', '#2a9ef1'], ['#e0a2f3', '#d669ed']];
+  function studentInitials(s) {
+    return (((s.firstName || '').trim()[0] || '') + ((s.lastName || '').trim()[0] || '')).toUpperCase() || '?';
+  }
+  function telegramPhotoFor(student) {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    if (!user || !user.username || !user.photo_url || !student || !student.telegramUsername) return null;
+    const norm = (u) => String(u).trim().replace(/^@/, '').toLowerCase();
+    if (norm(user.username) !== norm(student.telegramUsername)) return null;
+    return /^(https:|data:image\/)/i.test(user.photo_url) ? user.photo_url : null;
+  }
+  function renderAvatar(el, student) {
+    let h = 0;
+    for (const ch of String(student.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const [c1, c2] = AVATAR_COLORS[h % AVATAR_COLORS.length];
+    el.style.setProperty('--av-bg', `linear-gradient(180deg, ${c1}, ${c2})`);
+    el.classList.remove('has-photo');
+    el.textContent = studentInitials(student);
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', `${student.firstName} ${student.lastName}`);
+    const url = telegramPhotoFor(student);
+    if (!url) return;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => el.classList.add('has-photo');
+    img.onerror = () => { img.remove(); el.classList.remove('has-photo'); };   // не загрузилось — остаются инициалы
+    img.src = url;
+    el.appendChild(img);
+  }
+  function renderCabinetAvatars() {
+    const s = currentStudent();
+    if (!s) return;
+    document.querySelectorAll('.js-avatar').forEach(el => renderAvatar(el, s));
+    document.querySelectorAll('.js-role').forEach(el => { el.innerText = (s.role || '').trim() || 'Студент'; });
+  }
+  afterRender('showCabinetContent', renderCabinetAvatars);
 </script>
 </body>
 </html>
