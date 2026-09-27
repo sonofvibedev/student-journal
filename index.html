@@ -159,27 +159,17 @@
     .check-icon svg,
     .chip-check svg { width: 100%; height: 100%; }
 
-    /* --- Меню «Сортировать по» — Figma Sorting (0-654) --- */
-    .sort-dropdown-menu {
-      --bs-dropdown-min-width: 200px;
-      padding: 16px 15px 20px;
-    }
-    .sort-dropdown-title {
-      margin-bottom: 12px;
-      color: var(--color-text);
-      font-size: var(--fs-body);
-      font-weight: 500;
-      letter-spacing: -0.63px;
-    }
+    /* --- Лист «Сортировать по» (пункты — как в Figma Sorting 0-654) --- */
+    .sort-sheet-body { padding: 10px 16px 22px; }
     .sort-dropdown-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      min-height: var(--control-h-sm);
-      padding: 4px 10px;
+      min-height: 44px;
+      padding: 4px 14px;
       border-radius: var(--radius-md);
       color: var(--color-text);
-      font-size: var(--fs-chip);
+      font-size: var(--fs-body);
       letter-spacing: -0.63px;
       text-decoration: none;
     }
@@ -194,41 +184,33 @@
     .sort-divider { margin: 8px 0; border-color: var(--color-separator); opacity: 1; }
 
     /* --- Лист «Фильтры» — Figma Filtration (0-665) --- */
-    #filterModal .modal-dialog { padding-top: calc(var(--app-inset-top) + 16px); }
-    .modal-fullscreen .modal-content.filter-sheet {
+    .modal-content.filter-sheet {
       border: 0;
-      border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
       background-color: var(--color-surface-sunken);
       color: var(--color-text);
     }
+    /* Зона перетаскивания: ручка + заголовок. touch-action: none — жест не уходит в прокрутку страницы */
+    .sheet-drag { flex-shrink: 0; padding-top: 6px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .sheet-drag:active { cursor: grabbing; }
+    .sheet-close:focus { position: absolute; top: 14px; right: 16px; z-index: 2; padding: 6px 12px; border: 0; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text); }
     .filter-sheet-handle {
       flex-shrink: 0;
       width: 36px;
       height: 5px;
-      margin: 5px auto 0;
+      margin: 0 auto;
       border-radius: 296px;
       background-color: #fff;
     }
     .filter-sheet-header {
-      flex-shrink: 0;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       min-height: 44px;
       margin-top: 6px;
       padding: 0 16px;
     }
-    .filter-sheet-back {
-      padding: 0;
-      border: 0;
-      background: none;
-      color: var(--color-text);
-      font-size: var(--fs-body);
-      letter-spacing: var(--tracking);
-      cursor: pointer;
-    }
     .filter-sheet-title { color: var(--color-text); font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tracking); }
-    .filter-sheet-body { flex: 1 1 auto; overflow-y: auto; padding: 26px 16px 0; }
+    .filter-sheet-body { flex: 1 1 auto; overflow-y: auto; padding: 18px 16px 0; }
     .filter-section { margin-bottom: 32px; }
     .filter-section-title {
       margin-bottom: 16px;
@@ -260,7 +242,7 @@
     }
     .filter-chip.active { border-color: var(--color-green); background-color: var(--color-green); }
     .filter-chip.active .chip-check { display: inline-flex; }
-    .filter-sheet-footer { flex-shrink: 0; padding: 16px 26px calc(16px + var(--app-inset-bottom)); }
+    .filter-sheet-footer { flex-shrink: 0; padding: 12px 20px 16px; }
     .filter-sheet-apply {
       display: block;
       width: 100%;
@@ -273,10 +255,6 @@
       letter-spacing: -0.63px;
       cursor: pointer;
       transition: transform var(--dur-fast) var(--ease-out);
-    }
-    /* На компьютере лист не растягиваем на весь экран */
-    @media (min-width: 577px) {
-      #filterModal .modal-fullscreen { width: min(560px, 100%); margin: 0 auto; padding-top: 48px; }
     }
 
     /* --- Список студентов — Figma Pass_String: карточка 68px, радиус 14 --- */
@@ -521,33 +499,9 @@
           Фильтр
           <svg class="chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5l5 5 5-5"/></svg>
         </button>
-        <div class="dropdown">
-          <button type="button" class="sort-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Сортировка" aria-label="Сортировка">
-            <svg viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><path d="M3 6.66667C3 6.35725 3.12292 6.0605 3.34171 5.84171C3.5605 5.62292 3.85725 5.5 4.16667 5.5H15.8333C16.1428 5.5 16.4395 5.62292 16.6583 5.84171C16.8771 6.0605 17 6.35725 17 6.66667C17 6.97609 16.8771 7.27283 16.6583 7.49162C16.4395 7.71042 16.1428 7.83333 15.8333 7.83333H4.16667C3.85725 7.83333 3.5605 7.71042 3.34171 7.49162C3.12292 7.27283 3 6.97609 3 6.66667ZM5.33333 11.3333C5.33333 11.0239 5.45625 10.7272 5.67504 10.5084C5.89383 10.2896 6.19058 10.1667 6.5 10.1667H13.5C13.8094 10.1667 14.1062 10.2896 14.325 10.5084C14.5437 10.7272 14.6667 11.0239 14.6667 11.3333C14.6667 11.6428 14.5437 11.9395 14.325 12.1583C14.1062 12.3771 13.8094 12.5 13.5 12.5H6.5C6.19058 12.5 5.89383 12.3771 5.67504 12.1583C5.45625 11.9395 5.33333 11.6428 5.33333 11.3333ZM8.83333 14.8333C8.52391 14.8333 8.22717 14.9563 8.00838 15.175C7.78958 15.3938 7.66667 15.6906 7.66667 16C7.66667 16.3094 7.78958 16.6062 8.00838 16.825C8.22717 17.0438 8.52391 17.1667 8.83333 17.1667H11.1667C11.4761 17.1667 11.7728 17.0438 11.9916 16.825C12.2104 16.6062 12.3333 16.3094 12.3333 16C12.3333 15.6906 12.2104 15.3938 11.9916 15.175C11.7728 14.9563 11.4761 14.8333 11.1667 14.8333H8.83333Z"/></svg>
-          </button>
-          <div class="dropdown-menu dropdown-menu-end sort-dropdown-menu" id="sortDropdownMenu">
-            <div class="sort-dropdown-title">Сортировать по:</div>
-            <a href="#" class="sort-dropdown-item" data-sort-key="number" onclick="setSort('number'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
-              <span>По номеру</span>
-            </a>
-            <hr class="sort-divider">
-            <a href="#" class="sort-dropdown-item" data-sort-key="name" onclick="setSort('name'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
-              <span>По ФИО</span>
-            </a>
-            <hr class="sort-divider">
-            <a href="#" class="sort-dropdown-item" data-sort-key="unexcused" onclick="setSort('unexcused'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
-              <span>По неуваж-ам</span>
-            </a>
-            <hr class="sort-divider">
-            <a href="#" class="sort-dropdown-item" data-sort-key="excused" onclick="setSort('excused'); return false;">
-              <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
-              <span>По уваж-ам</span>
-            </a>
-          </div>
-        </div>
+        <button type="button" class="sort-icon-btn" onclick="openSortSheet()" aria-haspopup="dialog" title="Сортировка" aria-label="Сортировка">
+          <svg viewBox="0 0 22 22" fill="currentColor" aria-hidden="true"><path d="M3 6.66667C3 6.35725 3.12292 6.0605 3.34171 5.84171C3.5605 5.62292 3.85725 5.5 4.16667 5.5H15.8333C16.1428 5.5 16.4395 5.62292 16.6583 5.84171C16.8771 6.0605 17 6.35725 17 6.66667C17 6.97609 16.8771 7.27283 16.6583 7.49162C16.4395 7.71042 16.1428 7.83333 15.8333 7.83333H4.16667C3.85725 7.83333 3.5605 7.71042 3.34171 7.49162C3.12292 7.27283 3 6.97609 3 6.66667ZM5.33333 11.3333C5.33333 11.0239 5.45625 10.7272 5.67504 10.5084C5.89383 10.2896 6.19058 10.1667 6.5 10.1667H13.5C13.8094 10.1667 14.1062 10.2896 14.325 10.5084C14.5437 10.7272 14.6667 11.0239 14.6667 11.3333C14.6667 11.6428 14.5437 11.9395 14.325 12.1583C14.1062 12.3771 13.8094 12.5 13.5 12.5H6.5C6.19058 12.5 5.89383 12.3771 5.67504 12.1583C5.45625 11.9395 5.33333 11.6428 5.33333 11.3333ZM8.83333 14.8333C8.52391 14.8333 8.22717 14.9563 8.00838 15.175C7.78958 15.3938 7.66667 15.6906 7.66667 16C7.66667 16.3094 7.78958 16.6062 8.00838 16.825C8.22717 17.0438 8.52391 17.1667 8.83333 17.1667H11.1667C11.4761 17.1667 11.7728 17.0438 11.9916 16.825C12.2104 16.6062 12.3333 16.3094 12.3333 16C12.3333 15.6906 12.2104 15.3938 11.9916 15.175C11.7728 14.9563 11.4761 14.8333 11.1667 14.8333H8.83333Z"/></svg>
+        </button>
       </div>
 
       <div class="action-buttons-group admin-only d-none gap-2 flex-wrap">
@@ -1104,15 +1058,17 @@
 </div>
 
 <!-- Модальное окно: Фильтры (полноэкранный лист в стиле Figma) -->
-<div class="modal fade" id="filterModal" tabindex="-1">
-  <div class="modal-dialog modal-fullscreen">
+<div class="modal fade swipe-sheet" id="filterModal" tabindex="-1" aria-labelledby="filterSheetTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content filter-sheet">
-      <div class="filter-sheet-handle"></div>
-      <div class="filter-sheet-header">
-        <button type="button" class="filter-sheet-back" data-bs-dismiss="modal">Назад</button>
-        <div class="filter-sheet-title">Фильтры</div>
-        <div style="width: 51px;"></div>
+      <!-- Потянуть вниз за ручку или заголовок — закрыть -->
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="filterSheetTitle">Фильтры</div>
+        </div>
       </div>
+      <button type="button" class="visually-hidden-focusable sheet-close" data-bs-dismiss="modal">Закрыть</button>
       <div class="filter-sheet-body">
         <div class="filter-section">
           <div class="filter-section-title">Форма обучения</div>
@@ -1161,6 +1117,42 @@
       </div>
       <div class="filter-sheet-footer">
         <button type="button" class="filter-sheet-apply" data-bs-dismiss="modal">Поиск</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Сортировка — лист снизу (пункты и setSort прежние) -->
+<div class="modal fade swipe-sheet" id="sortSheet" tabindex="-1" aria-labelledby="sortSheetTitle">
+  <div class="modal-dialog">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="sortSheetTitle">Сортировать по</div>
+        </div>
+      </div>
+      <button type="button" class="visually-hidden-focusable sheet-close" data-bs-dismiss="modal">Закрыть</button>
+      <div class="sort-sheet-body" id="sortDropdownMenu">
+        <a href="#" class="sort-dropdown-item" data-sort-key="number" onclick="setSort('number'); return false;">
+          <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
+          <span>По номеру</span>
+        </a>
+        <hr class="sort-divider">
+        <a href="#" class="sort-dropdown-item" data-sort-key="name" onclick="setSort('name'); return false;">
+          <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
+          <span>По ФИО</span>
+        </a>
+        <hr class="sort-divider">
+        <a href="#" class="sort-dropdown-item" data-sort-key="unexcused" onclick="setSort('unexcused'); return false;">
+          <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
+          <span>По неуважительным</span>
+        </a>
+        <hr class="sort-divider">
+        <a href="#" class="sort-dropdown-item" data-sort-key="excused" onclick="setSort('excused'); return false;">
+          <span class="check-icon"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
+          <span>По уважительным</span>
+        </a>
       </div>
     </div>
   </div>
@@ -1256,6 +1248,69 @@
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
   const filterModal = new bootstrap.Modal(document.getElementById('filterModal'));
+  const sortSheet = new bootstrap.Modal(document.getElementById('sortSheet'));
+  function openSortSheet() {
+    updateSortIndicators();
+    sortSheet.show();
+  }
+  // Выбрали пункт — галочка успевает «выпрыгнуть», и лист закрывается
+  document.getElementById('sortSheet').addEventListener('click', (e) => {
+    if (e.target.closest('.sort-dropdown-item')) setTimeout(() => sortSheet.hide(), 180);
+  });
+
+  // Листы снизу (.swipe-sheet): тянем за ручку или заголовок — лист едет за пальцем, затемнение бледнеет.
+  // Отпустили ниже 30% высоты или резко смахнули — закрываем, иначе лист возвращается на место.
+  // Ещё закрываются тапом по затемнению, Esc и скрытой кнопкой «Закрыть» (штатно в Bootstrap).
+  function enableSheetSwipe(modalEl) {
+    const dialog = modalEl.querySelector('.modal-dialog');
+    const content = modalEl.querySelector('.modal-content');
+    let drag = null;
+    const backdrop = () => document.querySelector('.modal-backdrop.show');
+    const reset = () => {
+      dialog.style.transition = '';
+      dialog.style.transform = '';
+      const bd = backdrop(); if (bd) { bd.style.transition = ''; bd.style.opacity = ''; }
+    };
+    modalEl.querySelectorAll('.sheet-drag').forEach(zone => {
+      zone.addEventListener('pointerdown', (e) => {
+        if (e.button > 0 || !modalEl.classList.contains('show')) return;
+        drag = { id: e.pointerId, startY: e.clientY, lastY: e.clientY, lastT: e.timeStamp, dy: 0, v: 0, h: content.offsetHeight || 1 };
+        try { zone.setPointerCapture(e.pointerId); } catch (err) {}
+        dialog.style.transition = 'none';
+        const bd = backdrop(); if (bd) bd.style.transition = 'none';
+      });
+      zone.addEventListener('pointermove', (e) => {
+        if (!drag || e.pointerId !== drag.id) return;
+        const dt = e.timeStamp - drag.lastT;
+        if (dt > 0) drag.v = (e.clientY - drag.lastY) / dt;          // px/мс, вниз — положительная
+        drag.lastY = e.clientY; drag.lastT = e.timeStamp;
+        drag.dy = Math.max(0, e.clientY - drag.startY);
+        dialog.style.transform = `translateY(${drag.dy}px)`;
+        const bd = backdrop(); if (bd) bd.style.opacity = String(0.6 * Math.max(0, 1 - drag.dy / drag.h));
+      });
+      const end = (e) => {
+        if (!drag || e.pointerId !== drag.id) return;
+        const { dy, v, h } = drag;
+        drag = null;
+        const close = dy > h * 0.3 || (v > 0.5 && dy > 12);
+        dialog.style.transition = 'transform var(--dur-slow) var(--ease-sheet)';
+        const bd = backdrop(); if (bd) bd.style.transition = '';
+        if (close) {
+          dialog.style.transform = `translateY(${h + 40}px)`;
+          haptic('impact');
+          bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        } else {
+          dialog.style.transform = '';
+          if (bd) bd.style.opacity = '';
+        }
+      };
+      zone.addEventListener('pointerup', end);
+      zone.addEventListener('pointercancel', end);
+    });
+    modalEl.addEventListener('hidden.bs.modal', reset);
+    modalEl.addEventListener('show.bs.modal', reset);
+  }
+  document.querySelectorAll('.modal.swipe-sheet').forEach(enableSheetSwipe);
   document.getElementById('filterModal').addEventListener('hide.bs.modal', () => {
     if (!filtersChangedInSheet) return;
     filtersChangedInSheet = false;
