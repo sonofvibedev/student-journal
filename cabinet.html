@@ -115,6 +115,28 @@
     .dl-rel { padding: 2px 9px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-weight: 600; }
     .dl-card.is-over .dl-rel { background: rgba(255, 98, 143, .22); color: #ffb3c8; }
     .dl-card.is-soon .dl-rel { background: rgba(255, 214, 10, .20); color: #ffe066; }
+    .dl-card.is-zachet { background: rgba(191, 90, 242, .12); }
+    .dl-card.is-zachet::before { background: #bf5af2; }
+    .dl-card.is-zachet .dl-rel { background: rgba(191, 90, 242, .22); color: #e0b3ff; }
+    .dl-card.is-cert::before { background: #ff9f0a; }
+    .dl-card.is-cert.is-over::before { background: var(--color-danger-line); }
+    .dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+    .dl-card.is-zachet .dl-kind { background: rgba(191, 90, 242, .25); color: #e0b3ff; }
+    .dl-card.is-cert .dl-kind { background: rgba(255, 159, 10, .22); color: #ffc46b; }
+    .dl-card.is-cert.is-over .dl-kind { background: rgba(255, 98, 143, .25); color: #ffb3c8; }
+    /* Календарь дедлайнов: цветные метки под числом, сегодня — обводка */
+    .dl-cal .cal-day.today::after { content: none; }
+    .dl-cal .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: #fff; font-weight: 600; }
+    .dl-cal .cal-day.has { color: #fff; font-weight: 600; }
+    .dl-cal .cal-day.cert-over { background: rgba(255, 98, 143, .22); }
+    .cal-marks { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
+    .cal-marks i, .dl-cal .cal-legend i { width: 5px; height: 5px; border-radius: 50%; }
+    .dl-cal .cal-legend { flex-wrap: wrap; gap: 6px 14px; }
+    .dl-cal .cal-legend i { width: 8px; height: 8px; margin-right: 5px; vertical-align: 0; }
+    .m-dl { background: var(--color-accent); }
+    .m-zachet { background: #bf5af2; }
+    .m-cert { background: #ff9f0a; }
+    .m-over { background: var(--color-danger-line); }
     .dl-empty { padding: 28px 0; color: var(--color-text-tertiary); text-align: center; }
     .dl-past { margin-top: 18px; border-radius: var(--radius-lg); background: var(--color-surface); }
     .dl-past summary { padding: 14px 16px; cursor: pointer; font-weight: 600; color: var(--color-text); list-style: none; }
@@ -469,7 +491,19 @@
     </div>
 
     <div id="cabinetSectionDeadlines" class="d-none">
-      <div class="kicker">Дедлайны группы</div>
+      <div class="cal dl-cal">
+        <div class="cal-head">
+          <button type="button" class="cal-nav" onclick="shiftDeadlineCalendarMonth(-1)" aria-label="Предыдущий месяц">‹</button>
+          <b id="dlCalendarTitle">—</b>
+          <button type="button" class="cal-nav" onclick="shiftDeadlineCalendarMonth(1)" aria-label="Следующий месяц">›</button>
+        </div>
+        <div class="cal-grid" id="dlCalendarGrid"></div>
+        <div class="cal-legend"><span><i class="m-dl"></i>дедлайн</span><span><i class="m-zachet"></i>зачёт</span><span><i class="m-cert"></i>справка</span><span><i class="m-over"></i>просрочена</span></div>
+      </div>
+      <div class="cap" id="dlCalendarDayTitle"></div>
+      <div id="dlCalendarDayList"></div>
+
+      <div class="kicker mt-4">Дедлайны и зачёты группы</div>
       <div id="deadlinesList"></div>
       <div id="deadlinesEmpty" class="dl-empty d-none">Дедлайнов пока нет</div>
       <details class="dl-past d-none" id="deadlinesPast">
@@ -1331,6 +1365,7 @@
     renderPersonalStats();
     renderGroupStanding();
     renderCabinetAnnouncements();
+    dlCalendarMonth = null;    // календарь дедлайнов открывается на текущем месяце
     renderDeadlines();
     renderMyAbsences();
     renderZachetka();
@@ -1339,8 +1374,7 @@
     setCabinetSection('stats');
   }
 
-  // Переключение разделов кабинета (Статистика / Зачётка / Объявления) — тот же таб-бар,
-  // что и на главной странице, но переключает не страницы, а блоки внутри этой
+  // Переключение разделов кабинета: верхние вкладки «Журнал / Зачётка / Дедлайны»
   function setCabinetSection(section) {
     const sections = { stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', deadlines: 'cabinetSectionDeadlines' };
     const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', deadlines: 'cabinetTabDeadlines' };
@@ -1645,15 +1679,20 @@
   }
   const activeDeadlines = () => (appData.deadlines || []).filter(d => deadlineDaysLeft(d.dueDate) >= -7);
 
+  // Записи с type: 'zachet' — зачёты (дата и необязательный комментарий в text), без type — дедлайны
+  const isZachet = (d) => d.type === 'zachet';
   function deadlineCard(d) {
     const n = deadlineDaysLeft(d.dueDate);
+    const zachet = isZachet(d);
     const card = document.createElement('div');
-    card.className = 'dl-card' + (n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
+    card.className = 'dl-card' + (zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
     card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
     card.querySelector('.dl-subject').textContent = d.subject;
-    card.querySelector('.dl-text').textContent = d.text;
-    card.querySelector('.dl-date').textContent = `до ${formatDateFull(deadlineDate(d.dueDate))}`;
-    card.querySelector('.dl-rel').textContent = deadlineRelative(n);
+    if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">Зачёт</span>');
+    const text = card.querySelector('.dl-text');
+    if (d.text) text.textContent = d.text; else text.remove();
+    card.querySelector('.dl-date').textContent = zachet ? formatDateFull(deadlineDate(d.dueDate)) : `до ${formatDateFull(deadlineDate(d.dueDate))}`;
+    card.querySelector('.dl-rel').textContent = zachet && n < 0 ? `${-n} ${daysWord(n)} назад` : deadlineRelative(n);
     return card;
   }
 
@@ -1668,7 +1707,7 @@
     const past = [];
     all.forEach(d => {
       const n = deadlineDaysLeft(d.dueDate);
-      if (n < -7) past.push(d);
+      if (n < -7 || (n < 0 && isZachet(d))) past.push(d);
       else if (n < 0) groups[0][1].push(d);
       else if (n === 0) groups[1][1].push(d);
       else if (n <= toSunday) groups[2][1].push(d);
@@ -1687,6 +1726,92 @@
     document.getElementById('deadlinesPast').classList.toggle('d-none', past.length === 0);
     document.getElementById('deadlinesEmpty').classList.toggle('d-none', all.length > 0);
     updateDeadlinesDot();
+    renderDeadlineCalendar();
+  }
+
+  // --- Календарь в «Дедлайнах»: дедлайны и зачёты группы + сроки своих справок ---
+  // Справка попадает в календарь, если пропуск уважительный, указаны certType и certDueDate
+  // и справка ещё не сдана (certSubmitted). Просроченная — красная ячейка и красная метка.
+  let dlCalendarMonth = null;   // первый день показанного месяца
+  let dlCalendarDay = null;     // выбранный день (ключ YYYY-MM-DD)
+  function deadlineCalendarEvents() {
+    const byDay = {};
+    const add = (k, e) => (byDay[k] = byDay[k] || []).push(e);
+    (appData.deadlines || []).forEach(d => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)) add(d.dueDate, { kind: isZachet(d) ? 'zachet' : 'dl', d });
+    });
+    const certs = {};
+    (myStudentId ? myAbsencesSorted() : []).forEach(a => {
+      if (!a.isExcused || !a.certType || !a.certDueDate || a.certSubmitted) return;
+      const k = String(a.certDueDate).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+      const id = k + '|' + a.certType;
+      if (!certs[id]) { certs[id] = { kind: 'cert', dueDate: k, certType: a.certType, list: [], over: deadlineDaysLeft(k) < 0 }; add(k, certs[id]); }
+      certs[id].list.push(a);
+    });
+    return byDay;
+  }
+  function certDueCard(c) {
+    const n = deadlineDaysLeft(c.dueDate);
+    const card = document.createElement('div');
+    card.className = 'dl-card is-cert' + (c.over ? ' is-over' : n <= 3 ? ' is-soon' : '');
+    card.innerHTML = '<div class="dl-subject"><span class="dl-kind">Справка</span></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
+    card.querySelector('.dl-subject').append(c.certType);
+    const lines = [...c.list].sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(a => `${formatDateShort(a.date)} · ${a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан')}`);
+    card.querySelector('.dl-text').textContent = `Сдать за пропуски:\n${lines.join('\n')}`;
+    card.querySelector('.dl-date').textContent = `до ${formatDateFull(deadlineDate(c.dueDate))}`;
+    card.querySelector('.dl-rel').textContent = deadlineRelative(n);
+    return card;
+  }
+  function renderDeadlineCalendar() {
+    const byDay = deadlineCalendarEvents();
+    const now = new Date();
+    if (!dlCalendarMonth) {
+      dlCalendarMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      dlCalendarDay = dayKey(now);
+    }
+    const y = dlCalendarMonth.getFullYear(), m = dlCalendarMonth.getMonth();
+    document.getElementById('dlCalendarTitle').textContent = `${MONTHS_NOM[m]} ${y}`;
+    const todayKey = dayKey(now);
+    const offset = (new Date(y, m, 1).getDay() + 6) % 7;       // понедельник — первый день
+    const days = new Date(y, m + 1, 0).getDate();
+    const NAMES = { dl: 'дедлайн', zachet: 'зачёт', cert: 'справка' };
+    let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(w => `<span class="wd">${w}</span>`).join('');
+    html += '<span></span>'.repeat(offset);
+    for (let d = 1; d <= days; d++) {
+      const k = dayKey(new Date(y, m, d));
+      const evs = byDay[k] || [];
+      const kinds = ['dl', 'zachet', 'cert'].filter(kind => evs.some(e => e.kind === kind));
+      const certOver = evs.some(e => e.kind === 'cert' && e.over);
+      const cls = ['cal-day'];
+      if ((offset + d - 1) % 7 >= 5) cls.push('weekend');
+      if (evs.length) cls.push('has');
+      if (certOver) cls.push('cert-over');
+      if (k === dlCalendarDay) cls.push('sel');
+      if (k === todayKey) cls.push('today');
+      const marks = kinds.map(kind => `<i class="${kind === 'cert' && certOver ? 'm-over' : 'm-' + kind}"></i>`).join('');
+      const label = `${d} ${MONTHS_GEN[m]}${k === todayKey ? ', сегодня' : ''}${kinds.length ? ': ' + kinds.map(kind => kind === 'cert' && certOver ? 'просроченная справка' : NAMES[kind]).join(', ') : ''}`;
+      html += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-label="${label}"${k === dlCalendarDay ? ' aria-pressed="true"' : ''}>${d}${marks ? `<span class="cal-marks" aria-hidden="true">${marks}</span>` : ''}</button>`;
+    }
+    const grid = document.getElementById('dlCalendarGrid');
+    grid.innerHTML = html;
+    grid.querySelectorAll('.cal-day').forEach(b => b.addEventListener('click', () => { dlCalendarDay = b.dataset.day; renderDeadlineCalendar(); }));
+
+    const title = document.getElementById('dlCalendarDayTitle');
+    const list = document.getElementById('dlCalendarDayList');
+    list.innerHTML = '';
+    const [yy, mm, dd] = (dlCalendarDay || '').split('-').map(Number);
+    if (!dlCalendarDay || yy !== y || mm - 1 !== m) { title.textContent = ''; list.innerHTML = '<div class="feed-empty">Выберите день, чтобы увидеть события</div>'; return; }
+    title.textContent = `${dd} ${MONTHS_GEN[mm - 1]}${dlCalendarDay === todayKey ? ' · сегодня' : ''}`;
+    const evs = byDay[dlCalendarDay] || [];
+    if (!evs.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
+    const order = { cert: 0, zachet: 1, dl: 2 };
+    [...evs].sort((a, b) => order[a.kind] - order[b.kind]).forEach(e => list.appendChild(e.kind === 'cert' ? certDueCard(e) : deadlineCard(e.d)));
+  }
+  function shiftDeadlineCalendarMonth(delta) {
+    dlCalendarMonth = new Date(dlCalendarMonth.getFullYear(), dlCalendarMonth.getMonth() + delta, 1);
+    renderDeadlineCalendar();
   }
 
   function readSeenDeadlines() {

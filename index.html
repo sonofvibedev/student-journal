@@ -65,6 +65,7 @@
     /* --- Дедлайны в окне администратора --- */
     .dl-admin-item { padding: 12px 14px; margin-bottom: 8px; border-radius: var(--radius-lg); background: var(--color-surface-3); }
     .dl-admin-item.is-past { opacity: .6; }
+    .dl-admin-item.is-zachet { box-shadow: inset 4px 0 0 #bf5af2; }
     .dl-admin-subject { font-weight: 600; color: var(--color-text); }
     .dl-admin-text { margin: 2px 0 6px; color: var(--color-text-2); white-space: pre-line; overflow-wrap: anywhere; }
     .dl-admin-meta { font-size: 13px; color: var(--color-text-secondary); }
@@ -1080,11 +1081,11 @@
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title text-white" id="deadlinesModalTitle">Дедлайны</h5>
+        <h5 class="modal-title text-white" id="deadlinesModalTitle">Дедлайны и зачёты</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
-        <button type="button" class="btn btn-primary w-100 fw-bold mb-3" onclick="openDeadlineForm()">+ Добавить дедлайн</button>
+        <button type="button" class="btn btn-primary w-100 fw-bold mb-3" onclick="openDeadlineForm()">+ Добавить дедлайн или зачёт</button>
         <div id="deadlinesAdminList"></div>
       </div>
     </div>
@@ -1100,16 +1101,22 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
+        <div class="btn-group w-100 mb-3" role="group" aria-label="Тип записи">
+          <input type="radio" class="btn-check" name="deadlineType" id="deadlineTypeDeadline" value="deadline" autocomplete="off" checked onchange="updateDeadlineFormType()">
+          <label class="btn btn-outline-secondary" for="deadlineTypeDeadline">Дедлайн</label>
+          <input type="radio" class="btn-check" name="deadlineType" id="deadlineTypeZachet" value="zachet" autocomplete="off" onchange="updateDeadlineFormType()">
+          <label class="btn btn-outline-secondary" for="deadlineTypeZachet">Зачёт</label>
+        </div>
         <div class="mb-3">
           <label class="form-label text-secondary small" for="deadlineSubject">Предмет</label>
           <select id="deadlineSubject" class="form-select"></select>
         </div>
         <div class="mb-3">
-          <label class="form-label text-secondary small" for="deadlineText">Что нужно сделать</label>
+          <label class="form-label text-secondary small" for="deadlineText" id="deadlineTextLabel">Что нужно сделать</label>
           <textarea id="deadlineText" class="form-control" rows="4" placeholder="Например: сдать презентацию по модели 4P"></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label text-secondary small" for="deadlineDueDate">Срок</label>
+          <label class="form-label text-secondary small" for="deadlineDueDate" id="deadlineDueDateLabel">Срок</label>
           <input type="date" id="deadlineDueDate" class="form-control">
         </div>
       </div>
@@ -1715,7 +1722,7 @@
     const past = all.filter(d => d.dueDate < today).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
     list.innerHTML = '';
     if (!all.length) {
-      list.innerHTML = '<div class="text-secondary text-center py-3">Дедлайнов пока нет</div>';
+      list.innerHTML = '<div class="text-secondary text-center py-3">Дедлайнов и зачётов пока нет</div>';
       return;
     }
     const addGroup = (title, items, isPast) => {
@@ -1732,9 +1739,11 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" data-act="edit">Изменить</button>
             <button type="button" class="btn btn-outline-danger btn-sm" data-act="delete">Удалить</button>
           </div>`;
-        item.querySelector('.dl-admin-subject').textContent = d.subject;
-        item.querySelector('.dl-admin-text').textContent = d.text;
-        item.querySelector('.dl-admin-meta').textContent = `до ${formatDateShort(deadlineDate(d.dueDate))} · ${deadlineRelative(d.dueDate)}`;
+        const isZachet = d.type === 'zachet';
+        if (isZachet) item.classList.add('is-zachet');
+        item.querySelector('.dl-admin-subject').textContent = (isZachet ? 'Зачёт · ' : '') + d.subject;
+        item.querySelector('.dl-admin-text').textContent = d.text || '';
+        item.querySelector('.dl-admin-meta').textContent = `${isZachet ? '' : 'до '}${formatDateShort(deadlineDate(d.dueDate))} · ${deadlineRelative(d.dueDate)}`;
         item.querySelector('[data-act="edit"]').addEventListener('click', () => openDeadlineForm(d.id));
         item.querySelector('[data-act="delete"]').addEventListener('click', () => deleteDeadline(d.id));
         list.appendChild(item);
@@ -1753,12 +1762,28 @@
     select.innerHTML = '<option value="">Выберите предмет</option>';
     subjects.forEach(sub => { const o = document.createElement('option'); o.value = sub; o.textContent = sub; select.appendChild(o); });
     select.value = existing ? existing.subject : '';
-    document.getElementById('deadlineText').value = existing ? existing.text : '';
+    document.getElementById('deadlineText').value = existing ? (existing.text || '') : '';
     document.getElementById('deadlineDueDate').value = existing ? existing.dueDate : '';
-    document.getElementById('deadlineFormTitle').innerText = existing ? 'Изменить дедлайн' : 'Новый дедлайн';
+    const isZachet = !!existing && existing.type === 'zachet';
+    document.getElementById(isZachet ? 'deadlineTypeZachet' : 'deadlineTypeDeadline').checked = true;
+    updateDeadlineFormType();
     const listModal = bootstrap.Modal.getInstance(document.getElementById('deadlinesModal'));
     if (listModal) listModal.hide();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('deadlineFormModal')).show();
+  }
+
+  // Тип записи: «Дедлайн» (что сделать и срок) или «Зачёт» (дата и необязательный комментарий).
+  // В data.json — поле type: 'deadline' | 'zachet'; записи без type считаются дедлайнами.
+  function deadlineFormType() {
+    return document.getElementById('deadlineTypeZachet').checked ? 'zachet' : 'deadline';
+  }
+  function updateDeadlineFormType() {
+    const isZachet = deadlineFormType() === 'zachet';
+    const editing = !!editingDeadlineId;
+    document.getElementById('deadlineFormTitle').innerText = isZachet ? (editing ? 'Изменить зачёт' : 'Новый зачёт') : (editing ? 'Изменить дедлайн' : 'Новый дедлайн');
+    document.getElementById('deadlineTextLabel').innerText = isZachet ? 'Комментарий (необязательно)' : 'Что нужно сделать';
+    document.getElementById('deadlineText').placeholder = isZachet ? 'Например: аудитория 512, с собой зачётку' : 'Например: сдать презентацию по модели 4P';
+    document.getElementById('deadlineDueDateLabel').innerText = isZachet ? 'Дата зачёта' : 'Срок';
   }
 
   // Закрыть форму и вернуться к списку дедлайнов
@@ -1773,22 +1798,25 @@
     const subject = document.getElementById('deadlineSubject').value;
     const text = document.getElementById('deadlineText').value.trim();
     const dueDate = document.getElementById('deadlineDueDate').value;
+    const type = deadlineFormType();
+    const isZachet = type === 'zachet';
+    const noun = isZachet ? 'зачёт' : 'дедлайн';
     if (!subject) return showAlert('Выберите предмет');
-    if (!text) return showAlert('Опишите, что нужно сделать');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert('Укажите срок');
+    if (!text && !isZachet) return showAlert('Опишите, что нужно сделать');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert(isZachet ? 'Укажите дату зачёта' : 'Укажите срок');
     if (dueDate < toISODateLocal(new Date())) {
-      if (!(await showConfirm(`Срок ${formatDateShort(deadlineDate(dueDate))} уже прошёл. Всё равно сохранить дедлайн?`))) return;
+      if (!(await showConfirm(`${isZachet ? 'Дата' : 'Срок'} ${formatDateShort(deadlineDate(dueDate))} уже ${isZachet ? 'прошла' : 'прошёл'}. Всё равно сохранить ${noun}?`))) return;
     }
 
     const backup = JSON.parse(JSON.stringify(appData.deadlines || []));
     let message;
     if (editingDeadlineId) {
       const d = appData.deadlines.find(x => x.id === editingDeadlineId);
-      Object.assign(d, { subject, text, dueDate });
-      message = `Изменён дедлайн: ${subject} — до ${formatDateShort(deadlineDate(dueDate))}`;
+      Object.assign(d, { type, subject, text, dueDate });
+      message = `Изменён ${noun}: ${subject} — ${isZachet ? '' : 'до '}${formatDateShort(deadlineDate(dueDate))}`;
     } else {
-      appData.deadlines.push({ id: 'dl-' + Date.now(), subject, text, dueDate, createdAt: new Date().toISOString() });
-      message = `Добавлен дедлайн: ${subject} — до ${formatDateShort(deadlineDate(dueDate))}`;
+      appData.deadlines.push({ id: 'dl-' + Date.now(), type, subject, text, dueDate, createdAt: new Date().toISOString() });
+      message = `Добавлен ${noun}: ${subject} — ${isZachet ? '' : 'до '}${formatDateShort(deadlineDate(dueDate))}`;
     }
 
     const btn = document.getElementById('deadlineSaveBtn');
@@ -1806,10 +1834,11 @@
   async function deleteDeadline(id) {
     const d = (appData.deadlines || []).find(x => x.id === id);
     if (!d) return;
-    if (!(await showConfirm(`Удалить дедлайн «${d.subject}» до ${formatDateShort(deadlineDate(d.dueDate))}?`))) return;
+    const noun = d.type === 'zachet' ? 'зачёт' : 'дедлайн';
+    if (!(await showConfirm(`Удалить ${noun} «${d.subject}» ${d.type === 'zachet' ? '' : 'до '}${formatDateShort(deadlineDate(d.dueDate))}?`))) return;
     const backup = JSON.parse(JSON.stringify(appData.deadlines));
     appData.deadlines = appData.deadlines.filter(x => x.id !== id);
-    const ok = await saveDataToGitHub(`Удалён дедлайн: ${d.subject} — до ${formatDateShort(deadlineDate(d.dueDate))}`);
+    const ok = await saveDataToGitHub(`Удалён ${noun}: ${d.subject} — ${d.type === 'zachet' ? '' : 'до '}${formatDateShort(deadlineDate(d.dueDate))}`);
     if (!ok) appData.deadlines = backup;
     renderDeadlinesAdminList();
     updateCabinetUnreadBadge();
