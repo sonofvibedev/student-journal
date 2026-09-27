@@ -79,11 +79,21 @@
     #zachetkaList .small { font-size: 16px !important; color: var(--color-text) !important; line-height: 1.25; }
     #zachetkaList .form-select { width: 96px !important; min-height: 0; border: 0; background-color: transparent; color: var(--color-accent); text-align: right; }
     .login-card .inset { padding: 16px; }
+    /* --- Вход: вкладки «Войти» / «Первый вход», формы аккаунта --- */
+    .auth-hint { font-size: 13px; color: var(--color-text-tertiary); line-height: 1.4; }
+    .invite-who { padding: 14px 16px; margin-bottom: 16px; }
+    .invite-who > *::before { display: none; }
+    body.is-login .bottom-tabbar { display: none; }
+    .invite-who b { display: block; font-size: 20px; font-weight: 600; color: var(--color-text); margin: 2px 0 4px; }
+    #inviteCodeInput { font-size: 20px; letter-spacing: .12em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+    .btn[aria-busy="true"] { opacity: .6; pointer-events: none; }
+    .account-form { padding: 14px 16px 16px; }
+    .account-form .form-control { background-color: var(--color-surface-3); }
 
     /* --- Зачётка / Калькулятор: сегментированный переключатель (как выделение в таб-баре) --- */
     .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; margin-bottom: 20px; border-radius: var(--radius-md); background: var(--color-surface-2); }
     .seg::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 9px; background: var(--color-surface-3); box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform var(--dur) var(--ease-out); }
-    .seg[data-active="calc"]::before { transform: translateX(100%); }
+    .seg[data-active="calc"]::before, .seg[data-active="invite"]::before { transform: translateX(100%); }
     .seg button { position: relative; z-index: 1; min-height: 36px; border: 0; background: none; color: var(--color-text-secondary); font-size: var(--fs-caption); font-weight: 600; transition: color var(--dur-fast); }
     .seg button[aria-selected="true"] { color: var(--color-text); }
     /* --- Калькулятор рейтинга: оценки-«фишки» --- */
@@ -141,16 +151,55 @@
   <div id="cabinetLoginSection" class="d-none login-card">
     <div class="greet">Личный кабинет</div>
     <p class="small text-secondary mb-3">Войдите, чтобы увидеть свои пропуски и зачётку</p>
+    <div class="seg" id="authSeg" role="tablist" data-active="login">
+      <button type="button" role="tab" id="authTabLogin" aria-selected="true" onclick="setAuthTab('login')">Войти</button>
+      <button type="button" role="tab" id="authTabInvite" aria-selected="false" onclick="setAuthTab('invite')">Первый вход</button>
+    </div>
+
+    <form id="authPaneLogin" onsubmit="attemptLogin(); return false;" novalidate>
       <div class="mb-2">
         <label class="form-label text-secondary small" for="cabinetLoginInput">Логин</label>
-        <input type="text" id="cabinetLoginInput" class="form-control" placeholder="user01" autocomplete="username" onkeydown="if(event.key==='Enter') attemptLogin()">
+        <input type="text" id="cabinetLoginInput" class="form-control" placeholder="Ваш логин" autocomplete="username" autocapitalize="none" spellcheck="false">
       </div>
       <div class="mb-3">
         <label class="form-label text-secondary small" for="cabinetPasswordInput">Пароль</label>
-        <input type="password" id="cabinetPasswordInput" class="form-control" placeholder="user01" autocomplete="current-password" onkeydown="if(event.key==='Enter') attemptLogin()">
+        <input type="password" id="cabinetPasswordInput" class="form-control" autocomplete="current-password">
       </div>
-      <div id="cabinetLoginError" class="text-danger small mb-3 d-none">Неверный логин или пароль</div>
-      <button type="button" class="btn btn-primary w-100 fw-bold" onclick="attemptLogin()">Войти</button>
+      <button type="submit" class="btn btn-primary w-100 fw-bold" id="loginSubmitBtn">Войти</button>
+      <p class="auth-hint mt-3">Забыли пароль? Попросите у старосты новый код и введите его во вкладке «Первый вход».</p>
+    </form>
+
+    <div id="authPaneInvite" class="d-none">
+      <form id="inviteCodeForm" onsubmit="submitInviteCode(); return false;" novalidate>
+        <label class="form-label text-secondary small" for="inviteCodeInput">Одноразовый код от старосты</label>
+        <input type="text" id="inviteCodeInput" class="form-control mb-3" placeholder="ABCDE-23456" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="13">
+        <button type="submit" class="btn btn-primary w-100 fw-bold" id="inviteCodeBtn">Продолжить</button>
+        <p class="auth-hint mt-3">Код действует один раз. По нему вы создадите свой логин и пароль.</p>
+      </form>
+      <form id="inviteAccountForm" class="d-none" onsubmit="submitNewAccount(); return false;" novalidate>
+        <div class="inset invite-who">
+          <span class="text-secondary small">Это вы?</span>
+          <b id="inviteStudentName">—</b>
+          <span class="auth-hint" id="inviteAccountNote"></span>
+        </div>
+        <div class="mb-2">
+          <label class="form-label text-secondary small" for="newLoginInput">Логин</label>
+          <input type="text" id="newLoginInput" class="form-control" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32">
+          <div class="auth-hint mt-1">3–32 символа: латинские буквы, цифры, «_» и «.»</div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label text-secondary small" for="newPasswordInput">Пароль</label>
+          <input type="password" id="newPasswordInput" class="form-control" autocomplete="new-password" minlength="8">
+          <div class="auth-hint mt-1">Не короче 8 символов</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="newPasswordRepeatInput">Пароль ещё раз</label>
+          <input type="password" id="newPasswordRepeatInput" class="form-control" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary w-100 fw-bold" id="inviteSubmitBtn">Создать аккаунт</button>
+        <button type="button" class="btn btn-link w-100 mt-2 text-secondary" onclick="resetInviteForm()">Это не я — ввести другой код</button>
+      </form>
+    </div>
   </div>
 
   <div id="cabinetContentSection" class="d-none">
@@ -192,6 +241,24 @@
       <div class="group">
         <div class="inset">
           <button type="button" class="row-i" onclick="toggleStarostaPicker()"><span class="ic" style="--ic: #28c9b7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2 2 6 3-4 5 4Z"/></svg></span><span class="lbl">Написать старосте</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i" onclick="toggleAccountForm('login')"><span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="lbl">Сменить логин</span><span class="val" id="cabinetLoginValue">—</span><span class="chev" aria-hidden="true">›</span></button>
+          <form id="changeLoginForm" class="account-form d-none" onsubmit="saveNewLogin(); return false;" novalidate>
+            <label class="form-label text-secondary small" for="changeLoginInput">Новый логин</label>
+            <input type="text" id="changeLoginInput" class="form-control mb-1" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32">
+            <div class="auth-hint mb-3">3–32 символа: латинские буквы, цифры, «_» и «.»</div>
+            <button type="submit" class="btn btn-primary w-100 fw-bold" id="changeLoginBtn">Сохранить логин</button>
+          </form>
+          <button type="button" class="row-i" onclick="toggleAccountForm('password')"><span class="ic" style="--ic: #8e8e93"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span class="lbl">Сменить пароль</span><span class="chev" aria-hidden="true">›</span></button>
+          <form id="changePasswordForm" class="account-form d-none" onsubmit="saveNewPassword(); return false;" novalidate>
+            <input type="text" class="d-none" autocomplete="username" id="changePasswordUsername" aria-hidden="true" tabindex="-1">
+            <label class="form-label text-secondary small" for="currentPasswordInput">Текущий пароль</label>
+            <input type="password" id="currentPasswordInput" class="form-control mb-2" autocomplete="current-password">
+            <label class="form-label text-secondary small" for="changePasswordInput">Новый пароль (не короче 8 символов)</label>
+            <input type="password" id="changePasswordInput" class="form-control mb-2" autocomplete="new-password">
+            <label class="form-label text-secondary small" for="changePasswordRepeatInput">Новый пароль ещё раз</label>
+            <input type="password" id="changePasswordRepeatInput" class="form-control mb-3" autocomplete="new-password">
+            <button type="submit" class="btn btn-primary w-100 fw-bold" id="changePasswordBtn">Сохранить пароль</button>
+          </form>
           <button type="button" class="row-i tg-exit" onclick="logoutCabinet()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></span><span class="lbl">Выйти</span></button>
         </div>
       </div>
@@ -354,6 +421,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
 <script>
   // FX — лёгкие анимации на CSS (классы .fx-reveal и .fx-pop в app.css): JS только расставляет классы
   // и задержки, анимируются лишь transform и opacity. При «Уменьшении движения» FX выключен
@@ -561,7 +629,7 @@
     }
 
     document.getElementById('cabinetSkeleton').classList.add('d-none');
-    openPersonalCabinet();
+    await openPersonalCabinet();
     checkWhatsNew();
   }
 
@@ -588,15 +656,6 @@
       localStorage.setItem('whats_new_seen', String(WHATS_NEW_VERSION));
     }, { once: true });
     modal.show();
-  }
-
-  function getJournalNumbers() {
-    const ordered = [...appData.students].sort((a, b) =>
-      `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'ru')
-    );
-    const map = {};
-    ordered.forEach((s, i) => { map[s.id] = i + 1; });
-    return map;
   }
 
   function getStarostaContact() {
@@ -631,58 +690,357 @@
     return null;
   }
 
-  // --- Вход в личный кабинет: логин/пароль user## (## — номер в журнале), выйти можно всегда ---
-  function openPersonalCabinet() {
-    const savedId = localStorage.getItem('my_student_id');
-    if (savedId && appData.students.find(s => s.id === savedId)) {
-      myStudentId = savedId;
-      showCabinetContent();
+  // --- Вход в личный кабинет: Supabase Auth ---
+  // В коде только адрес проекта и публичный ключ (sb_publishable): что можно читать и менять,
+  // решают правила RLS в базе. Логин превращается в технический email <логин>@students.journal-24dmm2.app.
+  // Аккаунты создаёт Edge Function register-with-code по одноразовому коду от старосты.
+  const SUPABASE_URL = 'https://woiqekpuoddxixlrbvkp.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_I1jhpJqVFBcd_ceZ-hYmGg_-MdIiZ1k';
+  const LOGIN_EMAIL_DOMAIN = 'students.journal-24dmm2.app';
+  const LOGIN_RE = /^[a-z0-9_.]{3,32}$/;
+  const PASSWORD_MIN = 8;
+  const PROFILE_CACHE_KEY = 'journal_profile';   // { user_id, student_id, login } — чтобы кабинет открывался без сети
+  // Сессия хранится supabase-js в localStorage — переживает перезапуск в браузере, PWA и Telegram
+  const sb = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
+    : null;
+  let myProfile = null;
+  let inviteState = null;   // { code, student_id, has_account, login } — между шагами «Первого входа»
+
+  const loginToEmail = (login) => `${login}@${LOGIN_EMAIL_DOMAIN}`;
+  const normLogin = (v) => String(v || '').trim().toLowerCase();
+  const NO_NETWORK_TEXT = 'Нет соединения с интернетом. Проверьте сеть и попробуйте ещё раз.';
+  const AUTH_ERRORS = {
+    invalid_credentials: 'Неверный логин или пароль.',
+    invalid_code: 'Код не найден. Проверьте, что он введён без ошибок.',
+    code_used: 'Этот код уже использован. Если вы забыли пароль, попросите у старосты новый код.',
+    login_taken: 'Этот логин уже занят. Придумайте другой.',
+    bad_login: 'Логин: от 3 до 32 символов — латинские буквы, цифры, «_» и «.».',
+    bad_password: `Пароль должен быть не короче ${PASSWORD_MIN} символов.`,
+    weak_password: `Пароль должен быть не короче ${PASSWORD_MIN} символов.`,
+    same_password: 'Новый пароль совпадает с текущим.',
+    too_many_attempts: 'Слишком много попыток. Подождите 15 минут и попробуйте снова.',
+    over_request_rate_limit: 'Слишком много попыток. Подождите несколько минут и попробуйте снова.',
+    unauthorized: 'Сессия закончилась. Войдите заново.',
+    session_not_found: 'Сессия закончилась. Войдите заново.',
+    no_profile: 'Аккаунт не привязан к студенту. Обратитесь к старосте.'
+  };
+
+  function isNetworkError(err) {
+    if (!navigator.onLine) return true;
+    const name = (err && err.name) || '';
+    const msg = (err && err.message) || '';
+    return name === 'AuthRetryableFetchError' || name === 'NetworkError' || /Failed to fetch|NetworkError|Load failed|network/i.test(msg);
+  }
+  function authErrorText(err) {
+    if (isNetworkError(err)) return NO_NETWORK_TEXT;
+    const code = (err && err.code) || '';
+    if (AUTH_ERRORS[code]) return AUTH_ERRORS[code];
+    if (err && err.status === 429) return AUTH_ERRORS.too_many_attempts;
+    return 'Что-то пошло не так. Попробуйте ещё раз.';
+  }
+  function failWith(code) { const e = new Error(code); e.code = code; return e; }
+
+  // Вызов Edge Function; ответ с ошибкой превращается в исключение с кодом ошибки
+  async function callFunction(name, body, accessToken) {
+    const headers = { 'Content-Type': 'application/json', apikey: SUPABASE_KEY };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    let res;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    } catch (e) {
+      const err = failWith('network'); err.name = 'NetworkError'; throw err;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw failWith(data.error || (res.status === 429 ? 'too_many_attempts' : 'server_error'));
+    return data;
+  }
+
+  function setBusy(btn, busy) {
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  function readCachedProfile() {
+    try { return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null'); } catch (e) { return null; }
+  }
+  function writeCachedProfile(profile) {
+    try {
+      if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+      else localStorage.removeItem(PROFILE_CACHE_KEY);
+    } catch (e) {}
+  }
+
+  // student_id вошедшего студента — только из его строки в profiles (RLS отдаёт лишь свою)
+  async function loadMyProfile(session) {
+    try {
+      const { data, error } = await sb.from('profiles').select('student_id, login').eq('user_id', session.user.id).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const profile = { user_id: session.user.id, student_id: data.student_id, login: data.login };
+      writeCachedProfile(profile);
+      return profile;
+    } catch (e) {
+      const cached = readCachedProfile();
+      if (isNetworkError(e) && cached && cached.user_id === session.user.id) return cached;
+      throw e;
+    }
+  }
+
+  async function openPersonalCabinet() {
+    localStorage.removeItem('my_student_id');   // старый вход user## больше не используется
+    const cached = readCachedProfile();
+    if (!sb) {
+      // supabase-js не загрузился (нет сети): показываем кабинет по сохранённому профилю
+      if (cached) { enterCabinet(cached); return; }
+      showLoginForm();
+      showAlert(NO_NETWORK_TEXT);
       return;
     }
-    showLoginForm();
+    let session = null;
+    try { ({ data: { session } } = await sb.auth.getSession()); } catch (e) {}
+    if (!session) {
+      if (cached && !navigator.onLine) { enterCabinet(cached); return; }
+      writeCachedProfile(null);
+      showLoginForm();
+      return;
+    }
+    try {
+      const profile = await loadMyProfile(session);
+      if (!profile) { await signOutQuietly(); showLoginForm(); showAlert(AUTH_ERRORS.no_profile); return; }
+      enterCabinet(profile);
+    } catch (e) {
+      showLoginForm();
+      showAlert(authErrorText(e));
+    }
+  }
+
+  function enterCabinet(profile) {
+    if (!appData.students.find(s => s.id === profile.student_id)) {
+      showLoginForm();
+      showAlert('Студент не найден в журнале. Обратитесь к старосте.');
+      return;
+    }
+    myProfile = profile;
+    myStudentId = profile.student_id;
+    document.body.classList.remove('is-login');
+    showCabinetContent();
   }
 
   function showLoginForm() {
     document.getElementById('cabinetLoginInput').value = '';
     document.getElementById('cabinetPasswordInput').value = '';
-    document.getElementById('cabinetLoginError').classList.add('d-none');
+    resetInviteForm();
+    setAuthTab('login');
+    document.body.classList.add('is-login');   // до входа разделы кабинета не нужны
     document.getElementById('cabinetLoginSection').classList.remove('d-none');
     document.getElementById('cabinetContentSection').classList.add('d-none');
     FX.reveal(document.getElementById('cabinetLoginSection').children, { step: 0.05 });
   }
 
-  function attemptLogin() {
-    const login = document.getElementById('cabinetLoginInput').value.trim().toLowerCase();
-    const password = document.getElementById('cabinetPasswordInput').value.trim().toLowerCase();
-    const errorEl = document.getElementById('cabinetLoginError');
-
-    const match = login.match(/^user(\d{1,2})$/);
-    if (!match || login !== password) {
-      errorEl.classList.remove('d-none');
-      haptic('error');
-      return;
-    }
-
-    const num = parseInt(match[1], 10);
-    const journalNumbers = getJournalNumbers();
-    const studentId = Object.keys(journalNumbers).find(id => journalNumbers[id] === num);
-    if (!studentId) {
-      errorEl.classList.remove('d-none');
-      haptic('error');
-      return;
-    }
-
-    errorEl.classList.add('d-none');
-    myStudentId = studentId;
-    localStorage.setItem('my_student_id', studentId);
-    haptic('success');
-    showCabinetContent();
+  function setAuthTab(tab) {
+    const invite = tab === 'invite';
+    document.getElementById('authSeg').dataset.active = invite ? 'invite' : 'login';
+    document.getElementById('authTabLogin').setAttribute('aria-selected', String(!invite));
+    document.getElementById('authTabInvite').setAttribute('aria-selected', String(invite));
+    document.getElementById('authPaneLogin').classList.toggle('d-none', invite);
+    document.getElementById('authPaneInvite').classList.toggle('d-none', !invite);
   }
 
-  function logoutCabinet() {
-    localStorage.removeItem('my_student_id');
+  async function attemptLogin() {
+    const login = normLogin(document.getElementById('cabinetLoginInput').value);
+    const password = document.getElementById('cabinetPasswordInput').value;
+    if (!login || !password) { showAlert('Введите логин и пароль.'); return; }
+    if (!LOGIN_RE.test(login)) { haptic('error'); showAlert(AUTH_ERRORS.invalid_credentials); return; }
+    if (!sb) { showAlert(NO_NETWORK_TEXT); return; }
+    const btn = document.getElementById('loginSubmitBtn');
+    setBusy(btn, true);
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
+      if (error) throw error;
+      const profile = await loadMyProfile(data.session);
+      if (!profile) { await signOutQuietly(); throw failWith('no_profile'); }
+      haptic('success');
+      enterCabinet(profile);
+    } catch (e) {
+      haptic('error');
+      showAlert(authErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // «Первый вход», шаг 1: код → чей он (ФИО берём из data.json по student_id)
+  async function submitInviteCode() {
+    const code = document.getElementById('inviteCodeInput').value.toUpperCase().replace(/[\s-]/g, '');
+    if (!/^[A-Z0-9]{10}$/.test(code)) { showAlert('Код состоит из 10 букв и цифр, например ABCDE-23456.'); return; }
+    const btn = document.getElementById('inviteCodeBtn');
+    setBusy(btn, true);
+    try {
+      const info = await callFunction('register-with-code', { action: 'check', code });
+      const student = appData.students.find(s => s.id === info.student_id);
+      if (!student) { showAlert('Этот код выдан студенту, которого нет в журнале. Обратитесь к старосте.'); return; }
+      inviteState = { code, ...info };
+      document.getElementById('inviteStudentName').innerText = `${student.lastName} ${student.firstName}`;
+      document.getElementById('inviteAccountNote').innerText = info.has_account
+        ? `У вас уже есть аккаунт с логином «${info.login}». Задайте новый пароль, логин можно оставить.`
+        : 'Придумайте логин и пароль — с ними вы будете входить в кабинет.';
+      document.getElementById('newLoginInput').value = info.login || '';
+      document.getElementById('inviteSubmitBtn').innerText = info.has_account ? 'Сохранить и войти' : 'Создать аккаунт';
+      document.getElementById('inviteCodeForm').classList.add('d-none');
+      document.getElementById('inviteAccountForm').classList.remove('d-none');
+      FX.reveal(document.getElementById('inviteAccountForm').children, { step: 0.04 });
+    } catch (e) {
+      haptic('error');
+      showAlert(authErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  // «Первый вход», шаг 2: логин и пароль → аккаунт создан (или задан новый пароль) → вход
+  async function submitNewAccount() {
+    if (!inviteState) { resetInviteForm(); return; }
+    const login = normLogin(document.getElementById('newLoginInput').value);
+    const password = document.getElementById('newPasswordInput').value;
+    const repeat = document.getElementById('newPasswordRepeatInput').value;
+    if (!LOGIN_RE.test(login)) { showAlert(AUTH_ERRORS.bad_login); return; }
+    if (password.length < PASSWORD_MIN) { showAlert(AUTH_ERRORS.bad_password); return; }
+    if (password !== repeat) { showAlert('Пароли не совпадают.'); return; }
+    if (!sb) { showAlert(NO_NETWORK_TEXT); return; }
+    const btn = document.getElementById('inviteSubmitBtn');
+    setBusy(btn, true);
+    try {
+      await callFunction('register-with-code', { action: 'register', code: inviteState.code, login, password });
+      const { data, error } = await sb.auth.signInWithPassword({ email: loginToEmail(login), password });
+      if (error) throw error;
+      const profile = await loadMyProfile(data.session);
+      if (!profile) throw failWith('no_profile');
+      haptic('success');
+      enterCabinet(profile);
+    } catch (e) {
+      haptic('error');
+      showAlert(authErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  function resetInviteForm() {
+    inviteState = null;
+    ['inviteCodeInput', 'newLoginInput', 'newPasswordInput', 'newPasswordRepeatInput'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('inviteCodeForm').classList.remove('d-none');
+    document.getElementById('inviteAccountForm').classList.add('d-none');
+  }
+
+  // Формы «Сменить логин» / «Сменить пароль» раскрываются прямо в списке (одна за раз)
+  function toggleAccountForm(which) {
+    const forms = { login: 'changeLoginForm', password: 'changePasswordForm' };
+    Object.keys(forms).forEach(key => {
+      const el = document.getElementById(forms[key]);
+      const open = key === which && el.classList.contains('d-none');
+      el.classList.toggle('d-none', !open);
+      if (open) FX.reveal(el.children, { step: 0.03 });
+    });
+    if (which === 'login' && myProfile) document.getElementById('changeLoginInput').value = myProfile.login;
+    if (which === 'password') {
+      ['currentPasswordInput', 'changePasswordInput', 'changePasswordRepeatInput'].forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('changePasswordUsername').value = myProfile ? myProfile.login : '';
+    }
+  }
+
+  async function currentSession() {
+    if (!sb) throw failWith('network');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw failWith('unauthorized');
+    return session;
+  }
+
+  async function saveNewLogin() {
+    const login = normLogin(document.getElementById('changeLoginInput').value);
+    if (!LOGIN_RE.test(login)) { showAlert(AUTH_ERRORS.bad_login); return; }
+    if (myProfile && login === myProfile.login) { toggleAccountForm(null); return; }
+    const btn = document.getElementById('changeLoginBtn');
+    setBusy(btn, true);
+    try {
+      const session = await currentSession();
+      await callFunction('change-login', { login }, session.access_token);
+      try { await sb.auth.refreshSession(); } catch (e) {}
+      myProfile = { ...myProfile, login };
+      writeCachedProfile(myProfile);
+      document.getElementById('cabinetLoginValue').innerText = login;
+      toggleAccountForm(null);
+      haptic('success');
+      showAlert(`Логин изменён. Теперь входите с логином «${login}».`);
+    } catch (e) {
+      haptic('error');
+      if (e.code === 'unauthorized') { await logoutCabinet(); }
+      showAlert(authErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  async function saveNewPassword() {
+    const current = document.getElementById('currentPasswordInput').value;
+    const next = document.getElementById('changePasswordInput').value;
+    const repeat = document.getElementById('changePasswordRepeatInput').value;
+    if (!current) { showAlert('Введите текущий пароль.'); return; }
+    if (next.length < PASSWORD_MIN) { showAlert(AUTH_ERRORS.bad_password); return; }
+    if (next !== repeat) { showAlert('Новые пароли не совпадают.'); return; }
+    if (next === current) { showAlert(AUTH_ERRORS.same_password); return; }
+    const btn = document.getElementById('changePasswordBtn');
+    setBusy(btn, true);
+    try {
+      await currentSession();
+      // Сначала подтверждаем текущий пароль — чтобы чужой человек с открытым кабинетом не сменил его
+      const check = await sb.auth.signInWithPassword({ email: loginToEmail(myProfile.login), password: current });
+      if (check.error) {
+        if (check.error.code === 'invalid_credentials') { haptic('error'); showAlert('Текущий пароль введён неверно.'); return; }
+        throw check.error;
+      }
+      const { error } = await sb.auth.updateUser({ password: next });
+      if (error) throw error;
+      toggleAccountForm(null);
+      haptic('success');
+      showAlert('Пароль изменён.');
+    } catch (e) {
+      haptic('error');
+      showAlert(authErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  async function signOutQuietly() {
+    if (sb) {
+      try {
+        const { error } = await sb.auth.signOut();
+        if (error) await sb.auth.signOut({ scope: 'local' });
+      } catch (e) {
+        try { await sb.auth.signOut({ scope: 'local' }); } catch (e2) {}
+      }
+    }
+    // Без сети supabase-js мог не загрузиться — стираем сохранённую сессию сами
+    try { localStorage.removeItem(`sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`); } catch (e) {}
+  }
+
+  async function logoutCabinet() {
+    await signOutQuietly();
+    writeCachedProfile(null);
+    myProfile = null;
     myStudentId = null;
     showLoginForm();
+  }
+
+  // Сессию завершили в другой вкладке или её не удалось продлить — возвращаемся к экрану входа
+  if (sb) {
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && myStudentId) {
+        setTimeout(() => { writeCachedProfile(null); myProfile = null; myStudentId = null; showLoginForm(); }, 0);
+      }
+    });
   }
 
   function showCabinetContent() {
@@ -698,6 +1056,8 @@
       appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
 
     document.getElementById('starostaPickerList').classList.add('d-none');
+    document.getElementById('cabinetLoginValue').innerText = myProfile ? myProfile.login : '—';
+    toggleAccountForm(null);
 
     renderPersonalStats();
     renderGroupStanding();

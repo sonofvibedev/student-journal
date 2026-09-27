@@ -40,6 +40,9 @@ self.addEventListener('fetch', (event) => {
   // data.json — только из сети, никогда не перехватываем и не кэшируем
   if (url.pathname.endsWith('data.json')) return;
 
+  // Supabase (вход, профиль, аватарки) — только сеть, никогда не кэшируем
+  if (url.hostname.endsWith('.supabase.co')) return;
+
   // Чужие домены (CDN) не трогаем — пусть работает обычный HTTP-кэш браузера
   if (url.origin !== self.location.origin) return;
 
