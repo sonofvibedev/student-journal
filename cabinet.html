@@ -79,26 +79,38 @@
     .seg[data-active="calc"]::before, .seg[data-active="invite"]::before, .seg[data-active="calendar"]::before { transform: translateX(100%); }
     .seg button { position: relative; z-index: 1; min-height: 36px; border: 0; background: none; color: var(--color-text-secondary); font-size: var(--fs-caption); font-weight: 600; transition: color var(--dur-fast); }
     .seg button[aria-selected="true"] { color: var(--color-text); }
-    /* --- Калькулятор рейтинга: оценки-«фишки» --- */
-    .grade-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background-color: var(--color-surface-3); }
-    .grade-chip-input { width: 40px; padding: 6px 0; border: 0; background: transparent; color: var(--color-text); font-weight: 700; text-align: center; -moz-appearance: textfield; }
-    .grade-chip-input:focus { outline: none; }
-    .grade-chip-remove { padding: 6px 8px; border: 0; background: none; color: var(--color-text-secondary); font-size: 16px; line-height: 1; cursor: pointer; }
-    .grade-chip-remove:hover { color: var(--color-danger-line); }
-    #gradesPaneCalc .inset { padding: 12px 16px; }
+    #gradesPaneCalc .inset { padding: 14px 16px; }
+    .rc-hero { margin-bottom: 22px; padding: 18px 16px; border-radius: 20px; background: linear-gradient(160deg, #0d2f57, #0a1a30 60%, #111); border: 1px solid rgba(108, 184, 255, .18); }
+    .rc-hero small { font-size: 13px; color: #9cc9ff; }
+    .rc-big { display: block; margin: 2px 0 6px; font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -1.5px; color: var(--color-text-tertiary); }
+    .rc-big.v-high { color: var(--color-success-text); } .rc-big.v-mid { color: #ffd60a; } .rc-big.v-low { color: var(--color-danger-line); }
+    .rc-sub { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--color-text-secondary); }
+    .rc-sub b { color: var(--color-text); }
+    .rc-formula { margin-top: 8px; font-size: 13px; color: var(--color-text-tertiary); }
+    .rc-pick { display: flex; align-items: center; gap: 12px; }
+    .rc-pick output { flex: none; width: 40px; font-size: 26px; font-weight: 700; text-align: center; color: var(--color-text); }
+    .rc-pick input[type=range] { flex: 1; min-width: 0; }
+    .rc-plus { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 26px; line-height: 1; }
+    .rc-plus:active { transform: scale(.94); }
+    .rc-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .rc-pill { height: 32px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .rc-pill::after { content: ' ×'; color: var(--color-text-tertiary); }
+    .rc-empty { font-size: 14px; color: var(--color-text-tertiary); }
+    .rc-meta { display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; color: var(--color-text-secondary); }
+    .rc-meta b { color: var(--color-text); }
+    .rc-slot + .rc-slot { margin-top: 18px; }
+    .rc-lab { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 15px; color: var(--color-text-2); }
+    .rc-lab b { font-weight: 600; color: var(--color-text); }
+    .rc-ticks { display: flex; justify-content: space-between; margin-top: 2px; font-size: 12px; color: var(--color-text-tertiary); }
+    .rc-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; color: var(--color-text-secondary); }
+    .rc-toggle input { width: 22px; height: 22px; accent-color: var(--color-accent); }
+    #gradesPaneCalc input[type=range] { width: 100%; height: 30px; accent-color: var(--color-accent); }
     #gradesPaneCalc .inset > * + *::before { display: none; }
     #gradesPaneCalc .form-select, #gradesPaneCalc .form-control { background-color: var(--color-surface-3); }
 
     /* --- Профиль «как в Telegram»: аватарка по центру и сгруппированные списки --- */
 
     /* --- Вкладки разделов кабинета --- */
-    .cab-tabs { position: sticky; top: 0; z-index: 20; display: flex; gap: 6px; margin: 0 -16px 16px; padding: calc(var(--app-inset-top) + 10px) 16px 10px; overflow-x: auto; scrollbar-width: none; background: linear-gradient(var(--color-bg) 78%, rgba(6, 6, 6, 0)); }
-    .cab-tabs::-webkit-scrollbar { display: none; }
-    .cab-tab { position: relative; flex: none; min-height: 40px; padding: 8px 18px; border: 0; border-radius: 999px; background: var(--color-surface-2); color: var(--color-text-secondary); font-size: 15px; font-weight: 600; white-space: nowrap; touch-action: manipulation; transition: background var(--dur-fast), color var(--dur-fast); }
-    .cab-tab.active { background: var(--color-text); color: #000; }
-    .cab-tab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-    .cab-tab-dot { position: absolute; top: 5px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 0 2px var(--color-surface-2); }
-    .cab-tab.active .cab-tab-dot { box-shadow: 0 0 0 2px var(--color-text); }
 
     /* --- Дедлайны --- */
     .dl-group { margin: 18px 2px 8px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
@@ -146,6 +158,9 @@
     .dl-past .dl-card { opacity: .7; }
 
     /* --- Студенческий билет --- */
+    .back-link { display: inline-flex; align-items: center; gap: 2px; margin: 12px 0 6px -4px; padding: 4px; color: var(--color-accent); text-decoration: none; font-size: var(--fs-body); }
+    .back-link svg { width: 20px; height: 20px; }
+    body.is-login .bottom-tabbar { display: none; }
     .id-card { position: relative; margin: 4px 0 0; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, #0d2f57, #0a1a30 55%, #101010); border: 1px solid rgba(108, 184, 255, .18); overflow: hidden; }
     .id-card::after { content: ''; position: absolute; right: -46px; top: -46px; width: 150px; height: 150px; border-radius: 50%; border: 20px solid rgba(0, 136, 255, .10); pointer-events: none; }
     .id-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
@@ -166,6 +181,31 @@
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
     .pill-select { width: auto; max-width: 100%; min-height: 36px; padding: 5px 30px 5px 13px; border: 0; border-radius: 999px; background-color: var(--color-surface-2); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 11px; color: var(--color-text); font: inherit; font-size: 16px; /* <16px — iPhone увеличивает экран при фокусе */ appearance: none; field-sizing: content; text-overflow: ellipsis; }
     .pill-select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    /* --- «Сегодня»: ближайшее, дедлайны, зачётка --- */
+    .today-next { display: block; width: 100%; margin: 14px 0 0; padding: 14px; border: 1px solid rgba(255, 159, 10, .3); border-radius: 18px; background: linear-gradient(160deg, rgba(255, 159, 10, .2), rgba(255, 159, 10, .04) 70%); color: inherit; text-align: left; }
+    .today-next.d-none { display: none; }
+    .today-next.is-over { border-color: rgba(255, 98, 143, .4); background: linear-gradient(160deg, rgba(255, 98, 143, .22), rgba(255, 98, 143, .04) 70%); }
+    .today-next.is-dl { border-color: rgba(0, 136, 255, .35); background: linear-gradient(160deg, rgba(0, 136, 255, .2), rgba(0, 136, 255, .04) 70%); }
+    .today-next.is-zachet { border-color: rgba(191, 90, 242, .35); background: linear-gradient(160deg, rgba(191, 90, 242, .2), rgba(191, 90, 242, .04) 70%); }
+    .today-next small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #ffc46b; }
+    .today-next.is-over small { color: #ffb3c8; } .today-next.is-dl small { color: #9cc9ff; } .today-next.is-zachet small { color: #e0b3ff; }
+    .today-next b { display: block; margin: 4px 0 2px; font-size: 17px; line-height: 1.3; color: var(--color-text); overflow-wrap: anywhere; }
+    .today-next span { font-size: 13px; color: var(--color-text-secondary); }
+    .today-sec { margin-bottom: 20px; }
+    .today-h { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 8px; }
+    .today-h b { font-size: 17px; color: var(--color-text); }
+    .today-more { min-height: 32px; padding: 0 2px; border: 0; background: none; color: var(--color-accent); font-size: 14px; font-weight: 600; }
+    .today-dl { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; border: 0; background: none; color: inherit; text-align: left; }
+    .today-dl .t { flex: 1; min-width: 0; color: var(--color-text-2); overflow-wrap: anywhere; }
+    .today-dl .t small { display: block; font-size: 12px; color: var(--color-text-secondary); }
+    .today-dl i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); }
+    .today-dl.is-zachet i { background: #bf5af2; } .today-dl.is-cert i { background: #ff9f0a; } .today-dl.is-over i { background: var(--color-danger-line); }
+    .today-dl .when { flex: none; padding: 2px 8px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .today-dl.is-soon .when { background: rgba(255, 214, 10, .2); color: #ffe066; }
+    .today-dl.is-over .when { background: rgba(255, 98, 143, .22); color: #ffb3c8; }
+    .today-dl.is-zachet .when { background: rgba(191, 90, 242, .22); color: #e0b3ff; }
+    .today-empty { padding: 14px 16px; color: var(--color-text-tertiary); font-size: 15px; }
+    #todayZachetkaAvg { color: var(--color-success-text); }
     .hours-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
     .hours-tile { padding: 12px 14px; border-radius: 16px; background: var(--color-surface-2); }
     .hours-tile b { display: block; font-size: 32px; line-height: 1.05; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-text); }
@@ -245,6 +285,7 @@
 <body>
 
 <div class="container cab my-3">
+  <a href="index.html" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Журнал</a>
 
   <div id="cabinetSkeleton" class="cabinet-skeleton" aria-hidden="true">
     <span class="skel skel-card"></span>
@@ -309,11 +350,6 @@
 
   <div id="cabinetContentSection" class="d-none">
     <!-- Разделы кабинета: Журнал · Зачётка · Дедлайны (листаются, если не помещаются) -->
-    <div class="cab-tabs" role="tablist" aria-label="Разделы кабинета">
-      <button type="button" class="cab-tab active" role="tab" id="cabinetTabStats" onclick="setCabinetSection('stats')">Журнал<span id="cabinetAnnouncementsDot" class="cab-tab-dot d-none" aria-label="есть новые сообщения"></span></button>
-      <button type="button" class="cab-tab" role="tab" id="cabinetTabGrades" onclick="setCabinetSection('grades')">Зачётка</button>
-      <button type="button" class="cab-tab" role="tab" id="cabinetTabDeadlines" onclick="setCabinetSection('deadlines')">Дедлайны<span id="cabinetDeadlinesDot" class="cab-tab-dot d-none" aria-label="есть новые дедлайны"></span></button>
-    </div>
 
     <div id="cabinetGreeting" class="visually-hidden">Привет!</div>
 
@@ -343,6 +379,13 @@
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
 
+      <!-- «Сегодня»: самое срочное — справка, дедлайн или зачёт (заполняется из renderToday) -->
+      <button type="button" class="today-next d-none" id="todayNext" onclick="setCabinetSection('deadlines')">
+        <small id="todayNextKind"></small>
+        <b id="todayNextTitle"></b>
+        <span id="todayNextMeta"></span>
+      </button>
+
       <div class="pill-row">
         <select id="cabinetPeriod" class="pill-select" onchange="renderPersonalStats()" aria-label="Период">
           <option value="WEEK">За неделю</option>
@@ -356,6 +399,19 @@
       <div class="hours-tiles">
         <div class="hours-tile"><b><span id="cabinetUnexcused">0</span><small> ч</small></b><span>неуважительных</span></div>
         <div class="hours-tile is-excused"><b><span id="cabinetExcused">0</span><small> ч</small></b><span>уважительных</span></div>
+      </div>
+
+      <!-- «Сегодня»: 3 ближайших дедлайна и зачётка; «Все ›» / «Открыть ›» — полный раздел -->
+      <div class="today-sec">
+        <div class="today-h"><b>Дедлайны</b><button type="button" class="today-more" id="todayDeadlinesMore" onclick="setCabinetSection('deadlines')">Все ›</button></div>
+        <div class="inset" id="todayDeadlines"></div>
+      </div>
+      <div class="today-sec">
+        <div class="today-h"><b>Зачётка</b><button type="button" class="today-more" onclick="setCabinetSection('grades'); setGradesTab('zachetka')">Открыть ›</button></div>
+        <div class="inset">
+          <button type="button" class="row-i" onclick="setCabinetSection('grades'); setGradesTab('zachetka')"><span class="lbl">Средний балл за сессию</span><span class="val fw-bold num" id="todayZachetkaAvg">—</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i" onclick="setCabinetSection('grades'); setGradesTab('calc')"><span class="lbl">Калькулятор рейтинга</span><span class="val num" id="todayRating">—</span><span class="chev" aria-hidden="true">›</span></button>
+        </div>
       </div>
 
       <div class="d-none" id="groupStandingCard">
@@ -458,41 +514,45 @@
           </div>
 
       <div id="gradesPaneCalc" class="d-none">
+        <!-- Калькулятор рейтинга (вариант «Слайдеры»): итог сверху, оценки — ползунком и «+» -->
+        <div class="rc-hero">
+          <small>Итоговый рейтинг</small>
+          <span class="rc-big num" id="finalRatingResult">—</span>
+          <div class="rc-sub"><span>Семинарские <b class="num" id="seminarRatingResult">—</b></span><span>Экзамен <b class="num" id="examGradeValue">—</b></span></div>
+          <div class="rc-formula num" id="ratingFormula"></div>
+        </div>
         <div class="group">
           <div class="group-title">Контрольные</div>
           <div class="inset">
-            <div id="controlGradesList" class="d-flex flex-wrap gap-2 mb-2"></div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRatingGrade('control')">+ Оценка</button>
-            <div class="small text-secondary mt-2">Средний балл: <span id="controlAvg" class="text-white fw-bold">—</span></div>
+            <div class="rc-pick"><output class="num" id="controlPickValue" for="controlPickRange">8</output><input type="range" id="controlPickRange" min="1" max="10" step="1" value="8" aria-label="Оценка (контрольные)" oninput="document.getElementById('controlPickValue').textContent = this.value"><button type="button" class="rc-plus" onclick="addRatingGrade('control')" aria-label="Добавить оценку (контрольные)">+</button></div>
+            <div id="controlGradesList" class="rc-pills"></div>
+            <div class="rc-meta"><span>Средний балл</span><b id="controlAvg" class="num">—</b></div>
           </div>
         </div>
         <div class="group">
           <div class="group-title">Устные</div>
           <div class="inset">
-            <div id="oralGradesList" class="d-flex flex-wrap gap-2 mb-2"></div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRatingGrade('oral')">+ Оценка</button>
-            <div class="small text-secondary mt-2">Средний балл: <span id="oralAvg" class="text-white fw-bold">—</span></div>
+            <div class="rc-pick"><output class="num" id="oralPickValue" for="oralPickRange">8</output><input type="range" id="oralPickRange" min="1" max="10" step="1" value="8" aria-label="Оценка (устные)" oninput="document.getElementById('oralPickValue').textContent = this.value"><button type="button" class="rc-plus" onclick="addRatingGrade('oral')" aria-label="Добавить оценку (устные)">+</button></div>
+            <div id="oralGradesList" class="rc-pills"></div>
+            <div class="rc-meta"><span>Средний балл</span><b id="oralAvg" class="num">—</b></div>
           </div>
         </div>
         <div class="group">
-          <div class="group-title">Коэффициент (контрольные / устные)</div>
-          <select id="seminarCoefSelect" class="form-select" onchange="recalcRating()">
-            <option value="0.5">0.5 / 0.5</option>
-            <option value="0.6" selected>0.6 / 0.4</option>
-            <option value="0.7">0.7 / 0.3</option>
-          </select>
-          <div class="inset mt-2"><div class="d-flex justify-content-between align-items-center"><span class="text-secondary small">Рейтинг за семинарские</span><span class="fw-bold text-white fs-4" id="seminarRatingResult">—</span></div></div>
+          <div class="group-title">Коэффициенты</div>
+          <div class="inset">
+            <div class="rc-slot"><div class="rc-lab"><label for="seminarCoefSelect">Контрольные / устные</label><b class="num" id="seminarCoefLabel">0.6 / 0.4</b></div><input type="range" id="seminarCoefSelect" min="0.5" max="0.7" step="0.1" value="0.6" oninput="recalcRating()"><div class="rc-ticks"><span>0.5</span><span>0.6</span><span>0.7</span></div></div>
+            <div class="rc-slot"><div class="rc-lab"><label for="finalCoefSelect">Семестр / экзамен</label><b class="num" id="finalCoefLabel">0.4 / 0.6</b></div><input type="range" id="finalCoefSelect" min="0.4" max="0.5" step="0.1" value="0.4" oninput="recalcRating()"><div class="rc-ticks"><span>0.4</span><span>0.5</span></div></div>
+          </div>
         </div>
         <div class="group">
-          <div class="group-title">Итоговый рейтинг (с учётом экзамена)</div>
-          <label class="form-label text-secondary small" for="examGradeInput">Оценка на экзамене</label>
-          <input type="number" id="examGradeInput" class="form-control mb-3" placeholder="Например: 8" min="0" step="0.1" oninput="recalcRating()">
-          <label class="form-label text-secondary small" for="finalCoefSelect">Вес (семестр / экзамен)</label>
-          <select id="finalCoefSelect" class="form-select" onchange="recalcRating()">
-            <option value="0.4">0.4 / 0.6</option>
-            <option value="0.5">0.5 / 0.5</option>
-          </select>
-          <div class="inset mt-2"><div class="d-flex justify-content-between align-items-center"><span class="text-secondary small">Итоговый рейтинг</span><span class="fw-bold text-success fs-4" id="finalRatingResult">—</span></div></div>
+          <div class="group-title">Экзамен</div>
+          <div class="inset">
+            <div class="rc-lab"><label for="examGradeRange">Оценка на экзамене</label><b class="num" id="examGradeLabel">—</b></div>
+            <input type="range" id="examGradeRange" min="0" max="10" step="0.5" value="8" oninput="setExamFromRange()">
+            <div class="rc-ticks"><span>0</span><span>5</span><span>10</span></div>
+            <label class="rc-toggle"><input type="checkbox" id="examNotYet" onchange="toggleExamNotYet()"> Экзамен ещё не сдан</label>
+            <input type="hidden" id="examGradeInput" value="">
+          </div>
           <div class="group-foot">Оценки хранятся только в этом браузере.</div>
         </div>
         <button type="button" class="btn btn-outline-secondary w-100 mb-4" onclick="clearRatingCalc()">Очистить</button>
@@ -524,23 +584,25 @@
   </div>
 </div>
 
-<!-- Нижняя панель — та же, что на главной: «Пропуски» / «Преподы» / «Личный кабинет» -->
-<nav class="bottom-tabbar" aria-label="Разделы сайта">
-  <a class="tabbar-item" href="index.html">
+<!-- Нижний таб-бар кабинета — как в опубликованной версии, без «Объявлений» (они в ленте «Статистики») -->
+<nav class="bottom-tabbar" aria-label="Разделы кабинета">
+  <button type="button" class="tabbar-item active" id="cabinetTabStats" onclick="setCabinetSection('stats')">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M18.8738 2C19.57 2 20.2377 2.27656 20.73 2.76884C21.2223 3.26113 21.4988 3.92881 21.4988 4.625V22.7083C21.4988 23.4045 21.2223 24.0722 20.73 24.5645C20.2377 25.0568 19.57 25.3333 18.8738 25.3333H6.625C5.92881 25.3333 5.26113 25.0568 4.76884 24.5645C4.27656 24.0722 4 23.4045 4 22.7083V4.625C4 3.92881 4.27656 3.26113 4.76884 2.76884C5.26113 2.27656 5.92881 2 6.625 2H18.8738ZM22.6667 17.169H23.5417C23.7531 17.169 23.9574 17.2456 24.1168 17.3846C24.2761 17.5235 24.3797 17.7155 24.4085 17.925L24.4167 18.044V19.7917C24.4167 20.0031 24.3401 20.2074 24.2011 20.3668C24.0621 20.5261 23.8701 20.6297 23.6607 20.6585L23.5417 20.6667H22.6667V17.169ZM22.6667 12.5023H23.5417C23.7531 12.5023 23.9574 12.5789 24.1168 12.7179C24.2761 12.8569 24.3797 13.0489 24.4085 13.2583L24.4167 13.3773V15.125C24.4167 15.3364 24.3401 15.5407 24.2011 15.7001C24.0621 15.8594 23.8701 15.9631 23.6607 15.9918L23.5417 16H22.6667V12.5023ZM22.6667 7.83567H23.5417C23.7531 7.83568 23.9574 7.91225 24.1168 8.05123C24.2761 8.19021 24.3797 8.38219 24.4085 8.59167L24.4167 8.71067V10.4583C24.4167 10.6698 24.3401 10.8741 24.2011 11.0334C24.0621 11.1928 23.8701 11.2964 23.6607 11.3252L23.5417 11.3333H22.6667V7.83567ZM16.5463 6.07983H8.95833C8.74671 6.07988 8.54228 6.15662 8.3829 6.29583C8.22352 6.43505 8.12 6.62731 8.0915 6.837L8.08333 6.95483V8.7095C8.08333 9.15283 8.4135 9.518 8.8405 9.57633L8.95833 9.5845H16.5452C16.7566 9.58449 16.9609 9.50792 17.1203 9.36894C17.2796 9.22996 17.3832 9.03798 17.412 8.8285L17.4202 8.7095V6.95483C17.4202 6.72277 17.328 6.50021 17.1639 6.33612C16.9998 6.17202 16.7784 6.07983 16.5463 6.07983Z"/></svg>
-    <span>Пропуски</span>
-  </a>
-  <a class="tabbar-item" href="index.html#teachers">
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm10 2a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0zm-4 3a1 1 0 1 0-2 0v5a1 1 0 1 0 2 0zm8 3a1 1 0 1 0-2 0v2a1 1 0 1 0 2 0z"/></svg>
+    <span>Статистика</span>
+    <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none" aria-label="Новые сообщения"></span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabGrades" onclick="setCabinetSection('grades')">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M14 20.125C13.8477 20.125 13.698 20.0852 13.5658 20.0096L5.90625 15.6319C5.83969 15.5934 5.76419 15.5732 5.68734 15.5732C5.61049 15.5733 5.535 15.5935 5.46847 15.632C5.40194 15.6705 5.34672 15.7258 5.30837 15.7924C5.27002 15.859 5.24989 15.9345 5.25 16.0114V20.125C5.24987 20.2812 5.29154 20.4345 5.37068 20.5691C5.44983 20.7038 5.56356 20.8148 5.70008 20.8906L13.5751 25.2656C13.7051 25.3378 13.8513 25.3757 14 25.3757C14.1487 25.3757 14.2949 25.3378 14.4249 25.2656L22.2999 20.8906C22.4364 20.8148 22.5502 20.7038 22.6293 20.5691C22.7085 20.4345 22.7501 20.2812 22.75 20.125V16.0114C22.7501 15.9345 22.73 15.859 22.6916 15.7924C22.6533 15.7258 22.5981 15.6705 22.5315 15.632C22.465 15.5935 22.3895 15.5733 22.3127 15.5732C22.2358 15.5732 22.1603 15.5934 22.0938 15.6319L14.4342 20.0096C14.302 20.0852 14.1523 20.125 14 20.125Z"/><path d="M27.1207 10.4179V10.4119C27.1065 10.2732 27.0594 10.1399 26.9833 10.0231C26.9072 9.90627 26.8043 9.80933 26.6832 9.74034L14.4332 2.74034C14.3009 2.66476 14.1513 2.625 13.9989 2.625C13.8466 2.625 13.697 2.66476 13.5647 2.74034L1.31472 9.74034C1.18084 9.81689 1.06957 9.92746 0.992175 10.0609C0.914784 10.1943 0.874023 10.3457 0.874023 10.5C0.874023 10.6542 0.914784 10.8057 0.992175 10.939C1.06957 11.0724 1.18084 11.183 1.31472 11.2596L13.5647 18.2596C13.697 18.3351 13.8466 18.3749 13.9989 18.3749C14.1513 18.3749 14.3009 18.3351 14.4332 18.2596L25.211 12.1012C25.2276 12.0916 25.2465 12.0865 25.2658 12.0865C25.285 12.0866 25.3039 12.0917 25.3205 12.1013C25.3372 12.111 25.351 12.1248 25.3605 12.1415C25.3701 12.1582 25.3751 12.1771 25.375 12.1964V20.1003C25.375 20.5712 25.7371 20.9753 26.2079 20.9989C26.3262 21.0046 26.4445 20.9862 26.5555 20.9448C26.6665 20.9035 26.7679 20.84 26.8537 20.7583C26.9394 20.6766 27.0077 20.5784 27.0543 20.4695C27.101 20.3606 27.125 20.2434 27.125 20.125V10.5C27.1249 10.4726 27.1235 10.4452 27.1207 10.4179Z"/></svg>
-    <span>Преподы</span>
-  </a>
-  <a class="tabbar-item active" href="cabinet.html" aria-current="page">
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 4.85c-2.195-1.022-5.52-1.565-8.633.979A1 1 0 0 0 2 6.603V19a1 1 0 0 0 1.633.774c2.736-2.236 5.734-1.31 7.367-.255zm2 0v14.669c1.633-1.056 4.63-1.981 7.367.255A1 1 0 0 0 22 19V6.603a1 1 0 0 0-.367-.774C18.52 3.285 15.195 3.828 13 4.849z"/></svg>
+    <span>Зачётка</span>
+  </button>
+  <button type="button" class="tabbar-item" id="cabinetTabDeadlines" onclick="setCabinetSection('deadlines')">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.8098 25.6652L14 25.6667C13.7425 25.6667 13.485 25.6583 13.2279 25.6416C12.9099 25.6207 12.5928 25.587 12.2775 25.5404C11.9112 25.4861 11.5476 25.4145 11.1882 25.3256C10.8338 25.2379 10.4838 25.1335 10.1392 25.0128L10.1373 25.0121C9.57 24.8131 9.019 24.5703 8.48933 24.2858C8.1134 24.084 7.74886 23.8617 7.39733 23.6198C7.00202 23.348 6.6238 23.0521 6.2648 22.7339C6.13937 22.6227 6.01634 22.5089 5.89577 22.3925C3.69925 20.2708 2.33337 17.2949 2.33337 14C2.33337 7.55674 7.55674 2.33337 14 2.33337C15.5321 2.33337 17.0492 2.63513 18.4647 3.22143C19.8801 3.80773 21.1663 4.66709 22.2496 5.75044C23.333 6.83379 24.1923 8.11991 24.7787 9.53538C25.365 10.9508 25.6667 12.4679 25.6667 14C25.6667 17.2951 24.3007 20.271 22.1042 22.3926C22.1041 22.3927 22.1041 22.393 22.1042 22.3932C21.5516 22.9266 20.948 23.4045 20.302 23.8199L20.293 23.8257C20.1465 23.9198 19.9979 24.0105 19.8473 24.0979L19.8314 24.1071C19.5679 24.2594 19.2985 24.4013 19.0239 24.5326C18.9165 24.5838 18.8083 24.6335 18.6994 24.6816C18.5858 24.7315 18.4714 24.7797 18.3564 24.8262C18.2448 24.871 18.1326 24.9142 18.0198 24.9557C17.9057 24.9975 17.791 25.0375 17.6758 25.0759C17.5625 25.1134 17.4486 25.1492 17.3343 25.1833C17.2131 25.2193 17.0914 25.2534 16.9691 25.2856C16.8501 25.3167 16.7307 25.346 16.6108 25.3735C16.4912 25.4008 16.3712 25.4262 16.2507 25.4498C15.7599 25.5457 15.2635 25.6099 14.7644 25.6421C14.6404 25.6501 14.5162 25.6562 14.392 25.6603L14.3896 25.6603C14.1964 25.6667 14.0031 25.6683 13.8098 25.6652ZM15.1667 18.6667H12.8334C10.9749 18.6667 9.34956 19.7603 8.60237 21.3593L8.51787 21.553L8.59099 21.6071C9.92077 22.5543 11.5095 23.1616 13.2304 23.3021C13.2817 23.3063 13.3332 23.3101 13.3848 23.3134L13.2375 23.3026C13.2876 23.3067 13.3378 23.3104 13.3882 23.3136L13.3848 23.3134C13.4347 23.3167 13.4846 23.3196 13.5346 23.322L13.3882 23.3136C13.4401 23.317 13.4922 23.32 13.5445 23.3224L13.5346 23.322C13.5721 23.3238 13.6097 23.3254 13.6472 23.3268L14 23.3334L14.1463 23.3323C14.2001 23.3315 14.2539 23.3302 14.3076 23.3285L14.16 23.332C14.2097 23.3312 14.2594 23.33 14.309 23.3283L14.3076 23.3284C14.3576 23.3268 14.4075 23.3248 14.4574 23.3224L14.309 23.3283C14.3604 23.3266 14.4118 23.3246 14.4632 23.3221L14.4574 23.3224C14.5093 23.3198 14.5611 23.3169 14.6127 23.3136L14.4632 23.3221C14.5137 23.3196 14.5642 23.3167 14.6147 23.3135L14.6127 23.3136C14.6633 23.3103 14.7137 23.3066 14.764 23.3026L14.6146 23.3135C14.666 23.3101 14.7174 23.3064 14.7687 23.3022L14.764 23.3026C14.8129 23.2986 14.8616 23.2942 14.9102 23.2896L14.7687 23.3022C14.8197 23.298 14.8706 23.2934 14.9215 23.2885L14.9102 23.2896C16.5736 23.1286 18.1092 22.5309 19.4011 21.6127L19.481 21.553L19.3978 21.3595C18.6833 19.83 17.1651 18.7628 15.4078 18.6729L15.1667 18.6667ZM14 4.66673C8.8454 4.66673 4.66673 8.8454 4.66673 14C4.66673 16.226 5.44597 18.27 6.74655 19.874C7.9512 17.7591 10.2258 16.3334 12.8334 16.3334H15.1667C17.7744 16.3334 20.049 17.7592 21.2534 19.8738C22.5541 18.27 23.3334 16.226 23.3334 14C23.3334 8.8454 19.1547 4.66673 14 4.66673ZM14 5.83337C16.5774 5.83337 18.6667 7.92271 18.6667 10.5C18.6667 12.9992 16.7021 15.0396 14.2329 15.161L14 15.1667C11.4227 15.1667 9.33337 13.0774 9.33337 10.5C9.33337 8.0008 11.298 5.96041 13.7671 5.83906L14 5.83337ZM14 8.16673C12.7114 8.16673 11.6667 9.21137 11.6667 10.5C11.6667 11.7887 12.7114 12.8334 14 12.8334C15.2887 12.8334 16.3334 11.7887 16.3334 10.5C16.3334 9.21137 15.2887 8.16673 14 8.16673Z"/></svg>
-    <span>Личный кабинет</span>
-  </a>
+    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 1.5h6a1 1 0 1 1 0 2H9a1 1 0 0 1 0-2z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12 4.5a9 9 0 1 1 0 18a9 9 0 0 1 0-18zm0 3.5a1 1 0 0 0-1 1v4.6l2.8 2.8a1 1 0 0 0 1.4-1.4L13 12.8V9a1 1 0 0 0-1-1z"/></svg>
+    <span>Дедлайны</span>
+    <span id="cabinetDeadlinesDot" class="tabbar-badge-dot d-none"></span>
+  </button>
 </nav>
 
 <!-- Что нового -->
@@ -804,7 +866,7 @@
 
   // Вибрация при переключении разделов кабинета
   document.addEventListener('click', (e) => {
-    if (e.target.closest && e.target.closest('.tabbar-item, .cab-tab')) haptic('impact');
+    if (e.target.closest && e.target.closest('.tabbar-item')) haptic('impact');
   });
 
   async function init() {
@@ -1814,6 +1876,7 @@
     document.getElementById('deadlinesEmpty').classList.toggle('d-none', all.length > 0);
     updateDeadlinesDot();
     renderDeadlineCalendar();
+    renderToday();
   }
 
   // --- Календарь в «Дедлайнах»: дедлайны и зачёты группы + сроки своих справок ---
@@ -1896,6 +1959,67 @@
     const order = { cert: 0, zachet: 1, dl: 2 };
     [...evs].sort((a, b) => order[a.kind] - order[b.kind]).forEach(e => list.appendChild(e.kind === 'cert' ? certDueCard(e) : deadlineCard(e.d)));
   }
+  // --- «Сегодня» на первой вкладке: самое срочное + 3 ближайших дедлайна/зачёта ---
+  // Срочнее всего — просроченная справка, дальше — ближайшее по дате (справка, дедлайн или зачёт)
+  function renderToday() {
+    const byDay = deadlineCalendarEvents();
+    const items = [];
+    Object.keys(byDay).forEach(k => byDay[k].forEach(e => items.push({ ...e, key: k, n: deadlineDaysLeft(k) })));
+    const upcoming = items.filter(e => e.n >= 0).sort((a, b) => a.n - b.n || (a.kind === 'cert' ? -1 : 1));
+    const overCert = items.filter(e => e.kind === 'cert' && e.over).sort((a, b) => a.n - b.n)[0];
+    const next = overCert || upcoming[0];
+    const card = document.getElementById('todayNext');
+    card.className = 'today-next' + (next ? '' : ' d-none');
+    if (next) {
+      const date = formatDateShort(deadlineDate(next.key));
+      if (next.kind === 'cert') {
+        card.classList.add(next.over ? 'is-over' : 'is-cert');
+        const subs = Array.from(new Set(next.list.map(a => a.subject || (a.subjects ? a.subjects.join(', ') : '')).filter(Boolean)));
+        document.getElementById('todayNextKind').textContent = `Справка · ${deadlineRelative(next.n)}`;
+        document.getElementById('todayNextTitle').textContent = `Сдать: ${next.certType}`;
+        document.getElementById('todayNextMeta').textContent = `до ${date}${subs.length ? ' · ' + subs.join(', ') : ''}`;
+      } else {
+        const z = next.kind === 'zachet';
+        card.classList.add(z ? 'is-zachet' : 'is-dl');
+        document.getElementById('todayNextKind').textContent = `${z ? 'Зачёт' : 'Дедлайн'} · ${deadlineRelative(next.n)}`;
+        document.getElementById('todayNextTitle').textContent = z ? next.d.subject : (next.d.text || next.d.subject);
+        document.getElementById('todayNextMeta').textContent = `${z ? '' : 'до '}${date}${z ? (next.d.text ? ' · ' + next.d.text : '') : ' · ' + next.d.subject}`;
+      }
+    }
+    const list = document.getElementById('todayDeadlines');
+    const dls = upcoming.filter(e => e.kind !== 'cert');
+    list.innerHTML = '';
+    if (!dls.length) list.innerHTML = '<div class="today-empty">Ближайших дедлайнов и зачётов нет</div>';
+    dls.slice(0, 3).forEach(e => {
+      const z = e.kind === 'zachet';
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'today-dl' + (z ? ' is-zachet' : e.n <= 3 ? ' is-soon' : '');
+      row.innerHTML = '<i aria-hidden="true"></i><span class="t"><span class="ttl"></span><small></small></span><span class="when num"></span>';
+      row.querySelector('.ttl').textContent = z ? `Зачёт · ${e.d.subject}` : (e.d.text || e.d.subject);
+      row.querySelector('small').textContent = z ? (e.d.text || formatDateShort(deadlineDate(e.key))) : e.d.subject;
+      row.querySelector('.when').textContent = e.n <= 1 ? deadlineRelative(e.n) : formatDateShort(deadlineDate(e.key)).slice(0, 5);
+      row.addEventListener('click', () => { dlCalendarMonth = new Date(deadlineDate(e.key).getFullYear(), deadlineDate(e.key).getMonth(), 1); dlCalendarDay = e.key; setCabinetSection('deadlines'); renderDeadlineCalendar(); });
+      list.appendChild(row);
+    });
+    const more = document.getElementById('todayDeadlinesMore');
+    more.textContent = dls.length > 3 ? `Все ${dls.length} ›` : 'Все ›';
+  }
+  // Зачётка на «Сегодня»: средний балл из зачётки и итог калькулятора (из тех же ключей localStorage)
+  function updateTodayGrades() {
+    document.getElementById('todayZachetkaAvg').innerText = document.getElementById('zachetkaAverage').innerText;
+    let st = null;
+    try { st = JSON.parse(localStorage.getItem('rating_calc_state') || 'null'); } catch (e) {}
+    const c = st && Array.isArray(st.control) ? st.control : [], o = st && Array.isArray(st.oral) ? st.oral : [];
+    const k = parseFloat(localStorage.getItem('rating_seminar_coef')) || 0.6;
+    const w = parseFloat(localStorage.getItem('rating_final_coef')) || 0.4;
+    const exam = parseFloat(localStorage.getItem('rating_exam_grade'));
+    const sem = avgOf(c) * k + avgOf(o) * (1 - k);
+    const el = document.getElementById('todayRating');
+    if (!c.length && !o.length) el.innerText = '—';
+    else el.innerText = isNaN(exam) ? `${sem.toFixed(2)} за семинары` : (sem * w + exam * (1 - w)).toFixed(2);
+  }
+
   function shiftDeadlineCalendarMonth(delta) {
     dlCalendarMonth = new Date(dlCalendarMonth.getFullYear(), dlCalendarMonth.getMonth() + delta, 1);
     renderDeadlineCalendar();
@@ -1990,26 +2114,28 @@
 
     const savedExam = localStorage.getItem('rating_exam_grade');
     document.getElementById('examGradeInput').value = savedExam || '';
+    document.getElementById('examNotYet').checked = !savedExam;
+    if (savedExam) document.getElementById('examGradeRange').value = savedExam;
 
     recalcRating();
   }
 
+  // Добавленные оценки — «таблетки»: нажатие убирает оценку
   function renderGradesList(type) {
     const container = document.getElementById(type === 'control' ? 'controlGradesList' : 'oralGradesList');
-    container.innerHTML = ratingCalc[type].map((g, i) => `
-      <span class="grade-chip">
-        <input type="number" class="grade-chip-input" value="${g}" min="0" step="0.1"
-               onchange="updateRatingGrade('${type}', ${i}, this.value)">
-        <button type="button" class="grade-chip-remove" onclick="removeRatingGrade('${type}', ${i})">×</button>
-      </span>
-    `).join('') || '<span class="text-secondary small">Пока нет оценок</span>';
+    container.innerHTML = ratingCalc[type].map((g, i) =>
+      `<button type="button" class="rc-pill" onclick="removeRatingGrade('${type}', ${i})" aria-label="Убрать оценку ${g}">${g}</button>`
+    ).join('') || '<span class="rc-empty">Пока нет оценок</span>';
   }
 
+  // Добавляет оценку, выбранную ползунком
   function addRatingGrade(type) {
-    ratingCalc[type].push(0);
+    const range = document.getElementById(type + 'PickRange');
+    ratingCalc[type].push(range ? Number(range.value) : 0);
     saveRatingCalcState();
     renderGradesList(type);
     recalcRating();
+    haptic('selection');
   }
 
   function updateRatingGrade(type, index, value) {
@@ -2031,6 +2157,22 @@
     return arr.reduce((sum, v) => sum + Number(v), 0) / arr.length;
   }
 
+  // Экзамен: ползунок с шагом 0.5 и «Экзамен ещё не сдан» (тогда оценки нет).
+  // Само значение — в скрытом #examGradeInput, как раньше в поле ввода
+  function setExamFromRange() {
+    document.getElementById('examNotYet').checked = false;
+    document.getElementById('examGradeInput').value = document.getElementById('examGradeRange').value;
+    recalcRating();
+  }
+  function toggleExamNotYet() {
+    const none = document.getElementById('examNotYet').checked;
+    document.getElementById('examGradeInput').value = none ? '' : document.getElementById('examGradeRange').value;
+    recalcRating();
+  }
+
+  const coefPair = (k) => `${k.toFixed(1)} / ${(1 - k).toFixed(1)}`;
+  const ratingBand = (v) => v == null ? '' : v < 4 ? 'v-low' : v < 7 ? 'v-mid' : 'v-high';
+
   function recalcRating() {
     const controlAvg = avgOf(ratingCalc.control);
     const oralAvg = avgOf(ratingCalc.oral);
@@ -2038,9 +2180,10 @@
     document.getElementById('controlAvg').innerText = ratingCalc.control.length ? controlAvg.toFixed(2) : '—';
     document.getElementById('oralAvg').innerText = ratingCalc.oral.length ? oralAvg.toFixed(2) : '—';
 
-    const k1 = parseFloat(document.getElementById('seminarCoefSelect').value);
+    const k1 = Math.round(parseFloat(document.getElementById('seminarCoefSelect').value) * 10) / 10;
     const k2 = 1 - k1;
     localStorage.setItem('rating_seminar_coef', k1);
+    document.getElementById('seminarCoefLabel').innerText = coefPair(k1);
 
     const seminarRating = controlAvg * k1 + oralAvg * k2;
     const hasSeminarGrades = ratingCalc.control.length > 0 || ratingCalc.oral.length > 0;
@@ -2049,16 +2192,26 @@
     const examGradeRaw = document.getElementById('examGradeInput').value;
     localStorage.setItem('rating_exam_grade', examGradeRaw || '');
     const examGrade = parseFloat(examGradeRaw);
+    document.getElementById('examGradeLabel').innerText = isNaN(examGrade) ? '—' : examGrade.toFixed(1);
+    document.getElementById('examGradeValue').innerText = isNaN(examGrade) ? '—' : String(examGrade);
+    document.getElementById('examGradeRange').classList.toggle('opacity-50', isNaN(examGrade));
 
-    const w1 = parseFloat(document.getElementById('finalCoefSelect').value);
+    const w1 = Math.round(parseFloat(document.getElementById('finalCoefSelect').value) * 10) / 10;
     const w2 = 1 - w1;
     localStorage.setItem('rating_final_coef', w1);
+    document.getElementById('finalCoefLabel').innerText = coefPair(w1);
 
     const finalResultEl = document.getElementById('finalRatingResult');
+    const formula = document.getElementById('ratingFormula');
     if (hasSeminarGrades && !isNaN(examGrade)) {
-      finalResultEl.innerText = (seminarRating * w1 + examGrade * w2).toFixed(2);
+      const final = seminarRating * w1 + examGrade * w2;
+      finalResultEl.innerText = final.toFixed(2);
+      finalResultEl.className = 'rc-big num ' + ratingBand(final);
+      formula.innerText = `${seminarRating.toFixed(2)} × ${w1.toFixed(1)} + ${examGrade} × ${w2.toFixed(1)} = ${final.toFixed(2)}`;
     } else {
       finalResultEl.innerText = '—';
+      finalResultEl.className = 'rc-big num';
+      formula.innerText = hasSeminarGrades ? 'Укажите оценку на экзамене' : 'Добавьте оценки за семинары';
     }
   }
 
@@ -2068,6 +2221,7 @@
     localStorage.removeItem('rating_calc_state');
     localStorage.removeItem('rating_exam_grade');
     document.getElementById('examGradeInput').value = '';
+    document.getElementById('examNotYet').checked = true;
     renderGradesList('control');
     renderGradesList('oral');
     recalcRating();
@@ -2382,6 +2536,10 @@
     document.querySelectorAll('.js-role').forEach(el => { el.innerText = (s.role || '').trim() || 'Студент'; });
   }
   afterRender('showCabinetContent', renderCabinetAvatars);
+  // «Сегодня»: средний балл и итог калькулятора обновляются при входе, пересчёте и переключении разделов
+  afterRender('showCabinetContent', updateTodayGrades);
+  afterRender('recalcRating', updateTodayGrades);
+  afterRender('setCabinetSection', updateTodayGrades);
 </script>
 </body>
 </html>
