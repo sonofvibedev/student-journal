@@ -1295,6 +1295,8 @@
 
   async function logoutCabinet() {
     await signOutQuietly();
+    // Выход из кабинета — выход и из админ-режима: токен не остаётся на общем устройстве
+    try { localStorage.removeItem('gh_pat'); } catch (e) {}
     writeCachedProfile(null);
     writeCachedAvatar(null);
     myAvatarUrl = null;
