@@ -6,6 +6,13 @@
       "text": "Презентация по моделям Диме в личку",
       "dueDate": "2026-09-30",
       "createdAt": "2026-09-27T17:10:49.699Z"
+    },
+    {
+      "id": "dl-1790529102634",
+      "subject": "Маркетинг услуг",
+      "text": "УСРС №1 по лекциям: https://elearning.bseu.by/mod/assign/view.php?id=134968",
+      "dueDate": "2026-10-10",
+      "createdAt": "2026-09-27T17:11:42.634Z"
     }
   ],
   "subjects": [
@@ -79,5 +86,5 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-09-27T17:10:50.263Z"
+  "lastUpdated": "2026-09-27T17:11:43.339Z"
 }
