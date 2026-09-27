@@ -89,6 +89,22 @@
     #zachetkaList .form-select { width: 96px !important; min-height: 0; border: 0; background-color: transparent; color: var(--color-accent); text-align: right; }
     .login-card .inset { padding: 16px; }
 
+    /* --- Зачётка / Калькулятор: сегментированный переключатель (как выделение в таб-баре) --- */
+    .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; margin-bottom: 20px; border-radius: var(--radius-md); background: var(--color-surface-2); }
+    .seg::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 9px; background: var(--color-surface-3); box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform var(--dur) var(--ease-out); }
+    .seg[data-active="calc"]::before { transform: translateX(100%); }
+    .seg button { position: relative; z-index: 1; min-height: 36px; border: 0; background: none; color: var(--color-text-secondary); font-size: var(--fs-caption); font-weight: 600; transition: color var(--dur-fast); }
+    .seg button[aria-selected="true"] { color: var(--color-text); }
+    /* --- Калькулятор рейтинга: оценки-«фишки» --- */
+    .grade-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background-color: var(--color-surface-3); }
+    .grade-chip-input { width: 40px; padding: 6px 0; border: 0; background: transparent; color: var(--color-text); font-weight: 700; text-align: center; -moz-appearance: textfield; }
+    .grade-chip-input:focus { outline: none; }
+    .grade-chip-remove { padding: 6px 8px; border: 0; background: none; color: var(--color-text-secondary); font-size: 16px; line-height: 1; cursor: pointer; }
+    .grade-chip-remove:hover { color: var(--color-danger-line); }
+    #gradesPaneCalc .inset { padding: 12px 16px; }
+    #gradesPaneCalc .inset > * + *::before { display: none; }
+    #gradesPaneCalc .form-select, #gradesPaneCalc .form-control { background-color: var(--color-surface-3); }
+
     @media (max-width: 576px) {
       .container { padding-left: 16px; padding-right: 16px; }
     }
@@ -173,6 +189,11 @@
     </div>
 
     <div id="cabinetSectionGrades" class="d-none">
+      <div class="seg" id="gradesSeg" role="tablist" data-active="zachetka">
+        <button type="button" role="tab" id="gradesSegZachetka" aria-selected="true" onclick="setGradesTab('zachetka')">Зачётка</button>
+        <button type="button" role="tab" id="gradesSegCalc" aria-selected="false" onclick="setGradesTab('calc')">Калькулятор</button>
+      </div>
+      <div id="gradesPaneZachetka">
       <div class="group">
         <div class="group-title">Зачётка</div>
         <div id="zachetkaList"></div>
@@ -180,6 +201,48 @@
       </div>
       <div class="group">
         <div class="inset"><div class="row-i"><span class="lbl">Средний балл за сессию</span><span class="val fw-bold text-success fs-5" id="zachetkaAverage">—</span></div></div>
+      </div>
+          </div>
+
+      <div id="gradesPaneCalc" class="d-none">
+        <div class="group">
+          <div class="group-title">Контрольные</div>
+          <div class="inset">
+            <div id="controlGradesList" class="d-flex flex-wrap gap-2 mb-2"></div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRatingGrade('control')">+ Оценка</button>
+            <div class="small text-secondary mt-2">Средний балл: <span id="controlAvg" class="text-white fw-bold">—</span></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">Устные</div>
+          <div class="inset">
+            <div id="oralGradesList" class="d-flex flex-wrap gap-2 mb-2"></div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRatingGrade('oral')">+ Оценка</button>
+            <div class="small text-secondary mt-2">Средний балл: <span id="oralAvg" class="text-white fw-bold">—</span></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">Коэффициент (контрольные / устные)</div>
+          <select id="seminarCoefSelect" class="form-select" onchange="recalcRating()">
+            <option value="0.5">0.5 / 0.5</option>
+            <option value="0.6" selected>0.6 / 0.4</option>
+            <option value="0.7">0.7 / 0.3</option>
+          </select>
+          <div class="inset mt-2"><div class="d-flex justify-content-between align-items-center"><span class="text-secondary small">Рейтинг за семинарские</span><span class="fw-bold text-white fs-4" id="seminarRatingResult">—</span></div></div>
+        </div>
+        <div class="group">
+          <div class="group-title">Итоговый рейтинг (с учётом экзамена)</div>
+          <label class="form-label text-secondary small" for="examGradeInput">Оценка на экзамене</label>
+          <input type="number" id="examGradeInput" class="form-control mb-3" placeholder="Например: 8" min="0" step="0.1" oninput="recalcRating()">
+          <label class="form-label text-secondary small" for="finalCoefSelect">Вес (семестр / экзамен)</label>
+          <select id="finalCoefSelect" class="form-select" onchange="recalcRating()">
+            <option value="0.4">0.4 / 0.6</option>
+            <option value="0.5">0.5 / 0.5</option>
+          </select>
+          <div class="inset mt-2"><div class="d-flex justify-content-between align-items-center"><span class="text-secondary small">Итоговый рейтинг</span><span class="fw-bold text-success fs-4" id="finalRatingResult">—</span></div></div>
+          <div class="group-foot">Оценки хранятся только в этом браузере.</div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary w-100 mb-4" onclick="clearRatingCalc()">Очистить</button>
       </div>
     </div>
 
@@ -212,6 +275,35 @@
 </nav>
 
 <!-- Что нового -->
+<!-- Замена стандартного alert() -->
+<div class="modal fade" id="customAlertModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body py-4 text-center">
+        <div id="customAlertMessage" class="text-white"></div>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0">
+        <button type="button" class="btn btn-primary fw-bold px-4" data-bs-dismiss="modal">Ок</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Замена стандартного confirm() -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body py-4 text-center">
+        <div id="customConfirmMessage" class="text-white"></div>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-danger fw-bold px-4" id="customConfirmOkBtn">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="whatsNewModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -582,6 +674,7 @@
     renderCabinetAnnouncements();
     renderMyAbsences();
     renderZachetka();
+    setGradesTab(localStorage.getItem('grades_tab'));
     FX.reveal('#cabinetContentSection > .student-summary-card');
     setCabinetSection('stats');
   }
@@ -884,6 +977,164 @@
     const ids = list.map(a => a.id);
     const merged = Array.from(new Set(seen.concat(ids)));
     localStorage.setItem('seen_announcements', JSON.stringify(merged));
+  }
+
+  // Замена браузерных alert()/confirm() — те же модалки, что в index.html
+  function showAlert(message) {
+    document.getElementById('customAlertMessage').innerText = message;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('customAlertModal')).show();
+  }
+
+  function showConfirm(message) {
+    return new Promise((resolve) => {
+      document.getElementById('customConfirmMessage').innerText = message;
+      const modalEl = document.getElementById('customConfirmModal');
+      const okBtn = document.getElementById('customConfirmOkBtn');
+      const customConfirmModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      let confirmed = false;
+
+      const onOk = () => { confirmed = true; customConfirmModal.hide(); };
+      const onHidden = () => {
+        okBtn.removeEventListener('click', onOk);
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        resolve(confirmed);
+      };
+
+      okBtn.addEventListener('click', onOk);
+      modalEl.addEventListener('hidden.bs.modal', onHidden);
+      customConfirmModal.show();
+    });
+  }
+
+  // --- Калькулятор рейтинга (перенесён из index.html в «Зачётку»; ключи localStorage прежние) ---
+  // Рейтинг за семинарские = средний балл(контрольные) * K1 + средний балл(устные) * (1 - K1)
+  // Итоговый рейтинг = рейтинг за семинарские * W1 + оценка на экзамене * (1 - W1)
+  // Оценки хранятся только локально в браузере студента (localStorage), в data.json не пишутся
+  let ratingCalc = { control: [], oral: [] };
+
+  function loadRatingCalcState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('rating_calc_state') || 'null');
+      if (saved && Array.isArray(saved.control) && Array.isArray(saved.oral)) {
+        ratingCalc = saved;
+      } else {
+        ratingCalc = { control: [], oral: [] };
+      }
+    } catch (e) {
+      ratingCalc = { control: [], oral: [] };
+    }
+  }
+
+  function saveRatingCalcState() {
+    localStorage.setItem('rating_calc_state', JSON.stringify(ratingCalc));
+  }
+
+  function openRatingCalculator() {
+    loadRatingCalcState();
+    renderGradesList('control');
+    renderGradesList('oral');
+
+    const savedSeminarCoef = localStorage.getItem('rating_seminar_coef');
+    if (savedSeminarCoef) document.getElementById('seminarCoefSelect').value = savedSeminarCoef;
+
+    const savedFinalCoef = localStorage.getItem('rating_final_coef');
+    if (savedFinalCoef) document.getElementById('finalCoefSelect').value = savedFinalCoef;
+
+    const savedExam = localStorage.getItem('rating_exam_grade');
+    document.getElementById('examGradeInput').value = savedExam || '';
+
+    recalcRating();
+  }
+
+  function renderGradesList(type) {
+    const container = document.getElementById(type === 'control' ? 'controlGradesList' : 'oralGradesList');
+    container.innerHTML = ratingCalc[type].map((g, i) => `
+      <span class="grade-chip">
+        <input type="number" class="grade-chip-input" value="${g}" min="0" step="0.1"
+               onchange="updateRatingGrade('${type}', ${i}, this.value)">
+        <button type="button" class="grade-chip-remove" onclick="removeRatingGrade('${type}', ${i})">×</button>
+      </span>
+    `).join('') || '<span class="text-secondary small">Пока нет оценок</span>';
+  }
+
+  function addRatingGrade(type) {
+    ratingCalc[type].push(0);
+    saveRatingCalcState();
+    renderGradesList(type);
+    recalcRating();
+  }
+
+  function updateRatingGrade(type, index, value) {
+    const num = parseFloat(value);
+    ratingCalc[type][index] = isNaN(num) ? 0 : num;
+    saveRatingCalcState();
+    recalcRating();
+  }
+
+  function removeRatingGrade(type, index) {
+    ratingCalc[type].splice(index, 1);
+    saveRatingCalcState();
+    renderGradesList(type);
+    recalcRating();
+  }
+
+  function avgOf(arr) {
+    if (!arr.length) return 0;
+    return arr.reduce((sum, v) => sum + Number(v), 0) / arr.length;
+  }
+
+  function recalcRating() {
+    const controlAvg = avgOf(ratingCalc.control);
+    const oralAvg = avgOf(ratingCalc.oral);
+
+    document.getElementById('controlAvg').innerText = ratingCalc.control.length ? controlAvg.toFixed(2) : '—';
+    document.getElementById('oralAvg').innerText = ratingCalc.oral.length ? oralAvg.toFixed(2) : '—';
+
+    const k1 = parseFloat(document.getElementById('seminarCoefSelect').value);
+    const k2 = 1 - k1;
+    localStorage.setItem('rating_seminar_coef', k1);
+
+    const seminarRating = controlAvg * k1 + oralAvg * k2;
+    const hasSeminarGrades = ratingCalc.control.length > 0 || ratingCalc.oral.length > 0;
+    document.getElementById('seminarRatingResult').innerText = hasSeminarGrades ? seminarRating.toFixed(2) : '—';
+
+    const examGradeRaw = document.getElementById('examGradeInput').value;
+    localStorage.setItem('rating_exam_grade', examGradeRaw || '');
+    const examGrade = parseFloat(examGradeRaw);
+
+    const w1 = parseFloat(document.getElementById('finalCoefSelect').value);
+    const w2 = 1 - w1;
+    localStorage.setItem('rating_final_coef', w1);
+
+    const finalResultEl = document.getElementById('finalRatingResult');
+    if (hasSeminarGrades && !isNaN(examGrade)) {
+      finalResultEl.innerText = (seminarRating * w1 + examGrade * w2).toFixed(2);
+    } else {
+      finalResultEl.innerText = '—';
+    }
+  }
+
+  async function clearRatingCalc() {
+    if (!(await showConfirm('Очистить все введённые оценки калькулятора?'))) return;
+    ratingCalc = { control: [], oral: [] };
+    localStorage.removeItem('rating_calc_state');
+    localStorage.removeItem('rating_exam_grade');
+    document.getElementById('examGradeInput').value = '';
+    renderGradesList('control');
+    renderGradesList('oral');
+    recalcRating();
+  }
+
+  // Вкладки внутри «Зачётки»: Зачётка / Калькулятор; последняя выбранная запоминается
+  function setGradesTab(tab) {
+    if (tab !== 'calc') tab = 'zachetka';
+    document.getElementById('gradesSeg').dataset.active = tab;
+    document.getElementById('gradesSegZachetka').setAttribute('aria-selected', String(tab === 'zachetka'));
+    document.getElementById('gradesSegCalc').setAttribute('aria-selected', String(tab === 'calc'));
+    document.getElementById('gradesPaneZachetka').classList.toggle('d-none', tab !== 'zachetka');
+    document.getElementById('gradesPaneCalc').classList.toggle('d-none', tab !== 'calc');
+    if (tab === 'calc') openRatingCalculator();
+    try { localStorage.setItem('grades_tab', tab); } catch (e) {}
   }
 
   init();
