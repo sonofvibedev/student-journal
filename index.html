@@ -29,7 +29,7 @@
 
     /* --- Шапка: Figma «Журнал» 34 bold + дата сохранения, справа — вход администратора --- */
     .app-header { position: relative; padding: 16px 0 20px; }
-    .app-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-right: 100px; }
+    .app-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
     .group-badge {
       padding: 4px 10px;
       border-radius: var(--radius-pill);
@@ -40,11 +40,8 @@
       line-height: 1.4;
       white-space: nowrap;
     }
-    /* Кнопка входа администратора — в правом верхнем углу, дата под заголовком остаётся в одну строку */
+    /* Кнопка входа администратора — в ряду действий шапки (колокольчик, админ, профиль) */
     .admin-btn {
-      position: absolute;
-      top: 18px;
-      right: 0;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -64,6 +61,35 @@
     .admin-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
     .admin-btn.is-admin { background-color: var(--color-red); }
     .admin-btn.is-admin .admin-btn-icon { color: #fff; }
+
+    /* --- Шапка: аватарка вошедшего студента → личный кабинет; без входа — иконка профиля --- */
+    .hdr-profile { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--color-surface); color: var(--color-text-secondary); text-decoration: none; transition: transform var(--dur-fast) var(--ease-out); }
+    .hdr-profile:active { transform: scale(.94); }
+    .hdr-profile:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .hdr-profile-icon { width: 24px; height: 24px; }
+    .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, #2c2c2e); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; line-height: 1; user-select: none; }
+    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
+    .avatar.has-photo img { opacity: 1; }
+    .hdr-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+    @media (max-width: 420px) {
+      .hdr-actions .admin-btn { width: 36px; min-height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
+      .hdr-actions .admin-btn #adminBtnText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    }
+    /* --- Колокольчик объявлений и лист снизу --- */
+    .va-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 10px; padding: 12px 0 18px; }
+    .va-header .app-header-main { display: contents; }
+    .va-header .app-title-row { grid-column: 1; grid-row: 1; align-self: center; }
+    .va-header .hdr-actions { grid-column: 2; grid-row: 1; gap: 6px; }
+    .va-header .app-subtitle { grid-column: 1 / -1; grid-row: 2; margin-top: 6px; }
+    .va-header .app-title { font-size: 28px; }
+    .va-bell { position: relative; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--color-surface); color: var(--color-text); }
+    .va-bell svg { width: 22px; height: 22px; }
+    .va-bell:active { transform: scale(.94); }
+    .va-bell:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .va-bell-count { position: absolute; top: -3px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: #ff453a; color: #fff; font-size: 11px; font-weight: 700; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums; }
+    .va-empty { padding: 24px 0; color: var(--color-text-tertiary); text-align: center; }
+    #announcementsSheet .student-summary-card { background: var(--color-surface-3); }
+    #announcementsSheet .text-white { white-space: pre-line; }
 
     /* --- Метрики администратора --- */
     .stats-grid {
@@ -440,7 +466,7 @@
 <div class="container my-3">
   
   <!-- Заголовок страницы -->
-  <header class="app-header">
+  <header class="app-header va-header">
     <div id="headerTapArea" class="app-header-main">
       <div class="app-title-row">
         <h2 class="app-title" id="appTitle">Журнал</h2>
@@ -448,19 +474,42 @@
       </div>
       <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
-    <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
+    <div class="hdr-actions">
+      <button type="button" class="va-bell" id="announcementsBell" onclick="openAnnouncementsSheet()" aria-label="Объявления">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" d="M6 11c0-4.8 4-6 6-6c4.8 0 6 4 6 6v4l2 2H4l2-2z"/><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M10 20.5h4"/></svg>
+        <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
+      </button>
+      <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
         <svg class="admin-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="8" cy="7" r="4.3"/>
           <path d="M8 13.2c-3.6 0-6.6 2.4-6.9 5.5-.1.6.4 1.1 1 1.1h9.6c-1.2-1.3-1.9-3-1.9-4.9v-1.1c0-.2 0-.3.1-.5-.6-.1-1.2-.1-1.9-.1z"/>
           <path fill-rule="evenodd" d="M17.5 9.3l4.5 1.8v3.5c0 2.8-1.9 5.3-4.5 6.1-2.6-.8-4.5-3.3-4.5-6.1v-3.5zm0 2.3l2.6 1v2.1c0 1.7-1 3.3-2.6 4.1z"/>
         </svg>
         <span id="adminBtnText">Админ</span>
-    </button>
+      </button>
+      <a href="cabinet.html" class="hdr-profile" id="headerProfileLink" aria-label="Войти в личный кабинет">
+        <span class="avatar js-hdr-avatar d-none" style="--av: 36px"></span>
+        <svg class="hdr-profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4a7 7 0 0 1 11.6 0"/></svg>
+      </a>
+    </div>
   </header>
 
-  <!-- Общие объявления -->
-  <div id="generalAnnouncementsSection" class="mb-4 d-none">
+  <!-- Объявления — лист снизу по колокольчику -->
+  <div class="modal fade" id="announcementsSheet" tabindex="-1" aria-labelledby="announcementsSheetTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="announcementsSheetTitle">Объявления</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <div id="generalAnnouncementsSection" class="mb-4 d-none">
     <div id="generalAnnouncementsList"></div>
+  </div>
+          <div class="va-empty" id="announcementsEmpty">Объявлений пока нет</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Карточки метрик (только для администратора) -->
@@ -1345,7 +1394,7 @@
 
     updateAdminUI();
     await loadData();
-    refreshCabinetProfile();
+    refreshCabinetProfile().then(loadHeaderAvatar);
     updateAdminUI();
     checkWhatsNew();
   }
@@ -2898,6 +2947,113 @@
   init();
 
   // Регистрация service worker для PWA (установка на главный экран, работа не только внутри Telegram)
+  // ===== Шапка: аватарка вошедшего студента (своё фото → фото из Telegram → инициалы), ведёт в кабинет.
+  // Без входа — иконка профиля, ведущая на экран входа. Своё фото — из кэша кабинета (journal_avatar).
+  const AVATAR_COLORS = [['#ff885e', '#ff516a'], ['#ffcd6a', '#ffa85c'], ['#82b1ff', '#665fff'], ['#a0de7e', '#54cb68'],
+    ['#53edd6', '#28c9b7'], ['#72d5fd', '#2a9ef1'], ['#e0a2f3', '#d669ed']];
+  function studentInitials(s) {
+    return (((s.firstName || '').trim()[0] || '') + ((s.lastName || '').trim()[0] || '')).toUpperCase() || '?';
+  }
+  function telegramPhotoFor(student) {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    if (!user || !user.username || !user.photo_url || !student || !student.telegramUsername) return null;
+    const norm = (u) => String(u).trim().replace(/^@/, '').toLowerCase();
+    if (norm(user.username) !== norm(student.telegramUsername)) return null;
+    return /^(https:|data:image\/)/i.test(user.photo_url) ? user.photo_url : null;
+  }
+  function renderAvatar(el, student, ownUrl) {
+    let h = 0;
+    for (const ch of String(student.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const [c1, c2] = AVATAR_COLORS[h % AVATAR_COLORS.length];
+    el.style.setProperty('--av-bg', `linear-gradient(180deg, ${c1}, ${c2})`);
+    el.classList.remove('has-photo');
+    el.textContent = studentInitials(student);
+    const sources = [ownUrl, telegramPhotoFor(student)].filter(u => u && /^(https:|data:image\/)/i.test(u));
+    const tryNext = () => {
+      const url = sources.shift();
+      if (!url) return;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      img.onload = () => el.classList.add('has-photo');
+      img.onerror = () => { img.remove(); el.classList.remove('has-photo'); tryNext(); };
+      img.src = url;
+      el.appendChild(img);
+    };
+    tryNext();
+  }
+  function renderHeaderProfile() {
+    const link = document.getElementById('headerProfileLink');
+    const avatar = link.querySelector('.js-hdr-avatar');
+    const icon = link.querySelector('.hdr-profile-icon');
+    const student = myCabinetProfile && (appData.students || []).find(s => s.id === myCabinetProfile.student_id);
+    if (!student) {
+      avatar.classList.add('d-none');
+      icon.classList.remove('d-none');
+      link.setAttribute('aria-label', 'Войти в личный кабинет');
+      return;
+    }
+    let own = null;
+    try {
+      const cached = JSON.parse(localStorage.getItem('journal_avatar') || 'null');
+      if (cached && cached.user_id === myCabinetProfile.user_id) own = cached.data;
+    } catch (e) {}
+    renderAvatar(avatar, student, own);
+    avatar.classList.remove('d-none');
+    icon.classList.add('d-none');
+    link.setAttribute('aria-label', `Личный кабинет: ${student.firstName} ${student.lastName}`);
+  }
+  // Дорисовать после штатной функции страницы (сами функции не меняются)
+  function afterCall(name, fn) {
+    const orig = window[name];
+    window[name] = function () { const r = orig.apply(this, arguments); try { fn(); } catch (e) { console.error(e); } return r; };
+  }
+  afterCall('updateCabinetUnreadBadge', renderHeaderProfile);
+
+  // --- Вариант A: колокольчик со счётчиком непрочитанных общих объявлений → лист снизу ---
+  function readSeenAnnouncements() {
+    try { return JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) { return []; }
+  }
+  function generalAnnouncementsList() { return (appData.announcements || []).filter(a => a.targetType === 'ALL'); }
+  function updateAnnouncementsBell() {
+    const all = generalAnnouncementsList();
+    const seen = readSeenAnnouncements();
+    const unread = all.filter(a => !seen.includes(a.id)).length;
+    const badge = document.getElementById('announcementsBellCount');
+    badge.innerText = unread > 9 ? '9+' : String(unread);
+    badge.classList.toggle('d-none', unread === 0);
+    document.getElementById('announcementsBell').setAttribute('aria-label', unread ? `Объявления, непрочитанных: ${unread}` : 'Объявления');
+    document.getElementById('announcementsEmpty').classList.toggle('d-none', all.length > 0);
+  }
+  function openAnnouncementsSheet() {
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('announcementsSheet')).show();
+    const ids = generalAnnouncementsList().map(a => a.id);
+    const merged = Array.from(new Set(readSeenAnnouncements().concat(ids)));
+    try { localStorage.setItem('seen_announcements', JSON.stringify(merged)); } catch (e) {}
+    updateAnnouncementsBell();
+  }
+  afterCall('renderGeneralAnnouncements', updateAnnouncementsBell);
+
+  // Своё фото студента: берётся из кэша кабинета; если его нет (другое устройство) — один раз за сеанс из Storage
+  async function loadHeaderAvatar() {
+    if (!sb || !myCabinetProfile) return;
+    const userId = myCabinetProfile.user_id;
+    try {
+      const cached = JSON.parse(localStorage.getItem('journal_avatar') || 'null');
+      if (cached && cached.user_id === userId) return;
+      if (sessionStorage.getItem('journal_avatar_checked') === userId) return;
+      sessionStorage.setItem('journal_avatar_checked', userId);
+    } catch (e) { return; }
+    const { data, error } = await sb.storage.from('avatars').download(`${userId}.jpg`).catch(() => ({ error: true }));
+    if (error || !data || !myCabinetProfile || myCabinetProfile.user_id !== userId) return;
+    const dataUrl = await new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => resolve(null); r.readAsDataURL(data); });
+    if (!dataUrl) return;
+    try { localStorage.setItem('journal_avatar', JSON.stringify({ user_id: userId, data: dataUrl })); } catch (e) {}
+    renderHeaderProfile();
+  }
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch((err) => console.error('SW registration failed:', err));
