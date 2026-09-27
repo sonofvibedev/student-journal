@@ -155,6 +155,13 @@
     .id-meta { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 22px; margin-top: 14px; font-size: 12px; color: var(--color-text-secondary); }
     .id-meta b { display: block; font-size: 14px; font-weight: 600; color: var(--color-text-2); overflow-wrap: anywhere; }
     #cabinetCertsPending.warn { color: #ffd60a; }
+    /* --- Админ-режим --- */
+    .admin-mode-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(94, 92, 230, .28); color: #c7c6ff; font-size: 12px; font-weight: 600; }
+    .admin-mode-chip.d-none { display: none; }
+    .admin-mode-chip i { width: 7px; height: 7px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52, 199, 89, .25); }
+    .admin-ok { display: grid; place-items: center; width: 56px; height: 56px; margin: 4px auto 12px; border-radius: 50%; background: rgba(52, 199, 89, .18); color: #34c759; }
+    .admin-ok svg { width: 30px; height: 30px; }
+    #adminPanelState.on { color: #34c759; }
     /* --- Период, предмет, плитки часов --- */
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
     .pill-select { width: auto; max-width: 100%; min-height: 36px; padding: 5px 30px 5px 13px; border: 0; border-radius: 999px; background-color: var(--color-surface-2); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 11px; color: var(--color-text); font: inherit; font-size: 16px; /* <16px — iPhone увеличивает экран при фокусе */ appearance: none; field-sizing: content; text-overflow: ellipsis; }
@@ -321,6 +328,7 @@
           <div class="id-main">
             <div class="id-kind">Студенческий · 24ДММ-2</div>
             <div class="id-name" id="cabinetStudentName">—</div>
+            <span class="admin-mode-chip d-none" id="adminModeChip"><i aria-hidden="true"></i>Админ-режим</span>
           </div>
         </div>
         <div class="id-meta">
@@ -425,6 +433,7 @@
             <input type="password" id="changePasswordRepeatInput" class="form-control mb-3" autocomplete="new-password">
             <button type="submit" class="btn btn-primary w-100 fw-bold" id="changePasswordBtn">Сохранить пароль</button>
           </form>
+          <button type="button" class="row-i d-none" id="adminPanelRow" onclick="toggleAdminModal()"><span class="ic" style="--ic: #5e5ce6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lbl">Админ-панель</span><span class="val" id="adminPanelState">Войти</span><span class="chev" aria-hidden="true">›</span></button>
           <button type="button" class="row-i tg-exit" onclick="logoutCabinet()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></span><span class="lbl">Выйти</span></button>
         </div>
       </div>
@@ -536,6 +545,35 @@
 
 <!-- Что нового -->
 <!-- Замена стандартного alert() -->
+<!-- Вход администратора (перенесён с главной). Токен GitHub хранится только в localStorage gh_pat -->
+<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalTitle">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="adminModalTitle">Админ-панель</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div id="adminLoginView">
+          <p class="small text-secondary mb-2" id="adminLoggedOutNote" role="status"></p>
+          <form onsubmit="saveAdminToken(); return false;" novalidate>
+            <label class="form-label small text-secondary" for="githubTokenInput">Введите ваш Personal Access Token (Classic) с правами <code>repo</code>. Он хранится только на этом устройстве.</label>
+            <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" autocapitalize="none" spellcheck="false">
+            <button type="submit" class="btn btn-primary w-100 fw-bold">Войти</button>
+          </form>
+        </div>
+        <div id="adminActiveView" class="d-none text-center">
+          <div class="admin-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+          <div class="fw-bold text-white fs-5" id="adminActiveTitle" role="status">Админ-режим включён</div>
+          <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, объявления, дедлайны и зачёты.</p>
+          <a href="index.html" class="btn btn-primary w-100 fw-bold mb-2">Перейти в журнал</a>
+          <button type="button" class="btn btn-outline-danger w-100" onclick="logoutAdmin()">Выйти из админки</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="customAlertModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -1202,6 +1240,54 @@
     showLoginForm();
   }
 
+  // --- Вход администратора (перенесён с главной) ---
+  // Строка «Админ-панель» видна только студентам с isAdmin: true (или если токен уже сохранён на устройстве,
+  // чтобы можно было выйти). Токен не проверяется — просто сохраняется в localStorage gh_pat, как раньше.
+  function readAdminToken() {
+    try { return localStorage.getItem('gh_pat') || ''; } catch (e) { return ''; }
+  }
+  function updateAdminUI() {
+    const student = appData.students.find(s => s.id === myStudentId);
+    const on = !!readAdminToken();
+    document.getElementById('adminPanelRow').classList.toggle('d-none', !(student && student.isAdmin) && !on);
+    const state = document.getElementById('adminPanelState');
+    state.innerText = on ? 'Включена' : 'Войти';
+    state.classList.toggle('on', on);
+    document.getElementById('adminModeChip').classList.toggle('d-none', !on);
+  }
+  function renderAdminModal(title) {
+    const on = !!readAdminToken();
+    document.getElementById('adminLoginView').classList.toggle('d-none', on);
+    document.getElementById('adminActiveView').classList.toggle('d-none', !on);
+    document.getElementById('adminActiveTitle').innerText = title || 'Админ-режим включён';
+  }
+  function toggleAdminModal() {
+    document.getElementById('adminLoggedOutNote').innerText = '';
+    document.getElementById('githubTokenInput').value = '';
+    renderAdminModal();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('adminModal')).show();
+  }
+  function saveAdminToken() {
+    const input = document.getElementById('githubTokenInput');
+    const token = input.value.trim();
+    if (!token) { haptic('error'); return showAlert('Введите токен!'); }
+    try { localStorage.setItem('gh_pat', token); } catch (e) { return showAlert('Не удалось сохранить токен на этом устройстве'); }
+    input.value = '';
+    haptic('success');
+    updateAdminUI();
+    renderAdminModal('Вы вошли как администратор');
+  }
+  function logoutAdmin() {
+    try { localStorage.removeItem('gh_pat'); } catch (e) {}
+    haptic('success');
+    updateAdminUI();
+    renderAdminModal();
+    document.getElementById('adminLoggedOutNote').innerText = 'Вы вышли из админ-режима.';
+  }
+  document.getElementById('adminModal').addEventListener('shown.bs.modal', () => {
+    if (!readAdminToken()) document.getElementById('githubTokenInput').focus();
+  });
+
   // --- Своя аватарка: Supabase Storage, приватный бакет avatars, путь <user_id>.jpg ---
   // Фото обрезается по центру до квадрата и сжимается до 256×256 JPEG прямо в браузере.
   const AVATAR_CACHE_KEY = 'journal_avatar';   // { user_id, data } — data: URL, чтобы фото было видно и без сети
@@ -1365,6 +1451,7 @@
     renderPersonalStats();
     renderGroupStanding();
     renderCabinetAnnouncements();
+    updateAdminUI();
     dlCalendarMonth = null;    // календарь дедлайнов открывается на текущем месяце
     renderDeadlines();
     renderMyAbsences();

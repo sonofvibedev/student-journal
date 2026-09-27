@@ -560,7 +560,6 @@ body::after {
 /* Отклик на нажатие — лёгкое сжатие */
 .dropdown-item { transition: transform var(--dur-fast) var(--ease-out); }
 .btn:active,
-.admin-btn:active,
 .filter-toggle-btn:active,
 .sort-icon-btn:active,
 .filter-sheet-apply:active,

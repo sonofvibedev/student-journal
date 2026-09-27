@@ -40,27 +40,6 @@
       line-height: 1.4;
       white-space: nowrap;
     }
-    /* Кнопка входа администратора — в ряду действий шапки (колокольчик, админ, профиль) */
-    .admin-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: var(--control-h-sm);
-      padding: 0 12px;
-      border: 0;
-      border-radius: var(--radius-md);
-      background-color: var(--color-surface);
-      color: var(--color-text);
-      font-size: var(--fs-caption);
-      font-weight: 500;
-      line-height: 1;
-      cursor: pointer;
-      transition: transform var(--dur-fast) var(--ease-out);
-    }
-    .admin-btn .admin-btn-icon { flex: none; width: 20px; height: 20px; color: var(--color-accent); }
-    .admin-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-    .admin-btn.is-admin { background-color: var(--color-red); }
-    .admin-btn.is-admin .admin-btn-icon { color: #fff; }
 
     /* --- Дедлайны в окне администратора --- */
     .dl-admin-item { padding: 12px 14px; margin-bottom: 8px; border-radius: var(--radius-lg); background: var(--color-surface-3); }
@@ -82,8 +61,6 @@
     .avatar.has-photo img { opacity: 1; }
     .hdr-actions { display: flex; align-items: center; gap: 8px; flex: none; }
     @media (max-width: 420px) {
-      .hdr-actions .admin-btn { width: 36px; min-height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
-      .hdr-actions .admin-btn #adminBtnText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     }
     /* --- Колокольчик объявлений и лист снизу --- */
     .va-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 10px; padding: 12px 0 18px; }
@@ -488,14 +465,6 @@
       <button type="button" class="va-bell" id="announcementsBell" onclick="openAnnouncementsSheet()" aria-label="Объявления">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" d="M6 11c0-4.8 4-6 6-6c4.8 0 6 4 6 6v4l2 2H4l2-2z"/><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M10 20.5h4"/></svg>
         <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
-      </button>
-      <button id="adminBtn" class="admin-btn" onclick="toggleAdminModal()" title="Вход для администратора">
-        <svg class="admin-btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <circle cx="8" cy="7" r="4.3"/>
-          <path d="M8 13.2c-3.6 0-6.6 2.4-6.9 5.5-.1.6.4 1.1 1 1.1h9.6c-1.2-1.3-1.9-3-1.9-4.9v-1.1c0-.2 0-.3.1-.5-.6-.1-1.2-.1-1.9-.1z"/>
-          <path fill-rule="evenodd" d="M17.5 9.3l4.5 1.8v3.5c0 2.8-1.9 5.3-4.5 6.1-2.6-.8-4.5-3.3-4.5-6.1v-3.5zm0 2.3l2.6 1v2.1c0 1.7-1 3.3-2.6 4.1z"/>
-        </svg>
-        <span id="adminBtnText">Админ</span>
       </button>
       <a href="cabinet.html" class="hdr-profile" id="headerProfileLink" aria-label="Войти в личный кабинет">
         <span class="avatar js-hdr-avatar d-none" style="--av: 36px"></span>
@@ -1003,23 +972,6 @@
   </div>
 </div>
 
-<!-- Модальное окно авторизации админа -->
-<div class="modal fade" id="adminModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-white">Авторизация Администратора</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p class="small text-secondary mb-3">Введите ваш Personal Access Token (Classic) с правами <code>repo</code>:</p>
-        <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx">
-        <button class="btn btn-primary w-100 fw-bold" onclick="saveAdminToken()">Войти</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Модальное окно: Преподавательский состав -->
 <div class="modal fade" id="teachersModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -1309,7 +1261,6 @@
   const groupAbsenceModal = new bootstrap.Modal(document.getElementById('groupAbsenceModal'));
   const studentEditModal = new bootstrap.Modal(document.getElementById('studentEditModal'));
   const studentHistoryModal = new bootstrap.Modal(document.getElementById('studentHistoryModal'));
-  const adminModal = new bootstrap.Modal(document.getElementById('adminModal'));
   const teachersModal = new bootstrap.Modal(document.getElementById('teachersModal'));
   const teacherEditModal = new bootstrap.Modal(document.getElementById('teacherEditModal'));
   const announcementModal = new bootstrap.Modal(document.getElementById('announcementModal'));
@@ -3149,49 +3100,19 @@
   }
 
   // --- Авторизация ---
-  async function toggleAdminModal() {
-    if (githubToken) {
-      if (await showConfirm('Выйти из режима администратора?')) logoutAdmin();
-    } else {
-      adminModal.show();
-    }
-  }
-
-  function saveAdminToken() {
-    const token = document.getElementById('githubTokenInput').value.trim();
-    if (!token) return showAlert('Введите токен!');
-    githubToken = token;
-    localStorage.setItem('gh_pat', token);
-    haptic('success');
-    adminModal.hide();
-    updateAdminUI();
-  }
-
-  function logoutAdmin() {
-    localStorage.removeItem('gh_pat');
-    githubToken = '';
-    updateAdminUI();
-  }
-
+  // Вход и выход администратора — в личном кабинете (строка «Админ-панель», cabinet.html).
+  // Здесь только читаем токен из localStorage gh_pat и показываем инструменты администратора.
   function updateAdminUI() {
     const adminElements = document.querySelectorAll('.admin-only');
     // Кнопки разделов — только для обычных пользователей
     document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!githubToken));
-    const adminBtn = document.getElementById('adminBtn');
-    const adminBtnText = document.getElementById('adminBtnText');
     const appTitle = document.getElementById('appTitle');
 
     if (githubToken) {
       adminElements.forEach(el => el.classList.remove('d-none'));
-      adminBtn.classList.add('is-admin');
-      adminBtn.title = 'Вы вошли как администратор — нажмите, чтобы выйти';
-      if (adminBtnText) adminBtnText.innerText = 'Выйти';
       if (appTitle) appTitle.innerText = 'Admin Workspace';
     } else {
       adminElements.forEach(el => el.classList.add('d-none'));
-      adminBtn.classList.remove('is-admin');
-      adminBtn.title = 'Вход для администратора';
-      if (adminBtnText) adminBtnText.innerText = 'Админ';
       if (appTitle) appTitle.innerText = 'Журнал';
     }
   }
