@@ -112,7 +112,15 @@
     .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
     .avatar.has-photo img { opacity: 1; }
     .tg-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 0 24px; }
-    .tg-head .avatar { margin-bottom: 12px; }
+    .avatar-btn { position: relative; margin-bottom: 12px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .avatar-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+    .avatar-btn:active .avatar { transform: scale(.97); }
+    .avatar-btn .avatar { transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur); }
+    .avatar-btn.is-uploading .avatar { opacity: .45; }
+    .avatar-cam { position: absolute; right: 0; bottom: 0; display: grid; place-items: center; width: 32px; height: 32px; border: 3px solid var(--color-bg); border-radius: 50%; background: var(--color-accent); color: #fff; }
+    .avatar-cam svg { width: 16px; height: 16px; }
+    .avatar-menu { width: 100%; max-width: 340px; margin: 16px auto 0; text-align: left; }
+    .avatar-menu .row-i { cursor: pointer; margin: 0; }
     .tg-name { font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.3px; color: var(--color-text); text-wrap: balance; }
     .tg-sub { margin-top: 2px; font-size: 15px; color: var(--color-text-secondary); }
     .group { margin-bottom: 22px; }
@@ -207,9 +215,17 @@
 
     <div id="cabinetSectionStats">
       <div class="tg-head">
-        <div class="avatar js-avatar" style="--av: 100px"></div>
+        <button type="button" class="avatar-btn" id="avatarButton" onclick="toggleAvatarMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="avatarMenu" aria-label="Фото профиля">
+          <div class="avatar js-avatar" style="--av: 100px"></div>
+          <span class="avatar-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+        </button>
         <div class="tg-name" id="cabinetStudentName">—</div>
         <div class="tg-sub"><span class="js-role">Студент</span>, группа 24ДММ-2</div>
+        <div class="inset avatar-menu d-none" id="avatarMenu">
+          <label class="row-i" for="avatarFileInput"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="lbl">Выбрать фото</span></label>
+          <button type="button" class="row-i" id="avatarResetBtn" onclick="resetAvatar()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><span class="lbl">Сбросить фото</span></button>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
       </div>
 
       <div class="group">
@@ -826,6 +842,7 @@
     myStudentId = profile.student_id;
     document.body.classList.remove('is-login');
     showCabinetContent();
+    loadMyAvatar();
   }
 
   function showLoginForm() {
@@ -1029,16 +1046,152 @@
   async function logoutCabinet() {
     await signOutQuietly();
     writeCachedProfile(null);
+    writeCachedAvatar(null);
+    myAvatarUrl = null;
     myProfile = null;
     myStudentId = null;
     showLoginForm();
+  }
+
+  // --- Своя аватарка: Supabase Storage, приватный бакет avatars, путь <user_id>.jpg ---
+  // Фото обрезается по центру до квадрата и сжимается до 256×256 JPEG прямо в браузере.
+  const AVATAR_CACHE_KEY = 'journal_avatar';   // { user_id, data } — data: URL, чтобы фото было видно и без сети
+  const AVATAR_SIZE = 256;
+  let myAvatarUrl = null;
+
+  function readCachedAvatar() {
+    try { return JSON.parse(localStorage.getItem(AVATAR_CACHE_KEY) || 'null'); } catch (e) { return null; }
+  }
+  function writeCachedAvatar(value) {
+    try {
+      if (value) localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(value));
+      else localStorage.removeItem(AVATAR_CACHE_KEY);
+    } catch (e) {}
+  }
+  const avatarPath = () => `${myProfile.user_id}.jpg`;
+  const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+  async function loadMyAvatar() {
+    if (!myProfile) return;
+    const userId = myProfile.user_id;
+    const cached = readCachedAvatar();
+    myAvatarUrl = cached && cached.user_id === userId ? cached.data : null;
+    renderCabinetAvatars();
+    if (!sb) return;
+    try {
+      const { data, error } = await sb.storage.from('avatars').download(`${userId}.jpg`);
+      if (!myProfile || myProfile.user_id !== userId) return;   // за это время вышли или вошёл другой
+      if (error) {
+        if (isNetworkError(error)) return;                        // без сети остаётся сохранённое фото
+        myAvatarUrl = null;                                       // своего фото нет
+        writeCachedAvatar(null);
+      } else {
+        myAvatarUrl = await blobToDataUrl(data);
+        writeCachedAvatar({ user_id: userId, data: myAvatarUrl });
+      }
+    } catch (e) {
+      return;
+    }
+    renderCabinetAvatars();
+  }
+
+  function toggleAvatarMenu(force) {
+    const menu = document.getElementById('avatarMenu');
+    const open = force === undefined ? menu.classList.contains('d-none') : force;
+    menu.classList.toggle('d-none', !open);
+    document.getElementById('avatarButton').setAttribute('aria-expanded', String(open));
+    document.getElementById('avatarResetBtn').classList.toggle('d-none', !myAvatarUrl);
+    if (open) FX.reveal(menu.children, { step: 0.03 });
+  }
+
+  // Снимок с учётом ориентации (EXIF): createImageBitmap, а если его нет — через <img>
+  async function decodeImage(file) {
+    if (window.createImageBitmap) {
+      try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) {}
+    }
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+      img.src = url;
+    });
+  }
+
+  async function squareAvatarJpeg(file) {
+    const src = await decodeImage(file);
+    const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    if (!w || !h) throw new Error('decode');
+    const side = Math.min(w, h);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = AVATAR_SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';                   // прозрачный PNG — на белом, а не на чёрном
+    ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, (w - side) / 2, (h - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    if (src.close) src.close();
+    return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('encode'))), 'image/jpeg', 0.85));
+  }
+
+  async function handleAvatarFile(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    toggleAvatarMenu(false);
+    if (!file || !myProfile) return;
+    if (file.type && !file.type.startsWith('image/')) { showAlert('Выберите фотографию.'); return; }
+    let blob;
+    try {
+      blob = await squareAvatarJpeg(file);
+    } catch (e) {
+      showAlert('Не удалось открыть это фото. Выберите другое — в формате JPEG или PNG.');
+      return;
+    }
+    const btn = document.getElementById('avatarButton');
+    btn.classList.add('is-uploading');
+    try {
+      await currentSession();
+      const { error } = await sb.storage.from('avatars').upload(avatarPath(), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '60' });
+      if (error) throw error;
+      myAvatarUrl = await blobToDataUrl(blob);
+      writeCachedAvatar({ user_id: myProfile.user_id, data: myAvatarUrl });
+      renderCabinetAvatars();
+      haptic('success');
+    } catch (e) {
+      haptic('error');
+      showAlert(isNetworkError(e) || e.code === 'network' ? NO_NETWORK_TEXT : e.code === 'unauthorized' ? AUTH_ERRORS.unauthorized : 'Не удалось сохранить фото. Попробуйте ещё раз.');
+    } finally {
+      btn.classList.remove('is-uploading');
+    }
+  }
+
+  async function resetAvatar() {
+    toggleAvatarMenu(false);
+    if (!myAvatarUrl || !(await showConfirm('Сбросить фото профиля?'))) return;
+    try {
+      await currentSession();
+      const { error } = await sb.storage.from('avatars').remove([avatarPath()]);
+      if (error) throw error;
+      myAvatarUrl = null;
+      writeCachedAvatar(null);
+      renderCabinetAvatars();
+      haptic('success');
+    } catch (e) {
+      haptic('error');
+      showAlert(isNetworkError(e) || e.code === 'network' ? NO_NETWORK_TEXT : 'Не удалось сбросить фото. Попробуйте ещё раз.');
+    }
   }
 
   // Сессию завершили в другой вкладке или её не удалось продлить — возвращаемся к экрану входа
   if (sb) {
     sb.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT' && myStudentId) {
-        setTimeout(() => { writeCachedProfile(null); myProfile = null; myStudentId = null; showLoginForm(); }, 0);
+        setTimeout(() => { writeCachedProfile(null); writeCachedAvatar(null); myAvatarUrl = null; myProfile = null; myStudentId = null; showLoginForm(); }, 0);
       }
     });
   }
@@ -1058,6 +1211,7 @@
     document.getElementById('starostaPickerList').classList.add('d-none');
     document.getElementById('cabinetLoginValue').innerText = myProfile ? myProfile.login : '—';
     toggleAccountForm(null);
+    toggleAvatarMenu(false);
 
     renderPersonalStats();
     renderGroupStanding();
@@ -1607,7 +1761,7 @@
     if (norm(user.username) !== norm(student.telegramUsername)) return null;
     return /^(https:|data:image\/)/i.test(user.photo_url) ? user.photo_url : null;
   }
-  function renderAvatar(el, student) {
+  function renderAvatar(el, student, ownUrl) {
     let h = 0;
     for (const ch of String(student.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     const [c1, c2] = AVATAR_COLORS[h % AVATAR_COLORS.length];
@@ -1616,21 +1770,26 @@
     el.textContent = studentInitials(student);
     el.setAttribute('role', 'img');
     el.setAttribute('aria-label', `${student.firstName} ${student.lastName}`);
-    const url = telegramPhotoFor(student);
-    if (!url) return;
-    const img = document.createElement('img');
-    img.alt = '';
-    img.decoding = 'async';
-    img.referrerPolicy = 'no-referrer';
-    img.onload = () => el.classList.add('has-photo');
-    img.onerror = () => { img.remove(); el.classList.remove('has-photo'); };   // не загрузилось — остаются инициалы
-    img.src = url;
-    el.appendChild(img);
+    // Порядок: своё фото → фото из Telegram → инициалы. Не загрузилось — пробуем следующее.
+    const sources = [ownUrl, telegramPhotoFor(student)].filter(u => u && /^(https:|data:image\/)/i.test(u));
+    const tryNext = () => {
+      const url = sources.shift();
+      if (!url) return;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      img.onload = () => el.classList.add('has-photo');
+      img.onerror = () => { img.remove(); el.classList.remove('has-photo'); tryNext(); };
+      img.src = url;
+      el.appendChild(img);
+    };
+    tryNext();
   }
   function renderCabinetAvatars() {
     const s = currentStudent();
     if (!s) return;
-    document.querySelectorAll('.js-avatar').forEach(el => renderAvatar(el, s));
+    document.querySelectorAll('.js-avatar').forEach(el => renderAvatar(el, s, myAvatarUrl));
     document.querySelectorAll('.js-role').forEach(el => { el.innerText = (s.role || '').trim() || 'Студент'; });
   }
   afterRender('showCabinetContent', renderCabinetAvatars);
