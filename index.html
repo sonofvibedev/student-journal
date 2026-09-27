@@ -52,16 +52,7 @@
     .dl-admin-group { margin: 14px 2px 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); }
 
     /* --- Шапка: аватарка вошедшего студента → личный кабинет; без входа — иконка профиля --- */
-    .hdr-profile { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--color-surface); color: var(--color-text-secondary); text-decoration: none; transition: transform var(--dur-fast) var(--ease-out); }
-    .hdr-profile:active { transform: scale(.94); }
-    .hdr-profile:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-    .hdr-profile-icon { width: 24px; height: 24px; }
-    .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, #2c2c2e); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; line-height: 1; user-select: none; }
-    .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
-    .avatar.has-photo img { opacity: 1; }
     .hdr-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-    @media (max-width: 420px) {
-    }
     /* --- Колокольчик объявлений и лист снизу --- */
     .va-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 10px; padding: 12px 0 18px; }
     .va-header .app-header-main { display: contents; }
@@ -69,11 +60,15 @@
     .va-header .hdr-actions { grid-column: 2; grid-row: 1; gap: 6px; }
     .va-header .app-subtitle { grid-column: 1 / -1; grid-row: 2; margin-top: 6px; }
     .va-header .app-title { font-size: 28px; }
-    .va-bell { position: relative; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--color-surface); color: var(--color-text); }
-    .va-bell svg { width: 22px; height: 22px; }
-    .va-bell:active { transform: scale(.94); }
-    .va-bell:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-    .va-bell-count { position: absolute; top: -3px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: #ff453a; color: #fff; font-size: 11px; font-weight: 700; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums; }
+    /* Колокольчик: зона нажатия 44×44, счётчик — в правом верхнем углу кружка */
+    .va-bell { position: relative; display: grid; place-items: center; width: 44px; height: 44px; margin: -4px -4px -4px 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--color-text); -webkit-tap-highlight-color: transparent; }
+    .va-bell::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: var(--color-surface); transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+    .va-bell svg { position: relative; width: 22px; height: 22px; }
+    .va-bell:active::before { transform: scale(.92); background: var(--color-surface-2); }
+    .va-bell:focus-visible { outline: none; }
+    .va-bell:focus-visible::before { box-shadow: 0 0 0 2px var(--color-accent); }
+    .va-bell.has-unread svg { color: #fff; }
+    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: #ff3b30; color: #fff; font-size: 11px; font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
     .va-empty { padding: 24px 0; color: var(--color-text-tertiary); text-align: center; }
     #announcementsSheet .student-summary-card { background: var(--color-surface-3); }
     #announcementsSheet .text-white { white-space: pre-line; }
@@ -463,13 +458,9 @@
     </div>
     <div class="hdr-actions">
       <button type="button" class="va-bell" id="announcementsBell" onclick="openAnnouncementsSheet()" aria-label="Объявления">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="currentColor" d="M6 11c0-4.8 4-6 6-6c4.8 0 6 4 6 6v4l2 2H4l2-2z"/><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M10 20.5h4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2v1.3"/><path d="M6.2 16.6V11a5.8 5.8 0 0 1 11.6 0v5.6l1.6 1.7H4.6z"/><path d="M9.9 20.6a2.3 2.3 0 0 0 4.2 0"/></svg>
         <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
       </button>
-      <a href="cabinet.html" class="hdr-profile" id="headerProfileLink" aria-label="Войти в личный кабинет">
-        <span class="avatar js-hdr-avatar d-none" style="--av: 36px"></span>
-        <svg class="hdr-profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4a7 7 0 0 1 11.6 0"/></svg>
-      </a>
     </div>
   </header>
 
@@ -1412,7 +1403,7 @@
     updateAdminUI();
     await loadData();
     openTeachersFromHash();
-    refreshCabinetProfile().then(loadHeaderAvatar);
+    refreshCabinetProfile();
     updateAdminUI();
     checkWhatsNew();
   }
@@ -3119,71 +3110,11 @@
 
   init();
 
-  // Регистрация service worker для PWA (установка на главный экран, работа не только внутри Telegram)
-  // ===== Шапка: аватарка вошедшего студента (своё фото → фото из Telegram → инициалы), ведёт в кабинет.
-  // Без входа — иконка профиля, ведущая на экран входа. Своё фото — из кэша кабинета (journal_avatar).
-  const AVATAR_COLORS = [['#ff885e', '#ff516a'], ['#ffcd6a', '#ffa85c'], ['#82b1ff', '#665fff'], ['#a0de7e', '#54cb68'],
-    ['#53edd6', '#28c9b7'], ['#72d5fd', '#2a9ef1'], ['#e0a2f3', '#d669ed']];
-  function studentInitials(s) {
-    return (((s.firstName || '').trim()[0] || '') + ((s.lastName || '').trim()[0] || '')).toUpperCase() || '?';
-  }
-  function telegramPhotoFor(student) {
-    const tg = window.Telegram && window.Telegram.WebApp;
-    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-    if (!user || !user.username || !user.photo_url || !student || !student.telegramUsername) return null;
-    const norm = (u) => String(u).trim().replace(/^@/, '').toLowerCase();
-    if (norm(user.username) !== norm(student.telegramUsername)) return null;
-    return /^(https:|data:image\/)/i.test(user.photo_url) ? user.photo_url : null;
-  }
-  function renderAvatar(el, student, ownUrl) {
-    let h = 0;
-    for (const ch of String(student.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    const [c1, c2] = AVATAR_COLORS[h % AVATAR_COLORS.length];
-    el.style.setProperty('--av-bg', `linear-gradient(180deg, ${c1}, ${c2})`);
-    el.classList.remove('has-photo');
-    el.textContent = studentInitials(student);
-    const sources = [ownUrl, telegramPhotoFor(student)].filter(u => u && /^(https:|data:image\/)/i.test(u));
-    const tryNext = () => {
-      const url = sources.shift();
-      if (!url) return;
-      const img = document.createElement('img');
-      img.alt = '';
-      img.decoding = 'async';
-      img.referrerPolicy = 'no-referrer';
-      img.onload = () => el.classList.add('has-photo');
-      img.onerror = () => { img.remove(); el.classList.remove('has-photo'); tryNext(); };
-      img.src = url;
-      el.appendChild(img);
-    };
-    tryNext();
-  }
-  function renderHeaderProfile() {
-    const link = document.getElementById('headerProfileLink');
-    const avatar = link.querySelector('.js-hdr-avatar');
-    const icon = link.querySelector('.hdr-profile-icon');
-    const student = myCabinetProfile && (appData.students || []).find(s => s.id === myCabinetProfile.student_id);
-    if (!student) {
-      avatar.classList.add('d-none');
-      icon.classList.remove('d-none');
-      link.setAttribute('aria-label', 'Войти в личный кабинет');
-      return;
-    }
-    let own = null;
-    try {
-      const cached = JSON.parse(localStorage.getItem('journal_avatar') || 'null');
-      if (cached && cached.user_id === myCabinetProfile.user_id) own = cached.data;
-    } catch (e) {}
-    renderAvatar(avatar, student, own);
-    avatar.classList.remove('d-none');
-    icon.classList.add('d-none');
-    link.setAttribute('aria-label', `Личный кабинет: ${student.firstName} ${student.lastName}`);
-  }
   // Дорисовать после штатной функции страницы (сами функции не меняются)
   function afterCall(name, fn) {
     const orig = window[name];
     window[name] = function () { const r = orig.apply(this, arguments); try { fn(); } catch (e) { console.error(e); } return r; };
   }
-  afterCall('updateCabinetUnreadBadge', renderHeaderProfile);
 
   // --- Вариант A: колокольчик со счётчиком непрочитанных общих объявлений → лист снизу ---
   function readSeenAnnouncements() {
@@ -3197,6 +3128,7 @@
     const badge = document.getElementById('announcementsBellCount');
     badge.innerText = unread > 9 ? '9+' : String(unread);
     badge.classList.toggle('d-none', unread === 0);
+    document.getElementById('announcementsBell').classList.toggle('has-unread', unread > 0);
     document.getElementById('announcementsBell').setAttribute('aria-label', unread ? `Объявления, непрочитанных: ${unread}` : 'Объявления');
     document.getElementById('announcementsEmpty').classList.toggle('d-none', all.length > 0);
   }
@@ -3209,24 +3141,7 @@
   }
   afterCall('renderGeneralAnnouncements', updateAnnouncementsBell);
 
-  // Своё фото студента: берётся из кэша кабинета; если его нет (другое устройство) — один раз за сеанс из Storage
-  async function loadHeaderAvatar() {
-    if (!sb || !myCabinetProfile) return;
-    const userId = myCabinetProfile.user_id;
-    try {
-      const cached = JSON.parse(localStorage.getItem('journal_avatar') || 'null');
-      if (cached && cached.user_id === userId) return;
-      if (sessionStorage.getItem('journal_avatar_checked') === userId) return;
-      sessionStorage.setItem('journal_avatar_checked', userId);
-    } catch (e) { return; }
-    const { data, error } = await sb.storage.from('avatars').download(`${userId}.jpg`).catch(() => ({ error: true }));
-    if (error || !data || !myCabinetProfile || myCabinetProfile.user_id !== userId) return;
-    const dataUrl = await new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => resolve(null); r.readAsDataURL(data); });
-    if (!dataUrl) return;
-    try { localStorage.setItem('journal_avatar', JSON.stringify({ user_id: userId, data: dataUrl })); } catch (e) {}
-    renderHeaderProfile();
-  }
-
+  // Регистрация service worker для PWA (установка на главный экран, работа не только внутри Telegram)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch((err) => console.error('SW registration failed:', err));
