@@ -35,7 +35,7 @@
     .login-card .form-control { background-color: var(--color-surface); }
     .greet { font-size: clamp(30px, 9vw, 40px); font-weight: 700; line-height: 1.08; letter-spacing: -0.8px; color: var(--color-text); margin: 4px 0 6px; text-wrap: balance; }
     /* Шкала места в группе */
-    #groupStandingCard { padding: 0; background: none; margin-bottom: 28px; }
+    #groupStandingCard { margin-bottom: 20px; }
     .meter { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #ff628f, #ffd60a 50%, #34c759); margin: 12px 0 8px; }
     .meter i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #060606; transform: translate(-50%, -50%); left: var(--pos, 50%); }
     .meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-tertiary); }
@@ -43,15 +43,6 @@
     .feed-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
     .feed-head .kicker { margin: 0; }
     .feed-head .btn { white-space: nowrap; flex: none; }
-    /* Хронология: вертикальная линия и точки */
-    #myAbsList.list-group.border { background: none; border-radius: 0 !important; position: relative; padding-left: 22px; overflow: visible; }
-    #myAbsList::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: #1f1f1f; }
-    #myAbsList > div { position: relative; border: 0 !important; padding: 10px 0 14px !important; }
-    #myAbsList > div::before { content: ''; position: absolute; left: -21px; top: 16px; width: 12px; height: 12px; border-radius: 50%; background: var(--dot, #ff628f); box-shadow: 0 0 0 4px #060606; }
-    #myAbsList > div.is-excused { --dot: #34c759; }
-    #myAbsList .month { padding: 18px 0 4px !important; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); }
-    #myAbsList .month::before { display: none; }
-    #myAbsList .fw-bold { font-weight: 500 !important; font-size: 16px; }
     details.by-subject { margin: 18px 0 28px; border-radius: var(--radius-lg); background: var(--color-surface); }
     details.by-subject summary { padding: 14px 16px; cursor: pointer; font-weight: 600; color: var(--color-text); list-style: none; display: flex; justify-content: space-between; }
     details.by-subject summary::after { content: '›'; transform: rotate(90deg); transition: transform var(--dur) var(--ease-out); color: var(--color-text-tertiary); }
@@ -93,7 +84,7 @@
     /* --- Зачётка / Калькулятор: сегментированный переключатель (как выделение в таб-баре) --- */
     .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; margin-bottom: 20px; border-radius: var(--radius-md); background: var(--color-surface-2); }
     .seg::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 9px; background: var(--color-surface-3); box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform var(--dur) var(--ease-out); }
-    .seg[data-active="calc"]::before, .seg[data-active="invite"]::before { transform: translateX(100%); }
+    .seg[data-active="calc"]::before, .seg[data-active="invite"]::before, .seg[data-active="calendar"]::before { transform: translateX(100%); }
     .seg button { position: relative; z-index: 1; min-height: 36px; border: 0; background: none; color: var(--color-text-secondary); font-size: var(--fs-caption); font-weight: 600; transition: color var(--dur-fast); }
     .seg button[aria-selected="true"] { color: var(--color-text); }
     /* --- Калькулятор рейтинга: оценки-«фишки» --- */
@@ -107,22 +98,79 @@
     #gradesPaneCalc .form-select, #gradesPaneCalc .form-control { background-color: var(--color-surface-3); }
 
     /* --- Профиль «как в Telegram»: аватарка по центру и сгруппированные списки --- */
+
+    /* --- Студенческий билет --- */
+    .id-card { position: relative; margin: 4px 0 0; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, #0d2f57, #0a1a30 55%, #101010); border: 1px solid rgba(108, 184, 255, .18); overflow: hidden; }
+    .id-card::after { content: ''; position: absolute; right: -46px; top: -46px; width: 150px; height: 150px; border-radius: 50%; border: 20px solid rgba(0, 136, 255, .10); pointer-events: none; }
+    .id-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
+    .id-main { min-width: 0; }
+    .id-kind { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6cb8ff; }
+    .id-name { margin-top: 2px; font-size: 21px; font-weight: 700; line-height: 1.15; letter-spacing: -.3px; color: var(--color-text); text-wrap: balance; }
+    .id-meta { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 22px; margin-top: 14px; font-size: 12px; color: var(--color-text-secondary); }
+    .id-meta b { display: block; font-size: 14px; font-weight: 600; color: var(--color-text-2); overflow-wrap: anywhere; }
+    #cabinetCertsPending.warn { color: #ffd60a; }
+    /* --- Период, предмет, плитки часов --- */
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+    .pill-select { width: auto; max-width: 100%; min-height: 34px; padding: 4px 30px 4px 12px; border: 0; border-radius: 999px; background-color: var(--color-surface-2); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 11px; color: var(--color-text); font: inherit; font-size: 14px; appearance: none; field-sizing: content; text-overflow: ellipsis; }
+    .pill-select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .hours-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .hours-tile { padding: 12px 14px; border-radius: 16px; background: var(--color-surface-2); }
+    .hours-tile b { display: block; font-size: 32px; line-height: 1.05; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-text); }
+    .hours-tile b small { font-size: 15px; font-weight: 600; color: var(--color-text-secondary); }
+    .hours-tile > span { font-size: 13px; color: var(--color-text-secondary); }
+    #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
+    .hours-tile.is-excused b > span { color: var(--color-success-text); }
+    .cap { margin: 0 2px 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    #groupStandingText { margin: 0 2px 10px; }
+    /* --- Лента событий --- */
+    .feed-chips { display: flex; gap: 6px; margin: 0 -16px 10px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+    .feed-chips::-webkit-scrollbar { display: none; }
+    .feed-chip { flex: none; min-height: 32px; padding: 5px 13px; border: 0; border-radius: 999px; background: var(--color-surface-2); color: var(--color-text-2); font-size: 14px; }
+    .feed-chip.active { background: var(--color-accent); color: #fff; font-weight: 600; }
+    .feed-day { margin: 14px 2px 6px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+    .feed-day:first-child { margin-top: 2px; }
+    .feed .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
+    .ev-ic { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: #ff516a; color: #fff; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ev.is-excused .ev-ic { background: #54cb68; }
+    .ev-body { flex: 1; min-width: 0; }
+    .ev-body .fw-bold { font-weight: 500 !important; font-size: 15px; }
+    .ev-body .d-flex { gap: 8px !important; }
+    .ev-body .badge { font-weight: 500; }
+    .ev.ev-msg { padding: 0; background: none; }
+    .ev-bubble { max-width: 90%; padding: 10px 13px; border-radius: 18px 18px 18px 6px; background: var(--color-surface-3); color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
+    .ev-bubble small { display: block; margin-top: 4px; font-size: 11px; color: var(--color-text-tertiary); }
+    .feed-empty { padding: 20px 0; color: var(--color-text-tertiary); text-align: center; }
+    /* --- Календарь --- */
+    .cal { padding: 12px; border-radius: 16px; background: var(--color-surface-2); margin-bottom: 16px; }
+    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--color-text); }
+    .cal-nav { width: 36px; height: 32px; border: 0; border-radius: 10px; background: none; color: var(--color-accent); font-size: 22px; line-height: 1; }
+    .cal-nav:disabled { color: var(--color-text-disabled); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-variant-numeric: tabular-nums; }
+    .cal-grid .wd { padding-bottom: 2px; font-size: 11px; color: var(--color-text-tertiary); }
+    .cal-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 10px; background: none; color: var(--color-text-2); font-size: 14px; }
+    .cal-day.weekend { color: var(--color-text-tertiary); }
+    .cal-day.u { background: rgba(255, 98, 143, .22); color: #fff; font-weight: 600; }
+    .cal-day.e { background: rgba(52, 199, 89, .20); color: #fff; font-weight: 600; }
+    .cal-day.sel { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+    .cal-day.today::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--color-accent); }
+    .cal-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary); }
+    .cal-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
+    .cal-legend .u { background: rgba(255, 98, 143, .5); } .cal-legend .e { background: rgba(52, 199, 89, .5); }
+    #calendarDayList .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
+    .ev-link { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--color-accent); font-size: 13px; }
     /* --- Аватарка: фото из Telegram или инициалы на цветном фоне (палитра Telegram) --- */
     .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, #2c2c2e); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; letter-spacing: .01em; line-height: 1; user-select: none; }
     .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
     .avatar.has-photo img { opacity: 1; }
-    .tg-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 0 24px; }
-    .avatar-btn { position: relative; margin-bottom: 12px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .avatar-btn { position: relative; margin: 0; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .avatar-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
     .avatar-btn:active .avatar { transform: scale(.97); }
     .avatar-btn .avatar { transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur); }
     .avatar-btn.is-uploading .avatar { opacity: .45; }
-    .avatar-cam { position: absolute; right: 0; bottom: 0; display: grid; place-items: center; width: 32px; height: 32px; border: 3px solid var(--color-bg); border-radius: 50%; background: var(--color-accent); color: #fff; }
+    .avatar-cam { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px; border: 3px solid #0b1f38; border-radius: 50%; background: var(--color-accent); color: #fff; }
     .avatar-cam svg { width: 16px; height: 16px; }
-    .avatar-menu { width: 100%; max-width: 340px; margin: 16px auto 0; text-align: left; }
+    .avatar-menu { margin: 10px 0 0; }
     .avatar-menu .row-i { cursor: pointer; margin: 0; }
-    .tg-name { font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.3px; color: var(--color-text); text-wrap: balance; }
-    .tg-sub { margin-top: 2px; font-size: 15px; color: var(--color-text-secondary); }
     .group { margin-bottom: 22px; }
     .row-i { width: 100%; border: 0; background: none; text-align: left; font-size: 17px; cursor: pointer; }
     #cabinetSectionStats .inset > * + *::before { left: 60px; }
@@ -135,9 +183,6 @@
     #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
     .chev { color: var(--color-text-tertiary); font-size: 20px; line-height: 1; }
     .tg-exit .lbl { color: #ff453a; }
-    .tg-standing { padding: 14px 16px; }
-    .tg-standing > *::before { display: none; }
-    .feed-head .group-title { margin: 0; }
 
     @media (max-width: 576px) {
       .container { padding-left: 16px; padding-right: 16px; }
@@ -214,45 +259,98 @@
     <div id="cabinetGreeting" class="visually-hidden">Привет!</div>
 
     <div id="cabinetSectionStats">
-      <div class="tg-head">
-        <button type="button" class="avatar-btn" id="avatarButton" onclick="toggleAvatarMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="avatarMenu" aria-label="Фото профиля">
-          <div class="avatar js-avatar" style="--av: 100px"></div>
+      <!-- Студенческий билет: фото (тап — сменить), ФИО, роль, логин, справки -->
+      <div class="id-card">
+        <div class="id-top">
+          <button type="button" class="avatar-btn" id="avatarButton" onclick="toggleAvatarMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="avatarMenu" aria-label="Фото профиля">
+          <div class="avatar js-avatar" style="--av: 76px"></div>
           <span class="avatar-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
         </button>
-        <div class="tg-name" id="cabinetStudentName">—</div>
-        <div class="tg-sub"><span class="js-role">Студент</span>, группа 24ДММ-2</div>
+          <div class="id-main">
+            <div class="id-kind">Студенческий · 24ДММ-2</div>
+            <div class="id-name" id="cabinetStudentName">—</div>
+          </div>
+        </div>
+        <div class="id-meta">
+          <div>Роль<b class="js-role">Студент</b></div>
+          <div>Логин<b class="js-login">—</b></div>
+          <div>Справки<b id="cabinetCertsPending">—</b></div>
+        </div>
+      </div>
         <div class="inset avatar-menu d-none" id="avatarMenu">
           <label class="row-i" for="avatarFileInput"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="lbl">Выбрать фото</span></label>
           <button type="button" class="row-i" id="avatarResetBtn" onclick="resetAvatar()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><span class="lbl">Сбросить фото</span></button>
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
-      </div>
 
-      <div class="group">
-        <div class="inset">
-          <label class="row-i"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="lbl">Период</span>
-            <select id="cabinetPeriod" class="row-sel" onchange="renderPersonalStats()">
-              <option value="WEEK">За неделю</option>
+      <div class="pill-row">
+        <select id="cabinetPeriod" class="pill-select" onchange="renderPersonalStats()" aria-label="Период">
+          <option value="WEEK">За неделю</option>
           <option value="MONTH" selected>За месяц</option>
           <option value="SEMESTER">За семестр</option>
-            </select></label>
-          <label class="row-i"><span class="ic" style="--ic: #665fff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h13"/></svg></span><span class="lbl">Предмет</span>
-            <select id="cabinetSubject" class="row-sel" onchange="renderPersonalStats()">
-              <option value="ALL">Все предметы</option>
-            </select></label>
-          <div class="row-i"><span class="ic" style="--ic: #ff516a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg></span><span class="lbl">Неуважительные</span><span class="val"><span id="cabinetUnexcused">0</span> ч</span></div>
-          <div class="row-i"><span class="ic" style="--ic: #54cb68"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span><span class="lbl">Уважительные</span><span class="val"><span id="cabinetExcused">0</span> ч</span></div>
-        </div>
+        </select>
+        <select id="cabinetSubject" class="pill-select" onchange="renderPersonalStats()" aria-label="Предмет">
+          <option value="ALL">Все предметы</option>
+        </select>
+      </div>
+      <div class="hours-tiles">
+        <div class="hours-tile"><b><span id="cabinetUnexcused">0</span><small> ч</small></b><span>неуважительных</span></div>
+        <div class="hours-tile is-excused"><b><span id="cabinetExcused">0</span><small> ч</small></b><span>уважительных</span></div>
       </div>
 
-      <div class="group d-none" id="groupStandingCard">
-        <div class="group-title">Место в группе</div>
-        <div class="inset tg-standing">
-          <div class="text-white" id="groupStandingText">—</div>
+      <div class="d-none" id="groupStandingCard">
+        <div class="cap">Место в группе</div>
+        <div class="text-white" id="groupStandingText">—</div>
         <div class="meter" aria-hidden="true"><i id="groupStandingMeter"></i></div>
         <div class="meter-labels"><span>больше пропусков</span><span>меньше пропусков</span></div>
-        </div>
       </div>
+
+      <!-- Лента событий или календарь -->
+      <div class="seg" id="statsViewSeg" role="tablist" data-active="feed">
+        <button type="button" role="tab" id="statsViewFeedTab" aria-selected="true" onclick="setStatsView('feed')">Лента</button>
+        <button type="button" role="tab" id="statsViewCalendarTab" aria-selected="false" onclick="setStatsView('calendar')">Календарь</button>
+      </div>
+      <div id="statsViewFeed">
+        <div class="feed-chips" role="group" aria-label="Что показывать">
+          <button type="button" class="feed-chip active" data-feed="all" onclick="setFeedFilter('all')" aria-pressed="true">Всё</button>
+          <button type="button" class="feed-chip" data-feed="absence" onclick="setFeedFilter('absence')" aria-pressed="false">Пропуски</button>
+          <button type="button" class="feed-chip" data-feed="cert" onclick="setFeedFilter('cert')" aria-pressed="false">Справки</button>
+          <button type="button" class="feed-chip" data-feed="msg" onclick="setFeedFilter('msg')" aria-pressed="false">Сообщения</button>
+        </div>
+        <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
+        <div id="myAbsList" class="feed"></div>
+        <div id="feedEmpty" class="feed-empty d-none">Здесь пока пусто</div>
+      </div>
+      <div id="statsViewCalendar" class="d-none">
+        <div class="cal">
+          <div class="cal-head">
+            <button type="button" class="cal-nav" onclick="shiftCalendarMonth(-1)" aria-label="Предыдущий месяц">‹</button>
+            <b id="calendarTitle">—</b>
+            <button type="button" class="cal-nav" onclick="shiftCalendarMonth(1)" aria-label="Следующий месяц">›</button>
+          </div>
+          <div class="cal-grid" id="calendarGrid"></div>
+          <div class="cal-legend"><span><i class="u"></i>неуважительный</span><span><i class="e"></i>уважительный</span></div>
+        </div>
+        <div class="cap" id="calendarDayTitle"></div>
+        <div id="calendarDayList"></div>
+      </div>
+
+      <details class="by-subject">
+        <summary>По предметам</summary>
+        <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle text-center">
+          <thead>
+            <tr class="table-dark">
+              <th class="text-start">Предмет</th>
+              <th>Неуваж. (ч)</th>
+              <th>Уваж. (ч)</th>
+              <th>Всего (ч)</th>
+            </tr>
+          </thead>
+          <tbody id="myAbsSubjectBody"></tbody>
+        </table>
+      </div>
+      </details>
 
       <div class="group">
         <div class="inset">
@@ -279,27 +377,7 @@
         </div>
       </div>
 
-      <div class="feed-head"><div class="group-title px-0 pb-0">Хронология пропусков</div></div>
-      <div class="small text-secondary mb-2" id="dataLastUpdated"></div>
       <div id="starostaPickerList" class="mb-3 d-none"></div>
-      <div class="list-group list-group-flush border rounded border-secondary border-opacity-25" id="myAbsList"></div>
-
-      <details class="by-subject">
-        <summary>По предметам</summary>
-        <div class="table-responsive">
-        <table class="table table-bordered table-sm align-middle text-center">
-          <thead>
-            <tr class="table-dark">
-              <th class="text-start">Предмет</th>
-              <th>Неуваж. (ч)</th>
-              <th>Уваж. (ч)</th>
-              <th>Всего (ч)</th>
-            </tr>
-          </thead>
-          <tbody id="myAbsSubjectBody"></tbody>
-        </table>
-      </div>
-      </details>
     </div>
 
     <div id="cabinetSectionGrades" class="d-none">
@@ -986,7 +1064,7 @@
       try { await sb.auth.refreshSession(); } catch (e) {}
       myProfile = { ...myProfile, login };
       writeCachedProfile(myProfile);
-      document.getElementById('cabinetLoginValue').innerText = login;
+      document.querySelectorAll('#cabinetLoginValue, .js-login').forEach(el => { el.innerText = login; });
       toggleAccountForm(null);
       haptic('success');
       showAlert(`Логин изменён. Теперь входите с логином «${login}».`);
@@ -1209,7 +1287,7 @@
       appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
 
     document.getElementById('starostaPickerList').classList.add('d-none');
-    document.getElementById('cabinetLoginValue').innerText = myProfile ? myProfile.login : '—';
+    document.querySelectorAll('#cabinetLoginValue, .js-login').forEach(el => { el.innerText = myProfile ? myProfile.login : '—'; });
     toggleAccountForm(null);
     toggleAvatarMenu(false);
 
@@ -1720,25 +1798,210 @@
     const m = document.getElementById('groupStandingText').innerText.match(/(\d+)%/);
     document.getElementById('groupStandingMeter').style.setProperty('--pos', `${m ? m[1] : 50}%`);
   });
-  const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  // ===== Лента событий: пропуски, справки и сообщения старосты — по дням, с фильтром =====
+  const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function dayTitle(d) {
+    const today = new Date(); const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    if (dayKey(d) === dayKey(today)) return 'Сегодня';
+    if (dayKey(d) === dayKey(yesterday)) return 'Вчера';
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}${d.getFullYear() !== today.getFullYear() ? ' ' + d.getFullYear() : ''}`;
+  }
+  function myAbsencesSorted() {
+    return appData.absences.filter(a => a.studentId === myStudentId).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+  let feedFilter = 'all';
   afterRender('renderMyAbsences', () => {
     const list = document.getElementById('myAbsList');
-    const abs = appData.absences.filter(a => a.studentId === myStudentId).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const abs = myAbsencesSorted();
+    const entries = [];
     const items = [...list.children];
-    if (!abs.length || items.length !== abs.length) return;
+    if (abs.length && items.length === abs.length) {
+      items.forEach((item, i) => {
+        const a = abs[i];
+        item.className = 'ev' + (a.isExcused ? ' is-excused' : '');
+        item.dataset.kind = a.isExcused && a.certType ? 'absence cert' : 'absence';
+        const body = document.createElement('div');
+        body.className = 'ev-body';
+        while (item.firstChild) body.appendChild(item.firstChild);
+        const ic = document.createElement('span');
+        ic.className = 'ev-ic';
+        ic.setAttribute('aria-hidden', 'true');
+        ic.textContent = a.totalHours;
+        item.append(ic, body);
+        // Дата уже в заголовке дня: «24.09.26 — Логистика (2 ч)» → «Логистика · 2 ч»
+        const title = body.querySelector('.fw-bold');
+        if (title) title.textContent = title.textContent.replace(/^\s*\S+\s+—\s+/, '').replace(/\s*\((\d+(?:[.,]\d+)?) ч\)\s*$/, ' · $1 ч');
+        entries.push({ ts: new Date(a.date).getTime(), node: item });
+      });
+    }
+    // Сообщения старосты и админа — пузырями среди пропусков
+    (currentPersonalAnnouncements || []).forEach(a => {
+      const node = document.createElement('div');
+      node.className = 'ev ev-msg';
+      node.dataset.kind = 'msg';
+      const bubble = document.createElement('div');
+      bubble.className = 'ev-bubble';
+      bubble.textContent = a.text;
+      const when = document.createElement('small');
+      when.textContent = 'Сообщение · ' + formatDateShort(a.date);
+      bubble.appendChild(when);
+      node.appendChild(bubble);
+      entries.push({ ts: new Date(a.date).getTime(), node });
+    });
+    entries.sort((x, y) => y.ts - x.ts);
+    list.innerHTML = '';
     let last = '';
-    items.forEach((item, i) => {
-      const d = new Date(abs[i].date);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      if (abs[i].isExcused) item.classList.add('is-excused');
+    entries.forEach(({ ts, node }) => {
+      const d = new Date(ts);
+      const key = isNaN(ts) ? 'nodate' : dayKey(d);
       if (key !== last) {
         const h = document.createElement('div');
-        h.className = 'month';
-        h.innerText = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-        list.insertBefore(h, item);
+        h.className = 'feed-day';
+        h.textContent = isNaN(ts) ? 'Без даты' : dayTitle(d);
+        list.appendChild(h);
         last = key;
       }
+      list.appendChild(node);
     });
+    applyFeedFilter();
+    renderCertsPending();
+    if (!document.getElementById('statsViewCalendar').classList.contains('d-none')) renderCalendar();
+  });
+  // Лента строится после объявлений: при повторном рендере объявлений — перестраиваем
+  afterRender('renderCabinetAnnouncements', () => { if (myStudentId && document.getElementById('myAbsList').children.length) renderMyAbsences(); });
+
+  function setFeedFilter(filter) {
+    feedFilter = filter;
+    document.querySelectorAll('.feed-chip').forEach(b => {
+      const on = b.dataset.feed === filter;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    applyFeedFilter();
+  }
+  function applyFeedFilter() {
+    const list = document.getElementById('myAbsList');
+    let visible = 0, header = null, headerHasItems = false;
+    const closeHeader = () => { if (header) header.classList.toggle('d-none', !headerHasItems); };
+    [...list.children].forEach(el => {
+      if (el.classList.contains('feed-day')) { closeHeader(); header = el; headerHasItems = false; return; }
+      const show = feedFilter === 'all' || (el.dataset.kind || '').split(' ').includes(feedFilter);
+      el.classList.toggle('d-none', !show);
+      if (show) { visible++; headerHasItems = true; }
+    });
+    closeHeader();
+    const empty = document.getElementById('feedEmpty');
+    empty.textContent = { all: 'Пропусков и сообщений нет', absence: 'Пропусков нет', cert: 'Справок нет', msg: 'Сообщений нет' }[feedFilter];
+    empty.classList.toggle('d-none', visible > 0);
+  }
+
+  // Справки в «студенческом»: сколько ещё ждём
+  function renderCertsPending() {
+    const el = document.getElementById('cabinetCertsPending');
+    const n = myAbsencesSorted().filter(a => a.isExcused && a.certType && !a.certSubmitted).length;
+    el.textContent = n ? `${n} ждём` : 'все сданы';
+    el.classList.toggle('warn', n > 0);
+    if (!myAbsencesSorted().some(a => a.isExcused && a.certType)) el.textContent = 'нет';
+  }
+
+  // ===== Календарь: месяц сеткой, дни с пропусками подсвечены; тап по дню — пропуски этого дня =====
+  let calendarMonth = null;     // первое число показываемого месяца
+  let calendarDay = null;       // выбранный день (ключ YYYY-MM-DD)
+  function setStatsView(view) {
+    const cal = view === 'calendar';
+    document.getElementById('statsViewSeg').dataset.active = cal ? 'calendar' : 'feed';
+    document.getElementById('statsViewFeedTab').setAttribute('aria-selected', String(!cal));
+    document.getElementById('statsViewCalendarTab').setAttribute('aria-selected', String(cal));
+    document.getElementById('statsViewFeed').classList.toggle('d-none', cal);
+    document.getElementById('statsViewCalendar').classList.toggle('d-none', !cal);
+    if (cal) renderCalendar();
+    try { localStorage.setItem('cabinet_stats_view', cal ? 'calendar' : 'feed'); } catch (e) {}
+  }
+  function calendarAbsences() {
+    const subject = document.getElementById('cabinetSubject').value;
+    return myAbsencesSorted().filter(a => subject === 'ALL' || a.subject === subject);
+  }
+  function renderCalendar() {
+    const abs = calendarAbsences();
+    const byDay = {};
+    abs.forEach(a => {
+      const d = new Date(a.date); if (isNaN(d.getTime())) return;
+      const k = dayKey(d);
+      (byDay[k] = byDay[k] || { u: 0, e: 0, list: [] }).list.push(a);
+      if (a.isExcused) byDay[k].e += Number(a.totalHours); else byDay[k].u += Number(a.totalHours);
+    });
+    if (!calendarMonth) {
+      const latest = abs.length ? new Date(abs[0].date) : new Date();
+      calendarMonth = new Date(latest.getFullYear(), latest.getMonth(), 1);
+      if (abs.length) calendarDay = dayKey(latest);
+    }
+    const y = calendarMonth.getFullYear(), m = calendarMonth.getMonth();
+    document.getElementById('calendarTitle').textContent = `${MONTHS_NOM[m]} ${y}`;
+    const todayKey = dayKey(new Date());
+    const offset = (new Date(y, m, 1).getDay() + 6) % 7;       // понедельник — первый день
+    const days = new Date(y, m + 1, 0).getDate();
+    let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(w => `<span class="wd">${w}</span>`).join('');
+    html += '<span></span>'.repeat(offset);
+    for (let d = 1; d <= days; d++) {
+      const k = dayKey(new Date(y, m, d));
+      const info = byDay[k];
+      const cls = ['cal-day'];
+      if ((offset + d - 1) % 7 >= 5) cls.push('weekend');
+      if (info) cls.push(info.u > 0 ? 'u' : 'e');
+      if (k === calendarDay) cls.push('sel');
+      if (k === todayKey) cls.push('today');
+      const label = info ? `${d} ${MONTHS_GEN[m]}: ${info.u ? info.u + ' ч неуважительных' : ''}${info.u && info.e ? ', ' : ''}${info.e ? info.e + ' ч уважительных' : ''}` : `${d} ${MONTHS_GEN[m]}`;
+      html += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-label="${label}"${k === calendarDay ? ' aria-pressed="true"' : ''}>${d}</button>`;
+    }
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = html;
+    grid.querySelectorAll('.cal-day').forEach(b => b.addEventListener('click', () => { calendarDay = b.dataset.day; renderCalendar(); }));
+    renderCalendarDay(byDay);
+  }
+  function renderCalendarDay(byDay) {
+    const title = document.getElementById('calendarDayTitle');
+    const list = document.getElementById('calendarDayList');
+    const [yy, mm, dd] = (calendarDay || '').split('-').map(Number);
+    const inMonth = calendarDay && yy === calendarMonth.getFullYear() && mm - 1 === calendarMonth.getMonth();
+    if (!inMonth) { title.textContent = ''; list.innerHTML = '<div class="feed-empty">Выберите день, чтобы увидеть пропуски</div>'; return; }
+    title.textContent = `${dd} ${MONTHS_GEN[mm - 1]}`;
+    const info = byDay[calendarDay];
+    if (!info) { list.innerHTML = '<div class="feed-empty">В этот день пропусков нет</div>'; return; }
+    const starosta = getStarostaContact();
+    list.innerHTML = '';
+    info.list.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'ev' + (a.isExcused ? ' is-excused' : '');
+      const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+      row.innerHTML = `<span class="ev-ic" aria-hidden="true"></span><div class="ev-body"><div class="fw-bold text-white"></div><div class="small text-secondary"></div><div class="mt-1">${certStatusBadge(a)}</div></div>`;
+      row.querySelector('.ev-ic').textContent = a.totalHours;
+      row.querySelector('.fw-bold').textContent = `${subName} · ${a.totalHours} ч`;
+      row.querySelector('.small').textContent = (a.isExcused ? 'Уважительный' : 'Неуважительный') + (a.comment ? ` · ${a.comment}` : '');
+      if (starosta) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ev-link';
+        btn.textContent = 'Написать старосте ›';
+        const text = encodeURIComponent(`Привет! У меня вопрос по пропуску ${formatDateFull(a.date)} по предмету «${subName}». Можешь помочь?`);
+        btn.addEventListener('click', () => openTelegramChat(`https://t.me/${starosta.telegramUsername}?text=${text}`));
+        row.querySelector('.ev-body').appendChild(btn);
+      }
+      list.appendChild(row);
+    });
+  }
+  function shiftCalendarMonth(delta) {
+    calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + delta, 1);
+    renderCalendar();
+  }
+  // Предмет в фильтре меняет и календарь; при входе — последний выбранный вид
+  afterRender('renderPersonalStats', () => { if (!document.getElementById('statsViewCalendar').classList.contains('d-none')) renderCalendar(); });
+  afterRender('showCabinetContent', () => {
+    calendarMonth = null; calendarDay = null;
+    let view = 'feed';
+    try { view = localStorage.getItem('cabinet_stats_view') || 'feed'; } catch (e) {}
+    setStatsView(view);
   });
   afterRender('showCabinetContent', () => {
     const s = currentStudent();
