@@ -37,7 +37,6 @@
     .meter { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #ff628f, #ffd60a 50%, #34c759); margin: 12px 0 8px; }
     .meter i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #060606; transform: translate(-50%, -50%); left: var(--pos, 50%); }
     .meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-tertiary); }
-    .kicker { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); margin: 0 0 10px; }
     .feed-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
     .feed-head .kicker { margin: 0; }
     .feed-head .btn { white-space: nowrap; flex: none; }
@@ -112,55 +111,10 @@
 
     /* --- Вкладки разделов кабинета --- */
 
-    /* --- Дедлайны --- */
-    .dl-group { margin: 18px 2px 8px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
-    .dl-group:first-child { margin-top: 0; }
-    .dl-card { position: relative; margin-bottom: 8px; padding: 12px 14px 12px 16px; border-radius: 16px; background: var(--color-surface-2); overflow: hidden; }
-    .dl-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #3a3a3c; }
-    .dl-card.is-over { background: rgba(255, 98, 143, .12); }
-    .dl-card.is-over::before { background: var(--color-danger-line); }
-    .dl-card.is-soon { background: rgba(255, 214, 10, .10); }
-    .dl-card.is-soon::before { background: #ffd60a; }
-    .dl-subject { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
-    .dl-text { margin: 3px 0 8px; font-size: 16px; line-height: 1.35; color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
-    .dl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
-    .dl-rel { padding: 2px 9px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-weight: 600; }
-    .dl-card.is-over .dl-rel { background: rgba(255, 98, 143, .22); color: #ffb3c8; }
-    .dl-card.is-soon .dl-rel { background: rgba(255, 214, 10, .20); color: #ffe066; }
-    .dl-card.is-zachet { background: rgba(191, 90, 242, .12); }
-    .dl-card.is-zachet::before { background: #bf5af2; }
-    .dl-card.is-zachet .dl-rel { background: rgba(191, 90, 242, .22); color: #e0b3ff; }
-    .dl-card.is-cert::before { background: #ff9f0a; }
-    .dl-card.is-cert.is-over::before { background: var(--color-danger-line); }
-    .dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
-    .dl-card.is-zachet .dl-kind { background: rgba(191, 90, 242, .25); color: #e0b3ff; }
-    .dl-card.is-cert .dl-kind { background: rgba(255, 159, 10, .22); color: #ffc46b; }
-    .dl-card.is-cert.is-over .dl-kind { background: rgba(255, 98, 143, .25); color: #ffb3c8; }
-    /* Календарь дедлайнов: цветные метки под числом, сегодня — обводка */
-    .dl-cal .cal-day.today::after { content: none; }
-    .dl-cal .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: #fff; font-weight: 600; }
-    .dl-cal .cal-day.has { color: #fff; font-weight: 600; }
-    .dl-cal .cal-day.cert-over { background: rgba(255, 98, 143, .22); }
-    .cal-marks { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
-    .cal-marks i, .dl-cal .cal-legend i { width: 5px; height: 5px; border-radius: 50%; }
-    .dl-cal .cal-legend { flex-wrap: wrap; gap: 6px 14px; }
-    .dl-cal .cal-legend i { width: 8px; height: 8px; margin-right: 5px; vertical-align: 0; }
-    .m-dl { background: var(--color-accent); }
-    .m-zachet { background: #bf5af2; }
-    .m-cert { background: #ff9f0a; }
-    .m-over { background: var(--color-danger-line); }
-    .dl-empty { padding: 28px 0; color: var(--color-text-tertiary); text-align: center; }
-    .dl-past { margin-top: 18px; border-radius: var(--radius-lg); background: var(--color-surface); }
-    .dl-past summary { padding: 14px 16px; cursor: pointer; font-weight: 600; color: var(--color-text); list-style: none; }
-    .dl-past summary::-webkit-details-marker { display: none; }
-    .dl-past summary span { color: var(--color-text-tertiary); font-weight: 500; }
-    .dl-past > div { padding: 0 10px 10px; }
-    .dl-past .dl-card { opacity: .7; }
 
     /* --- Студенческий билет --- */
-    .back-link { display: inline-flex; align-items: center; gap: 2px; margin: 12px 0 6px -4px; padding: 4px; color: var(--color-accent); text-decoration: none; font-size: var(--fs-body); }
-    .back-link svg { width: 20px; height: 20px; }
-    body.is-login .bottom-tabbar { display: none; }
+    /* До входа «Зачётка» и «Дедлайны» недоступны; «Статистика» ведёт на главную */
+    body.is-login .tabbar-item[data-needs-login] { opacity: .35; pointer-events: none; }
     .id-card { position: relative; margin: 4px 0 0; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, #0d2f57, #0a1a30 55%, #101010); border: 1px solid rgba(108, 184, 255, .18); overflow: hidden; }
     .id-card::after { content: ''; position: absolute; right: -46px; top: -46px; width: 150px; height: 150px; border-radius: 50%; border: 20px solid rgba(0, 136, 255, .10); pointer-events: none; }
     .id-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
@@ -213,7 +167,6 @@
     .hours-tile > span { font-size: 13px; color: var(--color-text-secondary); }
     #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
     .hours-tile.is-excused b > span { color: var(--color-success-text); }
-    .cap { margin: 0 2px 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); }
     #groupStandingText { margin: 0 2px 10px; }
     /* --- Лента событий --- */
     .feed-chips { display: flex; gap: 6px; margin: 0 -16px 10px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
@@ -232,23 +185,6 @@
     .ev.ev-msg { padding: 0; background: none; }
     .ev-bubble { max-width: 90%; padding: 10px 13px; border-radius: 18px 18px 18px 6px; background: var(--color-surface-3); color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
     .ev-bubble small { display: block; margin-top: 4px; font-size: 11px; color: var(--color-text-tertiary); }
-    .feed-empty { padding: 20px 0; color: var(--color-text-tertiary); text-align: center; }
-    /* --- Календарь --- */
-    .cal { padding: 12px; border-radius: 16px; background: var(--color-surface-2); margin-bottom: 16px; }
-    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: var(--color-text); }
-    .cal-nav { width: 36px; height: 32px; border: 0; border-radius: 10px; background: none; color: var(--color-accent); font-size: 22px; line-height: 1; }
-    .cal-nav:disabled { color: var(--color-text-disabled); }
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-variant-numeric: tabular-nums; }
-    .cal-grid .wd { padding-bottom: 2px; font-size: 11px; color: var(--color-text-tertiary); }
-    .cal-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 10px; background: none; color: var(--color-text-2); font-size: 14px; }
-    .cal-day.weekend { color: var(--color-text-tertiary); }
-    .cal-day.u { background: rgba(255, 98, 143, .22); color: #fff; font-weight: 600; }
-    .cal-day.e { background: rgba(52, 199, 89, .20); color: #fff; font-weight: 600; }
-    .cal-day.sel { outline: 2px solid var(--color-accent); outline-offset: -2px; }
-    .cal-day.today::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--color-accent); }
-    .cal-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary); }
-    .cal-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
-    .cal-legend .u { background: rgba(255, 98, 143, .5); } .cal-legend .e { background: rgba(52, 199, 89, .5); }
     #calendarDayList .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
     .ev-link { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--color-accent); font-size: 13px; }
     /* --- Аватарка: фото из Telegram или инициалы на цветном фоне (палитра Telegram) --- */
@@ -285,7 +221,6 @@
 <body>
 
 <div class="container cab my-3">
-  <a href="index.html" class="back-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Журнал</a>
 
   <div id="cabinetSkeleton" class="cabinet-skeleton" aria-hidden="true">
     <span class="skel skel-card"></span>
@@ -584,24 +519,30 @@
   </div>
 </div>
 
-<!-- Нижний таб-бар кабинета — как в опубликованной версии, без «Объявлений» (они в ленте «Статистики») -->
-<nav class="bottom-tabbar" aria-label="Разделы кабинета">
-  <button type="button" class="tabbar-item active" id="cabinetTabStats" onclick="setCabinetSection('stats')">
+<!-- Таб-бар: «Статистика» (общая, index.html#stats) · «Зачётка» · «Дедлайны» · «Личный кабинет» (главная кабинета).
+     Позиции «Статистики», «Дедлайнов» и «Личного кабинета» — как на главной; меняется только вторая кнопка -->
+<nav class="bottom-tabbar" aria-label="Разделы">
+  <a class="tabbar-item" id="cabinetTabJournal" href="index.html#stats">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm10 2a1 1 0 1 0-2 0v8a1 1 0 1 0 2 0zm-4 3a1 1 0 1 0-2 0v5a1 1 0 1 0 2 0zm8 3a1 1 0 1 0-2 0v2a1 1 0 1 0 2 0z"/></svg>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M18.8738 2C19.57 2 20.2377 2.27656 20.73 2.76884C21.2223 3.26113 21.4988 3.92881 21.4988 4.625V22.7083C21.4988 23.4045 21.2223 24.0722 20.73 24.5645C20.2377 25.0568 19.57 25.3333 18.8738 25.3333H6.625C5.92881 25.3333 5.26113 25.0568 4.76884 24.5645C4.27656 24.0722 4 23.4045 4 22.7083V4.625C4 3.92881 4.27656 3.26113 4.76884 2.76884C5.26113 2.27656 5.92881 2 6.625 2H18.8738ZM22.6667 17.169H23.5417C23.7531 17.169 23.9574 17.2456 24.1168 17.3846C24.2761 17.5235 24.3797 17.7155 24.4085 17.925L24.4167 18.044V19.7917C24.4167 20.0031 24.3401 20.2074 24.2011 20.3668C24.0621 20.5261 23.8701 20.6297 23.6607 20.6585L23.5417 20.6667H22.6667V17.169ZM22.6667 12.5023H23.5417C23.7531 12.5023 23.9574 12.5789 24.1168 12.7179C24.2761 12.8569 24.3797 13.0489 24.4085 13.2583L24.4167 13.3773V15.125C24.4167 15.3364 24.3401 15.5407 24.2011 15.7001C24.0621 15.8594 23.8701 15.9631 23.6607 15.9918L23.5417 16H22.6667V12.5023ZM22.6667 7.83567H23.5417C23.7531 7.83568 23.9574 7.91225 24.1168 8.05123C24.2761 8.19021 24.3797 8.38219 24.4085 8.59167L24.4167 8.71067V10.4583C24.4167 10.6698 24.3401 10.8741 24.2011 11.0334C24.0621 11.1928 23.8701 11.2964 23.6607 11.3252L23.5417 11.3333H22.6667V7.83567ZM16.5463 6.07983H8.95833C8.74671 6.07988 8.54228 6.15662 8.3829 6.29583C8.22352 6.43505 8.12 6.62731 8.0915 6.837L8.08333 6.95483V8.7095C8.08333 9.15283 8.4135 9.518 8.8405 9.57633L8.95833 9.5845H16.5452C16.7566 9.58449 16.9609 9.50792 17.1203 9.36894C17.2796 9.22996 17.3832 9.03798 17.412 8.8285L17.4202 8.7095V6.95483C17.4202 6.72277 17.328 6.50021 17.1639 6.33612C16.9998 6.17202 16.7784 6.07983 16.5463 6.07983Z"/></svg>
     <span>Статистика</span>
-    <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none" aria-label="Новые сообщения"></span>
-  </button>
-  <button type="button" class="tabbar-item" id="cabinetTabGrades" onclick="setCabinetSection('grades')">
+  </a>
+  <button type="button" class="tabbar-item" id="cabinetTabGrades" data-needs-login onclick="setCabinetSection('grades')">
     <span class="tab-selection"></span>
     <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M11 4.85c-2.195-1.022-5.52-1.565-8.633.979A1 1 0 0 0 2 6.603V19a1 1 0 0 0 1.633.774c2.736-2.236 5.734-1.31 7.367-.255zm2 0v14.669c1.633-1.056 4.63-1.981 7.367.255A1 1 0 0 0 22 19V6.603a1 1 0 0 0-.367-.774C18.52 3.285 15.195 3.828 13 4.849z"/></svg>
     <span>Зачётка</span>
   </button>
-  <button type="button" class="tabbar-item" id="cabinetTabDeadlines" onclick="setCabinetSection('deadlines')">
+  <button type="button" class="tabbar-item" id="cabinetTabDeadlines" data-needs-login onclick="setCabinetSection('deadlines')">
     <span class="tab-selection"></span>
     <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 1.5h6a1 1 0 1 1 0 2H9a1 1 0 0 1 0-2z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12 4.5a9 9 0 1 1 0 18a9 9 0 0 1 0-18zm0 3.5a1 1 0 0 0-1 1v4.6l2.8 2.8a1 1 0 0 0 1.4-1.4L13 12.8V9a1 1 0 0 0-1-1z"/></svg>
     <span>Дедлайны</span>
-    <span id="cabinetDeadlinesDot" class="tabbar-badge-dot d-none"></span>
+    <span id="cabinetDeadlinesDot" class="tabbar-badge-dot d-none js-deadlines-dot"></span>
+  </button>
+  <button type="button" class="tabbar-item active" id="cabinetTabStats" aria-current="page" onclick="setCabinetSection('stats')">
+    <span class="tab-selection"></span>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.8098 25.6652L14 25.6667C13.7425 25.6667 13.485 25.6583 13.2279 25.6416C12.9099 25.6207 12.5928 25.587 12.2775 25.5404C11.9112 25.4861 11.5476 25.4145 11.1882 25.3256C10.8338 25.2379 10.4838 25.1335 10.1392 25.0128L10.1373 25.0121C9.57 24.8131 9.019 24.5703 8.48933 24.2858C8.1134 24.084 7.74886 23.8617 7.39733 23.6198C7.00202 23.348 6.6238 23.0521 6.2648 22.7339C6.13937 22.6227 6.01634 22.5089 5.89577 22.3925C3.69925 20.2708 2.33337 17.2949 2.33337 14C2.33337 7.55674 7.55674 2.33337 14 2.33337C15.5321 2.33337 17.0492 2.63513 18.4647 3.22143C19.8801 3.80773 21.1663 4.66709 22.2496 5.75044C23.333 6.83379 24.1923 8.11991 24.7787 9.53538C25.365 10.9508 25.6667 12.4679 25.6667 14C25.6667 17.2951 24.3007 20.271 22.1042 22.3926C22.1041 22.3927 22.1041 22.393 22.1042 22.3932C21.5516 22.9266 20.948 23.4045 20.302 23.8199L20.293 23.8257C20.1465 23.9198 19.9979 24.0105 19.8473 24.0979L19.8314 24.1071C19.5679 24.2594 19.2985 24.4013 19.0239 24.5326C18.9165 24.5838 18.8083 24.6335 18.6994 24.6816C18.5858 24.7315 18.4714 24.7797 18.3564 24.8262C18.2448 24.871 18.1326 24.9142 18.0198 24.9557C17.9057 24.9975 17.791 25.0375 17.6758 25.0759C17.5625 25.1134 17.4486 25.1492 17.3343 25.1833C17.2131 25.2193 17.0914 25.2534 16.9691 25.2856C16.8501 25.3167 16.7307 25.346 16.6108 25.3735C16.4912 25.4008 16.3712 25.4262 16.2507 25.4498C15.7599 25.5457 15.2635 25.6099 14.7644 25.6421C14.6404 25.6501 14.5162 25.6562 14.392 25.6603L14.3896 25.6603C14.1964 25.6667 14.0031 25.6683 13.8098 25.6652ZM15.1667 18.6667H12.8334C10.9749 18.6667 9.34956 19.7603 8.60237 21.3593L8.51787 21.553L8.59099 21.6071C9.92077 22.5543 11.5095 23.1616 13.2304 23.3021C13.2817 23.3063 13.3332 23.3101 13.3848 23.3134L13.2375 23.3026C13.2876 23.3067 13.3378 23.3104 13.3882 23.3136L13.3848 23.3134C13.4347 23.3167 13.4846 23.3196 13.5346 23.322L13.3882 23.3136C13.4401 23.317 13.4922 23.32 13.5445 23.3224L13.5346 23.322C13.5721 23.3238 13.6097 23.3254 13.6472 23.3268L14 23.3334L14.1463 23.3323C14.2001 23.3315 14.2539 23.3302 14.3076 23.3285L14.16 23.332C14.2097 23.3312 14.2594 23.33 14.309 23.3283L14.3076 23.3284C14.3576 23.3268 14.4075 23.3248 14.4574 23.3224L14.309 23.3283C14.3604 23.3266 14.4118 23.3246 14.4632 23.3221L14.4574 23.3224C14.5093 23.3198 14.5611 23.3169 14.6127 23.3136L14.4632 23.3221C14.5137 23.3196 14.5642 23.3167 14.6147 23.3135L14.6127 23.3136C14.6633 23.3103 14.7137 23.3066 14.764 23.3026L14.6146 23.3135C14.666 23.3101 14.7174 23.3064 14.7687 23.3022L14.764 23.3026C14.8129 23.2986 14.8616 23.2942 14.9102 23.2896L14.7687 23.3022C14.8197 23.298 14.8706 23.2934 14.9215 23.2885L14.9102 23.2896C16.5736 23.1286 18.1092 22.5309 19.4011 21.6127L19.481 21.553L19.3978 21.3595C18.6833 19.83 17.1651 18.7628 15.4078 18.6729L15.1667 18.6667ZM14 4.66673C8.8454 4.66673 4.66673 8.8454 4.66673 14C4.66673 16.226 5.44597 18.27 6.74655 19.874C7.9512 17.7591 10.2258 16.3334 12.8334 16.3334H15.1667C17.7744 16.3334 20.049 17.7592 21.2534 19.8738C22.5541 18.27 23.3334 16.226 23.3334 14C23.3334 8.8454 19.1547 4.66673 14 4.66673ZM14 5.83337C16.5774 5.83337 18.6667 7.92271 18.6667 10.5C18.6667 12.9992 16.7021 15.0396 14.2329 15.161L14 15.1667C11.4227 15.1667 9.33337 13.0774 9.33337 10.5C9.33337 8.0008 11.298 5.96041 13.7671 5.83906L14 5.83337ZM14 8.16673C12.7114 8.16673 11.6667 9.21137 11.6667 10.5C11.6667 11.7887 12.7114 12.8334 14 12.8334C15.2887 12.8334 16.3334 11.7887 16.3334 10.5C16.3334 9.21137 15.2887 8.16673 14 8.16673Z"/></svg>
+    <span>Личный кабинет</span>
+    <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none" aria-label="Новые сообщения"></span>
   </button>
 </nav>
 
@@ -684,6 +625,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
+<script src="shared.js"></script>
 <script>
   // FX — лёгкие анимации на CSS (классы .fx-reveal и .fx-pop в app.css): JS только расставляет классы
   // и задержки, анимируются лишь transform и opacity. При «Уменьшении движения» FX выключен
@@ -851,7 +793,8 @@
   function onTelegramBack() {
     const open = document.querySelectorAll('.modal.show');
     if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
-    else location.href = 'index.html';
+    else if (typeof cabinetSection !== 'undefined' && cabinetSection && cabinetSection !== 'stats') history.back();
+    else location.href = 'index.html#stats';
   }
 
   function setupTelegram() {
@@ -1523,20 +1466,39 @@
     renderZachetka();
     setGradesTab(localStorage.getItem('grades_tab'));
     FX.reveal('#cabinetContentSection > .student-summary-card');
-    setCabinetSection('stats');
+    cabinetSection = null;
+    setCabinetSection(cabinetSectionFromHash(), 'init');   // cabinet.html#deadlines — сразу «Дедлайны»
   }
 
   // Переключение разделов кабинета: верхние вкладки «Журнал / Зачётка / Дедлайны»
-  function setCabinetSection(section) {
+  // Разделы кабинета: 'stats' — главная («Личный кабинет»), 'grades' — «Зачётка», 'deadlines' — «Дедлайны».
+  // У каждого свой адрес (#home, #grades, #deadlines): работают кнопка «назад» телефона и прямые ссылки.
+  const CABINET_HASH = { stats: 'home', grades: 'grades', deadlines: 'deadlines' };
+  let cabinetSection = null;
+  function cabinetSectionFromHash() {
+    const h = location.hash.slice(1);
+    return Object.keys(CABINET_HASH).find(k => CABINET_HASH[k] === h) || 'stats';
+  }
+  function setCabinetSection(section, fromRoute) {
     const sections = { stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', deadlines: 'cabinetSectionDeadlines' };
     const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', deadlines: 'cabinetTabDeadlines' };
     if (!sections[section]) section = 'stats';
 
+    // Нажатие на вкладку — новая запись в истории; «назад» вернёт на прошлый раздел (hashchange ниже)
+    if (!fromRoute && cabinetSectionFromHash() !== section) {
+      location.hash = CABINET_HASH[section];
+      return;
+    }
+    if (fromRoute === 'hash' && section === cabinetSection) return;
+    cabinetSection = section;
+
     Object.keys(sections).forEach(key => {
       document.getElementById(sections[key]).classList.toggle('d-none', key !== section);
-      document.getElementById(tabs[key]).classList.toggle('active', key === section);
-      document.getElementById(tabs[key]).setAttribute('aria-selected', String(key === section));
+      const tab = document.getElementById(tabs[key]);
+      tab.classList.toggle('active', key === section);
+      if (key === section) tab.setAttribute('aria-current', 'page'); else tab.removeAttribute('aria-current');
     });
+    window.scrollTo(0, 0);
 
     // Анимация: содержимое открытого раздела появляется по очереди
     FX.reveal(document.getElementById(sections[section]).children, { step: 0.04, max: 10 });
@@ -1805,94 +1767,11 @@
     document.getElementById('cabinetAnnouncementsDot').classList.toggle('d-none', !hasUnread);
   }
 
-  // --- Дедлайны группы: appData.deadlines { id, subject, text, dueDate: 'YYYY-MM-DD', createdAt } ---
-  // Группы по сроку; просроченные больше недели назад — в свёрнутом блоке «Прошедшие».
-  // Новые (ещё не просмотренные) — красная точка на вкладке, ключ localStorage seen_deadlines.
-  function deadlineDate(iso) {
-    const [y, m, d] = String(iso).split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-  function deadlineDaysLeft(iso) {
-    const t = new Date();
-    return Math.round((deadlineDate(iso) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
-  }
-  function daysWord(n) {
-    const a = Math.abs(n) % 100, b = a % 10;
-    if (a > 10 && a < 20) return 'дней';
-    if (b === 1) return 'день';
-    if (b >= 2 && b <= 4) return 'дня';
-    return 'дней';
-  }
-  function deadlineRelative(n) {
-    if (n === 0) return 'сегодня';
-    if (n === 1) return 'завтра';
-    if (n > 1) return `через ${n} ${daysWord(n)}`;
-    return `просрочено на ${-n} ${daysWord(n)}`;
-  }
-  const activeDeadlines = () => (appData.deadlines || []).filter(d => deadlineDaysLeft(d.dueDate) >= -7);
-
-  // Записи с type: 'zachet' — зачёты (дата и необязательный комментарий в text), без type — дедлайны
-  const isZachet = (d) => d.type === 'zachet';
-  function deadlineCard(d) {
-    const n = deadlineDaysLeft(d.dueDate);
-    const zachet = isZachet(d);
-    const card = document.createElement('div');
-    card.className = 'dl-card' + (zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
-    card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
-    card.querySelector('.dl-subject').textContent = d.subject;
-    if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">Зачёт</span>');
-    const text = card.querySelector('.dl-text');
-    if (d.text) text.textContent = d.text; else text.remove();
-    card.querySelector('.dl-date').textContent = zachet ? formatDateFull(deadlineDate(d.dueDate)) : `до ${formatDateFull(deadlineDate(d.dueDate))}`;
-    card.querySelector('.dl-rel').textContent = zachet && n < 0 ? `${-n} ${daysWord(n)} назад` : deadlineRelative(n);
-    return card;
-  }
-
-  function renderDeadlines() {
-    const list = document.getElementById('deadlinesList');
-    const pastList = document.getElementById('deadlinesPastList');
-    list.innerHTML = '';
-    pastList.innerHTML = '';
-    const all = [...(appData.deadlines || [])].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-    const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
-    const groups = [['Просрочено', []], ['Сегодня', []], ['На этой неделе', []], ['Позже', []]];
-    const past = [];
-    all.forEach(d => {
-      const n = deadlineDaysLeft(d.dueDate);
-      if (n < -7 || (n < 0 && isZachet(d))) past.push(d);
-      else if (n < 0) groups[0][1].push(d);
-      else if (n === 0) groups[1][1].push(d);
-      else if (n <= toSunday) groups[2][1].push(d);
-      else groups[3][1].push(d);
-    });
-    groups.forEach(([title, items]) => {
-      if (!items.length) return;
-      const h = document.createElement('div');
-      h.className = 'dl-group';
-      h.textContent = title;
-      list.appendChild(h);
-      items.forEach(d => list.appendChild(deadlineCard(d)));
-    });
-    past.reverse().forEach(d => pastList.appendChild(deadlineCard(d)));
-    document.getElementById('deadlinesPastCount').textContent = past.length ? `(${past.length})` : '';
-    document.getElementById('deadlinesPast').classList.toggle('d-none', past.length === 0);
-    document.getElementById('deadlinesEmpty').classList.toggle('d-none', all.length > 0);
-    updateDeadlinesDot();
-    renderDeadlineCalendar();
-    renderToday();
-  }
-
-  // --- Календарь в «Дедлайнах»: дедлайны и зачёты группы + сроки своих справок ---
-  // Справка попадает в календарь, если пропуск уважительный, указаны certType и certDueDate
-  // и справка ещё не сдана (certSubmitted). Просроченная — красная ячейка и красная метка.
-  let dlCalendarMonth = null;   // первый день показанного месяца
-  let dlCalendarDay = null;     // выбранный день (ключ YYYY-MM-DD)
-  function deadlineCalendarEvents() {
-    const byDay = {};
-    const add = (k, e) => (byDay[k] = byDay[k] || []).push(e);
-    (appData.deadlines || []).forEach(d => {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)) add(d.dueDate, { kind: isZachet(d) ? 'zachet' : 'dl', d });
-    });
+  // --- Дедлайны и календарь — общий код в shared.js. Здесь только своё для кабинета:
+  // сроки справок вошедшего студента. Справка попадает в календарь, если пропуск уважительный,
+  // указаны certType и certDueDate и справка ещё не сдана (certSubmitted).
+  // Просроченная — красная ячейка и красная метка. shared.js вызывает deadlineExtraEvents и certDueCard.
+  function deadlineExtraEvents(add) {
     const certs = {};
     (myStudentId ? myAbsencesSorted() : []).forEach(a => {
       if (!a.isExcused || !a.certType || !a.certDueDate || a.certSubmitted) return;
@@ -1902,7 +1781,6 @@
       if (!certs[id]) { certs[id] = { kind: 'cert', dueDate: k, certType: a.certType, list: [], over: deadlineDaysLeft(k) < 0 }; add(k, certs[id]); }
       certs[id].list.push(a);
     });
-    return byDay;
   }
   function certDueCard(c) {
     const n = deadlineDaysLeft(c.dueDate);
@@ -1916,51 +1794,6 @@
     card.querySelector('.dl-date').textContent = `до ${formatDateFull(deadlineDate(c.dueDate))}`;
     card.querySelector('.dl-rel').textContent = deadlineRelative(n);
     return card;
-  }
-  function renderDeadlineCalendar() {
-    const byDay = deadlineCalendarEvents();
-    const now = new Date();
-    if (!dlCalendarMonth) {
-      dlCalendarMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      dlCalendarDay = dayKey(now);
-    }
-    const y = dlCalendarMonth.getFullYear(), m = dlCalendarMonth.getMonth();
-    document.getElementById('dlCalendarTitle').textContent = `${MONTHS_NOM[m]} ${y}`;
-    const todayKey = dayKey(now);
-    const offset = (new Date(y, m, 1).getDay() + 6) % 7;       // понедельник — первый день
-    const days = new Date(y, m + 1, 0).getDate();
-    const NAMES = { dl: 'дедлайн', zachet: 'зачёт', cert: 'справка' };
-    let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(w => `<span class="wd">${w}</span>`).join('');
-    html += '<span></span>'.repeat(offset);
-    for (let d = 1; d <= days; d++) {
-      const k = dayKey(new Date(y, m, d));
-      const evs = byDay[k] || [];
-      const kinds = ['dl', 'zachet', 'cert'].filter(kind => evs.some(e => e.kind === kind));
-      const certOver = evs.some(e => e.kind === 'cert' && e.over);
-      const cls = ['cal-day'];
-      if ((offset + d - 1) % 7 >= 5) cls.push('weekend');
-      if (evs.length) cls.push('has');
-      if (certOver) cls.push('cert-over');
-      if (k === dlCalendarDay) cls.push('sel');
-      if (k === todayKey) cls.push('today');
-      const marks = kinds.map(kind => `<i class="${kind === 'cert' && certOver ? 'm-over' : 'm-' + kind}"></i>`).join('');
-      const label = `${d} ${MONTHS_GEN[m]}${k === todayKey ? ', сегодня' : ''}${kinds.length ? ': ' + kinds.map(kind => kind === 'cert' && certOver ? 'просроченная справка' : NAMES[kind]).join(', ') : ''}`;
-      html += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-label="${label}"${k === dlCalendarDay ? ' aria-pressed="true"' : ''}>${d}${marks ? `<span class="cal-marks" aria-hidden="true">${marks}</span>` : ''}</button>`;
-    }
-    const grid = document.getElementById('dlCalendarGrid');
-    grid.innerHTML = html;
-    grid.querySelectorAll('.cal-day').forEach(b => b.addEventListener('click', () => { dlCalendarDay = b.dataset.day; renderDeadlineCalendar(); }));
-
-    const title = document.getElementById('dlCalendarDayTitle');
-    const list = document.getElementById('dlCalendarDayList');
-    list.innerHTML = '';
-    const [yy, mm, dd] = (dlCalendarDay || '').split('-').map(Number);
-    if (!dlCalendarDay || yy !== y || mm - 1 !== m) { title.textContent = ''; list.innerHTML = '<div class="feed-empty">Выберите день, чтобы увидеть события</div>'; return; }
-    title.textContent = `${dd} ${MONTHS_GEN[mm - 1]}${dlCalendarDay === todayKey ? ' · сегодня' : ''}`;
-    const evs = byDay[dlCalendarDay] || [];
-    if (!evs.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
-    const order = { cert: 0, zachet: 1, dl: 2 };
-    [...evs].sort((a, b) => order[a.kind] - order[b.kind]).forEach(e => list.appendChild(e.kind === 'cert' ? certDueCard(e) : deadlineCard(e.d)));
   }
   // --- «Сегодня» на первой вкладке: самое срочное + 3 ближайших дедлайна/зачёта ---
   // Срочнее всего — просроченная справка, дальше — ближайшее по дате (справка, дедлайн или зачёт)
@@ -2023,26 +1856,6 @@
     else el.innerText = isNaN(exam) ? `${sem.toFixed(2)} за семинары` : (sem * w + exam * (1 - w)).toFixed(2);
   }
 
-  function shiftDeadlineCalendarMonth(delta) {
-    dlCalendarMonth = new Date(dlCalendarMonth.getFullYear(), dlCalendarMonth.getMonth() + delta, 1);
-    renderDeadlineCalendar();
-  }
-
-  function readSeenDeadlines() {
-    try { return JSON.parse(localStorage.getItem('seen_deadlines') || '[]'); } catch (e) { return []; }
-  }
-  function updateDeadlinesDot() {
-    const seen = readSeenDeadlines();
-    const hasNew = activeDeadlines().some(d => !seen.includes(d.id));
-    document.getElementById('cabinetDeadlinesDot').classList.toggle('d-none', !hasNew);
-  }
-  // Та же логика, что у объявлений: всё, что видно во вкладке, отмечаем просмотренным
-  // (эту же запись читает index.html для красной точки на «Личном кабинете»)
-  function markDeadlinesSeen() {
-    const ids = (appData.deadlines || []).map(d => d.id);
-    const merged = Array.from(new Set(readSeenDeadlines().concat(ids)));
-    try { localStorage.setItem('seen_deadlines', JSON.stringify(merged)); } catch (e) {}
-  }
 
   // Отмечает объявления прочитанными (та же localStorage-запись, что читает
   // index.html для красной точки на вкладке "Личный кабинет" в таб-баре)
@@ -2282,10 +2095,7 @@
     document.getElementById('groupStandingMeter').style.setProperty('--pos', `${m ? m[1] : 50}%`);
   });
   // ===== Лента событий: пропуски, справки и сообщения старосты — по дням, с фильтром =====
-  const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-  const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-  const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  function dayTitle(d) {
+    function dayTitle(d) {
     const today = new Date(); const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
     if (dayKey(d) === dayKey(today)) return 'Сегодня';
     if (dayKey(d) === dayKey(yesterday)) return 'Вчера';
@@ -2543,6 +2353,11 @@
   afterRender('showCabinetContent', updateTodayGrades);
   afterRender('recalcRating', updateTodayGrades);
   afterRender('setCabinetSection', updateTodayGrades);
+  // Кнопка «назад» телефона и ссылки вида cabinet.html#grades: раздел берётся из адреса
+  window.addEventListener('hashchange', () => {
+    if (!myStudentId || document.getElementById('cabinetContentSection').classList.contains('d-none')) return;
+    setCabinetSection(cabinetSectionFromHash(), 'hash');
+  });
 </script>
 </body>
 </html>

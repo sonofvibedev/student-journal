@@ -13,6 +13,7 @@ const PRECACHE_URLS = [
   './index.html',
   './cabinet.html',
   './app.css',
+  './shared.js',
   './manifest.json'
 ];
 
