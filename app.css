@@ -698,3 +698,10 @@ body::after {
 .cal-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary); }
 .cal-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
 .cal-legend .u { background: rgba(255, 98, 143, .5); } .cal-legend .e { background: rgba(52, 199, 89, .5); }
+
+/* Переключение разделов свайпом: раздел въезжает с той стороны, куда листали (shared.js: swipeIn) */
+@keyframes swipe-in-left { from { opacity: .35; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+@keyframes swipe-in-right { from { opacity: .35; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
+.swipe-in-left { animation: swipe-in-left var(--dur-slow) var(--ease-out); }
+.swipe-in-right { animation: swipe-in-right var(--dur-slow) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .swipe-in-left, .swipe-in-right { animation: none; } }

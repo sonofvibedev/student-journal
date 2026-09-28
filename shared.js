@@ -168,3 +168,37 @@ function markDeadlinesSeen() {
   const merged = Array.from(new Set(readSeenDeadlines().concat(ids)));
   try { localStorage.setItem('seen_deadlines', JSON.stringify(merged)); } catch (e) {}
 }
+
+// --- Свайп влево/вправо по странице — соседняя кнопка таб-бара (как нажатие на неё) ---
+// order() — порядок кнопок таб-бара, current() — открытый раздел, go(name, dir) — переключить.
+// Не мешаем: полям ввода, ползункам, прокручиваемым строкам чипов и таблицам, календарю,
+// открытым окнам и краям экрана (там системный жест «назад» в iOS).
+function enableTabSwipe(order, current, go) {
+  const IGNORE = 'input, select, textarea, [contenteditable], .modal, .sheet, .bottom-tabbar, .feed-chips, .filter-chip-row, .table-responsive, .cal-grid, .no-swipe';
+  let start = null;
+  document.addEventListener('touchstart', (e) => {
+    start = null;
+    if (e.touches.length !== 1 || document.querySelector('.modal.show')) return;
+    if (e.target.closest && e.target.closest(IGNORE)) return;
+    const t = e.touches[0];
+    if (t.clientX < 24 || t.clientX > window.innerWidth - 24) return;
+    start = { x: t.clientX, y: t.clientY, time: Date.now() };
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!start) return;
+    const t = e.changedTouches[0], dx = t.clientX - start.x, dy = t.clientY - start.y, dt = Date.now() - start.time;
+    start = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || dt > 700) return;
+    if (window.getSelection && String(window.getSelection())) return;
+    const list = order(), i = list.indexOf(current());
+    const next = i < 0 ? undefined : list[i + (dx < 0 ? 1 : -1)];
+    if (next) go(next, dx < 0 ? 'left' : 'right');
+  }, { passive: true });
+}
+// Раздел «въезжает» с той стороны, куда листали
+function swipeIn(el, dir) {
+  if (!el) return;
+  el.classList.remove('swipe-in-left', 'swipe-in-right');
+  void el.offsetWidth;
+  el.classList.add(dir === 'left' ? 'swipe-in-left' : 'swipe-in-right');
+}

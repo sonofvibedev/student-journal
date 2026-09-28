@@ -817,13 +817,15 @@
     } catch (e) {}
   }
 
-  // «Назад» в Telegram закрывает верхнее открытое окно; без окон — возвращает в журнал.
-  // В кабинете кнопка видна всегда: это второй экран приложения.
+  // «Назад» в Telegram — только чтобы закрыть открытое окно; разделы — таб-баром и свайпом
   function onTelegramBack() {
     const open = document.querySelectorAll('.modal.show');
     if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
-    else if (typeof cabinetSection !== 'undefined' && cabinetSection && cabinetSection !== 'stats') history.back();
-    else location.href = 'index.html#stats';
+  }
+  function syncTelegramBackButton() {
+    if (!tgSupports('6.1') || !TG.BackButton) return;
+    if (document.querySelector('.modal.show')) TG.BackButton.show();
+    else TG.BackButton.hide();
   }
 
   function setupTelegram() {
@@ -832,7 +834,9 @@
     if (TG.onEvent) TG.onEvent('themeChanged', applyTelegramTheme);
     if (tgSupports('6.1') && TG.BackButton) {
       TG.BackButton.onClick(onTelegramBack);
-      TG.BackButton.show();
+      document.addEventListener('shown.bs.modal', syncTelegramBackButton);
+      document.addEventListener('hidden.bs.modal', syncTelegramBackButton);
+      syncTelegramBackButton();
     }
   }
 
@@ -875,7 +879,7 @@
   const WHATS_NEW_DATE = '28.09.2026, 07:35';
   const WHATS_NEW_ITEMS = [
     'Внизу 4 кнопки: «Статистика», «Преподаватели» (или «Зачётка» в кабинете), «Дедлайны» и «Личный кабинет»',
-    'Преподаватели и дедлайны — теперь разделы главной, кнопка «назад» телефона возвращает на прошлый раздел',
+    'Преподаватели и дедлайны — теперь разделы главной. Разделы переключаются кнопками внизу или свайпом влево-вправо',
     'Личный кабинет — дашборд: часы, место в группе, справки, сообщения и дедлайны на одном экране',
     'В календаре «Дедлайнов» в кабинете видны ваши пропуски: неуважительные — красным, уважительные — зелёным',
     'Выход из кабинета — кнопкой «Статистика» в таб-баре'
@@ -1500,7 +1504,8 @@
 
   // Переключение разделов кабинета: верхние вкладки «Журнал / Зачётка / Дедлайны»
   // Разделы кабинета: 'stats' — главная («Личный кабинет»), 'grades' — «Зачётка», 'deadlines' — «Дедлайны».
-  // У каждого свой адрес (#home, #grades, #deadlines): работают кнопка «назад» телефона и прямые ссылки.
+  // У каждого свой адрес (#home, #grades, #deadlines) — для прямых ссылок; меняется без записи в истории,
+  // переключение — таб-баром или свайпом влево/вправо.
   const CABINET_HASH = { stats: 'home', grades: 'grades', deadlines: 'deadlines' };
   let cabinetSection = null;
   function cabinetSectionFromHash() {
@@ -1512,12 +1517,8 @@
     const tabs = { stats: 'cabinetTabStats', grades: 'cabinetTabGrades', deadlines: 'cabinetTabDeadlines' };
     if (!sections[section]) section = 'stats';
 
-    // Нажатие на вкладку — новая запись в истории; «назад» вернёт на прошлый раздел (hashchange ниже)
-    if (!fromRoute && cabinetSectionFromHash() !== section) {
-      location.hash = CABINET_HASH[section];
-      return;
-    }
     if (fromRoute === 'hash' && section === cabinetSection) return;
+    if (fromRoute !== 'init' && location.hash !== '#' + CABINET_HASH[section]) history.replaceState(null, '', '#' + CABINET_HASH[section]);
     cabinetSection = section;
 
     Object.keys(sections).forEach(key => {
@@ -2429,11 +2430,20 @@
   }
   ['renderPersonalStats', 'renderGroupStanding', 'renderCabinetAnnouncements', 'renderDeadlines'].forEach(n => afterRender(n, updateDashboard));
   afterRender('showCabinetContent', () => { updateDashboard(); setDashWidget('abs', true); });
-  // Кнопка «назад» телефона и ссылки вида cabinet.html#grades: раздел берётся из адреса
+  // Адрес изменили вручную (cabinet.html#grades): раздел берётся из адреса
   window.addEventListener('hashchange', () => {
     if (!myStudentId || document.getElementById('cabinetContentSection').classList.contains('d-none')) return;
     setCabinetSection(cabinetSectionFromHash(), 'hash');
   });
+  // Свайп: Статистика (главная) ↔ Зачётка ↔ Дедлайны ↔ Личный кабинет (порядок кнопок таб-бара)
+  enableTabSwipe(() => ['journal', 'grades', 'deadlines', 'stats'],
+    () => (myStudentId && !document.getElementById('cabinetContentSection').classList.contains('d-none')) ? cabinetSection : null,
+    (name, dir) => {
+      haptic('impact');
+      if (name === 'journal') { location.href = 'index.html#stats'; return; }
+      setCabinetSection(name);
+      swipeIn(document.getElementById({ stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', deadlines: 'cabinetSectionDeadlines' }[name]), dir);
+    });
 </script>
 </body>
 </html>

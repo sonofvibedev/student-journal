@@ -1379,17 +1379,16 @@
   }
 
   // «Назад» в Telegram закрывает верхнее открытое окно
-  // «Назад» Telegram: закрывает окно; в разделах «Преподаватели» и «Дедлайны» — возвращает назад
+  // «Назад» Telegram — только чтобы закрыть открытое окно; разделы переключаются таб-баром и свайпом
   function syncTelegramBackButton() {
     if (!tgSupports('6.1') || !TG.BackButton) return;
-    if (document.querySelector('.modal.show') || currentView() !== 'stats') TG.BackButton.show();
+    if (document.querySelector('.modal.show')) TG.BackButton.show();
     else TG.BackButton.hide();
   }
 
   function onTelegramBack() {
     const open = document.querySelectorAll('.modal.show');
     if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
-    else if (currentView() !== 'stats') { if (viewNavCount > 0) history.back(); else location.hash = 'stats'; }
   }
 
   function setupTelegram() {
@@ -1422,7 +1421,8 @@
   });
 
   // Разделы главной: «Статистика» (#stats), «Преподаватели» (#teachers), «Дедлайны» (#deadlines).
-  // Переключение без перезагрузки, у каждого раздела свой адрес: работают «назад» телефона и прямые ссылки.
+  // Переключение без перезагрузки — таб-баром или свайпом влево/вправо. Адрес (#teachers …) меняется
+  // без новой записи в истории: прямые ссылки работают, а кнопка «назад» по разделам не ходит.
   // Активна та кнопка таб-бара, чей раздел открыт.
   function setActiveTab(tab) {
     document.querySelectorAll('.bottom-tabbar .tabbar-item').forEach(t => {
@@ -1434,15 +1434,14 @@
   }
   const VIEWS = { stats: 'viewStats', teachers: 'viewTeachers', deadlines: 'viewDeadlines' };
   let currentViewName = null;
-  let viewNavCount = 0;                      // сколько раз переходили внутри страницы (для «Назад» в Telegram)
   function currentView() {
     const h = location.hash.slice(1);
     return VIEWS[h] ? h : 'stats';
   }
   function goView(name) {
     if (!VIEWS[name]) name = 'stats';
-    if (currentView() === name && location.hash) { showView(name); return; }
-    location.hash = name;                    // → hashchange → showView
+    if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+    showView(name);
   }
   function showView(name) {
     if (!VIEWS[name]) name = 'stats';
@@ -1459,7 +1458,22 @@
     if (changed) window.scrollTo(0, 0);
     syncTelegramBackButton();
   }
-  window.addEventListener('hashchange', () => { viewNavCount++; showView(currentView()); });
+  window.addEventListener('hashchange', () => showView(currentView()));   // адрес изменили вручную
+  // Кнопки таб-бара — ссылки #stats / #teachers / #deadlines: переключаем сами, без записи в истории
+  // (таб-бар в разметке ниже скрипта — поэтому слушаем клики на документе)
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('.bottom-tabbar a[data-view]');
+    if (!a) return;
+    e.preventDefault();
+    goView(a.dataset.view);
+  });
+  // Свайп: Статистика ↔ Преподаватели ↔ Дедлайны ↔ Личный кабинет (порядок кнопок таб-бара)
+  enableTabSwipe(() => ['stats', 'teachers', 'deadlines', 'cabinet'], () => currentViewName, (name, dir) => {
+    haptic('selection');
+    if (name === 'cabinet') { location.href = 'cabinet.html'; return; }
+    goView(name);
+    swipeIn(document.getElementById(VIEWS[name]), dir);
+  });
 
   // Замена браузерных showAlert()/confirm() на модалки в стиле приложения.
   // showAlert — просто показать сообщение, ждать не обязательно (сразу продолжаем/выходим).
@@ -1520,7 +1534,7 @@
   const WHATS_NEW_DATE = '28.09.2026, 07:35';
   const WHATS_NEW_ITEMS = [
     'Внизу 4 кнопки: «Статистика», «Преподаватели» (или «Зачётка» в кабинете), «Дедлайны» и «Личный кабинет»',
-    'Преподаватели и дедлайны — теперь разделы главной, кнопка «назад» телефона возвращает на прошлый раздел',
+    'Преподаватели и дедлайны — теперь разделы главной. Разделы переключаются кнопками внизу или свайпом влево-вправо',
     'Личный кабинет — дашборд: часы, место в группе, справки, сообщения и дедлайны на одном экране',
     'В календаре «Дедлайнов» в кабинете видны ваши пропуски: неуважительные — красным, уважительные — зелёным',
     'Выход из кабинета — кнопкой «Статистика» в таб-баре'
