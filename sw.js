@@ -6,8 +6,11 @@
 // сам браузер через обычный HTTP-кэш.
 //
 // ВАЖНО: при каждом заметном обновлении index.html/cabinet.html стоит поднять CACHE_VERSION —
-// это гарантированно подчистит старый кэш при следующем заходе.
-const CACHE_VERSION = 'journal-24dmm2-v9';
+// это гарантированно подчистит старый кэш при следующем заходе. Ту же цифру — в ?v= у app.css и
+// shared.js в index.html и cabinet.html, чтобы новая страница никогда не взяла старые стили/скрипт.
+// Свои файлы запрашиваем мимо HTTP-кэша браузера (сервер ответит «не изменилось», если файл тот же):
+// иначе после деплоя телефон мог получить новую страницу со старым app.css.
+const CACHE_VERSION = 'journal-24dmm2-v10';
 
 const PRECACHE_URLS = [
   './index.html',
@@ -19,7 +22,7 @@ const PRECACHE_URLS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE_URLS.map((u) => new Request(u, { cache: 'reload' }))))
   );
   self.skipWaiting();
 });
@@ -47,13 +50,17 @@ self.addEventListener('fetch', (event) => {
   // Чужие домены (CDN) не трогаем — пусть работает обычный HTTP-кэш браузера
   if (url.origin !== self.location.origin) return;
 
+  // Страницы — как есть (навигацию нельзя пересобрать), остальное своё — с проверкой у сервера
+  const fresh = event.request.mode === 'navigate'
+    ? fetch(event.request)
+    : fetch(event.request.url, { cache: 'no-cache', credentials: 'same-origin' });
   event.respondWith(
-    fetch(event.request)
+    fresh
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(event.request, { ignoreSearch: true }))
   );
 });
