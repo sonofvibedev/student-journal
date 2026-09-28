@@ -1,7 +1,7 @@
 ﻿// Общий код дедлайнов и календаря для index.html и cabinet.html (подключается до встроенных скриптов страниц).
 // Дедлайны группы: appData.deadlines { id, type?: 'deadline' | 'zachet', subject, text, dueDate: 'YYYY-MM-DD', createdAt }.
 // Записи без type — дедлайны. Страница может добавить свои события в календарь функцией deadlineExtraEvents(add)
-// и свою карточку certDueCard(e) (кабинет — сроки справок). Разметка раздела — в самих страницах (те же id).
+// и свои карточки certDueCard(e), absenceDayCard(a) (кабинет — сроки справок и свои пропуски по дням). Разметка раздела — в самих страницах (те же id).
 // Новые (непросмотренные) дедлайны — красная точка .js-deadlines-dot, ключ localStorage seen_deadlines.
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -108,6 +108,8 @@ function renderDeadlineCalendar() {
   const offset = (new Date(y, m, 1).getDay() + 6) % 7;       // понедельник — первый день
   const days = new Date(y, m + 1, 0).getDate();
   const NAMES = { dl: 'дедлайн', zachet: 'зачёт', cert: 'справка' };
+  // Пропуски (кабинет): день подкрашивается — красным, если есть неуважительный, иначе зелёным
+  const absHours = (evs, excused) => evs.filter(e => e.kind === 'abs' && !!e.a.isExcused === excused).reduce((s, e) => s + Number(e.a.totalHours || 0), 0);
   let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(w => `<span class="wd">${w}</span>`).join('');
   html += '<span></span>'.repeat(offset);
   for (let d = 1; d <= days; d++) {
@@ -118,11 +120,14 @@ function renderDeadlineCalendar() {
     const cls = ['cal-day'];
     if ((offset + d - 1) % 7 >= 5) cls.push('weekend');
     if (evs.length) cls.push('has');
+    const absU = absHours(evs, false), absE = absHours(evs, true);
     if (certOver) cls.push('cert-over');
+    else if (absU) cls.push('u');
+    else if (absE) cls.push('e');
     if (k === dlCalendarDay) cls.push('sel');
     if (k === todayKey) cls.push('today');
     const marks = kinds.map(kind => `<i class="${kind === 'cert' && certOver ? 'm-over' : 'm-' + kind}"></i>`).join('');
-    const label = `${d} ${MONTHS_GEN[m]}${k === todayKey ? ', сегодня' : ''}${kinds.length ? ': ' + kinds.map(kind => kind === 'cert' && certOver ? 'просроченная справка' : NAMES[kind]).join(', ') : ''}`;
+    const label = `${d} ${MONTHS_GEN[m]}${k === todayKey ? ', сегодня' : ''}${kinds.length ? ': ' + kinds.map(kind => kind === 'cert' && certOver ? 'просроченная справка' : NAMES[kind]).join(', ') : ''}${absU ? `, неуважительные пропуски ${absU} ч` : ''}${absE ? `, уважительные пропуски ${absE} ч` : ''}`;
     html += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-label="${label}"${k === dlCalendarDay ? ' aria-pressed="true"' : ''}>${d}${marks ? `<span class="cal-marks" aria-hidden="true">${marks}</span>` : ''}</button>`;
   }
   const grid = document.getElementById('dlCalendarGrid');
@@ -137,8 +142,12 @@ function renderDeadlineCalendar() {
   title.textContent = `${dd} ${MONTHS_GEN[mm - 1]}${dlCalendarDay === todayKey ? ' · сегодня' : ''}`;
   const evs = byDay[dlCalendarDay] || [];
   if (!evs.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
-  const order = { cert: 0, zachet: 1, dl: 2 };
-  [...evs].sort((a, b) => order[a.kind] - order[b.kind]).forEach(e => list.appendChild(e.kind === 'cert' && typeof certDueCard === 'function' ? certDueCard(e) : deadlineCard(e.d)));
+  const order = { cert: 0, zachet: 1, dl: 2, abs: 3 };
+  [...evs].sort((a, b) => order[a.kind] - order[b.kind]).forEach(e => {
+    if (e.kind === 'cert' && typeof certDueCard === 'function') list.appendChild(certDueCard(e));
+    else if (e.kind === 'abs' && typeof absenceDayCard === 'function') list.appendChild(absenceDayCard(e.a));
+    else if (e.d) list.appendChild(deadlineCard(e.d));
+  });
 }
 function shiftDeadlineCalendarMonth(delta) {
   dlCalendarMonth = new Date(dlCalendarMonth.getFullYear(), dlCalendarMonth.getMonth() + delta, 1);

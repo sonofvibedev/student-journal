@@ -112,18 +112,32 @@
     /* --- Вкладки разделов кабинета --- */
 
 
-    /* --- Студенческий билет --- */
     /* До входа «Зачётка» и «Дедлайны» недоступны; «Статистика» ведёт на главную */
     body.is-login .tabbar-item[data-needs-login] { opacity: .35; pointer-events: none; }
-    .id-card { position: relative; margin: 4px 0 0; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, #0d2f57, #0a1a30 55%, #101010); border: 1px solid rgba(108, 184, 255, .18); overflow: hidden; }
-    .id-card::after { content: ''; position: absolute; right: -46px; top: -46px; width: 150px; height: 150px; border-radius: 50%; border: 20px solid rgba(0, 136, 255, .10); pointer-events: none; }
-    .id-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
-    .id-main { min-width: 0; }
-    .id-kind { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6cb8ff; }
-    .id-name { margin-top: 2px; font-size: 21px; font-weight: 700; line-height: 1.15; letter-spacing: -.3px; color: var(--color-text); text-wrap: balance; }
-    .id-meta { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 4px 22px; margin-top: 14px; font-size: 12px; color: var(--color-text-secondary); }
-    .id-meta b { display: block; font-size: 14px; font-weight: 600; color: var(--color-text-2); overflow-wrap: anywhere; }
     #cabinetCertsPending.warn { color: #ffd60a; }
+    /* --- Дашборд кабинета (вариант 2): шапка, сетка виджетов, подробности --- */
+    .dash-top { display: flex; align-items: center; gap: 12px; margin: 6px 0 14px; }
+    .dash-who { min-width: 0; }
+    .dash-name { font-size: 20px; font-weight: 700; line-height: 1.2; letter-spacing: -.3px; color: var(--color-text); overflow-wrap: anywhere; }
+    .dash-sub { margin-top: 1px; font-size: 13px; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+    .dash-top .admin-mode-chip { margin-top: 5px; }
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .dash-grid .w { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-height: 108px; padding: 12px; border: 0; border-radius: 18px; background: var(--color-surface-2); color: inherit; text-align: left; }
+    .dash-grid .w.is-on { box-shadow: inset 0 0 0 2px var(--color-accent); }
+    .dash-grid .w:active { transform: scale(.98); }
+    .dash-grid .w .k { font-size: 12px; color: var(--color-text-secondary); }
+    .dash-grid .w .v { font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -.6px; color: var(--color-text); font-variant-numeric: tabular-nums; }
+    .dash-grid .w .v small { font-size: 15px; font-weight: 600; color: var(--color-text-secondary); }
+    .dash-grid .w .s { font-size: 12px; line-height: 1.3; color: var(--color-text-tertiary); }
+    .dash-grid .w .s b { font-weight: 600; color: var(--color-success-text); }
+    .dash-grid .w.wide { grid-column: 1 / -1; min-height: 0; }
+    #cabinetCertsPending { font-size: 22px; }
+    #todayZachetkaAvg { color: var(--color-success-text); }
+    .dash-ring { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; }
+    .w-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: #ff453a; }
+    .dash-pane[hidden] { display: none; }
+    .dl-cal .cal-legend .abs-u { border-radius: 3px; background: rgba(255, 98, 143, .55); }
+    .dl-cal .cal-legend .abs-e { border-radius: 3px; background: rgba(52, 199, 89, .55); }
     /* --- Админ-режим --- */
     .admin-mode-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(94, 92, 230, .28); color: #c7c6ff; font-size: 12px; font-weight: 600; }
     .admin-mode-chip.d-none { display: none; }
@@ -136,7 +150,7 @@
     .pill-select { width: auto; max-width: 100%; min-height: 36px; padding: 5px 30px 5px 13px; border: 0; border-radius: 999px; background-color: var(--color-surface-2); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 11px; color: var(--color-text); font: inherit; font-size: 16px; /* <16px — iPhone увеличивает экран при фокусе */ appearance: none; field-sizing: content; text-overflow: ellipsis; }
     .pill-select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
     /* --- «Сегодня»: ближайшее, дедлайны, зачётка --- */
-    .today-next { display: block; width: 100%; margin: 14px 0 0; padding: 14px; border: 1px solid rgba(255, 159, 10, .3); border-radius: 18px; background: linear-gradient(160deg, rgba(255, 159, 10, .2), rgba(255, 159, 10, .04) 70%); color: inherit; text-align: left; }
+    .today-next { display: block; width: 100%; margin: 0; padding: 14px; border: 1px solid rgba(255, 159, 10, .3); border-radius: 18px; background: linear-gradient(160deg, rgba(255, 159, 10, .2), rgba(255, 159, 10, .04) 70%); color: inherit; text-align: left; }
     .today-next.d-none { display: none; }
     .today-next.is-over { border-color: rgba(255, 98, 143, .4); background: linear-gradient(160deg, rgba(255, 98, 143, .22), rgba(255, 98, 143, .04) 70%); }
     .today-next.is-dl { border-color: rgba(0, 136, 255, .35); background: linear-gradient(160deg, rgba(0, 136, 255, .2), rgba(0, 136, 255, .04) 70%); }
@@ -160,13 +174,7 @@
     .today-dl.is-zachet .when { background: rgba(191, 90, 242, .22); color: #e0b3ff; }
     .today-empty { padding: 14px 16px; color: var(--color-text-tertiary); font-size: 15px; }
     #todayZachetkaAvg { color: var(--color-success-text); }
-    .hours-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
-    .hours-tile { padding: 12px 14px; border-radius: 16px; background: var(--color-surface-2); }
-    .hours-tile b { display: block; font-size: 32px; line-height: 1.05; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-text); }
-    .hours-tile b small { font-size: 15px; font-weight: 600; color: var(--color-text-secondary); }
-    .hours-tile > span { font-size: 13px; color: var(--color-text-secondary); }
     #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
-    .hours-tile.is-excused b > span { color: var(--color-success-text); }
     #groupStandingText { margin: 0 2px 10px; }
     /* --- Лента событий --- */
     .feed-chips { display: flex; gap: 6px; margin: 0 -16px 10px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
@@ -185,7 +193,7 @@
     .ev.ev-msg { padding: 0; background: none; }
     .ev-bubble { max-width: 90%; padding: 10px 13px; border-radius: 18px 18px 18px 6px; background: var(--color-surface-3); color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
     .ev-bubble small { display: block; margin-top: 4px; font-size: 11px; color: var(--color-text-tertiary); }
-    #calendarDayList .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
+    #calendarDayList .ev, #dlCalendarDayList .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
     .ev-link { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--color-accent); font-size: 13px; }
     /* --- Аватарка: фото из Telegram или инициалы на цветном фоне (палитра Telegram) --- */
     .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, #2c2c2e); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; letter-spacing: .01em; line-height: 1; user-select: none; }
@@ -289,38 +297,67 @@
     <div id="cabinetGreeting" class="visually-hidden">Привет!</div>
 
     <div id="cabinetSectionStats">
-      <!-- Студенческий билет: фото (тап — сменить), ФИО, роль, логин, справки -->
-      <div class="id-card">
-        <div class="id-top">
+      <!-- Дашборд: шапка с фото и ФИО, сетка виджетов; нажатие на виджет — подробности под сеткой -->
+      <div class="dash-top">
           <button type="button" class="avatar-btn" id="avatarButton" onclick="toggleAvatarMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="avatarMenu" aria-label="Фото профиля">
-          <div class="avatar js-avatar" style="--av: 76px"></div>
+          <div class="avatar js-avatar" style="--av: 56px"></div>
           <span class="avatar-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
         </button>
-          <div class="id-main">
-            <div class="id-kind">Студенческий · 24ДММ-2</div>
-            <div class="id-name" id="cabinetStudentName">—</div>
+          <div class="dash-who">
+            <div class="dash-name" id="cabinetStudentName">—</div>
+            <div class="dash-sub"><span class="js-role">Студент</span> · 24ДММ-2 · <span class="js-login">—</span></div>
             <span class="admin-mode-chip d-none" id="adminModeChip"><i aria-hidden="true"></i>Админ-режим</span>
           </div>
         </div>
-        <div class="id-meta">
-          <div>Роль<b class="js-role">Студент</b></div>
-          <div>Логин<b class="js-login">—</b></div>
-          <div>Справки<b id="cabinetCertsPending">—</b></div>
-        </div>
-      </div>
         <div class="inset avatar-menu d-none" id="avatarMenu">
           <label class="row-i" for="avatarFileInput"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="lbl">Выбрать фото</span></label>
           <button type="button" class="row-i" id="avatarResetBtn" onclick="resetAvatar()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><span class="lbl">Сбросить фото</span></button>
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
 
-      <!-- «Сегодня»: самое срочное — справка, дедлайн или зачёт (заполняется из renderToday) -->
-      <button type="button" class="today-next d-none" id="todayNext" onclick="setCabinetSection('deadlines')">
+
+      <div class="dash-grid">
+        <button type="button" class="w is-on" data-w="abs" onclick="setDashWidget('abs')" aria-pressed="true">
+          <span class="k">Неуважительные</span>
+          <span class="v"><span id="cabinetUnexcused">0</span><small> ч</small></span>
+          <span class="s">уважительных <b id="cabinetExcused">0</b> ч · <span id="dashPeriodLabel">месяц</span></span>
+        </button>
+        <button type="button" class="w" data-w="standing" onclick="setDashWidget('standing')" aria-pressed="false">
+          <svg class="dash-ring" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#2c2c2e" stroke-width="5"/><circle id="dashStandingRing" cx="18" cy="18" r="15" fill="none" stroke="#34c759" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 94.25" transform="rotate(-90 18 18)"/></svg>
+          <span class="k">Место в группе</span>
+          <span class="v" id="dashStandingValue">—</span>
+          <span class="s">пропускают больше</span>
+        </button>
+        <button type="button" class="w" data-w="certs" onclick="setDashWidget('certs')" aria-pressed="false">
+          <span class="k">Справки</span>
+          <span class="v" id="cabinetCertsPending">—</span>
+          <span class="s">статусы — в ленте</span>
+        </button>
+        <button type="button" class="w" data-w="msg" onclick="setDashWidget('msg')" aria-pressed="false">
+          <span class="w-dot d-none" id="dashMsgDot" aria-label="Есть непрочитанные"></span>
+          <span class="k">Сообщения</span>
+          <span class="v" id="dashMsgCount">0</span>
+          <span class="s" id="dashMsgSub">от старосты и админа</span>
+        </button>
+        <button type="button" class="w" data-w="dl" onclick="setDashWidget('dl')" aria-pressed="false">
+          <span class="k">Дедлайны</span>
+          <span class="v" id="dashDlCount">0</span>
+          <span class="s">впереди · календарь ›</span>
+        </button>
+        <button type="button" class="w" onclick="setCabinetSection('grades'); setGradesTab('zachetka')">
+          <span class="k">Зачётка</span>
+          <span class="v" id="todayZachetkaAvg">—</span>
+          <span class="s">калькулятор: <span id="todayRating">—</span></span>
+        </button>
+      <button type="button" class="w wide today-next d-none" id="todayNext" onclick="setCabinetSection('deadlines')">
         <small id="todayNextKind"></small>
         <b id="todayNextTitle"></b>
         <span id="todayNextMeta"></span>
       </button>
+      </div>
 
+      <!-- Подробности выбранного виджета -->
+      <div class="dash-pane" data-pane="abs">
       <div class="pill-row">
         <select id="cabinetPeriod" class="pill-select" onchange="renderPersonalStats()" aria-label="Период">
           <option value="WEEK">За неделю</option>
@@ -331,31 +368,6 @@
           <option value="ALL">Все предметы</option>
         </select>
       </div>
-      <div class="hours-tiles">
-        <div class="hours-tile"><b><span id="cabinetUnexcused">0</span><small> ч</small></b><span>неуважительных</span></div>
-        <div class="hours-tile is-excused"><b><span id="cabinetExcused">0</span><small> ч</small></b><span>уважительных</span></div>
-      </div>
-
-      <!-- «Сегодня»: 3 ближайших дедлайна и зачётка; «Все ›» / «Открыть ›» — полный раздел -->
-      <div class="today-sec">
-        <div class="today-h"><b>Дедлайны</b><button type="button" class="today-more" id="todayDeadlinesMore" onclick="setCabinetSection('deadlines')">Все ›</button></div>
-        <div class="inset" id="todayDeadlines"></div>
-      </div>
-      <div class="today-sec">
-        <div class="today-h"><b>Зачётка</b><button type="button" class="today-more" onclick="setCabinetSection('grades'); setGradesTab('zachetka')">Открыть ›</button></div>
-        <div class="inset">
-          <button type="button" class="row-i" onclick="setCabinetSection('grades'); setGradesTab('zachetka')"><span class="lbl">Средний балл за сессию</span><span class="val fw-bold num" id="todayZachetkaAvg">—</span><span class="chev" aria-hidden="true">›</span></button>
-          <button type="button" class="row-i" onclick="setCabinetSection('grades'); setGradesTab('calc')"><span class="lbl">Калькулятор рейтинга</span><span class="val num" id="todayRating">—</span><span class="chev" aria-hidden="true">›</span></button>
-        </div>
-      </div>
-
-      <div class="d-none" id="groupStandingCard">
-        <div class="cap">Место в группе</div>
-        <div class="text-white" id="groupStandingText">—</div>
-        <div class="meter" aria-hidden="true"><i id="groupStandingMeter"></i></div>
-        <div class="meter-labels"><span>больше пропусков</span><span>меньше пропусков</span></div>
-      </div>
-
       <!-- Лента событий или календарь -->
       <div class="seg" id="statsViewSeg" role="tablist" data-active="feed">
         <button type="button" role="tab" id="statsViewFeedTab" aria-selected="true" onclick="setStatsView('feed')">Лента</button>
@@ -402,6 +414,23 @@
         </table>
       </div>
       </details>
+
+      </div>
+      <div class="dash-pane" data-pane="standing" hidden>
+      <div class="d-none" id="groupStandingCard">
+        <div class="cap">Место в группе</div>
+        <div class="text-white" id="groupStandingText">—</div>
+        <div class="meter" aria-hidden="true"><i id="groupStandingMeter"></i></div>
+        <div class="meter-labels"><span>больше пропусков</span><span>меньше пропусков</span></div>
+      </div>
+
+      </div>
+      <div class="dash-pane" data-pane="dl" hidden>
+      <div class="today-sec">
+        <div class="today-h"><b>Ближайшие дедлайны и зачёты</b><button type="button" class="today-more" id="todayDeadlinesMore" onclick="setCabinetSection('deadlines')">Все ›</button></div>
+        <div class="inset" id="todayDeadlines"></div>
+      </div>
+      </div>
 
       <div class="group">
         <div class="inset">
@@ -502,7 +531,7 @@
           <button type="button" class="cal-nav" onclick="shiftDeadlineCalendarMonth(1)" aria-label="Следующий месяц">›</button>
         </div>
         <div class="cal-grid" id="dlCalendarGrid"></div>
-        <div class="cal-legend"><span><i class="m-dl"></i>дедлайн</span><span><i class="m-zachet"></i>зачёт</span><span><i class="m-cert"></i>справка</span><span><i class="m-over"></i>просрочена</span></div>
+        <div class="cal-legend"><span><i class="m-dl"></i>дедлайн</span><span><i class="m-zachet"></i>зачёт</span><span><i class="m-cert"></i>справка</span><span><i class="m-over"></i>просрочена</span><span><i class="abs-u"></i>неуваж.</span><span><i class="abs-e"></i>уваж.</span></div>
       </div>
       <div class="cap" id="dlCalendarDayTitle"></div>
       <div id="dlCalendarDayList"></div>
@@ -1781,6 +1810,22 @@
       if (!certs[id]) { certs[id] = { kind: 'cert', dueDate: k, certType: a.certType, list: [], over: deadlineDaysLeft(k) < 0 }; add(k, certs[id]); }
       certs[id].list.push(a);
     });
+    // Свои пропуски по дням: день подкрашен (неуважительный — красным, уважительный — зелёным)
+    (myStudentId ? myAbsencesSorted() : []).forEach(a => {
+      const d = new Date(a.date); if (isNaN(d.getTime())) return;
+      add(dayKey(d), { kind: 'abs', a });
+    });
+  }
+  // Карточка пропуска в списке выбранного дня (календарь «Дедлайнов»)
+  function absenceDayCard(a) {
+    const row = document.createElement('div');
+    row.className = 'ev' + (a.isExcused ? ' is-excused' : '');
+    const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
+    row.innerHTML = `<span class="ev-ic" aria-hidden="true"></span><div class="ev-body"><div class="fw-bold text-white"></div><div class="small text-secondary"></div><div class="mt-1">${certStatusBadge(a)}</div></div>`;
+    row.querySelector('.ev-ic').textContent = a.totalHours;
+    row.querySelector('.fw-bold').textContent = `Пропуск · ${subName} · ${a.totalHours} ч`;
+    row.querySelector('.small').textContent = (a.isExcused ? 'Уважительный' : 'Неуважительный') + (a.comment ? ` · ${a.comment}` : '');
+    return row;
   }
   function certDueCard(c) {
     const n = deadlineDaysLeft(c.dueDate);
@@ -1800,12 +1845,12 @@
   function renderToday() {
     const byDay = deadlineCalendarEvents();
     const items = [];
-    Object.keys(byDay).forEach(k => byDay[k].forEach(e => items.push({ ...e, key: k, n: deadlineDaysLeft(k) })));
+    Object.keys(byDay).forEach(k => byDay[k].forEach(e => { if (e.kind !== 'abs') items.push({ ...e, key: k, n: deadlineDaysLeft(k) }); }));
     const upcoming = items.filter(e => e.n >= 0).sort((a, b) => a.n - b.n || (a.kind === 'cert' ? -1 : 1));
     const overCert = items.filter(e => e.kind === 'cert' && e.over).sort((a, b) => a.n - b.n)[0];
     const next = overCert || upcoming[0];
     const card = document.getElementById('todayNext');
-    card.className = 'today-next' + (next ? '' : ' d-none');
+    card.className = 'w wide today-next' + (next ? '' : ' d-none');   // широкий виджет дашборда
     if (next) {
       const date = formatDateShort(deadlineDate(next.key));
       if (next.kind === 'cert') {
@@ -2353,6 +2398,38 @@
   afterRender('showCabinetContent', updateTodayGrades);
   afterRender('recalcRating', updateTodayGrades);
   afterRender('setCabinetSection', updateTodayGrades);
+  // --- Дашборд: выбранный виджет и цифры в виджетах ---
+  let dashWidget = 'abs';
+  function setDashWidget(w, init) {
+    dashWidget = w;
+    const pane = w === 'standing' ? 'standing' : w === 'dl' ? 'dl' : 'abs';
+    document.querySelectorAll('.dash-grid .w[data-w]').forEach(b => { const on = b.dataset.w === w; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); });
+    document.querySelectorAll('.dash-pane').forEach(p => { p.hidden = p.dataset.pane !== pane; });
+    // «Справки» и «Сообщения» — лента с нужным фильтром; «Неуважительные» — вид (лента/календарь) не меняем
+    if (w === 'certs' || w === 'msg') { setStatsView('feed'); setFeedFilter(w === 'certs' ? 'cert' : 'msg'); }
+    else if (w === 'abs' && !init) setFeedFilter('all');
+  }
+  function updateDashboard() {
+    if (!myStudentId) return;
+    const period = document.getElementById('cabinetPeriod').value;
+    document.getElementById('dashPeriodLabel').textContent = { WEEK: 'неделя', MONTH: 'месяц', SEMESTER: 'семестр' }[period] || '';
+    const m = document.getElementById('groupStandingText').innerText.match(/(\d+)%/);
+    const pct = m ? Number(m[1]) : null;
+    document.getElementById('dashStandingValue').textContent = pct === null ? '—' : pct + '%';
+    const ring = document.getElementById('dashStandingRing');
+    ring.setAttribute('stroke-dasharray', `${((pct || 0) / 100 * 94.25).toFixed(1)} 94.25`);
+    ring.setAttribute('stroke', pct === null ? '#2c2c2e' : pct >= 50 ? '#34c759' : pct >= 25 ? '#ffd60a' : '#ff628f');
+    const msgs = currentPersonalAnnouncements || [];
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    const personal = msgs.filter(a => a.targetType !== 'ALL').length;
+    document.getElementById('dashMsgCount').textContent = msgs.length;
+    document.getElementById('dashMsgSub').textContent = personal ? `${personal} лично вам` : 'от старосты и админа';
+    document.getElementById('dashMsgDot').classList.toggle('d-none', !msgs.some(a => !seen.includes(a.id)));
+    document.getElementById('dashDlCount').textContent = (appData.deadlines || []).filter(d => deadlineDaysLeft(d.dueDate) >= 0).length;
+  }
+  ['renderPersonalStats', 'renderGroupStanding', 'renderCabinetAnnouncements', 'renderDeadlines'].forEach(n => afterRender(n, updateDashboard));
+  afterRender('showCabinetContent', () => { updateDashboard(); setDashWidget('abs', true); });
   // Кнопка «назад» телефона и ссылки вида cabinet.html#grades: раздел берётся из адреса
   window.addEventListener('hashchange', () => {
     if (!myStudentId || document.getElementById('cabinetContentSection').classList.contains('d-none')) return;
