@@ -10,13 +10,15 @@
 // shared.js в index.html и cabinet.html, чтобы новая страница никогда не взяла старые стили/скрипт.
 // Свои файлы запрашиваем мимо HTTP-кэша браузера (сервер ответит «не изменилось», если файл тот же):
 // иначе после деплоя телефон мог получить новую страницу со старым app.css.
-const CACHE_VERSION = 'journal-24dmm2-v10';
+const CACHE_VERSION = 'journal-24dmm2-v11';
 
 const PRECACHE_URLS = [
   './index.html',
   './cabinet.html',
   './app.css',
   './shared.js',
+  './studak.js',
+  './pass.html',
   './manifest.json'
 ];
 
@@ -58,7 +60,9 @@ self.addEventListener('fetch', (event) => {
     fresh
       .then((response) => {
         const copy = response.clone();
-        caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
+        // pass.html?t=<токен> — кладём в кэш без токена: одна копия страницы, токены в кэше не копятся
+        const key = url.pathname.endsWith('/pass.html') ? new URL('./pass.html', self.location.href).href : event.request;
+        caches.open(CACHE_VERSION).then((cache) => cache.put(key, copy));
         return response;
       })
       .catch(() => caches.match(event.request, { ignoreSearch: true }))

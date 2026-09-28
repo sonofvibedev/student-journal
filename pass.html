@@ -1,0 +1,179 @@
+﻿<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- Токен пропуска — в адресе страницы: не отдаём его сторонним сайтам в Referer -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Проверка пропуска Studak — 24ДММ-2</title>
+  <meta name="theme-color" content="#060606">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <!-- Telegram Web App SDK: страница открывается и внутри мини-приложения (кнопка «Сканировать пропуск») -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link href="app.css?v=11" rel="stylesheet">
+  <style>
+    /* Страница проверки: без таб-бара, только пропуск и результат */
+    body { padding-bottom: var(--app-inset-bottom); }
+    body::after { display: none; }
+    .pv-page { display: flex; flex-direction: column; align-items: center; gap: 18px; min-height: 100vh; min-height: 100dvh; padding: 20px 16px 32px; }
+    .pv-head { display: flex; align-items: center; justify-content: space-between; width: min(560px, 100%); font-size: 13px; color: var(--color-text-secondary); }
+    .pv-head a { color: inherit; text-decoration: none; }
+    .pv-head b { color: var(--color-text); font-weight: 600; }
+    .pv-sec { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+    .pv-sec[hidden] { display: none; }
+    .pv-center { flex: 1; justify-content: center; max-width: 420px; text-align: center; }
+    .pv-spin { width: 36px; height: 36px; border: 3px solid #2c2c2e; border-top-color: var(--color-accent); border-radius: 50%; animation: pv-spin .8s linear infinite; }
+    @keyframes pv-spin { to { transform: rotate(360deg); } }
+    .pv-check { display: flex; align-items: center; gap: 10px; width: min(560px, 100%); padding: 12px 14px; border-radius: 16px; background: rgba(52, 199, 89, .12); color: #34c759; font-size: 15px; font-weight: 600; }
+    .pv-check svg { flex-shrink: 0; width: 22px; height: 22px; }
+    .pv-check span { color: var(--color-text-2); font-weight: 400; }
+    .pv-check b { font-variant-numeric: tabular-nums; }
+    .pv-icon { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: rgba(255, 69, 58, .14); color: #ff453a; }
+    .pv-icon.is-warn { background: rgba(255, 214, 10, .12); color: #ffd60a; }
+    .pv-icon svg { width: 36px; height: 36px; }
+    .pv-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.3px; color: var(--color-text); }
+    .pv-text { margin: 0; font-size: 15px; line-height: 1.45; color: var(--color-text-secondary); }
+    .pv-fine { max-width: 420px; margin: 0; font-size: 12px; line-height: 1.4; color: var(--color-text-tertiary); text-align: center; }
+    .pv-btn { min-height: 44px; padding: 0 22px; border: 0; border-radius: 12px; background: var(--color-accent); color: #fff; font-size: 16px; font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) { .pv-spin { animation-duration: 2.4s; } }
+  </style>
+</head>
+<body>
+<main class="pv-page">
+  <header class="pv-head"><a href="index.html"><b>Журнал 24ДММ-2</b></a><span>Проверка пропуска</span></header>
+
+  <section class="pv-sec pv-center" id="passLoading" aria-live="polite">
+    <div class="pv-spin" aria-hidden="true"></div>
+    <p class="pv-text">Проверяем пропуск…</p>
+  </section>
+
+  <section class="pv-sec" id="passValid" hidden>
+    <div class="pv-check" id="passCheck" role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="m8 12.5 2.7 2.7L16 9.8"/></svg>
+      <div>Пропуск действителен<br><span>Код одноразовый, действует ещё <b id="passLeft">—</b></span></div>
+    </div>
+    <div class="sk-stage" id="passStage"></div>
+  </section>
+
+  <section class="pv-sec pv-center" id="passInvalid" hidden>
+    <div class="pv-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg></div>
+    <h1 class="pv-title" id="passInvalidTitle">Пропуск недействителен</h1>
+    <p class="pv-text" id="passInvalidText">Срок истёк или код неверный.</p>
+  </section>
+
+  <section class="pv-sec pv-center" id="passError" hidden>
+    <div class="pv-icon is-warn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9.5"/></svg></div>
+    <h1 class="pv-title">Не удалось проверить пропуск</h1>
+    <p class="pv-text" id="passErrorText">Проверьте интернет и попробуйте ещё раз.</p>
+    <button type="button" class="pv-btn" id="passRetryBtn" onclick="verifyPass()">Повторить</button>
+  </section>
+
+  <p class="pv-fine">Studak — внутренний пропуск группы, не является официальным документом</p>
+</main>
+
+<script src="studak.js?v=11"></script>
+<script>
+  // Проверка пропуска Studak без входа. В адресе — одноразовый токен (?t=…), живёт 5 минут.
+  // Проверяет его Edge Function verify-pass; она отдаёт только student_id, логин и временную ссылку на фото.
+  // ФИО, роль и номер в списке берём из открытого data.json. Пропуски, часы, форма обучения
+  // и Telegram на странице не показываются.
+  // В коде только адрес проекта и публичный ключ (sb_publishable) — те же, что в cabinet.html.
+  const SUPABASE_URL = 'https://woiqekpuoddxixlrbvkp.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_I1jhpJqVFBcd_ceZ-hYmGg_-MdIiZ1k';
+  const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
+  const passToken = new URLSearchParams(location.search).get('t') || '';
+  let passTimer = null;
+
+  function showPassState(id) {
+    ['passLoading', 'passValid', 'passInvalid', 'passError'].forEach(s => { document.getElementById(s).hidden = s !== id; });
+  }
+  function showInvalid(expired) {
+    clearInterval(passTimer);
+    document.getElementById('passStage').innerHTML = '';   // данные студента со страницы убираем
+    document.getElementById('passInvalidTitle').textContent = expired ? 'Срок пропуска истёк' : 'Пропуск недействителен';
+    document.getElementById('passInvalidText').textContent = expired
+      ? 'Код действует 5 минут. Попросите владельца открыть Studak и показать QR-код ещё раз.'
+      : 'Срок истёк или код неверный. Код одноразовый и действует 5 минут — попросите владельца открыть Studak и показать свежий QR-код.';
+    showPassState('passInvalid');
+    tgHaptic('error');
+  }
+  function showError(text) {
+    clearInterval(passTimer);
+    document.getElementById('passErrorText').textContent = text;
+    showPassState('passError');
+  }
+
+  async function verifyPass() {
+    clearInterval(passTimer);
+    showPassState('passLoading');
+    if (!TOKEN_RE.test(passToken)) { showInvalid(false); return; }
+    let result, data;
+    try {
+      const [res, dataRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/functions/v1/verify-pass`, {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+          body: JSON.stringify({ token: passToken })
+        }),
+        fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' })
+      ]);
+      if (res.status >= 500) throw new Error('server');
+      result = await res.json();
+      if (result && result.valid) data = await dataRes.json();
+    } catch (e) {
+      showError(navigator.onLine === false ? 'Нет интернета. Подключитесь к сети и нажмите «Повторить».' : 'Сервер не ответил. Попробуйте ещё раз через несколько секунд.');
+      return;
+    }
+    if (!result || result.valid !== true) { showInvalid(false); return; }
+    const student = ((data && data.students) || []).find(s => s.id === result.student_id);
+    const expiresAt = new Date(result.expires_at).getTime();
+    if (!student || !expiresAt) { showInvalid(false); return; }
+    // Срок — по ответу сервера, пересчитанный на часы этого телефона (они могут быть сбиты)
+    const localExpires = Date.now() + Math.max(0, Math.min(300000, expiresAt - Date.now()));
+    const stage = document.getElementById('passStage');
+    stage.innerHTML = studakCardHTML({ back: false });
+    studakFill(stage, {
+      lastName: student.lastName, firstName: student.firstName, role: student.role,
+      number: studakNumber(data.students, student.id),
+      login: result.login,
+      photo: result.photo_url
+    });
+    studakSetStatus(stage, true, 'Проверен');
+    skEl(stage, 'tilt').classList.add('sk-appear');
+    studakTilt(stage, null);
+    showPassState('passValid');
+    tgHaptic('success');
+    const tick = () => {
+      const left = Math.round((localExpires - Date.now()) / 1000);
+      if (left <= 0) { showInvalid(true); return; }
+      document.getElementById('passLeft').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    };
+    tick();
+    passTimer = setInterval(tick, 1000);
+  }
+
+  // --- Telegram: тёмная шапка, без вертикального свайпа, «Назад» — в кабинет ---
+  const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
+  const tgAtLeast = (v) => !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(v));
+  function tgHaptic(kind) {
+    if (!tgAtLeast('6.1') || !TG.HapticFeedback) return;
+    try { TG.HapticFeedback.notificationOccurred(kind); } catch (e) {}
+  }
+  if (TG) {
+    TG.expand();
+    if (TG.disableVerticalSwipes) TG.disableVerticalSwipes();
+    try { if (tgAtLeast('6.1')) { TG.setHeaderColor('#060606'); TG.setBackgroundColor('#060606'); } } catch (e) {}
+    if (tgAtLeast('6.1') && TG.BackButton) {
+      TG.BackButton.onClick(() => { if (history.length > 1) history.back(); else location.href = 'cabinet.html'; });
+      TG.BackButton.show();
+    }
+    TG.ready();
+  }
+
+  verifyPass();
+</script>
+</body>
+</html>
