@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Журнал 24ДММ-2</title>
 
+  <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
+  <script src="env.js?v=12"></script>
+
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#060606">
@@ -22,7 +25,9 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=11" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=12" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
+  <script src="theme.js?v=12"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -30,11 +35,22 @@
     /* --- Шапка: Figma «Журнал» 34 bold + дата сохранения, справа — вход администратора --- */
     .app-header { position: relative; padding: 16px 0 20px; }
     .app-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+    /* Подпись выбранного периода рядом с заголовком: «Октябрь 2026» */
+    .period-badge {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background-color: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
     .group-badge {
       padding: 4px 10px;
       border-radius: var(--radius-pill);
       background-color: rgba(var(--color-accent-rgb), 0.15);
-      color: #4dabff;
+      color: var(--color-accent-soft);
       font-size: 13px;
       font-weight: 600;
       line-height: 1.4;
@@ -44,7 +60,7 @@
     /* --- Дедлайны в окне администратора --- */
     .dl-admin-item { padding: 12px 14px; margin-bottom: 8px; border-radius: var(--radius-lg); background: var(--color-surface-3); }
     .dl-admin-item.is-past { opacity: .6; }
-    .dl-admin-item.is-zachet { box-shadow: inset 4px 0 0 #bf5af2; }
+    .dl-admin-item.is-zachet { box-shadow: inset 4px 0 0 var(--color-purple); }
     .dl-admin-subject { font-weight: 600; color: var(--color-text); }
     .dl-admin-text { margin: 2px 0 6px; color: var(--color-text-2); white-space: pre-line; overflow-wrap: anywhere; }
     .dl-admin-meta { font-size: 13px; color: var(--color-text-secondary); }
@@ -67,8 +83,8 @@
     .va-bell:active::before { transform: scale(.92); background: var(--color-surface-2); }
     .va-bell:focus-visible { outline: none; }
     .va-bell:focus-visible::before { box-shadow: 0 0 0 2px var(--color-accent); }
-    .va-bell.has-unread svg { color: #fff; }
-    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: #ff3b30; color: #fff; font-size: 11px; font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
+    .va-bell.has-unread svg { color: var(--color-text); }
+    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: var(--color-danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
     .va-empty { padding: 24px 0; color: var(--color-text-tertiary); text-align: center; }
     #announcementsSheet .student-summary-card { background: var(--color-surface-3); }
     #announcementsSheet .text-white { white-space: pre-line; }
@@ -177,7 +193,7 @@
     .sort-dropdown-item.active,
     .sort-dropdown-item.active:hover {
       display: inline-flex;
-      background-color: var(--color-green);
+      background-color: var(--color-active);
       border-radius: 296px;
     }
     .sort-dropdown-item.active .check-icon { display: inline-flex; }
@@ -199,7 +215,7 @@
       height: 5px;
       margin: 0 auto;
       border-radius: 296px;
-      background-color: #fff;
+      background-color: var(--color-border-strong);
     }
     .filter-sheet-header {
       display: flex;
@@ -240,7 +256,7 @@
       -webkit-tap-highlight-color: transparent;
       transition: transform var(--dur-fast) var(--ease-out);
     }
-    .filter-chip.active { border-color: var(--color-green); background-color: var(--color-green); }
+    .filter-chip.active { border-color: var(--color-active); background-color: var(--color-active); }
     .filter-chip.active .chip-check { display: inline-flex; }
     .filter-sheet-footer { flex-shrink: 0; padding: 12px 20px 16px; }
     .filter-sheet-apply {
@@ -249,7 +265,7 @@
       min-height: var(--control-h-lg);
       border: 0;
       border-radius: var(--radius-md);
-      background-color: var(--color-green);
+      background-color: var(--color-active);
       color: #fff;
       font-size: var(--fs-button);
       letter-spacing: -0.63px;
@@ -315,9 +331,9 @@
       letter-spacing: -0.2px;
       font-variant-numeric: tabular-nums;
     }
-    .hours-circle.hours-green { background-color: rgba(52, 199, 89, 0.14); color: #34c759; }
-    .hours-circle.hours-warning { background-color: rgba(255, 214, 10, 0.14); color: #ffd60a; }
-    .hours-circle.hours-danger { background-color: rgba(255, 98, 143, 0.16); color: var(--color-danger-line); }
+    .hours-circle.hours-green { background-color: var(--color-ok-bg); color: var(--color-success-text); }
+    .hours-circle.hours-warning { background-color: var(--color-warn-bg); color: var(--color-warning); }
+    .hours-circle.hours-danger { background-color: var(--color-bad-bg); color: var(--color-danger-line); }
     .uvazh-value {
       width: var(--hours-size);
       text-align: center;
@@ -424,6 +440,67 @@
     }
     /* Цифры и «ч» в истории студента не разрываем по строкам */
     #studentHistoryModal strong { white-space: nowrap; }
+    /* ===== Раздел «Домашка»: расписание и домашние задания ===== */
+    .sch-week { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 10px; border-radius: var(--radius-lg); background: var(--color-surface); }
+    .sch-week-mid { text-align: center; line-height: 1.25; }
+    .sch-week-mid b { display: block; font-size: var(--fs-body); color: var(--color-text); }
+    .sch-week-mid span { font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .sch-subgroup { display: flex; gap: 6px; margin: 12px 0 10px; }
+    .sch-sub-chip { min-height: var(--control-h-sm); padding: 0 12px; border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-secondary);
+      font-size: var(--fs-caption); font-weight: 500; }
+    .sch-sub-chip.active { border-color: var(--color-active); background: var(--color-active); color: #fff; font-weight: 600; }
+    .sch-days { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
+    .sch-day { display: grid; justify-items: center; gap: 2px; padding: 8px 0 7px; border: 1px solid transparent;
+      border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-secondary);
+      font-size: var(--fs-small); font-weight: 600; }
+    .sch-day b { font-size: var(--fs-body); font-weight: 700; color: var(--color-text); font-variant-numeric: tabular-nums; }
+    .sch-day i { width: 5px; height: 5px; border-radius: 50%; background: var(--color-accent); }
+    .sch-day i.off { background: transparent; }
+    .sch-day.today { border-color: var(--color-border-strong); }
+    .sch-day.sel { background: var(--color-active); color: #fff; }
+    .sch-day.sel b { color: #fff; }
+    .sch-day.sel i { background: #fff; }
+    .sch-lesson { display: flex; gap: 12px; padding: 12px; margin-bottom: 8px;
+      border-radius: var(--radius-lg); background: var(--color-surface); }
+    .sch-time { flex: none; width: 48px; text-align: center; line-height: 1.3; }
+    .sch-time b { display: block; font-size: var(--fs-caption); font-weight: 700; color: var(--color-text); font-variant-numeric: tabular-nums; }
+    .sch-time span { font-size: var(--fs-small); color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+    .sch-body { min-width: 0; flex: 1; }
+    .sch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .sch-name { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
+    .sch-kind { flex: none; padding: 2px 7px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 700;
+      background: var(--color-surface-3); color: var(--color-text-secondary); }
+    .sch-kind.k-lk { background: rgba(var(--color-accent-rgb), .18); color: var(--color-accent-soft); }
+    .sch-kind.k-lr { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
+    .sch-kind.k-pz { background: var(--color-green-soft-bg); color: var(--color-success-text); }
+    .sch-kind.k-zc { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+    .sch-meta { margin-top: 3px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .sch-empty { padding: 20px 12px; border-radius: var(--radius-lg); background: var(--color-surface);
+      color: var(--color-text-tertiary); font-size: var(--fs-caption); text-align: center; }
+    .hw-card { margin-top: 8px; padding: 9px 11px; border-left: 3px solid var(--color-accent);
+      border-radius: var(--radius-sm); background: var(--color-surface-3); }
+    .hw-card + .hw-card { margin-top: 6px; }
+    .hw-card .hw-text { font-size: var(--fs-caption); color: var(--color-text); }
+    .hw-card .hw-when { margin-top: 3px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .hw-up { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; margin-bottom: 8px;
+      border-radius: var(--radius-lg); background: var(--color-surface); border-left: 3px solid var(--color-accent); }
+    .hw-up.is-soon { border-left-color: var(--color-warning); }
+    .hw-up.is-over { border-left-color: var(--color-danger-line); }
+    .hw-up-body { min-width: 0; flex: 1; }
+    .hw-up-subj { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
+    .hw-up-text { margin-top: 2px; font-size: var(--fs-caption); color: var(--color-text-2); }
+    .hw-up-meta { margin-top: 4px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .hw-up-rel { flex: none; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600;
+      background: var(--color-surface-3); color: var(--color-text-secondary); }
+    .hw-up.is-soon .hw-up-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
+    .hw-up.is-over .hw-up-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+    .hw-admin-item { padding: 10px 12px; margin-bottom: 8px; border-radius: var(--radius-md);
+      background: var(--color-surface-3); }
+    .hw-admin-item .t { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
+    .hw-admin-item .d { margin-top: 2px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .hw-admin-item .acts { display: flex; gap: 8px; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -436,6 +513,7 @@
       <div class="app-title-row">
         <h2 class="app-title" id="appTitle">Журнал</h2>
         <span class="group-badge">24ДММ-2</span>
+        <span class="period-badge" id="periodCaption"></span>
       </div>
       <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
@@ -559,10 +637,10 @@
         <option value="Платное">Платники</option>
       </select>
       <select id="periodFilter" onchange="renderTable()">
-        <option value="ALL">Всё время</option>
         <option value="WEEK">Неделя</option>
-        <option value="MONTH">Месяц</option>
+        <option value="MONTH" selected>Месяц</option>
         <option value="SEMESTER">Семестр</option>
+        <option value="ALL">Всё время</option>
       </select>
       <select id="subjectFilter" onchange="renderTable()">
         <option value="ALL">Все предметы</option>
@@ -638,7 +716,34 @@
     <button type="button" class="btn btn-outline-light btn-sm admin-only d-none mt-2" onclick="openAddTeacherModal()">+ Добавить преподавателя</button>
   </section>
 
-  <!-- Раздел «Дедлайны» (index.html#deadlines): календарь и список; код — shared.js -->
+
+  <!-- Раздел «Домашка» (index.html#homework): расписание группы на семестр и домашние
+       задания, привязанные к занятиям. Расписание — schedule.js, домашка — data.json. -->
+  <section id="viewHomework" class="app-view d-none" aria-labelledby="homeworkViewTitle">
+    <div class="view-head">
+      <h3 class="view-title" id="homeworkViewTitle">Домашка</h3>
+      <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openHomeworkModal()">Управлять</button>
+    </div>
+
+    <div class="sch-week">
+      <button type="button" class="cal-nav" id="hwPrevWeek" onclick="shiftScheduleWeek(-1)" aria-label="Предыдущая неделя">‹</button>
+      <div class="sch-week-mid">
+        <b id="hwWeekTitle">—</b>
+        <span id="hwWeekRange"></span>
+      </div>
+      <button type="button" class="cal-nav" id="hwNextWeek" onclick="shiftScheduleWeek(1)" aria-label="Следующая неделя">›</button>
+    </div>
+
+    <div class="sch-subgroup" id="hwSubgroupRow" role="group" aria-label="Подгруппа"></div>
+    <div class="sch-days" id="hwDayStrip"></div>
+    <div id="hwDayList"></div>
+
+    <div class="kicker mt-4">Ближайшая домашка</div>
+    <div id="hwUpcoming"></div>
+    <div id="hwUpcomingEmpty" class="dl-empty d-none">Домашки пока нет</div>
+  </section>
+
+  <!-- Раздел «Дедлайны» (index.html#deadlines, открывается по прямой ссылке и из админки): календарь и список; код — shared.js -->
   <section id="viewDeadlines" class="app-view d-none" aria-labelledby="deadlinesViewTitle">
     <div class="view-head">
       <h3 class="view-title" id="deadlinesViewTitle">Дедлайны и зачёты</h3>
@@ -997,6 +1102,69 @@
 </div>
 
 <!-- Модальное окно: Разместить объявление -->
+<!-- Модальное окно: Домашка (админ) -->
+<div class="modal fade" id="homeworkModal" tabindex="-1" aria-labelledby="homeworkModalTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="homeworkModalTitle">Домашние задания</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <button type="button" class="btn btn-primary w-100 fw-bold mb-3" onclick="openHomeworkForm()">+ Добавить домашку</button>
+        <div id="homeworkAdminList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: Добавить / изменить домашку -->
+<div class="modal fade" id="homeworkFormModal" tabindex="-1" aria-labelledby="homeworkFormTitle">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="homeworkFormTitle">Новая домашка</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="homeworkSubject">Предмет</label>
+          <select id="homeworkSubject" class="form-select"></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="homeworkType">Вид занятия</label>
+          <select id="homeworkType" class="form-select">
+            <option value="">Любое занятие</option>
+            <option value="ЛК">Лекция</option>
+            <option value="ПЗ">Практическое</option>
+            <option value="ЛР">Лабораторная</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="homeworkText">Что нужно сделать</label>
+          <textarea id="homeworkText" class="form-control" rows="4" placeholder="Например: лабораторная 3, парная регрессия"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="homeworkDueDate">Дата сдачи</label>
+          <input type="date" id="homeworkDueDate" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="homeworkSubgroup">Кому</label>
+          <select id="homeworkSubgroup" class="form-select">
+            <option value="0">Всей группе</option>
+            <option value="1">1 подгруппе</option>
+            <option value="2">2 подгруппе</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger d-none" id="homeworkDeleteBtn" onclick="deleteHomework(editingHomeworkId)">Удалить</button>
+        <button type="button" class="btn btn-success fw-bold" id="homeworkSaveBtn" onclick="saveHomework()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Модальное окно: Дедлайны (админ) -->
 <div class="modal fade" id="deadlinesModal" tabindex="-1" aria-labelledby="deadlinesModalTitle">
   <div class="modal-dialog modal-dialog-scrollable">
@@ -1115,10 +1283,6 @@
         <div class="filter-section">
           <div class="filter-section-title">Период</div>
           <div class="filter-chip-row" id="filterChipsPeriod">
-            <button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip('periodFilter','ALL','filterChipsPeriod',this)">
-              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
-              <span>Всё время</span>
-            </button>
             <button type="button" class="filter-chip" data-value="WEEK" onclick="selectFilterChip('periodFilter','WEEK','filterChipsPeriod',this)">
               <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Неделя</span>
@@ -1130,6 +1294,10 @@
             <button type="button" class="filter-chip" data-value="SEMESTER" onclick="selectFilterChip('periodFilter','SEMESTER','filterChipsPeriod',this)">
               <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
               <span>Семестр</span>
+            </button>
+            <button type="button" class="filter-chip" data-value="ALL" onclick="selectFilterChip('periodFilter','ALL','filterChipsPeriod',this)">
+              <span class="chip-check"><svg viewBox="0 0 14 14" fill="#fff" fill-rule="evenodd" aria-hidden="true"><path d="M7 0a7 7 0 1 1 0 14A7 7 0 1 1 7 0zm5 4.5L10.5 3l-5 6.5-3-3-.5 1 3.5 4z"/></svg></span>
+              <span>Всё время</span>
             </button>
           </div>
         </div>
@@ -1232,11 +1400,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="shared.js?v=11"></script>
+<script src="changelog.js?v=12"></script>
+<script src="schedule.js?v=12"></script>
+<script src="notify.js?v=12"></script>
+<script src="shared.js?v=12"></script>
 <script>
-  const GITHUB_OWNER = 'dimpolenyshev';
-  const GITHUB_REPO = 'student-journal';
-  const DATA_PATH = 'data.json';
+  // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
   const DEFAULT_SUBJECTS = [
     "Интегрированные маркетинговые коммуникации",
@@ -1262,7 +1431,7 @@
   }
 
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
-  let githubToken = localStorage.getItem('gh_pat') || '';
+  let githubToken = lsGet('gh_pat') || '';
   let currentHistoryStudentId = null;
 
   const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
@@ -1348,7 +1517,7 @@
   // Работает только внутри Telegram (есть initData). В обычном браузере и в PWA TG = null,
   // и функции ниже ничего не делают.
   const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
-  const APP_BG_COLOR = '#060606';
+  // Цвет шапки и фона в Telegram берём из текущей темы: appBgColor() — в theme.js
 
   function tgSupports(version) {
     return !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(version));
@@ -1371,10 +1540,11 @@
     document.documentElement.dataset.tgScheme = TG.colorScheme || 'dark';
     try {
       if (tgSupports('6.1')) {
-        TG.setHeaderColor(APP_BG_COLOR);
-        TG.setBackgroundColor(APP_BG_COLOR);
+        const bg = appBgColor();
+        TG.setHeaderColor(bg);
+        TG.setBackgroundColor(bg);
       }
-      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(APP_BG_COLOR);
+      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(appBgColor());
     } catch (e) {}
   }
 
@@ -1432,7 +1602,9 @@
       else t.removeAttribute('aria-current');
     });
   }
-  const VIEWS = { stats: 'viewStats', teachers: 'viewTeachers', deadlines: 'viewDeadlines' };
+  // «Дедлайны» остались разделом страницы: кнопки в таб-баре у них больше нет, но адрес
+  // index.html#deadlines и кнопка «Управлять» в админке работают как прежде.
+  const VIEWS = { stats: 'viewStats', teachers: 'viewTeachers', homework: 'viewHomework', deadlines: 'viewDeadlines' };
   let currentViewName = null;
   function currentView() {
     const h = location.hash.slice(1);
@@ -1450,6 +1622,7 @@
     Object.keys(VIEWS).forEach(k => document.getElementById(VIEWS[k]).classList.toggle('d-none', k !== name));
     setActiveTab(document.querySelector(`.bottom-tabbar .tabbar-item[data-view="${name}"]`));
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
+    if (name === 'homework') { renderHomeworkView(); updateAdminUI(); }
     if (name === 'deadlines') {
       renderDeadlines();
       markDeadlinesSeen();
@@ -1459,7 +1632,7 @@
     syncTelegramBackButton();
   }
   window.addEventListener('hashchange', () => showView(currentView()));   // адрес изменили вручную
-  // Кнопки таб-бара — ссылки #stats / #teachers / #deadlines: переключаем сами, без записи в истории
+  // Кнопки таб-бара — ссылки #stats / #teachers / #homework: переключаем сами, без записи в истории
   // (таб-бар в разметке ниже скрипта — поэтому слушаем клики на документе)
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('.bottom-tabbar a[data-view]');
@@ -1468,7 +1641,7 @@
     goView(a.dataset.view);
   });
   // Свайп: Статистика ↔ Преподаватели ↔ Дедлайны ↔ Личный кабинет (порядок кнопок таб-бара)
-  enableTabSwipe(() => ['stats', 'teachers', 'deadlines', 'cabinet'], () => currentViewName, (name, dir) => {
+  enableTabSwipe(() => ['stats', 'teachers', 'homework', 'cabinet'], () => currentViewName, (name, dir) => {
     haptic('selection');
     if (name === 'cabinet') { location.href = 'cabinet.html'; return; }
     goView(name);
@@ -1522,37 +1695,12 @@
     updateDeadlinesDot();
     refreshCabinetProfile();
     updateAdminUI();
-    checkWhatsNew();
+    startNotifyFlow(checkWhatsNew());
+    checkLocalReminders();
   }
 
-  // "Что нового" — короткий список последних изменений, показывается один раз после
-  // обновления сайта (localStorage 'whats_new_seen' общий с cabinet.html, тот же ключ).
-  // WHATS_NEW_DATE подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое —
-  // руками её трогать не нужно. При каждом заметном обновлении: поднять WHATS_NEW_VERSION
-  // и заменить WHATS_NEW_ITEMS (значения должны совпадать в index.html и cabinet.html).
-  const WHATS_NEW_VERSION = 10;
-  const WHATS_NEW_DATE = '28.09.2026, 15:40';
-  const WHATS_NEW_ITEMS = [
-    'Studak — электронный пропуск группы: кнопка «Studak» в шапке личного кабинета открывает его на весь экран',
-    'Нажмите на пропуск — на обороте QR-код. Он одноразовый, живёт 5 минут и сам обновляется, пока пропуск открыт',
-    'QR проверяется камерой любого телефона без входа: видно только ФИО, роль, номер в списке, логин и фото',
-    'В Telegram в кабинете появилась строка «Сканировать пропуск» — проверка QR прямо в мини-приложении',
-    'Пропуск закрывается крестиком или свайпом вниз, наклоняется вслед за телефоном'
-  ];
-
-  function checkWhatsNew() {
-    const seenVersion = Number(localStorage.getItem('whats_new_seen') || 0);
-    if (seenVersion >= WHATS_NEW_VERSION) return;
-
-    document.getElementById('whatsNewDate').innerText = `Обновлено: ${WHATS_NEW_DATE}`;
-    document.getElementById('whatsNewList').innerHTML = WHATS_NEW_ITEMS.map(i => `<li class="mb-1">${i}</li>`).join('');
-    const modalEl = document.getElementById('whatsNewModal');
-    const modal = new bootstrap.Modal(modalEl);
-    modalEl.addEventListener('hidden.bs.modal', () => {
-      localStorage.setItem('whats_new_seen', String(WHATS_NEW_VERSION));
-    }, { once: true });
-    modal.show();
-  }
+  // «Что нового», номер версии и история изменений — в changelog.js (общий для обеих страниц).
+  // Там же checkWhatsNew(): окно показывается один раз на каждую новую версию.
 
   // Строки списка появляются по очереди только после загрузки, смены сортировки или фильтров —
   // не на каждую букву в поиске и не после сохранения
@@ -1595,24 +1743,23 @@
   // --- Кто вошёл в личный кабинет на этом устройстве: student_id из profiles (Supabase Auth,
   // та же сессия, что в cabinet.html). Сначала — сохранённый профиль (сразу и без сети),
   // затем сверка с сервером. Вход администратора по GitHub-токену с этим не связан.
-  const SUPABASE_URL = 'https://woiqekpuoddxixlrbvkp.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_I1jhpJqVFBcd_ceZ-hYmGg_-MdIiZ1k';
+  // SUPABASE_URL и SUPABASE_KEY — в env.js
   const PROFILE_CACHE_KEY = 'journal_profile';
   const sb = window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storageKey: SB_STORAGE_KEY, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
     : null;
-  let myCabinetProfile = (() => { try { return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null'); } catch (e) { return null; } })();
+  let myCabinetProfile = (() => { try { return JSON.parse(lsGet(PROFILE_CACHE_KEY) || 'null'); } catch (e) { return null; } })();
 
   function saveCabinetProfile(profile) {
     myCabinetProfile = profile;
     try {
-      if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
-      else localStorage.removeItem(PROFILE_CACHE_KEY);
+      if (profile) lsSet(PROFILE_CACHE_KEY, JSON.stringify(profile));
+      else lsRemove(PROFILE_CACHE_KEY);
     } catch (e) {}
   }
 
   async function refreshCabinetProfile() {
-    localStorage.removeItem('my_student_id');   // старый вход user## больше не используется
+    lsRemove('my_student_id');   // старый вход user## больше не используется
     if (!sb) return;
     try {
       const { data: { session } } = await sb.auth.getSession();
@@ -1639,7 +1786,7 @@
     if (!myId) { dot.classList.add('d-none'); return; }
 
     let seen = [];
-    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    try { seen = JSON.parse(lsGet('seen_announcements') || '[]'); } catch (e) {}
 
     const hasUnread = (appData.announcements || []).some(a =>
       a.targetType === 'STUDENT' && a.targetStudentId === myId && !seen.includes(a.id)
@@ -1880,6 +2027,342 @@
     renderDeadlines();
   }
 
+
+  // ===== Раздел «Домашка»: расписание группы и домашние задания =====
+  // Расписание берём из schedule.js, домашку — из appData.homework (data.json).
+  // Домашка привязана к занятию по предмету, виду и дате: карточка показывается
+  // под той парой, на которую её нужно сдать.
+
+  let scheduleWeek = currentSemesterWeek(new Date());
+  let scheduleDay = (() => { const d = new Date().getDay(); return d >= 1 && d <= 6 ? d : 1; })();
+  let scheduleSubgroup = Number(lsGet('subgroup') || 0);
+
+  const homeworkList = () => appData.homework || [];
+
+  function shiftScheduleWeek(delta) {
+    const next = scheduleWeek + delta;
+    if (next < 1 || next > SEMESTER_WEEKS) return;
+    scheduleWeek = next;
+    haptic('selection');
+    renderHomeworkView();
+  }
+
+  function setScheduleDay(day) {
+    scheduleDay = day;
+    haptic('selection');
+    renderHomeworkView();
+  }
+
+  function setScheduleSubgroup(value) {
+    scheduleSubgroup = Number(value) || 0;
+    lsSet('subgroup', String(scheduleSubgroup));
+    haptic('selection');
+    renderHomeworkView();
+  }
+
+  // Домашка этой пары: тот же предмет, тот же вид занятия (если указан) и дата сдачи
+  function homeworkForLesson(lesson, iso) {
+    return homeworkList().filter(h =>
+      h.subject === lesson.subject &&
+      h.dueDate === iso &&
+      (!h.type || h.type === lesson.type) &&
+      (!h.subgroup || !lesson.subgroup || Number(h.subgroup) === lesson.subgroup));
+  }
+
+  function homeworkCard(h) {
+    const card = document.createElement('div');
+    card.className = 'hw-card';
+    const text = document.createElement('div');
+    text.className = 'hw-text';
+    text.textContent = h.text || 'Домашнее задание';
+    card.appendChild(text);
+    const when = document.createElement('div');
+    when.className = 'hw-when';
+    when.textContent = 'Сдать на этой паре' + (h.subgroup ? ` · подгр. ${h.subgroup}` : '');
+    card.appendChild(when);
+    return card;
+  }
+
+  function lessonCard(lesson, iso) {
+    const row = document.createElement('div');
+    row.className = 'sch-lesson';
+
+    const time = document.createElement('div');
+    time.className = 'sch-time';
+    const start = document.createElement('b');
+    start.textContent = lesson.start;
+    const end = document.createElement('span');
+    end.textContent = lesson.end;
+    time.appendChild(start);
+    time.appendChild(end);
+    row.appendChild(time);
+
+    const body = document.createElement('div');
+    body.className = 'sch-body';
+
+    const head = document.createElement('div');
+    head.className = 'sch-head';
+    const name = document.createElement('span');
+    name.className = 'sch-name';
+    name.textContent = lesson.subject;
+    head.appendChild(name);
+    const kind = document.createElement('span');
+    const kindClass = { 'ЛК': 'k-lk', 'ПЗ': 'k-pz', 'ЛР': 'k-lr', 'ЗЧ': 'k-zc' }[lesson.type] || '';
+    kind.className = 'sch-kind ' + kindClass;
+    kind.textContent = lesson.type;
+    kind.title = LESSON_KIND_FULL[lesson.type] || lesson.type;
+    head.appendChild(kind);
+    body.appendChild(head);
+
+    const meta = [lesson.room && 'ауд. ' + lesson.room, lesson.teacher, lesson.subgroup && 'подгр. ' + lesson.subgroup]
+      .filter(Boolean).join(' · ');
+    if (meta) {
+      const m = document.createElement('div');
+      m.className = 'sch-meta';
+      m.textContent = meta;
+      body.appendChild(m);
+    }
+
+    homeworkForLesson(lesson, iso).forEach(h => body.appendChild(homeworkCard(h)));
+    row.appendChild(body);
+    return row;
+  }
+
+  // Карточка в списке «Ближайшая домашка»
+  function upcomingHomeworkCard(h) {
+    const left = deadlineDaysLeft(h.dueDate);
+    const card = document.createElement('div');
+    card.className = 'hw-up' + (left < 0 ? ' is-over' : left <= 2 ? ' is-soon' : '');
+
+    const body = document.createElement('div');
+    body.className = 'hw-up-body';
+    const subj = document.createElement('div');
+    subj.className = 'hw-up-subj';
+    subj.textContent = h.subject;
+    body.appendChild(subj);
+    if (h.text) {
+      const t = document.createElement('div');
+      t.className = 'hw-up-text';
+      t.textContent = h.text;
+      body.appendChild(t);
+    }
+    const meta = document.createElement('div');
+    meta.className = 'hw-up-meta';
+    meta.textContent = [`до ${dlFormatDate(deadlineDate(h.dueDate))}`, h.type, h.subgroup && 'подгр. ' + h.subgroup]
+      .filter(Boolean).join(' · ');
+    body.appendChild(meta);
+    card.appendChild(body);
+
+    const rel = document.createElement('span');
+    rel.className = 'hw-up-rel';
+    rel.textContent = deadlineRelative(left);
+    card.appendChild(rel);
+    return card;
+  }
+
+  function renderHomeworkView() {
+    const monday = dateOfLesson(scheduleWeek, 1);
+    const saturday = dateOfLesson(scheduleWeek, 6);
+    document.getElementById('hwWeekTitle').textContent = `Неделя ${scheduleWeek} из ${SEMESTER_WEEKS}`;
+    document.getElementById('hwWeekRange').textContent =
+      `${monday.getDate()} ${MONTHS_GEN[monday.getMonth()]} – ${saturday.getDate()} ${MONTHS_GEN[saturday.getMonth()]}`;
+    document.getElementById('hwPrevWeek').disabled = scheduleWeek <= 1;
+    document.getElementById('hwNextWeek').disabled = scheduleWeek >= SEMESTER_WEEKS;
+
+    // Подгруппа
+    const subRow = document.getElementById('hwSubgroupRow');
+    subRow.innerHTML = '';
+    [[0, 'Вся группа'], [1, '1 подгруппа'], [2, '2 подгруппа']].forEach(([value, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sch-sub-chip' + (scheduleSubgroup === value ? ' active' : '');
+      b.textContent = label;
+      b.setAttribute('aria-pressed', scheduleSubgroup === value ? 'true' : 'false');
+      b.addEventListener('click', () => setScheduleSubgroup(value));
+      subRow.appendChild(b);
+    });
+
+    // Полоска дней
+    const todayKey = dayKey(new Date());
+    const counts = daysWithLessons(scheduleWeek, scheduleSubgroup);
+    const strip = document.getElementById('hwDayStrip');
+    strip.innerHTML = '';
+    for (let d = 1; d <= 6; d++) {
+      const date = dateOfLesson(scheduleWeek, d);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sch-day' + (d === scheduleDay ? ' sel' : '') + (dayKey(date) === todayKey ? ' today' : '');
+      b.setAttribute('aria-pressed', d === scheduleDay ? 'true' : 'false');
+      b.setAttribute('aria-label', `${DAY_NAMES[d]}, ${date.getDate()} ${MONTHS_GEN[date.getMonth()]}`);
+      const wd = document.createElement('span');
+      wd.textContent = DAY_SHORT[d];
+      b.appendChild(wd);
+      const num = document.createElement('b');
+      num.textContent = String(date.getDate());
+      b.appendChild(num);
+      const dot = document.createElement('i');
+      if (!counts[d]) dot.className = 'off';
+      b.appendChild(dot);
+      b.addEventListener('click', () => setScheduleDay(d));
+      strip.appendChild(b);
+    }
+
+    // Пары выбранного дня
+    const date = dateOfLesson(scheduleWeek, scheduleDay);
+    const iso = dayKey(date);
+    const list = document.getElementById('hwDayList');
+    list.innerHTML = '';
+    const lessons = lessonsOfDay(scheduleWeek, scheduleDay, scheduleSubgroup);
+    if (!lessons.length) {
+      const empty = document.createElement('div');
+      empty.className = 'sch-empty';
+      empty.textContent = `${DAY_NAMES[scheduleDay]}, ${date.getDate()} ${MONTHS_GEN[date.getMonth()]} — занятий нет`;
+      list.appendChild(empty);
+    } else {
+      lessons.forEach(l => list.appendChild(lessonCard(l, iso)));
+    }
+
+    // Ближайшая домашка: не старше недели, по возрастанию срока
+    const upcoming = homeworkList()
+      .filter(h => deadlineDaysLeft(h.dueDate) >= -7)
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    const box = document.getElementById('hwUpcoming');
+    box.innerHTML = '';
+    upcoming.forEach(h => box.appendChild(upcomingHomeworkCard(h)));
+    document.getElementById('hwUpcomingEmpty').classList.toggle('d-none', upcoming.length > 0);
+  }
+
+  // ===== Домашка: управление (администратор) =====
+  let editingHomeworkId = null;
+
+  function openHomeworkModal() {
+    renderHomeworkAdminList();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('homeworkModal')).show();
+  }
+
+  function renderHomeworkAdminList() {
+    const box = document.getElementById('homeworkAdminList');
+    box.innerHTML = '';
+    const all = [...homeworkList()].sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate)));
+    if (!all.length) {
+      const empty = document.createElement('div');
+      empty.className = 'dl-empty';
+      empty.textContent = 'Домашки пока нет';
+      box.appendChild(empty);
+      return;
+    }
+    all.forEach(h => {
+      const item = document.createElement('div');
+      item.className = 'hw-admin-item';
+      const t = document.createElement('div');
+      t.className = 't';
+      t.textContent = h.subject + (h.type ? ' · ' + h.type : '');
+      item.appendChild(t);
+      const d = document.createElement('div');
+      d.className = 'd';
+      d.textContent = [h.text, `до ${dlFormatDate(deadlineDate(h.dueDate))}`, h.subgroup && 'подгр. ' + h.subgroup]
+        .filter(Boolean).join(' · ');
+      item.appendChild(d);
+      const acts = document.createElement('div');
+      acts.className = 'acts';
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'btn btn-sm btn-secondary';
+      edit.textContent = 'Изменить';
+      edit.addEventListener('click', () => openHomeworkForm(h.id));
+      acts.appendChild(edit);
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-sm btn-danger';
+      del.textContent = 'Удалить';
+      del.addEventListener('click', () => deleteHomework(h.id));
+      acts.appendChild(del);
+      item.appendChild(acts);
+      box.appendChild(item);
+    });
+  }
+
+  function openHomeworkForm(id) {
+    editingHomeworkId = id || null;
+    const h = id ? homeworkList().find(x => x.id === id) : null;
+
+    const subjectSelect = document.getElementById('homeworkSubject');
+    subjectSelect.innerHTML = '';
+    scheduleSubjectNames().forEach(name => {
+      const o = document.createElement('option');
+      o.value = name;
+      o.textContent = name;
+      subjectSelect.appendChild(o);
+    });
+    if (h && !scheduleSubjectNames().includes(h.subject)) {
+      const o = document.createElement('option');
+      o.value = h.subject;
+      o.textContent = h.subject;
+      subjectSelect.appendChild(o);
+    }
+
+    document.getElementById('homeworkFormTitle').textContent = h ? 'Изменить домашку' : 'Новая домашка';
+    subjectSelect.value = h ? h.subject : subjectSelect.options[0] ? subjectSelect.options[0].value : '';
+    document.getElementById('homeworkType').value = h ? (h.type || '') : '';
+    document.getElementById('homeworkText').value = h ? (h.text || '') : '';
+    document.getElementById('homeworkDueDate').value = h ? h.dueDate : toISODateLocal(new Date());
+    document.getElementById('homeworkSubgroup').value = h ? String(h.subgroup || 0) : '0';
+    document.getElementById('homeworkDeleteBtn').classList.toggle('d-none', !h);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('homeworkFormModal')).show();
+  }
+
+  async function saveHomework() {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    const subject = document.getElementById('homeworkSubject').value;
+    const type = document.getElementById('homeworkType').value;
+    const text = document.getElementById('homeworkText').value.trim();
+    const dueDate = document.getElementById('homeworkDueDate').value;
+    const subgroup = Number(document.getElementById('homeworkSubgroup').value) || 0;
+
+    if (!subject) return showAlert('Выберите предмет');
+    if (!text) return showAlert('Опишите, что нужно сделать');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert('Укажите дату сдачи');
+    if (dueDate < toISODateLocal(new Date())) {
+      if (!(await showConfirm(`Дата ${formatDateShort(deadlineDate(dueDate))} уже прошла. Всё равно сохранить?`))) return;
+    }
+
+    if (!Array.isArray(appData.homework)) appData.homework = [];
+    const backup = JSON.parse(JSON.stringify(appData.homework));
+    let message;
+    if (editingHomeworkId) {
+      const h = appData.homework.find(x => x.id === editingHomeworkId);
+      Object.assign(h, { subject, type, text, dueDate, subgroup });
+      message = `Изменена домашка: ${subject} — до ${formatDateShort(deadlineDate(dueDate))}`;
+    } else {
+      appData.homework.push({ id: 'hw-' + Date.now(), subject, type, text, dueDate, subgroup, createdAt: new Date().toISOString() });
+      message = `Добавлена домашка: ${subject} — до ${formatDateShort(deadlineDate(dueDate))}`;
+    }
+
+    const btn = document.getElementById('homeworkSaveBtn');
+    btn.disabled = true;
+    const ok = await saveDataToGitHub(message);
+    btn.disabled = false;
+    if (!ok) { appData.homework = backup; return; }   // не сохранилось — форма остаётся с введённым
+    editingHomeworkId = null;
+    document.getElementById('customAlertModal').addEventListener('hidden.bs.modal', () => openHomeworkModal(), { once: true });
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('homeworkFormModal')).hide();
+    renderHomeworkView();
+  }
+
+  async function deleteHomework(id) {
+    const h = homeworkList().find(x => x.id === id);
+    if (!h) return;
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!(await showConfirm(`Удалить домашку «${h.subject}»?`))) return;
+    const backup = JSON.parse(JSON.stringify(appData.homework));
+    appData.homework = appData.homework.filter(x => x.id !== id);
+    const ok = await saveDataToGitHub(`Удалена домашка: ${h.subject}`);
+    if (!ok) { appData.homework = backup; return; }
+    document.getElementById('customAlertModal').addEventListener('hidden.bs.modal', () => openHomeworkModal(), { once: true });
+    renderHomeworkAdminList();
+    renderHomeworkView();
+  }
+
   function announcementCardHtml(a) {
     return `
       <div class="student-summary-card mb-2">
@@ -2115,6 +2598,16 @@
   // --- Аналитика по группе (график) ---
   let analyticsChartInstance = null;
 
+  // Цвета графика берём из текущей темы, а не прописываем числом
+  function chartColor(token, fallback) {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+      return v || fallback;
+    } catch (e) { return fallback; }
+  }
+  // Сменили тему — перерисовываем график новыми цветами
+  onThemeChange(() => { if (analyticsChartInstance) renderAnalyticsChart(); });
+
   // --- Расширенная статистика по группе ---
   function renderExtendedStats() {
     const totalStudents = appData.students.length;
@@ -2177,7 +2670,7 @@
         datasets: [{
           label: 'Неуваж. часов',
           data: values,
-          backgroundColor: '#0088ff',
+          backgroundColor: chartColor('--color-accent', '#0088ff'),
           borderRadius: 4,
           borderSkipped: 'start',
           barThickness: 18
@@ -2192,8 +2685,8 @@
           tooltip: { callbacks: { title: (items) => entries[items[0].dataIndex][0], label: (item) => ` ${item.raw} ч неуваж.` } }
         },
         scales: {
-          x: { ticks: { color: '#6c6c71', precision: 0 }, grid: { color: '#1f1f1f' }, beginAtZero: true },
-          y: { ticks: { color: '#c7c7cc', font: { size: 12 } }, grid: { display: false } }
+          x: { ticks: { color: chartColor('--color-text-tertiary', '#6c6c71'), precision: 0 }, grid: { color: chartColor('--color-separator', '#1f1f1f') }, beginAtZero: true },
+          y: { ticks: { color: chartColor('--color-text-2', '#c7c7cc'), font: { size: 12 } }, grid: { display: false } }
         }
       }
     });
@@ -2380,8 +2873,39 @@
     el.innerText = `Пропуски актуальны на: ${dd}.${mm}.${yyyy}, ${hh}:${min}`;
   }
 
+  // Подпись выбранного периода рядом с заголовком. По умолчанию — текущий месяц,
+  // поэтому 1 октября у всех закономерно 0 часов: прошлый месяц в этот период не попадает.
+  // Сами пропуски не меняются — меняется только окно, за которое их считают.
+  function periodCaptionText() {
+    const el = document.getElementById('periodFilter');
+    const value = el ? el.value : 'MONTH';
+    const now = new Date();
+    if (value === 'MONTH') {
+      return `${MONTHS_NOM[now.getMonth()]} ${now.getFullYear()}`;
+    }
+    if (value === 'WEEK') {
+      const range = getPeriodRangeFor('WEEK');
+      const last = new Date(range.end.getTime() - 86400000);
+      const short = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return `Неделя ${short(range.start)} – ${short(last)}`;
+    }
+    if (value === 'SEMESTER') {
+      const range = getSemesterRange(now);
+      const last = new Date(range.end.getTime() - 86400000);
+      const name = (d) => MONTHS_NOM[d.getMonth()].toLowerCase();
+      return `Семестр: ${name(range.start)} ${range.start.getFullYear()} — ${name(last)} ${last.getFullYear()}`;
+    }
+    return 'За всё время';
+  }
+
+  function renderPeriodCaption() {
+    const el = document.getElementById('periodCaption');
+    if (el) el.textContent = periodCaptionText();
+  }
+
   function renderTable() {
     renderDataLastUpdated();
+    renderPeriodCaption();
     const search = document.getElementById('searchInput').value.toLowerCase();
     const typeFilter = document.getElementById('typeFilter').value;
     const tbody = document.getElementById('studentsTableBody');
@@ -3204,7 +3728,7 @@
 
   // --- Вариант A: колокольчик со счётчиком непрочитанных общих объявлений → лист снизу ---
   function readSeenAnnouncements() {
-    try { return JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) { return []; }
+    try { return JSON.parse(lsGet('seen_announcements') || '[]'); } catch (e) { return []; }
   }
   function generalAnnouncementsList() { return (appData.announcements || []).filter(a => a.targetType === 'ALL'); }
   function updateAnnouncementsBell() {
@@ -3222,7 +3746,7 @@
     bootstrap.Modal.getOrCreateInstance(document.getElementById('announcementsSheet')).show();
     const ids = generalAnnouncementsList().map(a => a.id);
     const merged = Array.from(new Set(readSeenAnnouncements().concat(ids)));
-    try { localStorage.setItem('seen_announcements', JSON.stringify(merged)); } catch (e) {}
+    try { lsSet('seen_announcements', JSON.stringify(merged)); } catch (e) {}
     updateAnnouncementsBell();
   }
   afterCall('renderGeneralAnnouncements', updateAnnouncementsBell);
@@ -3246,11 +3770,11 @@
     <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M14 20.125C13.8477 20.125 13.698 20.0852 13.5658 20.0096L5.90625 15.6319C5.83969 15.5934 5.76419 15.5732 5.68734 15.5732C5.61049 15.5733 5.535 15.5935 5.46847 15.632C5.40194 15.6705 5.34672 15.7258 5.30837 15.7924C5.27002 15.859 5.24989 15.9345 5.25 16.0114V20.125C5.24987 20.2812 5.29154 20.4345 5.37068 20.5691C5.44983 20.7038 5.56356 20.8148 5.70008 20.8906L13.5751 25.2656C13.7051 25.3378 13.8513 25.3757 14 25.3757C14.1487 25.3757 14.2949 25.3378 14.4249 25.2656L22.2999 20.8906C22.4364 20.8148 22.5502 20.7038 22.6293 20.5691C22.7085 20.4345 22.7501 20.2812 22.75 20.125V16.0114C22.7501 15.9345 22.73 15.859 22.6916 15.7924C22.6533 15.7258 22.5981 15.6705 22.5315 15.632C22.465 15.5935 22.3895 15.5733 22.3127 15.5732C22.2358 15.5732 22.1603 15.5934 22.0938 15.6319L14.4342 20.0096C14.302 20.0852 14.1523 20.125 14 20.125Z"/><path d="M27.1207 10.4179V10.4119C27.1065 10.2732 27.0594 10.1399 26.9833 10.0231C26.9072 9.90627 26.8043 9.80933 26.6832 9.74034L14.4332 2.74034C14.3009 2.66476 14.1513 2.625 13.9989 2.625C13.8466 2.625 13.697 2.66476 13.5647 2.74034L1.31472 9.74034C1.18084 9.81689 1.06957 9.92746 0.992175 10.0609C0.914784 10.1943 0.874023 10.3457 0.874023 10.5C0.874023 10.6542 0.914784 10.8057 0.992175 10.939C1.06957 11.0724 1.18084 11.183 1.31472 11.2596L13.5647 18.2596C13.697 18.3351 13.8466 18.3749 13.9989 18.3749C14.1513 18.3749 14.3009 18.3351 14.4332 18.2596L25.211 12.1012C25.2276 12.0916 25.2465 12.0865 25.2658 12.0865C25.285 12.0866 25.3039 12.0917 25.3205 12.1013C25.3372 12.111 25.351 12.1248 25.3605 12.1415C25.3701 12.1582 25.3751 12.1771 25.375 12.1964V20.1003C25.375 20.5712 25.7371 20.9753 26.2079 20.9989C26.3262 21.0046 26.4445 20.9862 26.5555 20.9448C26.6665 20.9035 26.7679 20.84 26.8537 20.7583C26.9394 20.6766 27.0077 20.5784 27.0543 20.4695C27.101 20.3606 27.125 20.2434 27.125 20.125V10.5C27.1249 10.4726 27.1235 10.4452 27.1207 10.4179Z"/></svg>
     <span class="lbl-full">Преподаватели</span><span class="lbl-short">Преподы</span>
   </a>
-  <a class="tabbar-item" href="#deadlines" data-view="deadlines">
+  <a class="tabbar-item" href="#homework" data-view="homework">
     <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 1.5h6a1 1 0 1 1 0 2H9a1 1 0 0 1 0-2z"/><path fill-rule="evenodd" clip-rule="evenodd" d="M12 4.5a9 9 0 1 1 0 18a9 9 0 0 1 0-18zm0 3.5a1 1 0 0 0-1 1v4.6l2.8 2.8a1 1 0 0 0 1.4-1.4L13 12.8V9a1 1 0 0 0-1-1z"/></svg>
-    <span>Дедлайны</span>
-    <span id="deadlinesTabDot" class="tabbar-badge-dot d-none js-deadlines-dot"></span>
+    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h5"/></svg>
+    <span class="tabbar-label"><span class="lbl-full">Домашка</span><span class="lbl-short">Дз</span></span>
+    <span id="homeworkTabDot" class="tabbar-badge-dot d-none js-deadlines-dot"></span>
   </a>
   <a class="tabbar-item" href="cabinet.html">
     <span class="tab-selection"></span>

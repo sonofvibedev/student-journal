@@ -156,7 +156,7 @@ function shiftDeadlineCalendarMonth(delta) {
 
 // --- Просмотренные дедлайны: красная точка на кнопке «Дедлайны» ---
 function readSeenDeadlines() {
-  try { return JSON.parse(localStorage.getItem('seen_deadlines') || '[]'); } catch (e) { return []; }
+  try { return JSON.parse(lsGet('seen_deadlines') || '[]'); } catch (e) { return []; }
 }
 function updateDeadlinesDot() {
   const seen = readSeenDeadlines();
@@ -166,7 +166,7 @@ function updateDeadlinesDot() {
 function markDeadlinesSeen() {
   const ids = (appData.deadlines || []).map(d => d.id);
   const merged = Array.from(new Set(readSeenDeadlines().concat(ids)));
-  try { localStorage.setItem('seen_deadlines', JSON.stringify(merged)); } catch (e) {}
+  try { lsSet('seen_deadlines', JSON.stringify(merged)); } catch (e) {}
 }
 
 // --- Свайп влево/вправо по странице — соседняя кнопка таб-бара (как нажатие на неё) ---

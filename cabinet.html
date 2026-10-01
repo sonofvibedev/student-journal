@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Личный кабинет — Журнал 24ДММ-2</title>
 
+  <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
+  <script src="env.js?v=12"></script>
+
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#060606">
@@ -18,7 +21,9 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=11" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=12" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
+  <script src="theme.js?v=12"></script>
   <style>
     /* ===== Личный кабинет: стили страницы (токены и общие компоненты — в app.css).
        Шапка и статистика — вариант «Как в Telegram», хронология и объявления — «Лента», зачётка — «Списки» ===== */
@@ -34,8 +39,8 @@
     .greet { font-size: clamp(30px, 9vw, 40px); font-weight: 700; line-height: 1.08; letter-spacing: -0.8px; color: var(--color-text); margin: 4px 0 6px; text-wrap: balance; }
     /* Шкала места в группе */
     #groupStandingCard { margin-bottom: 20px; }
-    .meter { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, #ff628f, #ffd60a 50%, #34c759); margin: 12px 0 8px; }
-    .meter i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid #060606; transform: translate(-50%, -50%); left: var(--pos, 50%); }
+    .meter { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--color-danger-line), var(--color-warning) 50%, var(--color-success-text)); margin: 12px 0 8px; }
+    .meter i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: var(--color-text); border: 4px solid var(--color-bg); transform: translate(-50%, -50%); left: var(--pos, 50%); }
     .meter-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-tertiary); }
     .feed-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
     .feed-head .kicker { margin: 0; }
@@ -53,12 +58,12 @@
     .inset { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
     .row-i { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 16px; position: relative; color: var(--color-text); text-decoration: none; }
     .inset > * { position: relative; }
-    .row-i + .row-i::before, .inset > * + *::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    .row-i + .row-i::before, .inset > * + *::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--color-separator); }
     .row-i .lbl { flex: 1; min-width: 0; }
     .row-i .val { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
     #zachetkaList { border-radius: 12px; background: var(--color-surface-2); overflow: hidden; }
     #zachetkaList > div { position: relative; min-height: 48px; margin: 0 !important; padding: 6px 12px 6px 16px; gap: 12px; }
-    #zachetkaList > div + div::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: #232323; }
+    #zachetkaList > div + div::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--color-separator); }
     #zachetkaList .small { font-size: 16px !important; color: var(--color-text) !important; line-height: 1.25; }
     #zachetkaList .form-select { width: 96px !important; min-height: 0; border: 0; background-color: transparent; color: var(--color-accent); text-align: right; }
     .login-card .inset { padding: 16px; }
@@ -79,10 +84,10 @@
     .seg button { position: relative; z-index: 1; min-height: 36px; border: 0; background: none; color: var(--color-text-secondary); font-size: var(--fs-caption); font-weight: 600; transition: color var(--dur-fast); }
     .seg button[aria-selected="true"] { color: var(--color-text); }
     #gradesPaneCalc .inset { padding: 14px 16px; }
-    .rc-hero { margin-bottom: 22px; padding: 18px 16px; border-radius: 20px; background: linear-gradient(160deg, #0d2f57, #0a1a30 60%, #111); border: 1px solid rgba(108, 184, 255, .18); }
-    .rc-hero small { font-size: 13px; color: #9cc9ff; }
+    .rc-hero { margin-bottom: 22px; padding: 18px 16px; border-radius: 20px; background: linear-gradient(160deg, var(--color-hero-1), var(--color-hero-2) 60%, var(--color-hero-3)); border: 1px solid var(--color-hero-border); }
+    .rc-hero small { font-size: 13px; color: var(--color-hero-text); }
     .rc-big { display: block; margin: 2px 0 6px; font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -1.5px; color: var(--color-text-tertiary); }
-    .rc-big.v-high { color: var(--color-success-text); } .rc-big.v-mid { color: #ffd60a; } .rc-big.v-low { color: var(--color-danger-line); }
+    .rc-big.v-high { color: var(--color-success-text); } .rc-big.v-mid { color: var(--color-warning); } .rc-big.v-low { color: var(--color-danger-line); }
     .rc-sub { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--color-text-secondary); }
     .rc-sub b { color: var(--color-text); }
     .rc-formula { margin-top: 8px; font-size: 13px; color: var(--color-text-tertiary); }
@@ -114,7 +119,7 @@
 
     /* До входа «Зачётка» и «Дедлайны» недоступны; «Статистика» ведёт на главную */
     body.is-login .tabbar-item[data-needs-login] { opacity: .35; pointer-events: none; }
-    #cabinetCertsPending.warn { color: #ffd60a; }
+    #cabinetCertsPending.warn { color: var(--color-warning); }
     /* --- Дашборд кабинета (вариант 2): шапка, сетка виджетов, подробности --- */
     .dash-top { display: flex; align-items: center; gap: 12px; margin: 6px 0 14px; }
     .dash-who { min-width: 0; }
@@ -134,17 +139,17 @@
     #cabinetCertsPending { font-size: 22px; }
     #todayZachetkaAvg { color: var(--color-success-text); }
     .dash-ring { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; }
-    .w-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: #ff453a; }
+    .w-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-danger); }
     .dash-pane[hidden] { display: none; }
     .dl-cal .cal-legend .abs-u { border-radius: 3px; background: rgba(255, 98, 143, .55); }
     .dl-cal .cal-legend .abs-e { border-radius: 3px; background: rgba(52, 199, 89, .55); }
     /* --- Админ-режим --- */
-    .admin-mode-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(94, 92, 230, .28); color: #c7c6ff; font-size: 12px; font-weight: 600; }
+    .admin-mode-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 10px; border-radius: 999px; background: var(--color-admin-chip-bg); color: var(--color-admin-chip-text); font-size: 12px; font-weight: 600; }
     .admin-mode-chip.d-none { display: none; }
-    .admin-mode-chip i { width: 7px; height: 7px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52, 199, 89, .25); }
-    .admin-ok { display: grid; place-items: center; width: 56px; height: 56px; margin: 4px auto 12px; border-radius: 50%; background: rgba(52, 199, 89, .18); color: #34c759; }
+    .admin-mode-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success-text); box-shadow: 0 0 0 3px var(--color-green-soft-bg); }
+    .admin-ok { display: grid; place-items: center; width: 56px; height: 56px; margin: 4px auto 12px; border-radius: 50%; background: var(--color-green-soft-bg); color: var(--color-success-text); }
     .admin-ok svg { width: 30px; height: 30px; }
-    #adminPanelState.on { color: #34c759; }
+    #adminPanelState.on { color: var(--color-success-text); }
     /* --- Период, предмет, плитки часов --- */
     .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
     .pill-select { width: auto; max-width: 100%; min-height: 36px; padding: 5px 30px 5px 13px; border: 0; border-radius: 999px; background-color: var(--color-surface-2); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; background-size: 11px; color: var(--color-text); font: inherit; font-size: 16px; /* <16px — iPhone увеличивает экран при фокусе */ appearance: none; field-sizing: content; text-overflow: ellipsis; }
@@ -155,8 +160,8 @@
     .today-next.is-over { border-color: rgba(255, 98, 143, .4); background: linear-gradient(160deg, rgba(255, 98, 143, .22), rgba(255, 98, 143, .04) 70%); }
     .today-next.is-dl { border-color: rgba(0, 136, 255, .35); background: linear-gradient(160deg, rgba(0, 136, 255, .2), rgba(0, 136, 255, .04) 70%); }
     .today-next.is-zachet { border-color: rgba(191, 90, 242, .35); background: linear-gradient(160deg, rgba(191, 90, 242, .2), rgba(191, 90, 242, .04) 70%); }
-    .today-next small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #ffc46b; }
-    .today-next.is-over small { color: #ffb3c8; } .today-next.is-dl small { color: #9cc9ff; } .today-next.is-zachet small { color: #e0b3ff; }
+    .today-next small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--color-orange-soft-text); }
+    .today-next.is-over small { color: var(--color-pink-soft-text); } .today-next.is-dl small { color: var(--color-blue-soft-text); } .today-next.is-zachet small { color: var(--color-purple-soft-text); }
     .today-next b { display: block; margin: 4px 0 2px; font-size: 17px; line-height: 1.3; color: var(--color-text); overflow-wrap: anywhere; }
     .today-next span { font-size: 13px; color: var(--color-text-secondary); }
     .today-sec { margin-bottom: 20px; }
@@ -167,14 +172,14 @@
     .today-dl .t { flex: 1; min-width: 0; color: var(--color-text-2); overflow-wrap: anywhere; }
     .today-dl .t small { display: block; font-size: 12px; color: var(--color-text-secondary); }
     .today-dl i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); }
-    .today-dl.is-zachet i { background: #bf5af2; } .today-dl.is-cert i { background: #ff9f0a; } .today-dl.is-over i { background: var(--color-danger-line); }
+    .today-dl.is-zachet i { background: var(--color-purple); } .today-dl.is-cert i { background: var(--color-orange); } .today-dl.is-over i { background: var(--color-danger-line); }
     .today-dl .when { flex: none; padding: 2px 8px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .today-dl.is-soon .when { background: rgba(255, 214, 10, .2); color: #ffe066; }
-    .today-dl.is-over .when { background: rgba(255, 98, 143, .22); color: #ffb3c8; }
-    .today-dl.is-zachet .when { background: rgba(191, 90, 242, .22); color: #e0b3ff; }
+    .today-dl.is-soon .when { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
+    .today-dl.is-over .when { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+    .today-dl.is-zachet .when { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
     .today-empty { padding: 14px 16px; color: var(--color-text-tertiary); font-size: 15px; }
     #todayZachetkaAvg { color: var(--color-success-text); }
-    #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
+    #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: var(--color-warning); } #cabinetUnexcused.danger { color: var(--color-danger-line); }
     #groupStandingText { margin: 0 2px 10px; }
     /* --- Лента событий --- */
     .feed-chips { display: flex; gap: 6px; margin: 0 -16px 10px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
@@ -184,8 +189,8 @@
     .feed-day { margin: 14px 2px 6px; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
     .feed-day:first-child { margin-top: 2px; }
     .feed .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
-    .ev-ic { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: #ff516a; color: #fff; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .ev.is-excused .ev-ic { background: #54cb68; }
+    .ev-ic { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--color-ev-danger); color: #fff; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ev.is-excused .ev-ic { background: var(--color-ev-success); }
     .ev-body { flex: 1; min-width: 0; }
     .ev-body .fw-bold { font-weight: 500 !important; font-size: 15px; }
     .ev-body .d-flex { gap: 8px !important; }
@@ -196,7 +201,7 @@
     #calendarDayList .ev, #dlCalendarDayList .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
     .ev-link { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--color-accent); font-size: 13px; }
     /* --- Аватарка: фото из Telegram или инициалы на цветном фоне (палитра Telegram) --- */
-    .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, #2c2c2e); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; letter-spacing: .01em; line-height: 1; user-select: none; }
+    .avatar { --av: 44px; position: relative; flex: none; width: var(--av); height: var(--av); border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--av-bg, var(--color-surface-3)); color: #fff; font-size: calc(var(--av) * .38); font-weight: 600; letter-spacing: .01em; line-height: 1; user-select: none; }
     .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur) var(--ease-out); }
     .avatar.has-photo img { opacity: 1; }
     .avatar-btn { position: relative; margin: 0; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -204,7 +209,7 @@
     .avatar-btn:active .avatar { transform: scale(.97); }
     .avatar-btn .avatar { transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur); }
     .avatar-btn.is-uploading .avatar { opacity: .45; }
-    .avatar-cam { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px; border: 3px solid #0b1f38; border-radius: 50%; background: var(--color-accent); color: #fff; }
+    .avatar-cam { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px; border: 3px solid var(--color-bg); border-radius: 50%; background: var(--color-accent); color: #fff; }
     .avatar-cam svg { width: 16px; height: 16px; }
     .avatar-menu { margin: 10px 0 0; }
     .avatar-menu .row-i { cursor: pointer; margin: 0; }
@@ -217,13 +222,53 @@
     .row-sel:focus-visible { outline: 2px solid var(--color-accent); border-radius: 4px; }
     .row-i:has(.row-sel)::after { content: '›'; color: var(--color-text-tertiary); font-size: 20px; line-height: 1; margin-left: -6px; }
     .row-i .val { font-size: 17px; }
-    #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: #ffd60a; } #cabinetUnexcused.danger { color: var(--color-danger-line); }
+    #cabinetUnexcused.ok { color: var(--color-success-text); } #cabinetUnexcused.warning { color: var(--color-warning); } #cabinetUnexcused.danger { color: var(--color-danger-line); }
     .chev { color: var(--color-text-tertiary); font-size: 20px; line-height: 1; }
-    .tg-exit .lbl { color: #ff453a; }
+    .tg-exit .lbl { color: var(--color-danger); }
 
     @media (max-width: 576px) {
       .container { padding-left: 16px; padding-right: 16px; }
     }
+    /* --- Подвал кабинета: версия и история изменений --- */
+    .cab-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      flex-wrap: wrap; margin: 28px 0 8px; padding-top: 14px;
+      border-top: 1px solid var(--color-separator); font-size: var(--fs-small);
+      color: var(--color-text-tertiary); }
+    .cab-footer b { color: var(--color-text-secondary); font-weight: 600; }
+    .cl-link { background: none; border: 0; padding: 0; font-size: var(--fs-small);
+      font-weight: 600; color: var(--color-accent); }
+    .cl-entry + .cl-entry { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-separator); }
+    .cl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .cl-ver { font-size: var(--fs-body); font-weight: 700; color: var(--color-text); }
+    .cl-date { font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .cl-title { margin-top: 2px; font-size: var(--fs-caption); color: var(--color-text-secondary); }
+    .cl-list { margin: 8px 0 0; padding-left: 18px; color: var(--color-text); font-size: var(--fs-caption); }
+    .cl-list li { margin-bottom: 6px; }
+    /* --- Оформление: выбор темы и цветовой гаммы --- */
+    .theme-box { padding: 14px 16px; }
+    .theme-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .theme-label { font-size: 17px; color: var(--color-text); }
+    .theme-label-top { margin-top: 16px; }
+    .theme-hint { margin-top: 4px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .theme-hint:empty { display: none; }
+    .theme-modes { display: flex; gap: 6px; }
+    .theme-mode { min-height: var(--control-h-sm); padding: 0 12px; border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-secondary);
+      font-size: var(--fs-caption); font-weight: 500; }
+    .theme-mode.active { border-color: var(--color-active); background: var(--color-active); color: #fff; font-weight: 600; }
+    .theme-gammas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .theme-gamma { display: flex; align-items: center; gap: 8px; min-height: var(--control-h);
+      padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      background: var(--color-surface); color: var(--color-text-secondary); font-size: var(--fs-caption);
+      font-weight: 500; text-align: left; }
+    .theme-gamma i { flex: none; width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); }
+    .theme-gamma span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .theme-gamma.active { border-color: var(--color-accent); color: var(--color-text); font-weight: 600;
+      box-shadow: inset 0 0 0 1px var(--color-accent); }
+    /* --- Строка «Уведомления» --- */
+    .notify-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
+    .notify-lbl { min-width: 0; font-size: 17px; color: var(--color-text); }
+    .notify-val { display: block; font-size: var(--fs-small); color: var(--color-text-tertiary); }
   </style>
 </head>
 <body>
@@ -433,6 +478,31 @@
       </div>
       </div>
 
+      <!-- Уведомления: включить можно и позже, окно с объяснением — notify.js -->
+      <div class="group">
+        <div class="kicker">Уведомления</div>
+        <div class="inset">
+          <div class="notify-row">
+            <span class="notify-lbl">Напоминания о сроках<span class="notify-val" id="notifyStateValue">—</span></span>
+            <button type="button" class="btn btn-sm btn-secondary" id="notifyToggleBtn">Включить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Оформление: тема и цветовая гамма (разметку кнопок рисует theme.js) -->
+      <div class="group">
+        <div class="kicker">Оформление</div>
+        <div class="inset theme-box">
+          <div class="theme-line">
+            <span class="theme-label">Тема</span>
+            <div class="theme-modes" id="themeModeRow"></div>
+          </div>
+          <div class="theme-hint" id="themeModeHint"></div>
+          <div class="theme-label theme-label-top">Цветовая гамма</div>
+          <div class="theme-gammas" id="themeGammaRow"></div>
+        </div>
+      </div>
+
       <div class="group">
         <div class="inset">
           <button type="button" class="row-i d-none" id="studakScanRow" onclick="scanStudak()"><span class="ic" style="--ic: #0a84ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg></span><span class="lbl">Сканировать пропуск</span><span class="chev" aria-hidden="true">›</span></button>
@@ -547,6 +617,12 @@
       </details>
     </div>
 
+    <!-- Версия приложения и полная история изменений (код — changelog.js) -->
+    <div class="cab-footer">
+      <span>Журнал 24ДММ-2 · версия <b id="cabinetVersion">—</b></span>
+      <button type="button" class="cl-link" onclick="openChangelogModal()">История изменений</button>
+    </div>
+
   </div>
 </div>
 
@@ -576,6 +652,24 @@
     <span id="cabinetAnnouncementsDot" class="tabbar-badge-dot d-none" aria-label="Новые сообщения"></span>
   </button>
 </nav>
+
+<!-- История изменений: все версии -->
+<div class="modal fade" id="changelogModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">История изменений</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="changelogList"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary fw-bold w-100" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Что нового -->
 <!-- Замена стандартного alert() -->
@@ -667,9 +761,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="shared.js?v=11"></script>
+<script src="changelog.js?v=12"></script>
+<script src="notify.js?v=12"></script>
+<script src="shared.js?v=12"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="studak.js?v=11"></script>
+<script src="studak.js?v=12"></script>
 <script>
   // FX — лёгкие анимации на CSS (классы .fx-reveal и .fx-pop в app.css): JS только расставляет классы
   // и задержки, анимируются лишь transform и opacity. При «Уменьшении движения» FX выключен
@@ -802,7 +898,7 @@
   // Работает только внутри Telegram (есть initData). В обычном браузере и в PWA TG = null,
   // и функции ниже ничего не делают.
   const TG = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null;
-  const APP_BG_COLOR = '#060606';
+  // Цвет шапки и фона в Telegram берём из текущей темы: appBgColor() — в theme.js
 
   function tgSupports(version) {
     return !!(TG && typeof TG.isVersionAtLeast === 'function' && TG.isVersionAtLeast(version));
@@ -825,10 +921,11 @@
     document.documentElement.dataset.tgScheme = TG.colorScheme || 'dark';
     try {
       if (tgSupports('6.1')) {
-        TG.setHeaderColor(APP_BG_COLOR);
-        TG.setBackgroundColor(APP_BG_COLOR);
+        const bg = appBgColor();
+        TG.setHeaderColor(bg);
+        TG.setBackgroundColor(bg);
       }
-      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(APP_BG_COLOR);
+      if (tgSupports('7.10') && TG.setBottomBarColor) TG.setBottomBarColor(appBgColor());
     } catch (e) {}
   }
 
@@ -885,35 +982,14 @@
 
     document.getElementById('cabinetSkeleton').classList.add('d-none');
     await openPersonalCabinet();
-    checkWhatsNew();
+    renderAppVersionLabel('cabinetVersion');
+    renderNotifySettings();
+    startNotifyFlow(checkWhatsNew());
+    checkLocalReminders();
   }
 
-  // "Что нового" — тот же список, версия и ключ localStorage, что в index.html, так что
-  // увиденное здесь не покажется повторно на главной странице (и наоборот). WHATS_NEW_DATE
-  // подставляется автоматически скриптом deploy-fix.ps1 при каждом деплое.
-  const WHATS_NEW_VERSION = 10;
-  const WHATS_NEW_DATE = '28.09.2026, 15:40';
-  const WHATS_NEW_ITEMS = [
-    'Studak — электронный пропуск группы: кнопка «Studak» в шапке личного кабинета открывает его на весь экран',
-    'Нажмите на пропуск — на обороте QR-код. Он одноразовый, живёт 5 минут и сам обновляется, пока пропуск открыт',
-    'QR проверяется камерой любого телефона без входа: видно только ФИО, роль, номер в списке, логин и фото',
-    'В Telegram в кабинете появилась строка «Сканировать пропуск» — проверка QR прямо в мини-приложении',
-    'Пропуск закрывается крестиком или свайпом вниз, наклоняется вслед за телефоном'
-  ];
-
-  function checkWhatsNew() {
-    const seenVersion = Number(localStorage.getItem('whats_new_seen') || 0);
-    if (seenVersion >= WHATS_NEW_VERSION) return;
-
-    document.getElementById('whatsNewDate').innerText = `Обновлено: ${WHATS_NEW_DATE}`;
-    document.getElementById('whatsNewList').innerHTML = WHATS_NEW_ITEMS.map(i => `<li class="mb-1">${i}</li>`).join('');
-    const modalEl = document.getElementById('whatsNewModal');
-    const modal = new bootstrap.Modal(modalEl);
-    modalEl.addEventListener('hidden.bs.modal', () => {
-      localStorage.setItem('whats_new_seen', String(WHATS_NEW_VERSION));
-    }, { once: true });
-    modal.show();
-  }
+  // «Что нового», номер версии и история изменений — в changelog.js (общий для обеих страниц).
+  // Там же checkWhatsNew(): окно показывается один раз на каждую новую версию.
 
   function getStarostaContact() {
     const exact = appData.students.find(s => s.telegramUsername && (s.role || '').trim().toLowerCase() === 'староста');
@@ -951,15 +1027,14 @@
   // В коде только адрес проекта и публичный ключ (sb_publishable): что можно читать и менять,
   // решают правила RLS в базе. Логин превращается в технический email <логин>@students.journal-24dmm2.app.
   // Аккаунты создаёт Edge Function register-with-code по одноразовому коду от старосты.
-  const SUPABASE_URL = 'https://woiqekpuoddxixlrbvkp.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_I1jhpJqVFBcd_ceZ-hYmGg_-MdIiZ1k';
+  // SUPABASE_URL и SUPABASE_KEY — в env.js
   const LOGIN_EMAIL_DOMAIN = 'students.journal-24dmm2.app';
   const LOGIN_RE = /^[a-z0-9_.]{3,32}$/;
   const PASSWORD_MIN = 8;
   const PROFILE_CACHE_KEY = 'journal_profile';   // { user_id, student_id, login } — чтобы кабинет открывался без сети
   // Сессия хранится supabase-js в localStorage — переживает перезапуск в браузере, PWA и Telegram
   const sb = window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storageKey: SB_STORAGE_KEY, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
     : null;
   let myProfile = null;
   let inviteState = null;   // { code, student_id, has_account, login } — между шагами «Первого входа»
@@ -1020,12 +1095,12 @@
   }
 
   function readCachedProfile() {
-    try { return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null'); } catch (e) { return null; }
+    try { return JSON.parse(lsGet(PROFILE_CACHE_KEY) || 'null'); } catch (e) { return null; }
   }
   function writeCachedProfile(profile) {
     try {
-      if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
-      else localStorage.removeItem(PROFILE_CACHE_KEY);
+      if (profile) lsSet(PROFILE_CACHE_KEY, JSON.stringify(profile));
+      else lsRemove(PROFILE_CACHE_KEY);
     } catch (e) {}
   }
 
@@ -1046,7 +1121,7 @@
   }
 
   async function openPersonalCabinet() {
-    localStorage.removeItem('my_student_id');   // старый вход user## больше не используется
+    lsRemove('my_student_id');   // старый вход user## больше не используется
     const cached = readCachedProfile();
     if (!sb) {
       // supabase-js не загрузился (нет сети): показываем кабинет по сохранённому профилю
@@ -1281,13 +1356,13 @@
       }
     }
     // Без сети supabase-js мог не загрузиться — стираем сохранённую сессию сами
-    try { localStorage.removeItem(`sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`); } catch (e) {}
+    try { localStorage.removeItem(SB_STORAGE_KEY); } catch (e) {}   // SB_STORAGE_KEY уже с приставкой — без обёртки
   }
 
   async function logoutCabinet() {
     await signOutQuietly();
     // Выход из кабинета — выход и из админ-режима: токен не остаётся на общем устройстве
-    try { localStorage.removeItem('gh_pat'); } catch (e) {}
+    try { lsRemove('gh_pat'); } catch (e) {}
     if (typeof closeStudak === 'function') closeStudak(true);
     writeCachedProfile(null);
     writeCachedAvatar(null);
@@ -1301,7 +1376,7 @@
   // Строка «Админ-панель» видна только студентам с isAdmin: true (или если токен уже сохранён на устройстве,
   // чтобы можно было выйти). Токен не проверяется — просто сохраняется в localStorage gh_pat, как раньше.
   function readAdminToken() {
-    try { return localStorage.getItem('gh_pat') || ''; } catch (e) { return ''; }
+    try { return lsGet('gh_pat') || ''; } catch (e) { return ''; }
   }
   function updateAdminUI() {
     const student = appData.students.find(s => s.id === myStudentId);
@@ -1328,14 +1403,14 @@
     const input = document.getElementById('githubTokenInput');
     const token = input.value.trim();
     if (!token) { haptic('error'); return showAlert('Введите токен!'); }
-    try { localStorage.setItem('gh_pat', token); } catch (e) { return showAlert('Не удалось сохранить токен на этом устройстве'); }
+    try { lsSet('gh_pat', token); } catch (e) { return showAlert('Не удалось сохранить токен на этом устройстве'); }
     input.value = '';
     haptic('success');
     updateAdminUI();
     renderAdminModal('Вы вошли как администратор');
   }
   function logoutAdmin() {
-    try { localStorage.removeItem('gh_pat'); } catch (e) {}
+    try { lsRemove('gh_pat'); } catch (e) {}
     haptic('success');
     updateAdminUI();
     renderAdminModal();
@@ -1352,12 +1427,12 @@
   let myAvatarUrl = null;
 
   function readCachedAvatar() {
-    try { return JSON.parse(localStorage.getItem(AVATAR_CACHE_KEY) || 'null'); } catch (e) { return null; }
+    try { return JSON.parse(lsGet(AVATAR_CACHE_KEY) || 'null'); } catch (e) { return null; }
   }
   function writeCachedAvatar(value) {
     try {
-      if (value) localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(value));
-      else localStorage.removeItem(AVATAR_CACHE_KEY);
+      if (value) lsSet(AVATAR_CACHE_KEY, JSON.stringify(value));
+      else lsRemove(AVATAR_CACHE_KEY);
     } catch (e) {}
   }
   const avatarPath = () => `${myProfile.user_id}.jpg`;
@@ -1513,7 +1588,7 @@
     renderDeadlines();
     renderMyAbsences();
     renderZachetka();
-    setGradesTab(localStorage.getItem('grades_tab'));
+    setGradesTab(lsGet('grades_tab'));
     FX.reveal('#cabinetContentSection > .student-summary-card');
     cabinetSection = null;
     setCabinetSection(cabinetSectionFromHash(), 'init');   // cabinet.html#deadlines — сразу «Дедлайны»
@@ -1750,7 +1825,7 @@
 
   function loadZachetkaState() {
     try {
-      return JSON.parse(localStorage.getItem('zachetka_grades') || '{}');
+      return JSON.parse(lsGet('zachetka_grades') || '{}');
     } catch (e) {
       return {};
     }
@@ -1784,7 +1859,7 @@
     if (!value) delete grades[subject];
     else if (value === 'зач') grades[subject] = 'зач';
     else grades[subject] = Number(value);
-    localStorage.setItem('zachetka_grades', JSON.stringify(grades));
+    lsSet('zachetka_grades', JSON.stringify(grades));
     updateZachetkaAverage(grades);
   }
 
@@ -1808,7 +1883,7 @@
 
   function updateAnnouncementsUnreadDot() {
     let seen = [];
-    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    try { seen = JSON.parse(lsGet('seen_announcements') || '[]'); } catch (e) {}
     const hasUnread = currentPersonalAnnouncements.some(a => !seen.includes(a.id));
     document.getElementById('cabinetAnnouncementsDot').classList.toggle('d-none', !hasUnread);
   }
@@ -1907,11 +1982,11 @@
   function updateTodayGrades() {
     document.getElementById('todayZachetkaAvg').innerText = document.getElementById('zachetkaAverage').innerText;
     let st = null;
-    try { st = JSON.parse(localStorage.getItem('rating_calc_state') || 'null'); } catch (e) {}
+    try { st = JSON.parse(lsGet('rating_calc_state') || 'null'); } catch (e) {}
     const c = st && Array.isArray(st.control) ? st.control : [], o = st && Array.isArray(st.oral) ? st.oral : [];
-    const k = parseFloat(localStorage.getItem('rating_seminar_coef')) || 0.6;
-    const w = parseFloat(localStorage.getItem('rating_final_coef')) || 0.4;
-    const exam = parseFloat(localStorage.getItem('rating_exam_grade'));
+    const k = parseFloat(lsGet('rating_seminar_coef')) || 0.6;
+    const w = parseFloat(lsGet('rating_final_coef')) || 0.4;
+    const exam = parseFloat(lsGet('rating_exam_grade'));
     const sem = avgOf(c) * k + avgOf(o) * (1 - k);
     const el = document.getElementById('todayRating');
     if (!c.length && !o.length) el.innerText = '—';
@@ -1923,10 +1998,10 @@
   // index.html для красной точки на вкладке "Личный кабинет" в таб-баре)
   function markAnnouncementsSeen(list) {
     let seen = [];
-    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    try { seen = JSON.parse(lsGet('seen_announcements') || '[]'); } catch (e) {}
     const ids = list.map(a => a.id);
     const merged = Array.from(new Set(seen.concat(ids)));
-    localStorage.setItem('seen_announcements', JSON.stringify(merged));
+    lsSet('seen_announcements', JSON.stringify(merged));
   }
 
   // Замена браузерных alert()/confirm() — те же модалки, что в index.html
@@ -1964,7 +2039,7 @@
 
   function loadRatingCalcState() {
     try {
-      const saved = JSON.parse(localStorage.getItem('rating_calc_state') || 'null');
+      const saved = JSON.parse(lsGet('rating_calc_state') || 'null');
       if (saved && Array.isArray(saved.control) && Array.isArray(saved.oral)) {
         ratingCalc = saved;
       } else {
@@ -1976,7 +2051,7 @@
   }
 
   function saveRatingCalcState() {
-    localStorage.setItem('rating_calc_state', JSON.stringify(ratingCalc));
+    lsSet('rating_calc_state', JSON.stringify(ratingCalc));
   }
 
   function openRatingCalculator() {
@@ -1984,13 +2059,13 @@
     renderGradesList('control');
     renderGradesList('oral');
 
-    const savedSeminarCoef = localStorage.getItem('rating_seminar_coef');
+    const savedSeminarCoef = lsGet('rating_seminar_coef');
     if (savedSeminarCoef) document.getElementById('seminarCoefSelect').value = savedSeminarCoef;
 
-    const savedFinalCoef = localStorage.getItem('rating_final_coef');
+    const savedFinalCoef = lsGet('rating_final_coef');
     if (savedFinalCoef) document.getElementById('finalCoefSelect').value = savedFinalCoef;
 
-    const savedExam = localStorage.getItem('rating_exam_grade');
+    const savedExam = lsGet('rating_exam_grade');
     document.getElementById('examGradeInput').value = savedExam || '';
     document.getElementById('examNotYet').checked = !savedExam;
     if (savedExam) document.getElementById('examGradeRange').value = savedExam;
@@ -2060,7 +2135,7 @@
 
     const k1 = Math.round(parseFloat(document.getElementById('seminarCoefSelect').value) * 10) / 10;
     const k2 = 1 - k1;
-    localStorage.setItem('rating_seminar_coef', k1);
+    lsSet('rating_seminar_coef', k1);
     document.getElementById('seminarCoefLabel').innerText = coefPair(k1);
 
     const seminarRating = controlAvg * k1 + oralAvg * k2;
@@ -2068,7 +2143,7 @@
     document.getElementById('seminarRatingResult').innerText = hasSeminarGrades ? seminarRating.toFixed(2) : '—';
 
     const examGradeRaw = document.getElementById('examGradeInput').value;
-    localStorage.setItem('rating_exam_grade', examGradeRaw || '');
+    lsSet('rating_exam_grade', examGradeRaw || '');
     const examGrade = parseFloat(examGradeRaw);
     document.getElementById('examGradeLabel').innerText = isNaN(examGrade) ? '—' : examGrade.toFixed(1);
     document.getElementById('examGradeValue').innerText = isNaN(examGrade) ? '—' : String(examGrade);
@@ -2076,7 +2151,7 @@
 
     const w1 = Math.round(parseFloat(document.getElementById('finalCoefSelect').value) * 10) / 10;
     const w2 = 1 - w1;
-    localStorage.setItem('rating_final_coef', w1);
+    lsSet('rating_final_coef', w1);
     document.getElementById('finalCoefLabel').innerText = coefPair(w1);
 
     const finalResultEl = document.getElementById('finalRatingResult');
@@ -2096,8 +2171,8 @@
   async function clearRatingCalc() {
     if (!(await showConfirm('Очистить все введённые оценки калькулятора?'))) return;
     ratingCalc = { control: [], oral: [] };
-    localStorage.removeItem('rating_calc_state');
-    localStorage.removeItem('rating_exam_grade');
+    lsRemove('rating_calc_state');
+    lsRemove('rating_exam_grade');
     document.getElementById('examGradeInput').value = '';
     document.getElementById('examNotYet').checked = true;
     renderGradesList('control');
@@ -2114,7 +2189,7 @@
     document.getElementById('gradesPaneZachetka').classList.toggle('d-none', tab !== 'zachetka');
     document.getElementById('gradesPaneCalc').classList.toggle('d-none', tab !== 'calc');
     if (tab === 'calc') openRatingCalculator();
-    try { localStorage.setItem('grades_tab', tab); } catch (e) {}
+    try { lsSet('grades_tab', tab); } catch (e) {}
   }
 
   init();
@@ -2272,7 +2347,7 @@
     document.getElementById('statsViewFeed').classList.toggle('d-none', cal);
     document.getElementById('statsViewCalendar').classList.toggle('d-none', !cal);
     if (cal) renderCalendar();
-    try { localStorage.setItem('cabinet_stats_view', cal ? 'calendar' : 'feed'); } catch (e) {}
+    try { lsSet('cabinet_stats_view', cal ? 'calendar' : 'feed'); } catch (e) {}
   }
   function calendarAbsences() {
     const subject = document.getElementById('cabinetSubject').value;
@@ -2355,7 +2430,7 @@
   afterRender('showCabinetContent', () => {
     calendarMonth = null; calendarDay = null;
     let view = 'feed';
-    try { view = localStorage.getItem('cabinet_stats_view') || 'feed'; } catch (e) {}
+    try { view = lsGet('cabinet_stats_view') || 'feed'; } catch (e) {}
     setStatsView(view);
   });
   afterRender('showCabinetContent', () => {
@@ -2438,7 +2513,7 @@
     ring.setAttribute('stroke', pct === null ? '#2c2c2e' : pct >= 50 ? '#34c759' : pct >= 25 ? '#ffd60a' : '#ff628f');
     const msgs = currentPersonalAnnouncements || [];
     let seen = [];
-    try { seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]'); } catch (e) {}
+    try { seen = JSON.parse(lsGet('seen_announcements') || '[]'); } catch (e) {}
     const personal = msgs.filter(a => a.targetType !== 'ALL').length;
     document.getElementById('dashMsgCount').textContent = msgs.length;
     document.getElementById('dashMsgSub').textContent = personal ? `${personal} лично вам` : 'от старосты и админа';

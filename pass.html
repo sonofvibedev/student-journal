@@ -7,13 +7,18 @@
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex, nofollow">
   <title>Проверка пропуска Studak — 24ДММ-2</title>
+  <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
+  <script src="env.js?v=12"></script>
+
   <meta name="theme-color" content="#060606">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Telegram Web App SDK: страница открывается и внутри мини-приложения (кнопка «Сканировать пропуск») -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link href="app.css?v=11" rel="stylesheet">
+  <link href="app.css?v=12" rel="stylesheet">
+  <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
+  <script src="theme.js?v=12"></script>
   <style>
     /* Страница проверки: без таб-бара, только пропуск и результат */
     body { padding-bottom: var(--app-inset-bottom); }
@@ -81,8 +86,7 @@
   // ФИО, роль и номер в списке берём из открытого data.json. Пропуски, часы, форма обучения
   // и Telegram на странице не показываются.
   // В коде только адрес проекта и публичный ключ (sb_publishable) — те же, что в cabinet.html.
-  const SUPABASE_URL = 'https://woiqekpuoddxixlrbvkp.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_I1jhpJqVFBcd_ceZ-hYmGg_-MdIiZ1k';
+  // SUPABASE_URL и SUPABASE_KEY — в env.js
   const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
   const passToken = new URLSearchParams(location.search).get('t') || '';
   let passTimer = null;
