@@ -214,17 +214,17 @@ function dateOfLesson(week, day) {
   return addDays(semesterMonday(), (week - 1) * 7 + (day - 1));
 }
 
-// Занятия одного дня: только нужная неделя и подгруппа, по времени начала
-function lessonsOfDay(week, day, subgroup) {
+// Занятия одного дня — все, что есть у группы на этой неделе, по времени начала.
+// Подгруппа занятия не прячет его из списка: она показывается пометкой на карточке.
+function lessonsOfDay(week, day) {
   return SCHEDULE_LESSONS
     .filter((l) => l.day === day && l.weeks.includes(week))
-    .filter((l) => !l.subgroup || !subgroup || l.subgroup === Number(subgroup))
-    .sort((a, b) => a.pair - b.pair || a.subject.localeCompare(b.subject));
+    .sort((a, b) => a.pair - b.pair || (a.subgroup || 0) - (b.subgroup || 0) || a.subject.localeCompare(b.subject));
 }
 // В какие дни недели вообще есть занятия (для полоски дней)
-function daysWithLessons(week, subgroup) {
+function daysWithLessons(week) {
   const map = {};
-  for (let d = 1; d <= 6; d++) map[d] = lessonsOfDay(week, d, subgroup).length;
+  for (let d = 1; d <= 6; d++) map[d] = lessonsOfDay(week, d).length;
   return map;
 }
 
@@ -241,7 +241,7 @@ function nextLessonDates(subject, type, from, count) {
     for (let day = 1; day <= 6 && out.length < (count || 3); day++) {
       const date = dateOfLesson(week, day);
       if (date < from) continue;
-      const has = lessonsOfDay(week, day, 0).some((l) => l.subject === subject && (!type || l.type === type));
+      const has = lessonsOfDay(week, day).some((l) => l.subject === subject && (!type || l.type === type));
       if (has) out.push(date);
     }
   }

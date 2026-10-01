@@ -12,16 +12,15 @@
 
 const THEME_KEY = 'theme';   // 'light' | 'dark' | 'system'
 const GAMMA_KEY = 'gamma';   // id из THEME_GAMMAS
-const DEFAULT_GAMMA = 'indigo';
+const DEFAULT_GAMMA = 'blue';
 
 // Порядок — как в окне выбора. accent показывается кружком на кнопке гаммы.
 const THEME_GAMMAS = [
-  { id: 'indigo',  name: 'Индиго',          accent: '#0088ff' },
-  { id: 'emerald', name: 'Изумруд',         accent: '#1aa75a' },
-  { id: 'violet',  name: 'Виолет',          accent: '#7c5cff' },
-  { id: 'amber',   name: 'Графит и янтарь', accent: '#ff9f0a' },
-  { id: 'teal',    name: 'Бирюза',          accent: '#00b3c7' },
-  { id: 'crimson', name: 'Малина',          accent: '#ff375f' }
+  { id: 'blue',       name: 'Синий',           accent: '#0A84FF' },
+  { id: 'emerald',    name: 'Изумруд',         accent: '#2DD4A0' },
+  { id: 'indigo',     name: 'Индиго',          accent: '#7C6CFF' },
+  { id: 'amber',      name: 'Янтарь',          accent: '#FFA53D' },
+  { id: 'wine',       name: 'Мягкий бордо',    accent: '#F2555A' }
 ];
 
 const THEME_MODES = [

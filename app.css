@@ -94,249 +94,273 @@
 }
 
 /* ===== Цветовые гаммы =====
-   Гамма задаёт «сырьё»: акцент, цвет активного состояния и четыре опорных тона
-   для тёмной (--g-d-*) и светлой (--g-l-*) схемы. Ниже они раскладываются
-   в рабочие токены --color-*. Гамму и схему ставит theme.js атрибутами
-   data-gamma и data-bs-theme на <html> — до первой отрисовки, чтобы не было вспышки.
-   Значения «Индиго» в тёмной схеме совпадают с теми, что были до появления тем. */
+   Гамма задаёт акцент, цвет активного состояния, опорные тона для тёмной
+   (--g-d-*) и светлой (--g-l-*) схемы и три цвета видов занятий. Ниже они
+   раскладываются в рабочие токены --color-*. Гамму и схему ставит theme.js
+   атрибутами data-gamma и data-bs-theme на <html> — до первой отрисовки.
+   Контраст текста проверен расчётом: не ниже WCAG AA (4.5:1). */
 
-/* Индиго */
+/* Синий */
 :root,
-[data-gamma="indigo"] {
-  --g-accent:          #0088ff;
-  --g-accent-rgb:      0, 136, 255;
-  --g-active:          #0066cc;
-  --g-d-bg:            #060606;                   --g-l-bg:            #f2f2f7;
-  --g-d-surface:       #0f0f0f;                   --g-l-surface:       #ffffff;
-  --g-d-sunken:        #0a0a0a;                   --g-l-sunken:        #ebebf0;
-  --g-d-surface-2:     #111111;                   --g-l-surface-2:     #ffffff;
-  --g-d-surface-3:     #1a1a1a;                   --g-l-surface-3:     #ebebf0;
-  --g-d-surface-4:     #252525;                   --g-l-surface-4:     #e2e2e7;
-  --g-d-border:        #363636;                   --g-l-border:        #d8d8dd;
-  --g-d-border-mid:    #3a3a3a;                   --g-l-border-mid:    #c2c2c7;
-  --g-d-border-strong: #484848;                   --g-l-border-strong: #a8a8ac;
-  --g-d-separator:     #2b2b2b;                   --g-l-separator:     #e1e1e6;
-  --g-d-accent-hover:  #3ba3ff;                   --g-l-accent-hover:  #0075db;
-  --g-d-accent-soft:   #4dacff;                   --g-l-accent-soft:   #006ac7;
+[data-gamma="blue"] {
+  --g-d-accent:        #0A84FF;                   --g-l-accent:        #0975e3;
+  --g-d-accent-rgb:    10, 132, 255;              --g-l-accent-rgb:    9, 117, 227;
+  --g-d-active:        #0867c7;                   --g-l-active:        #0869cc;
+  --g-d-bg:            #060606;                   --g-l-bg:            #F2F3F7;
+  --g-d-surface:       #141416;                   --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0c0c0d;                   --g-l-sunken:        #E9EBF0;
+  --g-d-surface-2:     #1d1d1f;                   --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #29292b;                   --g-l-surface-3:     #E9EBF0;
+  --g-d-surface-4:     #373739;                   --g-l-surface-4:     #e0e2e8;
+  --g-d-border:        #3a3a3b;                   --g-l-border:        #D7D9E0;
+  --g-d-border-mid:    #4a4a4b;                   --g-l-border-mid:    #c2c3NaN;
+  --g-d-border-strong: #656566;                   --g-l-border-strong: #a8a9NaN;
+  --g-d-separator:     #2a2a2b;                   --g-l-separator:     #e0e2e8;
+  --g-d-accent-hover:  #369aff;                   --g-l-accent-hover:  #0867c8;
+  --g-d-accent-soft:   #4aa4ff;                   --g-l-accent-soft:   #0760ba;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #20342f;                   --g-l-type-1-bg:     #e6f5f0;
+  --g-d-type-1-text:   #62dab2;                   --g-l-type-1-text:   #1f7c5e;
+  --g-d-type-2-bg:     #282035;                   --g-l-type-2-bg:     #ece6f5;
+  --g-d-type-2-text:   #a174de;                   --g-l-type-2-text:   #602bab;
+  --g-d-type-3-bg:     #342c22;                   --g-l-type-3-bg:     #f5efe6;
+  --g-d-type-3-text:   #daa862;                   --g-l-type-3-text:   #926425;
   /* Тройки для rgba() Bootstrap */
-  --g-d-bg-rgb:        6, 6, 6;                   --g-l-bg-rgb:        242, 242, 247;
-  --g-d-surface-rgb:   15, 15, 15;                --g-l-surface-rgb:   255, 255, 255;
-  --g-d-accent-hover-rgb: 59, 163, 255;              --g-l-accent-hover-rgb: 0, 117, 219;
+  --g-d-bg-rgb:        6, 6, 6;                   --g-l-bg-rgb:        242, 243, 247;
+  --g-d-surface-rgb:   20, 20, 22;                --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 54, 154, 255;              --g-l-accent-hover-rgb: 8, 103, 200;
 }
 
 /* Изумруд */
 [data-gamma="emerald"] {
-  --g-accent:          #1aa75a;
-  --g-accent-rgb:      26, 167, 90;
-  --g-active:          #0b662e;
-  --g-d-bg:            #050806;                   --g-l-bg:            #f1f6f2;
-  --g-d-surface:       #0e1310;                   --g-l-surface:       #ffffff;
-  --g-d-sunken:        #0a0e0c;                   --g-l-sunken:        #e7efe9;
-  --g-d-surface-2:     #101512;                   --g-l-surface-2:     #ffffff;
-  --g-d-surface-3:     #191e1b;                   --g-l-surface-3:     #e7efe9;
-  --g-d-surface-4:     #242826;                   --g-l-surface-4:     #dde8e0;
-  --g-d-border:        #2e3a33;                   --g-l-border:        #d3e0d7;
-  --g-d-border-mid:    #313e37;                   --g-l-border-mid:    #becac2;
-  --g-d-border-strong: #414c45;                   --g-l-border-strong: #a5afa8;
-  --g-d-separator:     #252f29;                   --g-l-separator:     #dee8e0;
-  --g-d-accent-hover:  #4fbb80;                   --g-l-accent-hover:  #16904d;
-  --g-d-accent-soft:   #5fc18c;                   --g-l-accent-soft:   #148246;
+  --g-d-accent:        #2DD4A0;                   --g-l-accent:        #1d8666;
+  --g-d-accent-rgb:    45, 212, 160;              --g-l-accent-rgb:    29, 134, 102;
+  --g-d-active:        #1d8666;                   --g-l-active:        #1a795c;
+  --g-d-bg:            #050807;                   --g-l-bg:            #F0F6F3;
+  --g-d-surface:       #111816;                   --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0a0f0e;                   --g-l-sunken:        #E5EFEA;
+  --g-d-surface-2:     #1b211f;                   --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #262d2b;                   --g-l-surface-3:     #E5EFEA;
+  --g-d-surface-4:     #353b39;                   --g-l-surface-4:     #dbe9e2;
+  --g-d-border:        #373d3b;                   --g-l-border:        #D1E2D9;
+  --g-d-border-mid:    #474d4b;                   --g-l-border-mid:    #bccbNaN;
+  --g-d-border-strong: #636866;                   --g-l-border-strong: #a3b0NaN;
+  --g-d-separator:     #282d2b;                   --g-l-separator:     #dce9e2;
+  --g-d-accent-hover:  #53dcb1;                   --g-l-accent-hover:  #1a765a;
+  --g-d-accent-soft:   #64dfb9;                   --g-l-accent-soft:   #186e54;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #262435;                   --g-l-type-1-bg:     #ece6f5;
+  --g-d-type-1-text:   #a277df;                   --g-l-type-1-text:   #602bab;
+  --g-d-type-2-bg:     #312425;                   --g-l-type-2-bg:     #f5e6e8;
+  --g-d-type-2-text:   #dc697c;                   --g-l-type-2-text:   #ab2b40;
+  --g-d-type-3-bg:     #263722;                   --g-l-type-3-bg:     #ecf5e6;
+  --g-d-type-3-text:   #94da62;                   --g-l-type-3-text:   #467c1f;
   /* Тройки для rgba() Bootstrap */
-  --g-d-bg-rgb:        5, 8, 6;                   --g-l-bg-rgb:        241, 246, 242;
-  --g-d-surface-rgb:   14, 19, 16;                --g-l-surface-rgb:   255, 255, 255;
-  --g-d-accent-hover-rgb: 79, 187, 128;              --g-l-accent-hover-rgb: 22, 144, 77;
+  --g-d-bg-rgb:        5, 8, 7;                   --g-l-bg-rgb:        240, 246, 243;
+  --g-d-surface-rgb:   17, 24, 22;                --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 83, 220, 177;              --g-l-accent-hover-rgb: 26, 118, 90;
 }
 
-/* Виолет */
-[data-gamma="violet"] {
-  --g-accent:          #7c5cff;
-  --g-accent-rgb:      124, 92, 255;
-  --g-active:          #5b3fd6;
-  --g-d-bg:            #07060b;                   --g-l-bg:            #f4f2fb;
-  --g-d-surface:       #110f1a;                   --g-l-surface:       #ffffff;
-  --g-d-sunken:        #0b0a12;                   --g-l-sunken:        #ebe8f7;
-  --g-d-surface-2:     #13111c;                   --g-l-surface-2:     #ffffff;
-  --g-d-surface-3:     #1c1a25;                   --g-l-surface-3:     #ebe8f7;
-  --g-d-surface-4:     #26252f;                   --g-l-surface-4:     #e4e0f3;
-  --g-d-border:        #343048;                   --g-l-border:        #dcd7ee;
-  --g-d-border-mid:    #38334d;                   --g-l-border-mid:    #c6c2d6;
-  --g-d-border-strong: #464358;                   --g-l-border-strong: #aca8ba;
-  --g-d-separator:     #2a263a;                   --g-l-separator:     #e4e0f3;
-  --g-d-accent-hover:  #9a81ff;                   --g-l-accent-hover:  #6b4fdb;
-  --g-d-accent-soft:   #a38dff;                   --g-l-accent-soft:   #6148c7;
+/* Индиго */
+[data-gamma="indigo"] {
+  --g-d-accent:        #7C6CFF;                   --g-l-accent:        #7163e9;
+  --g-d-accent-rgb:    124, 108, 255;             --g-l-accent-rgb:    113, 99, 233;
+  --g-d-active:        #6154c7;                   --g-l-active:        #6659d2;
+  --g-d-bg:            #07070C;                   --g-l-bg:            #F3F2FA;
+  --g-d-surface:       #14141F;                   --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0d0d15;                   --g-l-sunken:        #EAE8F6;
+  --g-d-surface-2:     #1d1d28;                   --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #292933;                   --g-l-surface-3:     #EAE8F6;
+  --g-d-surface-4:     #373741;                   --g-l-surface-4:     #e3e0f2;
+  --g-d-border:        #3a3a43;                   --g-l-border:        #DBD7EE;
+  --g-d-border-mid:    #4a4a52;                   --g-l-border-mid:    #c5c2NaN;
+  --g-d-border-strong: #65656c;                   --g-l-border-strong: #aba8NaN;
+  --g-d-separator:     #2b2b33;                   --g-l-separator:     #e3e0f2;
+  --g-d-accent-hover:  #9486ff;                   --g-l-accent-hover:  #6357cd;
+  --g-d-accent-soft:   #9e92ff;                   --g-l-accent-soft:   #5d51bf;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #203437;                   --g-l-type-1-bg:     #e6f5f0;
+  --g-d-type-1-text:   #62dab2;                   --g-l-type-1-text:   #1f7c5e;
+  --g-d-type-2-bg:     #342c2a;                   --g-l-type-2-bg:     #f5efe6;
+  --g-d-type-2-text:   #daa862;                   --g-l-type-2-text:   #926425;
+  --g-d-type-3-bg:     #34203d;                   --g-l-type-3-bg:     #f5e6f5;
+  --g-d-type-3-text:   #da62da;                   --g-l-type-3-text:   #ab2bab;
   /* Тройки для rgba() Bootstrap */
-  --g-d-bg-rgb:        7, 6, 11;                  --g-l-bg-rgb:        244, 242, 251;
-  --g-d-surface-rgb:   17, 15, 26;                --g-l-surface-rgb:   255, 255, 255;
-  --g-d-accent-hover-rgb: 154, 129, 255;             --g-l-accent-hover-rgb: 107, 79, 219;
+  --g-d-bg-rgb:        7, 7, 12;                  --g-l-bg-rgb:        243, 242, 250;
+  --g-d-surface-rgb:   20, 20, 31;                --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 148, 134, 255;             --g-l-accent-hover-rgb: 99, 87, 205;
 }
 
-/* Графит и янтарь */
+/* Янтарь */
 [data-gamma="amber"] {
-  --g-accent:          #ff9f0a;
-  --g-accent-rgb:      255, 159, 10;
-  --g-active:          #c77400;
-  --g-d-bg:            #070707;                   --g-l-bg:            #f7f5f1;
-  --g-d-surface:       #121212;                   --g-l-surface:       #ffffff;
-  --g-d-sunken:        #0b0b0b;                   --g-l-sunken:        #efece5;
-  --g-d-surface-2:     #141414;                   --g-l-surface-2:     #ffffff;
-  --g-d-surface-3:     #1d1d1d;                   --g-l-surface-3:     #efece5;
-  --g-d-surface-4:     #272727;                   --g-l-surface-4:     #e8e4db;
-  --g-d-border:        #3a3530;                   --g-l-border:        #e0dbd0;
-  --g-d-border-mid:    #3e3933;                   --g-l-border-mid:    #cac5bb;
-  --g-d-border-strong: #4c4743;                   --g-l-border-strong: #afaba2;
-  --g-d-separator:     #2e2a27;                   --g-l-separator:     #e8e4dc;
-  --g-d-accent-hover:  #ffb542;                   --g-l-accent-hover:  #db8909;
-  --g-d-accent-soft:   #ffbc54;                   --g-l-accent-soft:   #c77c08;
+  --g-d-accent:        #FFA53D;                   --g-l-accent:        #a36a27;
+  --g-d-accent-rgb:    255, 165, 61;              --g-l-accent-rgb:    163, 106, 39;
+  --g-d-active:        #a36a27;                   --g-l-active:        #935f23;
+  --g-d-bg:            #0A0806;                   --g-l-bg:            #F8F5F0;
+  --g-d-surface:       #18140F;                   --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #100d0a;                   --g-l-sunken:        #F0EBE2;
+  --g-d-surface-2:     #211d19;                   --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #2d2925;                   --g-l-surface-3:     #F0EBE2;
+  --g-d-surface-4:     #3b3733;                   --g-l-surface-4:     #e9e3d7;
+  --g-d-border:        #3d3a35;                   --g-l-border:        #E2DACB;
+  --g-d-border-mid:    #4d4a45;                   --g-l-border-mid:    #cbc4NaN;
+  --g-d-border-strong: #686561;                   --g-l-border-strong: #b0aaNaN;
+  --g-d-separator:     #2e2b27;                   --g-l-separator:     #eae3d8;
+  --g-d-accent-hover:  #ffb560;                   --g-l-accent-hover:  #8f5d22;
+  --g-d-accent-soft:   #ffbc6f;                   --g-l-accent-soft:   #865720;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #242c2f;                   --g-l-type-1-bg:     #e6eff5;
+  --g-d-type-1-text:   #62a8da;                   --g-l-type-1-text:   #2971a4;
+  --g-d-type-2-bg:     #37202f;                   --g-l-type-2-bg:     #f5e6f5;
+  --g-d-type-2-text:   #da62da;                   --g-l-type-2-text:   #ab2bab;
+  --g-d-type-3-bg:     #2c341c;                   --g-l-type-3-bg:     #ecf5e6;
+  --g-d-type-3-text:   #94da62;                   --g-l-type-3-text:   #467c1f;
   /* Тройки для rgba() Bootstrap */
-  --g-d-bg-rgb:        7, 7, 7;                   --g-l-bg-rgb:        247, 245, 241;
-  --g-d-surface-rgb:   18, 18, 18;                --g-l-surface-rgb:   255, 255, 255;
-  --g-d-accent-hover-rgb: 255, 181, 66;              --g-l-accent-hover-rgb: 219, 137, 9;
+  --g-d-bg-rgb:        10, 8, 6;                  --g-l-bg-rgb:        248, 245, 240;
+  --g-d-surface-rgb:   24, 20, 15;                --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 255, 181, 96;              --g-l-accent-hover-rgb: 143, 93, 34;
 }
 
-/* Бирюза */
-[data-gamma="teal"] {
-  --g-accent:          #00b3c7;
-  --g-accent-rgb:      0, 179, 199;
-  --g-active:          #00808f;
-  --g-d-bg:            #04080a;                   --g-l-bg:            #eff6f8;
-  --g-d-surface:       #0d1417;                   --g-l-surface:       #ffffff;
-  --g-d-sunken:        #090f11;                   --g-l-sunken:        #e4eff2;
-  --g-d-surface-2:     #0f1619;                   --g-l-surface-2:     #ffffff;
-  --g-d-surface-3:     #181f22;                   --g-l-surface-3:     #e4eff2;
-  --g-d-surface-4:     #23292c;                   --g-l-surface-4:     #dae9ed;
-  --g-d-border:        #2b393d;                   --g-l-border:        #cfe2e7;
-  --g-d-border-mid:    #2e3d41;                   --g-l-border-mid:    #bacbd0;
-  --g-d-border-strong: #3e4b4e;                   --g-l-border-strong: #a1b0b4;
-  --g-d-separator:     #222e31;                   --g-l-separator:     #dae9ed;
-  --g-d-accent-hover:  #3bc4d4;                   --g-l-accent-hover:  #009aab;
-  --g-d-accent-soft:   #4dcad8;                   --g-l-accent-soft:   #008c9b;
+/* Мягкий бордо */
+[data-gamma="wine"] {
+  --g-d-accent:        #F2555A;                   --g-l-accent:        #ce484d;
+  --g-d-accent-rgb:    242, 85, 90;               --g-l-accent-rgb:    206, 72, 77;
+  --g-d-active:        #bd4246;                   --g-l-active:        #b94145;
+  --g-d-bg:            #090607;                   --g-l-bg:            #FCF2F3;
+  --g-d-surface:       #171012;                   --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0f0b0c;                   --g-l-sunken:        #F7E7E9;
+  --g-d-surface-2:     #201a1b;                   --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #2c2627;                   --g-l-surface-3:     #F7E7E9;
+  --g-d-surface-4:     #3a3436;                   --g-l-surface-4:     #f3dee1;
+  --g-d-border:        #3c3638;                   --g-l-border:        #EED5D8;
+  --g-d-border-mid:    #4c4648;                   --g-l-border-mid:    #d6c0NaN;
+  --g-d-border-strong: #676264;                   --g-l-border-strong: #baa6NaN;
+  --g-d-separator:     #2d2829;                   --g-l-separator:     #f3dfe1;
+  --g-d-accent-hover:  #f47478;                   --g-l-accent-hover:  #b53f44;
+  --g-d-accent-soft:   #f58185;                   --g-l-accent-soft:   #a93b3f;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #2b1d32;                   --g-l-type-1-bg:     #ece6f5;
+  --g-d-type-1-text:   #9f73de;                   --g-l-type-1-text:   #602bab;
+  --g-d-type-2-bg:     #232f32;                   --g-l-type-2-bg:     #e6f4f5;
+  --g-d-type-2-text:   #62d0da;                   --g-l-type-2-text:   #207981;
+  --g-d-type-3-bg:     #2b301f;                   --g-l-type-3-bg:     #ecf5e6;
+  --g-d-type-3-text:   #94da62;                   --g-l-type-3-text:   #467c1f;
   /* Тройки для rgba() Bootstrap */
-  --g-d-bg-rgb:        4, 8, 10;                  --g-l-bg-rgb:        239, 246, 248;
-  --g-d-surface-rgb:   13, 20, 23;                --g-l-surface-rgb:   255, 255, 255;
-  --g-d-accent-hover-rgb: 59, 196, 212;              --g-l-accent-hover-rgb: 0, 154, 171;
-}
-
-/* Малина */
-[data-gamma="crimson"] {
-  --g-accent:          #ff375f;
-  --g-accent-rgb:      255, 55, 95;
-  --g-active:          #840e0a;
-  --g-d-bg:            #080506;                   --g-l-bg:            #fdf2f4;
-  --g-d-surface:       #141011;                   --g-l-surface:       #ffffff;
-  --g-d-sunken:        #0c0809;                   --g-l-sunken:        #f7e7eb;
-  --g-d-surface-2:     #161213;                   --g-l-surface-2:     #ffffff;
-  --g-d-surface-3:     #1f1b1c;                   --g-l-surface-3:     #f7e7eb;
-  --g-d-surface-4:     #292626;                   --g-l-surface-4:     #f3dee3;
-  --g-d-border:        #3d2f33;                   --g-l-border:        #eed5db;
-  --g-d-border-mid:    #413237;                   --g-l-border-mid:    #d6c0c5;
-  --g-d-border-strong: #4e4245;                   --g-l-border-strong: #baa6ab;
-  --g-d-separator:     #312529;                   --g-l-separator:     #f3dfe4;
-  --g-d-accent-hover:  #ff6584;                   --g-l-accent-hover:  #db2f52;
-  --g-d-accent-soft:   #ff738f;                   --g-l-accent-soft:   #c72b4a;
-  /* Тройки для rgba() Bootstrap */
-  --g-d-bg-rgb:        8, 5, 6;                   --g-l-bg-rgb:        253, 242, 244;
-  --g-d-surface-rgb:   20, 16, 17;                --g-l-surface-rgb:   255, 255, 255;
-  --g-d-accent-hover-rgb: 255, 101, 132;             --g-l-accent-hover-rgb: 219, 47, 82;
+  --g-d-bg-rgb:        9, 6, 7;                   --g-l-bg-rgb:        252, 242, 243;
+  --g-d-surface-rgb:   23, 16, 18;                --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 244, 116, 120;             --g-l-accent-hover-rgb: 181, 63, 68;
 }
 
 /* ===== Рабочие токены: тёмная схема ===== */
 :root,
 [data-bs-theme=dark] {
-  --color-bg:            var(--g-d-bg);
-  --color-bg-rgb:        var(--g-d-bg-rgb);
-  --color-surface:       var(--g-d-surface);
+  --color-bg:             var(--g-d-bg);
+  --color-bg-rgb:         var(--g-d-bg-rgb);
+  --color-surface:        var(--g-d-surface);
   --color-surface-sunken: var(--g-d-sunken);
-  --color-surface-2:       var(--g-d-surface-2);
-  --color-surface-3:       var(--g-d-surface-3);
-  --color-surface-4:       var(--g-d-surface-4);
-  --color-border:          var(--g-d-border);
-  --color-border-mid:      var(--g-d-border-mid);
-  --color-border-strong:   var(--g-d-border-strong);
-  --color-separator:       var(--g-d-separator);
-  --color-accent-hover:    var(--g-d-accent-hover);
-  --color-accent-soft:     var(--g-d-accent-soft);
-  --color-accent:        var(--g-accent);
-  --color-accent-rgb:    var(--g-accent-rgb);
-  --color-active:        var(--g-active);
+  --color-accent:         var(--g-d-accent);
+  --color-accent-rgb:     var(--g-d-accent-rgb);
+  --color-active:         var(--g-d-active);
+  --color-surface-2:         var(--g-d-surface-2);
+  --color-surface-3:         var(--g-d-surface-3);
+  --color-surface-4:         var(--g-d-surface-4);
+  --color-border:            var(--g-d-border);
+  --color-border-mid:        var(--g-d-border-mid);
+  --color-border-strong:     var(--g-d-border-strong);
+  --color-separator:         var(--g-d-separator);
+  --color-accent-hover:      var(--g-d-accent-hover);
+  --color-accent-soft:       var(--g-d-accent-soft);
+  --color-type-1-bg:         var(--g-d-type-1-bg);
+  --color-type-1-text:       var(--g-d-type-1-text);
+  --color-type-2-bg:         var(--g-d-type-2-bg);
+  --color-type-2-text:       var(--g-d-type-2-text);
+  --color-type-3-bg:         var(--g-d-type-3-bg);
+  --color-type-3-text:       var(--g-d-type-3-text);
   --color-text:            #ffffff;
   --color-text-2:          #e5e5ea;
-  --color-text-secondary:  #8e8e93;
-  --color-text-tertiary:   #6c6c71;
+  --color-text-secondary:  #9a9aa0;
+  --color-text-tertiary:   #76767c;
   --color-text-muted:      #7d7d7d;
-  --color-text-disabled:   #4d4d4d;
-  --color-selection:       rgba(101, 101, 101, 0.2);
+  --color-text-disabled:   #56565c;
+  --color-selection:       rgba(255, 255, 255, 0.12);
   --color-green:           #0b662e;
   --color-green-hover:     #0e7a37;
   --color-green-line:      #5fe08c;
-  --color-red:             #840e0a;
-  --color-red-hover:       #9c140f;
+  --color-red:             #8a1612;
+  --color-red-hover:       #a01a16;
   --color-yellow-bg:       #66460b;
-  --color-yellow-line:     #fff262;
+  --color-yellow-line:     #ffe066;
   --color-danger-bg:       #660b17;
-  --color-danger-line:     #ff628f;
-  --color-success-text:    #34c759;
-  --color-danger:          #ff453a;
-  --color-warning:         #ffd60a;
-  --color-purple:          #bf5af2;
-  --color-purple-soft-bg:  rgba(191, 90, 242, .22);
+  --color-danger-line:     #ff7a9c;
+  --color-success-text:    #3ad16a;
+  --color-danger:          #ff5a4f;
+  --color-warning:         #ffc83d;
+  --color-purple:          #c77cf5;
+  --color-purple-soft-bg:  rgba(199, 124, 245, .20);
   --color-purple-soft-text: #e0b3ff;
-  --color-orange:          #ff9f0a;
-  --color-orange-soft-bg:  rgba(255, 159, 10, .22);
+  --color-orange:          #ffab52;
+  --color-orange-soft-bg:  rgba(255, 171, 82, .20);
   --color-orange-soft-text: #ffc46b;
-  --color-pink-soft-bg:    rgba(255, 98, 143, .22);
+  --color-pink-soft-bg:    rgba(255, 122, 156, .20);
   --color-pink-soft-text:  #ffb3c8;
   --color-blue-soft-text:  #9cc9ff;
-  --color-yellow-soft-bg:  rgba(255, 214, 10, .20);
+  --color-yellow-soft-bg:  rgba(255, 200, 61, .18);
   --color-yellow-soft-text: #ffe066;
-  --color-green-soft-bg:   rgba(52, 199, 89, .20);
-  --color-ok-bg:           rgba(52, 199, 89, 0.14);
-  --color-warn-bg:         rgba(255, 214, 10, 0.14);
-  --color-bad-bg:          rgba(255, 98, 143, 0.16);
-  --color-ev-danger:       #ff516a;
-  --color-ev-success:      #54cb68;
-  --color-admin-chip-bg:   rgba(94, 92, 230, .28);
+  --color-green-soft-bg:   rgba(58, 209, 106, .18);
+  --color-ok-bg:           rgba(58, 209, 106, .14);
+  --color-warn-bg:         rgba(255, 200, 61, .14);
+  --color-bad-bg:          rgba(255, 122, 156, .16);
+  --color-ev-danger:       #e04356;
+  --color-ev-success:      #2fa84f;
+  --color-admin-chip-bg:   rgba(124, 108, 255, .26);
   --color-admin-chip-text: #c7c6ff;
-  --color-hero-1:          #0d2f57;
-  --color-hero-2:          #0a1a30;
-  --color-hero-3:          #111111;
-  --color-hero-border:     rgba(108, 184, 255, .18);
+  --color-hero-1:          #15233c;
+  --color-hero-2:          #101828;
+  --color-hero-3:          #141414;
+  --color-hero-border:     rgba(156, 201, 255, .16);
   --color-hero-text:       #9cc9ff;
   --shadow-float:          0 10px 30px rgba(0, 0, 0, 0.5);
   --shadow-sheet:          0 -10px 40px rgba(0, 0, 0, 0.55);
 
-  --bs-body-bg-rgb:         var(--g-d-bg-rgb);
-  --bs-dark-rgb:            var(--g-d-surface-rgb);
+  --bs-body-bg-rgb:          var(--g-d-bg-rgb);
+  --bs-dark-rgb:             var(--g-d-surface-rgb);
   --bs-link-hover-color-rgb: var(--g-d-accent-hover-rgb);
-  --bs-secondary-rgb:       142, 142, 147;
-  --bs-success-rgb:         52, 199, 89;
-  --bs-warning-rgb:         255, 242, 98;
-  --bs-danger-rgb:          255, 98, 143;
+  --bs-secondary-rgb:        154, 154, 160;
+  --bs-success-rgb:          58, 209, 106;
+  --bs-warning-rgb:          255, 224, 102;
+  --bs-danger-rgb:           255, 122, 156;
 }
 
 /* ===== Рабочие токены: светлая схема ===== */
 [data-bs-theme=light] {
-  --color-bg:            var(--g-l-bg);
-  --color-bg-rgb:        var(--g-l-bg-rgb);
-  --color-surface:       var(--g-l-surface);
+  --color-bg:             var(--g-l-bg);
+  --color-bg-rgb:         var(--g-l-bg-rgb);
+  --color-surface:        var(--g-l-surface);
   --color-surface-sunken: var(--g-l-sunken);
-  --color-surface-2:       var(--g-l-surface-2);
-  --color-surface-3:       var(--g-l-surface-3);
-  --color-surface-4:       var(--g-l-surface-4);
-  --color-border:          var(--g-l-border);
-  --color-border-mid:      var(--g-l-border-mid);
-  --color-border-strong:   var(--g-l-border-strong);
-  --color-separator:       var(--g-l-separator);
-  --color-accent-hover:    var(--g-l-accent-hover);
-  --color-accent-soft:     var(--g-l-accent-soft);
-  --color-accent:        var(--g-accent);
-  --color-accent-rgb:    var(--g-accent-rgb);
-  --color-active:        var(--g-active);
+  --color-accent:         var(--g-l-accent);
+  --color-accent-rgb:     var(--g-l-accent-rgb);
+  --color-active:         var(--g-l-active);
+  --color-surface-2:         var(--g-l-surface-2);
+  --color-surface-3:         var(--g-l-surface-3);
+  --color-surface-4:         var(--g-l-surface-4);
+  --color-border:            var(--g-l-border);
+  --color-border-mid:        var(--g-l-border-mid);
+  --color-border-strong:     var(--g-l-border-strong);
+  --color-separator:         var(--g-l-separator);
+  --color-accent-hover:      var(--g-l-accent-hover);
+  --color-accent-soft:       var(--g-l-accent-soft);
+  --color-type-1-bg:         var(--g-l-type-1-bg);
+  --color-type-1-text:       var(--g-l-type-1-text);
+  --color-type-2-bg:         var(--g-l-type-2-bg);
+  --color-type-2-text:       var(--g-l-type-2-text);
+  --color-type-3-bg:         var(--g-l-type-3-bg);
+  --color-type-3-text:       var(--g-l-type-3-text);
   --color-text:            #1c1c1e;
   --color-text-2:          #2c2c2e;
-  --color-text-secondary:  #6c6c70;
-  --color-text-tertiary:   #8e8e93;
+  --color-text-secondary:  #5f5f66;
+  --color-text-tertiary:   #85858c;
   --color-text-muted:      #86868b;
-  --color-text-disabled:   #b0b0b5;
+  --color-text-disabled:   #aaaab0;
   --color-selection:       rgba(0, 0, 0, 0.08);
   --color-green:           #157a3b;
   --color-green-hover:     #0e6b31;
@@ -344,46 +368,46 @@
   --color-red:             #b3201a;
   --color-red-hover:       #8f1a15;
   --color-yellow-bg:       #fff4cc;
-  --color-yellow-line:     #8a6400;
+  --color-yellow-line:     #7a5900;
   --color-danger-bg:       #ffe1e6;
   --color-danger-line:     #c4162f;
-  --color-success-text:    #1b8f3a;
-  --color-danger:          #d7342a;
-  --color-warning:         #a07400;
-  --color-purple:          #8a2fc0;
-  --color-purple-soft-bg:  rgba(138, 47, 192, .14);
+  --color-success-text:    #15803d;
+  --color-danger:          #c62f24;
+  --color-warning:         #8a6400;
+  --color-purple:          #7b2cbf;
+  --color-purple-soft-bg:  rgba(123, 44, 191, .12);
   --color-purple-soft-text: #6b21a8;
-  --color-orange:          #b36b00;
-  --color-orange-soft-bg:  rgba(179, 107, 0, .14);
-  --color-orange-soft-text: #8a5200;
-  --color-pink-soft-bg:    rgba(196, 22, 47, .12);
-  --color-pink-soft-text:  #b3184a;
+  --color-orange:          #a35a00;
+  --color-orange-soft-bg:  rgba(163, 90, 0, .12);
+  --color-orange-soft-text: #7a4300;
+  --color-pink-soft-bg:    rgba(196, 22, 47, .10);
+  --color-pink-soft-text:  #a81432;
   --color-blue-soft-text:  #0a5bb3;
-  --color-yellow-soft-bg:  rgba(160, 116, 0, .14);
-  --color-yellow-soft-text: #7a5900;
-  --color-green-soft-bg:   rgba(27, 143, 58, .14);
-  --color-ok-bg:           rgba(27, 143, 58, 0.14);
-  --color-warn-bg:         rgba(160, 116, 0, 0.14);
-  --color-bad-bg:          rgba(196, 22, 47, 0.12);
-  --color-ev-danger:       #d7344f;
-  --color-ev-success:      #1f9c45;
-  --color-admin-chip-bg:   rgba(94, 92, 230, .14);
-  --color-admin-chip-text: #3b39b8;
+  --color-yellow-soft-bg:  rgba(138, 100, 0, .12);
+  --color-yellow-soft-text: #6b4d00;
+  --color-green-soft-bg:   rgba(21, 128, 61, .12);
+  --color-ok-bg:           rgba(21, 128, 61, .12);
+  --color-warn-bg:         rgba(138, 100, 0, .12);
+  --color-bad-bg:          rgba(196, 22, 47, .10);
+  --color-ev-danger:       #c0304a;
+  --color-ev-success:      #1f8a43;
+  --color-admin-chip-bg:   rgba(98, 84, 214, .14);
+  --color-admin-chip-text: #4a3fb0;
   --color-hero-1:          #e8f1fd;
   --color-hero-2:          #f4f8ff;
   --color-hero-3:          #ffffff;
-  --color-hero-border:     rgba(10, 91, 179, .22);
+  --color-hero-border:     rgba(10, 91, 179, .20);
   --color-hero-text:       #0a5bb3;
   --shadow-float:          0 10px 30px rgba(0, 0, 0, 0.12);
   --shadow-sheet:          0 -10px 40px rgba(0, 0, 0, 0.16);
 
-  --bs-body-bg-rgb:         var(--g-l-bg-rgb);
-  --bs-dark-rgb:            var(--g-l-surface-rgb);
+  --bs-body-bg-rgb:          var(--g-l-bg-rgb);
+  --bs-dark-rgb:             var(--g-l-surface-rgb);
   --bs-link-hover-color-rgb: var(--g-l-accent-hover-rgb);
-  --bs-secondary-rgb:       108, 108, 112;
-  --bs-success-rgb:         27, 143, 58;
-  --bs-warning-rgb:         138, 100, 0;
-  --bs-danger-rgb:          196, 22, 47;
+  --bs-secondary-rgb:        95, 95, 102;
+  --bs-success-rgb:          21, 128, 61;
+  --bs-warning-rgb:          122, 89, 0;
+  --bs-danger-rgb:           196, 22, 47;
 }
 
 /* ===== База ===== */
@@ -749,10 +773,11 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
 }
 .tabbar-item:hover { color: var(--color-text-secondary); }
 .tabbar-item.active { color: var(--color-accent); font-weight: 500; }
-/* Четыре кнопки: подпись не вылезает за кнопку; на узких экранах (до 380 px) шрифт чуть мельче */
+/* Четыре кнопки: подпись не вылезает за кнопку и не выходит за низ панели.
+   На узких экранах шрифт подписей чуть мельче у всех четырёх сразу — слова не сокращаем. */
 .tabbar-item > span:not(.tab-selection):not(.tabbar-badge-dot) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 380px) {
-  .tabbar-item { padding: 0; font-size: 10.5px; letter-spacing: -0.4px; }
+  .tabbar-item { padding: 0; font-size: 10px; letter-spacing: -0.45px; }
 }
 .tabbar-item .tab-ico { flex: none; width: var(--tab-icon); height: var(--tab-icon); }
 .tabbar-item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -6px; border-radius: 100px; }

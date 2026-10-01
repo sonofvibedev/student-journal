@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=12"></script>
+  <script src="env.js?v=13"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,9 +25,9 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=12" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=13" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
-  <script src="theme.js?v=12"></script>
+  <script src="theme.js?v=13"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -446,39 +446,54 @@
     .sch-week-mid { text-align: center; line-height: 1.25; }
     .sch-week-mid b { display: block; font-size: var(--fs-body); color: var(--color-text); }
     .sch-week-mid span { font-size: var(--fs-small); color: var(--color-text-tertiary); }
-    .sch-subgroup { display: flex; gap: 6px; margin: 12px 0 10px; }
-    .sch-sub-chip { min-height: var(--control-h-sm); padding: 0 12px; border: 1px solid var(--color-border);
-      border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text-secondary);
-      font-size: var(--fs-caption); font-weight: 500; }
-    .sch-sub-chip.active { border-color: var(--color-active); background: var(--color-active); color: #fff; font-weight: 600; }
-    .sch-days { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
+    .sch-days { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 12px 0 14px; }
     .sch-day { display: grid; justify-items: center; gap: 2px; padding: 8px 0 7px; border: 1px solid transparent;
       border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-secondary);
       font-size: var(--fs-small); font-weight: 600; }
     .sch-day b { font-size: var(--fs-body); font-weight: 700; color: var(--color-text); font-variant-numeric: tabular-nums; }
     .sch-day i { width: 5px; height: 5px; border-radius: 50%; background: var(--color-accent); }
     .sch-day i.off { background: transparent; }
-    .sch-day.today { border-color: var(--color-border-strong); }
-    .sch-day.sel { background: var(--color-active); color: #fff; }
+    .sch-day.empty { opacity: .45; }
+    .sch-day.today { border-color: var(--color-accent); }
+    .sch-day.sel { background: var(--color-active); border-color: var(--color-active); color: #fff; opacity: 1; }
     .sch-day.sel b { color: #fff; }
     .sch-day.sel i { background: #fff; }
+    /* Сегодня и выбранный — одновременно: заливка плюс обводка акцентом */
+    .sch-day.sel.today { box-shadow: 0 0 0 1.5px var(--color-accent); }
     .sch-lesson { display: flex; gap: 12px; padding: 12px; margin-bottom: 8px;
       border-radius: var(--radius-lg); background: var(--color-surface); }
     .sch-time { flex: none; width: 48px; text-align: center; line-height: 1.3; }
     .sch-time b { display: block; font-size: var(--fs-caption); font-weight: 700; color: var(--color-text); font-variant-numeric: tabular-nums; }
     .sch-time span { font-size: var(--fs-small); color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
     .sch-body { min-width: 0; flex: 1; }
-    .sch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .sch-head { display: flex; align-items: flex-start; gap: 8px; }
+    .sch-head .sch-name { flex: 1; min-width: 0; }
     .sch-name { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
     .sch-kind { flex: none; padding: 2px 7px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 700;
       background: var(--color-surface-3); color: var(--color-text-secondary); }
-    .sch-kind.k-lk { background: rgba(var(--color-accent-rgb), .18); color: var(--color-accent-soft); }
-    .sch-kind.k-lr { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
-    .sch-kind.k-pz { background: var(--color-green-soft-bg); color: var(--color-success-text); }
+    /* Виды занятий: свои три цвета в каждой гамме, отстоящие от её акцента
+       не меньше чем на 45° — ярлык не читается как «активное». Контраст текста
+       на подложке в каждой паре не ниже 4.5:1. */
+    .sch-kind.k-lk { background: var(--color-type-1-bg); color: var(--color-type-1-text); }
+    .sch-kind.k-pz { background: var(--color-type-2-bg); color: var(--color-type-2-text); }
+    .sch-kind.k-lr { background: var(--color-type-3-bg); color: var(--color-type-3-text); }
     .sch-kind.k-zc { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+    /* Пометка «1 пгр.» — тише типа занятия: это уточнение, а не ярлык */
+    .sch-sub { flex: none; padding: 2px 6px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 600;
+      background: var(--color-surface-3); color: var(--color-text-tertiary); }
     .sch-meta { margin-top: 3px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
-    .sch-empty { padding: 20px 12px; border-radius: var(--radius-lg); background: var(--color-surface);
-      color: var(--color-text-tertiary); font-size: var(--fs-caption); text-align: center; }
+    .sch-empty { display: grid; gap: 4px; padding: 26px 12px; border-radius: var(--radius-lg);
+      background: var(--color-surface); color: var(--color-text-tertiary); font-size: var(--fs-small); text-align: center; }
+    .sch-empty b { font-size: var(--fs-body); font-weight: 600; color: var(--color-text-secondary); }
+    /* Идёт сейчас, следующая, прошедшая */
+    .sch-lesson.is-now { box-shadow: inset 0 0 0 1.5px var(--color-accent); }
+    .sch-lesson.is-past { opacity: .45; }
+    .sch-status { margin-top: 4px; font-size: var(--fs-small); font-weight: 600; color: var(--color-accent); }
+    .sch-status:empty { display: none; }
+    .sch-lesson.is-next .sch-status { color: var(--color-text-secondary); font-weight: 500; }
+    .sch-progress { height: 3px; margin-top: 6px; border-radius: 2px; background: var(--color-surface-3); overflow: hidden; }
+    .sch-progress i { display: block; height: 100%; border-radius: 2px; background: var(--color-accent);
+      transform-origin: left center; transition: transform var(--dur-slow) var(--ease-out); }
     .hw-card { margin-top: 8px; padding: 9px 11px; border-left: 3px solid var(--color-accent);
       border-radius: var(--radius-sm); background: var(--color-surface-3); }
     .hw-card + .hw-card { margin-top: 6px; }
@@ -496,6 +511,53 @@
       background: var(--color-surface-3); color: var(--color-text-secondary); }
     .hw-up.is-soon .hw-up-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
     .hw-up.is-over .hw-up-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+    /* --- Анимации раздела: только transform и opacity --- */
+    @keyframes view-in { from { opacity: 0; transform: translateY(6px); } }
+    .app-view.view-enter { animation: view-in var(--dur) var(--ease-out); }
+    @keyframes sch-card-in { from { opacity: 0; transform: translateY(8px); } }
+    .sch-lesson.sch-enter { animation: sch-card-in var(--dur) var(--ease-out) backwards;
+      animation-delay: calc(var(--i, 0) * var(--stagger)); }
+    /* Лист выезжает с лёгкой пружиной */
+    .modal.swipe-sheet.fade .modal-dialog { transition: transform var(--dur-slow) var(--ease-spring); }
+    /* Зачёркивание растёт, а не появляется разом: text-decoration анимировать нельзя */
+    .sch-name { position: relative; }
+    .sch-name::after { content: ''; position: absolute; left: 0; right: 0; top: 52%; height: 1.5px;
+      background: currentColor; border-radius: 1px; transform: scaleX(0); transform-origin: left center;
+      transition: transform var(--dur) var(--ease-out); }
+    .sch-lesson.is-done .sch-name::after { transform: scaleX(1); }
+    /* Кнопка возврата к текущей неделе */
+    .sch-today { display: block; margin: 8px auto 0; min-height: var(--control-h-sm); padding: 0 16px;
+      border: 1px solid var(--color-accent); border-radius: var(--radius-pill);
+      background: none; color: var(--color-accent); font-size: var(--fs-caption); font-weight: 600; }
+    /* Скелетон расписания */
+    .sch-skeleton { display: grid; gap: 8px; }
+    .sch-skeleton .skel-line { height: 74px; border-radius: var(--radius-lg); background: var(--color-surface); }
+    /* Отмеченное занятие */
+    .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
+    /* Нижний лист занятия */
+    .ls-when { margin-bottom: 14px; font-size: var(--fs-caption); color: var(--color-text-secondary); }
+    .ls-rows { display: grid; gap: 1px; margin-bottom: 16px; border-radius: var(--radius-lg); overflow: hidden;
+      background: var(--color-separator); }
+    .ls-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      padding: 11px 14px; background: var(--color-surface); font-size: var(--fs-caption); }
+    .ls-row span { color: var(--color-text-secondary); }
+    .ls-row b { min-width: 0; font-weight: 600; color: var(--color-text); text-align: right; }
+    .ls-hw-title { margin-bottom: 6px; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--color-text-tertiary); }
+    .ls-hw-text { padding: 11px 13px; margin-bottom: 16px; border-left: 3px solid var(--color-accent);
+      border-radius: var(--radius-sm); background: var(--color-surface-3);
+      font-size: var(--fs-caption); color: var(--color-text); }
+    .ls-done { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--control-h-lg);
+      padding: 0 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      background: var(--color-surface); color: var(--color-text); font-size: var(--fs-button); font-weight: 600; }
+    .ls-done .ls-check { flex: none; display: grid; place-items: center; width: 24px; height: 24px;
+      border: 2px solid var(--color-border-strong); border-radius: 50%; color: transparent; }
+    .ls-done .ls-check { transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+    .ls-done .ls-check svg { width: 15px; height: 15px; opacity: 0; transform: scale(.4);
+      transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur) var(--ease-spring); }
+    .ls-done.on .ls-check svg { opacity: 1; transform: none; }
+    .ls-done.on { border-color: var(--color-green); background: var(--color-green-soft-bg); }
+    .ls-done.on .ls-check { border-color: var(--color-success-text); background: var(--color-success-text); color: #fff; }
     .hw-admin-item { padding: 10px 12px; margin-bottom: 8px; border-radius: var(--radius-md);
       background: var(--color-surface-3); }
     .hw-admin-item .t { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
@@ -725,7 +787,8 @@
       <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openHomeworkModal()">Управлять</button>
     </div>
 
-    <div class="sch-week">
+    <!-- no-swipe: по этой карточке свайп листает недели, а не разделы -->
+    <div class="sch-week no-swipe" id="hwWeekCard">
       <button type="button" class="cal-nav" id="hwPrevWeek" onclick="shiftScheduleWeek(-1)" aria-label="Предыдущая неделя">‹</button>
       <div class="sch-week-mid">
         <b id="hwWeekTitle">—</b>
@@ -733,10 +796,15 @@
       </div>
       <button type="button" class="cal-nav" id="hwNextWeek" onclick="shiftScheduleWeek(1)" aria-label="Следующая неделя">›</button>
     </div>
+    <button type="button" class="sch-today d-none" id="hwTodayBtn" onclick="resetToToday()">Сегодня</button>
 
-    <div class="sch-subgroup" id="hwSubgroupRow" role="group" aria-label="Подгруппа"></div>
     <div class="sch-days" id="hwDayStrip"></div>
-    <div id="hwDayList"></div>
+    <!-- no-swipe: по списку свайп листает дни. Скелетон виден, пока не пришли данные -->
+    <div id="hwDayList" class="no-swipe">
+      <div class="sch-skeleton" aria-hidden="true">
+        <div class="skel-line"></div><div class="skel-line"></div><div class="skel-line"></div>
+      </div>
+    </div>
 
     <div class="kicker mt-4">Ближайшая домашка</div>
     <div id="hwUpcoming"></div>
@@ -1102,6 +1170,32 @@
 </div>
 
 <!-- Модальное окно: Разместить объявление -->
+<!-- Нижний лист занятия: полная карточка пары, «Сделано» и переход к преподавателю.
+     Класс swipe-sheet подключает закрытие смахиванием — тот же механизм, что у фильтров. -->
+<div class="modal fade swipe-sheet" id="lessonSheet" tabindex="-1" aria-labelledby="lessonSheetTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="lessonSheetTitle">Занятие</div>
+        </div>
+      </div>
+      <button type="button" class="visually-hidden-focusable sheet-close" data-bs-dismiss="modal">Закрыть</button>
+      <div class="filter-sheet-body">
+        <div class="ls-when" id="lessonSheetWhen"></div>
+        <div class="ls-rows" id="lessonSheetRows"></div>
+        <div id="lessonSheetHw"></div>
+        <button type="button" class="ls-done" id="lessonSheetDone" aria-pressed="false">
+          <span class="ls-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></span>
+          <span class="ls-done-label">Сделано</span>
+        </button>
+        <button type="button" class="btn btn-outline-light w-100 mt-2" id="lessonSheetTeacher">Карточка преподавателя</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Модальное окно: Домашка (админ) -->
 <div class="modal fade" id="homeworkModal" tabindex="-1" aria-labelledby="homeworkModalTitle">
   <div class="modal-dialog modal-dialog-scrollable">
@@ -1400,10 +1494,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=12"></script>
-<script src="schedule.js?v=12"></script>
-<script src="notify.js?v=12"></script>
-<script src="shared.js?v=12"></script>
+<script src="changelog.js?v=13"></script>
+<script src="schedule.js?v=13"></script>
+<script src="notify.js?v=13"></script>
+<script src="shared.js?v=13"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -1605,6 +1699,7 @@
   // «Дедлайны» остались разделом страницы: кнопки в таб-баре у них больше нет, но адрес
   // index.html#deadlines и кнопка «Управлять» в админке работают как прежде.
   const VIEWS = { stats: 'viewStats', teachers: 'viewTeachers', homework: 'viewHomework', deadlines: 'viewDeadlines' };
+  let swipeDrivenView = false;   // раздел меняют свайпом: анимацию покажет swipeIn
   let currentViewName = null;
   function currentView() {
     const h = location.hash.slice(1);
@@ -1623,12 +1718,22 @@
     setActiveTab(document.querySelector(`.bottom-tabbar .tabbar-item[data-view="${name}"]`));
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
     if (name === 'homework') { renderHomeworkView(); updateAdminUI(); }
+    // Плашка месяца и «Пропуски актуальны на» относятся к пропускам:
+    // в «Домашке» они сбивают с толку, поэтому видны только в «Статистике».
+    // Колокольчик объявлений и бейдж группы остаются на всех разделах.
+    const absenceHeader = name !== 'homework';
+    document.getElementById('periodCaption').classList.toggle('d-none', !absenceHeader);
+    document.getElementById('dataLastUpdated').classList.toggle('d-none', !absenceHeader);
     if (name === 'deadlines') {
       renderDeadlines();
       markDeadlinesSeen();
       updateDeadlinesDot();
     }
-    if (changed) window.scrollTo(0, 0);
+    if (changed) {
+      window.scrollTo(0, 0);
+      // При свайпе раздел уже «въезжает» через swipeIn — не наслаиваем вторую анимацию
+      if (!swipeDrivenView) restartAnimation(document.getElementById(VIEWS[name]), 'view-enter');
+    }
     syncTelegramBackButton();
   }
   window.addEventListener('hashchange', () => showView(currentView()));   // адрес изменили вручную
@@ -1644,7 +1749,9 @@
   enableTabSwipe(() => ['stats', 'teachers', 'homework', 'cabinet'], () => currentViewName, (name, dir) => {
     haptic('selection');
     if (name === 'cabinet') { location.href = 'cabinet.html'; return; }
+    swipeDrivenView = true;
     goView(name);
+    swipeDrivenView = false;
     swipeIn(document.getElementById(VIEWS[name]), dir);
   });
 
@@ -2034,8 +2141,26 @@
   // под той парой, на которую её нужно сдать.
 
   let scheduleWeek = currentSemesterWeek(new Date());
-  let scheduleDay = (() => { const d = new Date().getDay(); return d >= 1 && d <= 6 ? d : 1; })();
-  let scheduleSubgroup = Number(lsGet('subgroup') || 0);
+  let scheduleDay = 1;
+  let scheduleTicker = null;
+
+  // Какую неделю и день показать «по умолчанию»: сегодняшний день,
+  // а в воскресенье — понедельник следующей недели (сегодня пар всё равно нет).
+  function todayPosition(now) {
+    const d = (now || new Date());
+    const weekday = d.getDay();
+    if (weekday === 0) {
+      return { week: Math.min(SEMESTER_WEEKS, currentSemesterWeek(d) + 1), day: 1 };
+    }
+    return { week: currentSemesterWeek(d), day: weekday };
+  }
+  function resetToToday(render) {
+    const pos = todayPosition(new Date());
+    scheduleWeek = pos.week;
+    scheduleDay = pos.day;
+    if (render !== false) renderHomeworkView();
+  }
+  (() => { const pos = todayPosition(new Date()); scheduleWeek = pos.week; scheduleDay = pos.day; })();
 
   const homeworkList = () => appData.homework || [];
 
@@ -2048,16 +2173,19 @@
   }
 
   function setScheduleDay(day) {
+    if (day === scheduleDay) return;
+    // Вправо по дням — содержимое въезжает слева, и наоборот
+    const dir = day > scheduleDay ? 'left' : 'right';
     scheduleDay = day;
     haptic('selection');
     renderHomeworkView();
+    swipeIn(document.getElementById('hwDayList'), dir);
   }
 
-  function setScheduleSubgroup(value) {
-    scheduleSubgroup = Number(value) || 0;
-    lsSet('subgroup', String(scheduleSubgroup));
-    haptic('selection');
-    renderHomeworkView();
+  // Есть ли на эту дату домашка или дедлайн — только тогда под днём ставится точка
+  function hasDueOn(iso) {
+    return homeworkList().some(h => h.dueDate === iso) ||
+      (appData.deadlines || []).some(d => d.dueDate === iso);
   }
 
   // Домашка этой пары: тот же предмет, тот же вид занятия (если указан) и дата сдачи
@@ -2112,9 +2240,17 @@
     kind.textContent = lesson.type;
     kind.title = LESSON_KIND_FULL[lesson.type] || lesson.type;
     head.appendChild(kind);
+    // Занятие только у одной подгруппы — неброская пометка рядом с типом
+    if (lesson.subgroup) {
+      const sg = document.createElement('span');
+      sg.className = 'sch-sub';
+      sg.textContent = lesson.subgroup + ' пгр.';
+      sg.title = 'Только у ' + lesson.subgroup + ' подгруппы';
+      head.appendChild(sg);
+    }
     body.appendChild(head);
 
-    const meta = [lesson.room && 'ауд. ' + lesson.room, lesson.teacher, lesson.subgroup && 'подгр. ' + lesson.subgroup]
+    const meta = [lesson.room && 'ауд. ' + lesson.room, lesson.teacher]
       .filter(Boolean).join(' · ');
     if (meta) {
       const m = document.createElement('div');
@@ -2123,10 +2259,99 @@
       body.appendChild(m);
     }
 
+    // Строка состояния («Идёт · ещё 25 мин» / «Через 10 мин») и полоса прогресса.
+    // Заполняет их updateLessonStatuses() раз в минуту, саму карточку при этом не пересобирая.
+    const status = document.createElement('div');
+    status.className = 'sch-status';
+    body.appendChild(status);
+    const bar = document.createElement('div');
+    bar.className = 'sch-progress';
+    bar.appendChild(document.createElement('i'));
+    body.appendChild(bar);
+
     homeworkForLesson(lesson, iso).forEach(h => body.appendChild(homeworkCard(h)));
     row.appendChild(body);
+
+    // Минуты от начала суток — чтобы пересчёт состояния не разбирал строки заново
+    row.dataset.date = iso;
+    row.dataset.from = String(toMinutes(lesson.start));
+    row.dataset.to = String(toMinutes(lesson.end));
+    if (isLessonDone(lesson, iso)) row.classList.add('is-done');
+    row.tabIndex = 0;
+    row.setAttribute('role', 'button');
+    row.addEventListener('click', () => openLessonSheet(lesson, iso));
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLessonSheet(lesson, iso); }
+    });
     return row;
   }
+
+  // «ещё 25 мин», «ещё 1 ч 5 мин»
+  const toMinutes = (hhmm) => {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  function formatLeft(mins) {
+    if (mins < 60) return mins + ' мин';
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return m ? `${h} ч ${m} мин` : `${h} ч`;
+  }
+
+  // Состояние пар показываем только для сегодняшнего дня: в прошлом и будущем
+  // «идёт сейчас» смысла не имеет. Вызывается при отрисовке и раз в минуту.
+  function updateLessonStatuses() {
+    const rows = document.querySelectorAll('#hwDayList .sch-lesson');
+    if (!rows.length) return;
+    const now = new Date();
+    const todayIso = dayKey(now);
+    const minutesNow = now.getHours() * 60 + now.getMinutes();
+    let nextShown = false;
+
+    rows.forEach((row) => {
+      const status = row.querySelector('.sch-status');
+      const bar = row.querySelector('.sch-progress');
+      const fill = bar.firstElementChild;
+      row.classList.remove('is-now', 'is-past', 'is-next');
+      status.textContent = '';
+      bar.classList.add('d-none');
+      fill.style.transform = 'scaleX(0)';
+
+      if (row.dataset.date !== todayIso) return;
+      const from = Number(row.dataset.from), to = Number(row.dataset.to);
+
+      if (minutesNow >= to) {
+        row.classList.add('is-past');
+        return;
+      }
+      if (minutesNow >= from) {
+        row.classList.add('is-now');
+        status.textContent = `Идёт · ещё ${formatLeft(to - minutesNow)}`;
+        bar.classList.remove('d-none');
+        fill.style.transform = `scaleX(${Math.min(1, Math.max(0, (minutesNow - from) / (to - from)))})`;
+        return;
+      }
+      // «Через N мин» — только у ближайшей пары, иначе подписей будет слишком много
+      if (!nextShown) {
+        nextShown = true;
+        row.classList.add('is-next');
+        status.textContent = `Через ${formatLeft(from - minutesNow)}`;
+      }
+    });
+  }
+
+  // Тикаем раз в минуту, пока раздел открыт и вкладка видима
+  function startScheduleTicker() {
+    stopScheduleTicker();
+    updateLessonStatuses();
+    scheduleTicker = setInterval(updateLessonStatuses, 60000);
+  }
+  function stopScheduleTicker() {
+    if (scheduleTicker) { clearInterval(scheduleTicker); scheduleTicker = null; }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopScheduleTicker();
+    else if (currentViewName === 'homework') startScheduleTicker();
+  });
 
   // Карточка в списке «Ближайшая домашка»
   function upcomingHomeworkCard(h) {
@@ -2161,6 +2386,9 @@
   }
 
   function renderHomeworkView() {
+    // Данные ещё не пришли — оставляем скелетон, а не пустой экран
+    if (!appData || !Array.isArray(appData.students)) return;
+
     const monday = dateOfLesson(scheduleWeek, 1);
     const saturday = dateOfLesson(scheduleWeek, 6);
     document.getElementById('hwWeekTitle').textContent = `Неделя ${scheduleWeek} из ${SEMESTER_WEEKS}`;
@@ -2168,40 +2396,40 @@
       `${monday.getDate()} ${MONTHS_GEN[monday.getMonth()]} – ${saturday.getDate()} ${MONTHS_GEN[saturday.getMonth()]}`;
     document.getElementById('hwPrevWeek').disabled = scheduleWeek <= 1;
     document.getElementById('hwNextWeek').disabled = scheduleWeek >= SEMESTER_WEEKS;
-
-    // Подгруппа
-    const subRow = document.getElementById('hwSubgroupRow');
-    subRow.innerHTML = '';
-    [[0, 'Вся группа'], [1, '1 подгруппа'], [2, '2 подгруппа']].forEach(([value, label]) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'sch-sub-chip' + (scheduleSubgroup === value ? ' active' : '');
-      b.textContent = label;
-      b.setAttribute('aria-pressed', scheduleSubgroup === value ? 'true' : 'false');
-      b.addEventListener('click', () => setScheduleSubgroup(value));
-      subRow.appendChild(b);
-    });
+    // Ушли с текущей недели — даём способ вернуться одним нажатием
+    document.getElementById('hwTodayBtn').classList.toggle('d-none', scheduleWeek === todayPosition(new Date()).week);
 
     // Полоска дней
     const todayKey = dayKey(new Date());
-    const counts = daysWithLessons(scheduleWeek, scheduleSubgroup);
+    const counts = daysWithLessons(scheduleWeek);
     const strip = document.getElementById('hwDayStrip');
     strip.innerHTML = '';
     for (let d = 1; d <= 6; d++) {
       const date = dateOfLesson(scheduleWeek, d);
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'sch-day' + (d === scheduleDay ? ' sel' : '') + (dayKey(date) === todayKey ? ' today' : '');
+      const iso = dayKey(date);
+      const isToday = iso === todayKey;
+      const due = hasDueOn(iso);
+      // Сегодня — обводка акцентом, выбранный — заливка: их видно по отдельности
+      b.className = 'sch-day'
+        + (d === scheduleDay ? ' sel' : '')
+        + (isToday ? ' today' : '')
+        + (counts[d] ? '' : ' empty');
       b.setAttribute('aria-pressed', d === scheduleDay ? 'true' : 'false');
-      b.setAttribute('aria-label', `${DAY_NAMES[d]}, ${date.getDate()} ${MONTHS_GEN[date.getMonth()]}`);
+      b.setAttribute('aria-label', [
+        DAY_NAMES[d], `${date.getDate()} ${MONTHS_GEN[date.getMonth()]}`,
+        isToday ? 'сегодня' : '', counts[d] ? '' : 'занятий нет', due ? 'есть домашка или дедлайн' : ''
+      ].filter(Boolean).join(', '));
       const wd = document.createElement('span');
       wd.textContent = DAY_SHORT[d];
       b.appendChild(wd);
       const num = document.createElement('b');
       num.textContent = String(date.getDate());
       b.appendChild(num);
+      // Точка — только если на этот день есть домашка или дедлайн
       const dot = document.createElement('i');
-      if (!counts[d]) dot.className = 'off';
+      if (!due) dot.className = 'off';
       b.appendChild(dot);
       b.addEventListener('click', () => setScheduleDay(d));
       strip.appendChild(b);
@@ -2212,14 +2440,24 @@
     const iso = dayKey(date);
     const list = document.getElementById('hwDayList');
     list.innerHTML = '';
-    const lessons = lessonsOfDay(scheduleWeek, scheduleDay, scheduleSubgroup);
+    const lessons = lessonsOfDay(scheduleWeek, scheduleDay);
     if (!lessons.length) {
       const empty = document.createElement('div');
       empty.className = 'sch-empty';
-      empty.textContent = `${DAY_NAMES[scheduleDay]}, ${date.getDate()} ${MONTHS_GEN[date.getMonth()]} — занятий нет`;
+      const big = document.createElement('b');
+      big.textContent = 'Пар нет';
+      empty.appendChild(big);
+      const sm = document.createElement('span');
+      sm.textContent = `${DAY_NAMES[scheduleDay]}, ${date.getDate()} ${MONTHS_GEN[date.getMonth()]}`;
+      empty.appendChild(sm);
       list.appendChild(empty);
     } else {
-      lessons.forEach(l => list.appendChild(lessonCard(l, iso)));
+      lessons.forEach((l, i) => {
+        const card = lessonCard(l, iso);
+        card.style.setProperty('--i', String(i));
+        card.classList.add('sch-enter');
+        list.appendChild(card);
+      });
     }
 
     // Ближайшая домашка: не старше недели, по возрастанию срока
@@ -2230,6 +2468,147 @@
     box.innerHTML = '';
     upcoming.forEach(h => box.appendChild(upcomingHomeworkCard(h)));
     document.getElementById('hwUpcomingEmpty').classList.toggle('d-none', upcoming.length > 0);
+
+    startScheduleTicker();
+
+    // Жесты подключаем один раз: по списку — дни, по карточке недели — недели
+    if (!renderHomeworkView.swipesReady) {
+      renderHomeworkView.swipesReady = true;
+      enableHorizontalSwipe(document.getElementById('hwDayList'),
+        () => setScheduleDay(Math.min(6, scheduleDay + 1)),
+        () => setScheduleDay(Math.max(1, scheduleDay - 1)));
+      enableHorizontalSwipe(document.getElementById('hwWeekCard'),
+        () => shiftScheduleWeek(1),
+        () => shiftScheduleWeek(-1));
+      document.getElementById('lessonSheetDone').addEventListener('click', toggleLessonDone);
+    }
+  }
+
+  // ===== Нижний лист занятия =====
+  // «Сделано» хранится на устройстве и отдельно для каждого студента: ключ
+  // hw_done_<student_id>, внутри — отметки вида «дата|занятие». Это личная пометка,
+  // в data.json она не уходит и другим не видна.
+  let openLesson = null;
+
+  function doneStorageKey() {
+    const id = (myCabinetProfile && myCabinetProfile.student_id) || lsGet('my_student_id') || 'guest';
+    return 'hw_done_' + id;
+  }
+  function readDoneMap() {
+    try { return JSON.parse(lsGet(doneStorageKey()) || '{}'); } catch (e) { return {}; }
+  }
+  function lessonDoneKey(lesson, iso) { return iso + '|' + lesson.id; }
+  function isLessonDone(lesson, iso) { return !!readDoneMap()[lessonDoneKey(lesson, iso)]; }
+  function setLessonDone(lesson, iso, done) {
+    const map = readDoneMap();
+    const key = lessonDoneKey(lesson, iso);
+    if (done) map[key] = 1; else delete map[key];
+    lsSet(doneStorageKey(), JSON.stringify(map));
+  }
+
+  function lessonSheetRow(label, value) {
+    const row = document.createElement('div');
+    row.className = 'ls-row';
+    const l = document.createElement('span');
+    l.textContent = label;
+    const v = document.createElement('b');
+    v.textContent = value;
+    row.appendChild(l);
+    row.appendChild(v);
+    return row;
+  }
+
+  function renderLessonDoneButton() {
+    const btn = document.getElementById('lessonSheetDone');
+    if (!btn || !openLesson) return;
+    const done = isLessonDone(openLesson.lesson, openLesson.iso);
+    btn.classList.toggle('on', done);
+    btn.setAttribute('aria-pressed', done ? 'true' : 'false');
+    btn.querySelector('.ls-done-label').textContent = done ? 'Сделано' : 'Отметить сделанным';
+  }
+
+  function toggleLessonDone() {
+    if (!openLesson) return;
+    const next = !isLessonDone(openLesson.lesson, openLesson.iso);
+    setLessonDone(openLesson.lesson, openLesson.iso, next);
+    haptic(next ? 'success' : 'selection');
+    renderLessonDoneButton();
+    renderHomeworkView();
+  }
+
+  function openLessonSheet(lesson, iso) {
+    openLesson = { lesson, iso };
+    const date = deadlineDate(iso);
+    document.getElementById('lessonSheetTitle').textContent = lesson.subject;
+    document.getElementById('lessonSheetWhen').textContent =
+      `${DAY_NAMES[lesson.day]}, ${date.getDate()} ${MONTHS_GEN[date.getMonth()]} · ${lesson.start} – ${lesson.end}`;
+
+    const rows = document.getElementById('lessonSheetRows');
+    rows.innerHTML = '';
+    rows.appendChild(lessonSheetRow('Вид занятия', LESSON_KIND_FULL[lesson.type] || lesson.type));
+    rows.appendChild(lessonSheetRow('Аудитория', lesson.room || 'не указана'));
+    rows.appendChild(lessonSheetRow('Преподаватель', lesson.teacher || 'не указан'));
+    rows.appendChild(lessonSheetRow('Пара', lesson.pair + '-я'));
+    if (lesson.subgroup) rows.appendChild(lessonSheetRow('Подгруппа', lesson.subgroup + '-я'));
+
+    const hwBox = document.getElementById('lessonSheetHw');
+    hwBox.innerHTML = '';
+    const hw = homeworkForLesson(lesson, iso);
+    if (hw.length) {
+      const title = document.createElement('div');
+      title.className = 'ls-hw-title';
+      title.textContent = hw.length > 1 ? 'Домашние задания' : 'Домашнее задание';
+      hwBox.appendChild(title);
+      hw.forEach(h => {
+        const t = document.createElement('div');
+        t.className = 'ls-hw-text';
+        t.textContent = h.text || 'Без описания';
+        hwBox.appendChild(t);
+      });
+    }
+
+    const teacherBtn = document.getElementById('lessonSheetTeacher');
+    teacherBtn.classList.toggle('d-none', !lesson.teacher);
+    teacherBtn.onclick = () => {
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('lessonSheet')).hide();
+      goToTeacherCard(lesson.subject);
+    };
+
+    renderLessonDoneButton();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('lessonSheet')).show();
+  }
+
+  // Переход к карточке преподавателя этого предмета: открываем раздел и раскрываем карточку
+  function goToTeacherCard(subject) {
+    goView('teachers');
+    setTimeout(() => {
+      const card = document.querySelector(`.teacher-card[data-subject="${(subject || '').replace(/"/g, '')}"]`);
+      if (!card) return;
+      if (!card.classList.contains('expanded')) toggleTeacherCard(card);
+      card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 60);
+  }
+
+  // Горизонтальный свайп по элементу. Порог по углу — чтобы жест не мешал
+  // вертикальной прокрутке: уводим палец вбок заметно сильнее, чем вниз.
+  function enableHorizontalSwipe(el, onLeft, onRight) {
+    let start = null;
+    el.addEventListener('touchstart', (e) => {
+      start = null;
+      if (e.touches.length !== 1 || document.querySelector('.modal.show')) return;
+      const t = e.touches[0];
+      if (t.clientX < 24 || t.clientX > window.innerWidth - 24) return;   // край экрана — системный «назад»
+      start = { x: t.clientX, y: t.clientY, time: Date.now() };
+    }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (!start) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x, dy = t.clientY - start.y, dt = Date.now() - start.time;
+      start = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || dt > 700) return;
+      if (window.getSelection && String(window.getSelection())) return;
+      (dx < 0 ? onLeft : onRight)();
+    }, { passive: true });
   }
 
   // ===== Домашка: управление (администратор) =====
@@ -2435,7 +2814,7 @@
       const accent = TEACHER_ACCENT_COLORS[i % TEACHER_ACCENT_COLORS.length];
       const iconPath = SUBJECT_ICONS[t.subject] || DEFAULT_SUBJECT_ICON;
       return `
-      <div class="teacher-card mb-2" style="border-left-color: ${accent};" onclick="toggleTeacherCard(this)">
+      <div class="teacher-card mb-2" data-subject="${t.subject}" style="border-left-color: ${accent};" onclick="toggleTeacherCard(this)">
         <div class="teacher-card-header">
           <span class="badge ${badgeClass} bg-opacity-75 fw-normal">${examType}</span>
           <button type="button" class="teacher-card-edit-btn admin-only d-none" onclick="event.stopPropagation(); openEditTeacherModal('${t.id}')" title="Изменить">
@@ -3772,8 +4151,8 @@
   </a>
   <a class="tabbar-item" href="#homework" data-view="homework">
     <span class="tab-selection"></span>
-    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11h8M8 15h5"/></svg>
-    <span class="tabbar-label"><span class="lbl-full">Домашка</span><span class="lbl-short">Дз</span></span>
+    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" aria-hidden="true"><path d="M6 3.5h8.5A2.5 2.5 0 0 1 17 6v16.5a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5V6A2.5 2.5 0 0 1 6 3.5Zm1.3 3.1v15.3h1.1V6.6H7.3Zm3.2 4.1a.9.9 0 1 0 0 1.8h3.9a.9.9 0 0 0 0-1.8h-3.9Zm0 4.9a.9.9 0 1 0 0 1.8h3.9a.9.9 0 0 0 0-1.8h-3.9Z"/><path d="M19.2 24.8 18.5 21.25 23.5 7.0q1.3-2.8 2.6.4L21.76 22.24 19.2 24.8Z"/></svg>
+    <span>Домашка</span>
     <span id="homeworkTabDot" class="tabbar-badge-dot d-none js-deadlines-dot"></span>
   </a>
   <a class="tabbar-item" href="cabinet.html">
