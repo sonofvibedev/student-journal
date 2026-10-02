@@ -1432,6 +1432,9 @@ body::before {
   }
   .tabbar-item {
     flex: none;
+    /* В колонке базовая height: 100% растягивает кнопку на всю панель */
+    height: auto;
+    align-self: stretch;
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--space-3);
@@ -1453,3 +1456,23 @@ body::before {
 
 /* Шапка дней недели в маленьких календарях «Домашки» и «Зачётов» */
 .cal-day.cal-wd { color: var(--color-text-tertiary); font-size: var(--fs-small); pointer-events: none; }
+
+/* ===== Дедлайн в расписании: стоит на своём дне под парами ===== */
+.sch-dl {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%; margin-top: var(--space-2); padding: 12px var(--space-4);
+  border: 0; border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background-color: var(--color-warn-bg);
+  color: inherit; font: inherit; text-align: left;
+}
+.sch-dl.is-zachet { border-left-color: var(--color-danger); background-color: var(--color-danger-bg); }
+.sch-dl-kind {
+  flex: none; padding: 3px 9px; border-radius: var(--radius-pill);
+  background: rgba(var(--color-bg-rgb), .45);
+  font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  color: var(--color-text);
+}
+.sch-dl-body { min-width: 0; }
+.sch-dl-body b { display: block; color: var(--color-text); font-size: var(--fs-caption); }
+.sch-dl-body small { display: block; color: var(--color-text-secondary); font-size: var(--fs-small); }

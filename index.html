@@ -785,7 +785,7 @@
        задания, привязанные к занятиям. Расписание — schedule.js, домашка — data.json. -->
   <section id="viewHomework" class="app-view d-none" aria-labelledby="homeworkViewTitle">
     <div class="view-head">
-      <h3 class="view-title" id="homeworkViewTitle">Домашка</h3>
+      <h3 class="view-title" id="homeworkViewTitle">Расписание</h3>
       <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openHomeworkModal()">Управлять</button>
     </div>
 
@@ -841,6 +841,16 @@
   </section>
 </div>
 
+
+<!-- Таб-бар рисует renderTabbar() из shared.js — один и тот же состав на всё
+     приложение. Стоит до основного скрипта: showView() вызывается из init()
+     и к этому моменту элемент уже должен быть в разметке. -->
+<nav class="bottom-tabbar" aria-label="Разделы"></nav>
+
+<!-- Плавающая кнопка «+»: быстрые действия администратора. Видна только админу -->
+<button type="button" class="fab admin-only d-none" id="adminFab" aria-haspopup="dialog" aria-expanded="false" aria-controls="adminQuickSheet" aria-label="Быстрые действия">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</button>
 
 <!-- Раздел «Учёба» (index.html#study) — шесть плиток -->
 <section id="viewStudy" class="app-view d-none">
@@ -910,9 +920,47 @@
   <div id="examsBody"></div>
 </section>
 
-<!-- Раздел «Админ-панель» (index.html#admin) -->
+<!-- Раздел «Админ-панель» (index.html#admin) — всё, чего нет на кнопке «+» -->
 <section id="viewAdmin" class="app-view d-none">
-  <div id="adminPanelBody"></div>
+  <div class="group">
+    <div class="kicker">Пропуски</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="openAddAbsenceModal()"><span class="lbl">Внести пропуски<small class="d-block text-secondary">одному студенту</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="openGroupAbsenceModal()"><span class="lbl">Внести группой<small class="d-block text-secondary">один предмет и день — нескольким сразу</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="kicker">Содержимое</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="openDeadlinesModal()"><span class="lbl">Дедлайны, зачёты и экзамены</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="openHomeworkModal()"><span class="lbl">Домашка</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="goView('teachers')"><span class="lbl">Преподаватели</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="openAddStudentModal()"><span class="lbl">Добавить студента</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="kicker">Справки</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="goView('stats')"><span class="lbl">Подтверждение справок<small class="d-block text-secondary">в карточке студента</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="kicker">Выгрузки</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="generateDeanReport()"><span class="lbl">Отчёт для деканата<small class="d-block text-secondary">xlsx</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="exportToCSV()"><span class="lbl">Выгрузить CSV</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="downloadBackup()"><span class="lbl">Резервная копия<small class="d-block text-secondary">скачать data.json</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="inset">
+      <button type="button" class="row-i tg-exit" onclick="logoutAdmin()"><span class="lbl">Выйти из админки</span></button>
+    </div>
+  </div>
 </section>
 
 
@@ -1863,6 +1911,28 @@
   </div>
 </div>
 
+<!-- Быстрые действия администратора: нижний лист по кнопке «+» -->
+<div class="modal fade swipe-sheet" id="adminQuickSheet" tabindex="-1" aria-labelledby="adminQuickTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="adminQuickTitle">Быстрые действия</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="inset">
+          <button type="button" class="row-i" data-quick="openAddAbsenceModal"><span class="lbl">Внести пропуски<small class="d-block text-secondary">одному студенту</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+          <button type="button" class="row-i" data-quick="openGroupAbsenceModal"><span class="lbl">Внести группой<small class="d-block text-secondary">нескольким сразу</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+          <button type="button" class="row-i" data-quick="openDeadlineForm"><span class="lbl">Дедлайн, зачёт или экзамен</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+          <button type="button" class="row-i" data-quick="openHomeworkForm"><span class="lbl">Домашка</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+          <button type="button" class="row-i" data-quick="generateDeanReport"><span class="lbl">Отчёт для деканата</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+        </div>
+        <button type="button" class="btn btn-outline-secondary w-100 mt-3" data-quick="goAdmin">Вся админ-панель</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Замена стандартного showAlert() -->
 <div class="modal fade" id="customAlertModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -2461,6 +2531,34 @@
         '</div>';
     }).join('');
   }
+
+  // ===== Плавающая кнопка «+» и её быстрое меню =====
+  // На кнопке — пять самых частых действий, остальное на экране «Админ-панель».
+  // Кнопка видна только администратору: класс admin-only снимает updateAdminUI().
+  (() => {
+    const fab = document.getElementById('adminFab');
+    const sheetEl = document.getElementById('adminQuickSheet');
+    if (!fab || !sheetEl) return;
+    const sheet = () => bootstrap.Modal.getOrCreateInstance(sheetEl);
+
+    fab.addEventListener('click', () => { haptic('impact'); sheet().show(); });
+    sheetEl.addEventListener('shown.bs.modal', () => fab.setAttribute('aria-expanded', 'true'));
+    sheetEl.addEventListener('hidden.bs.modal', () => fab.setAttribute('aria-expanded', 'false'));
+    enableSheetSwipe(sheetEl);
+
+    // Действие запускаем после закрытия листа, иначе два окна Bootstrap
+    // накладываются друг на друга и затемнение остаётся висеть
+    sheetEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-quick]');
+      if (!btn) return;
+      const what = btn.dataset.quick;
+      sheetEl.addEventListener('hidden.bs.modal', () => {
+        if (what === 'goAdmin') goView('admin');
+        else if (typeof window[what] === 'function') window[what]();
+      }, { once: true });
+      sheet().hide();
+    });
+  })();
 
   // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
   function hasHotDeadlines() {
@@ -3179,6 +3277,23 @@
         list.appendChild(card);
       });
     }
+
+    // Дедлайны, зачёты и экзамены этого дня — отдельной заметной меткой
+    // под парами: в расписании они стоят на своём дне, а не где-то ещё.
+    (appData.deadlines || [])
+      .filter(d => d.dueDate && dayKey(deadlineDate(d.dueDate)) === iso)
+      .forEach(d => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'sch-dl' + (isZachet(d) ? ' is-zachet' : '');
+        el.innerHTML = '<span class="sch-dl-kind"></span><span class="sch-dl-body">' +
+          '<b></b><small></small></span>';
+        el.querySelector('.sch-dl-kind').textContent = deadlineKindName(d);
+        el.querySelector('b').textContent = d.text || d.subject;
+        el.querySelector('small').textContent = d.text ? d.subject : '';
+        el.addEventListener('click', () => goView('deadlines'));
+        list.appendChild(el);
+      });
 
     // Ближайшая домашка: не старше недели, по возрастанию срока
     const upcoming = homeworkList()
@@ -4865,8 +4980,5 @@
 <script src="profile.js?v=14"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
-<!-- Таб-бар рисует renderTabbar() из shared.js — один и тот же состав на всё приложение -->
-<nav class="bottom-tabbar" aria-label="Разделы"></nav>
-
 </body>
 </html>
