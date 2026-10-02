@@ -15,12 +15,22 @@ const GAMMA_KEY = 'gamma';   // id из THEME_GAMMAS
 const DEFAULT_GAMMA = 'blue';
 
 // Порядок — как в окне выбора. accent показывается кружком на кнопке гаммы.
+// Акцент здесь — только кружок в выборе оформления. Рабочие цвета лежат
+// в app.css блоками [data-gamma="…"], по паре значений на тёмную и светлую тему.
+// Все гаммы проверены на контраст: белый текст на акценте и текст на фоне —
+// не ниже WCAG AA (4.5:1) в обеих темах.
 const THEME_GAMMAS = [
   { id: 'blue',       name: 'Синий',           accent: '#0A84FF' },
   { id: 'emerald',    name: 'Изумруд',         accent: '#2DD4A0' },
   { id: 'indigo',     name: 'Индиго',          accent: '#7C6CFF' },
   { id: 'amber',      name: 'Янтарь',          accent: '#FFA53D' },
-  { id: 'wine',       name: 'Мягкий бордо',    accent: '#F2555A' }
+  { id: 'wine',       name: 'Мягкий бордо',    accent: '#F2555A' },
+  { id: 'ocean',      name: 'Океан',           accent: '#188095' },
+  { id: 'moss',       name: 'Мох',             accent: '#438439' },
+  { id: 'plum',       name: 'Слива',           accent: '#B646BE' },
+  { id: 'terracotta', name: 'Терракота',       accent: '#C75126' },
+  { id: 'graphite',   name: 'Графит',          accent: '#657797' },
+  { id: 'lavender',   name: 'Лаванда',         accent: '#7C52E0' }
 ];
 
 const THEME_MODES = [
