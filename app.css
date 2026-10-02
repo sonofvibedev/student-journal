@@ -1450,3 +1450,6 @@ body::before {
   .tile, .fab, .seg-item, .subj-row .chev { transition: none; }
   .subj-body.open { animation: none; }
 }
+
+/* Шапка дней недели в маленьких календарях «Домашки» и «Зачётов» */
+.cal-day.cal-wd { color: var(--color-text-tertiary); font-size: var(--fs-small); pointer-events: none; }

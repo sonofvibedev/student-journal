@@ -884,13 +884,29 @@
   </div>
 </section>
 
-<!-- Раздел «Домашка» (index.html#homework) — все задания по датам -->
+<!-- Раздел «Домашка» (index.html#homework) — все задания по датам и календарь -->
 <section id="viewHomeworkList" class="app-view d-none">
+  <div class="cal">
+    <div class="cal-head">
+      <button type="button" class="cal-nav" onclick="shiftMiniMonth('hw', -1)" aria-label="Предыдущий месяц">&lsaquo;</button>
+      <b id="hwCalTitle">—</b>
+      <button type="button" class="cal-nav" onclick="shiftMiniMonth('hw', 1)" aria-label="Следующий месяц">&rsaquo;</button>
+    </div>
+    <div class="cal-grid" id="hwCalGrid"></div>
+  </div>
   <div id="homeworkListBody"></div>
 </section>
 
 <!-- Раздел «Зачёты и экзамены» (index.html#exams) -->
 <section id="viewExams" class="app-view d-none">
+  <div class="cal">
+    <div class="cal-head">
+      <button type="button" class="cal-nav" onclick="shiftMiniMonth('exam', -1)" aria-label="Предыдущий месяц">&lsaquo;</button>
+      <b id="examCalTitle">—</b>
+      <button type="button" class="cal-nav" onclick="shiftMiniMonth('exam', 1)" aria-label="Следующий месяц">&rsaquo;</button>
+    </div>
+    <div class="cal-grid" id="examCalGrid"></div>
+  </div>
   <div id="examsBody"></div>
 </section>
 
@@ -1690,6 +1706,8 @@
           <label class="btn btn-outline-secondary" for="deadlineTypeDeadline">Дедлайн</label>
           <input type="radio" class="btn-check" name="deadlineType" id="deadlineTypeZachet" value="zachet" autocomplete="off" onchange="updateDeadlineFormType()">
           <label class="btn btn-outline-secondary" for="deadlineTypeZachet">Зачёт</label>
+          <input type="radio" class="btn-check" name="deadlineType" id="deadlineTypeExam" value="exam" autocomplete="off" onchange="updateDeadlineFormType()">
+          <label class="btn btn-outline-secondary" for="deadlineTypeExam">Экзамен</label>
         </div>
         <div class="mb-3">
           <label class="form-label text-secondary small" for="deadlineSubject">Предмет</label>
@@ -2212,6 +2230,8 @@
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
     if (name === 'schedule') { renderHomeworkView(); updateAdminUI(); }
     if (name === 'study')    { renderStudyTiles(); }
+    if (name === 'homework') { renderHomeworkList(); updateAdminUI(); }
+    if (name === 'exams')    { renderExams(); }
     if (name === 'home')     { renderHome(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
     if (name === 'absences' && typeof renderPersonalStats === 'function') renderPersonalStats();
@@ -2328,6 +2348,118 @@
   function escapeHtml(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g,
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // ===== Маленький календарь месяца для «Домашки» и «Зачётов» =====
+  // Большой календарь дедлайнов живёт в shared.js и привязан к своим id;
+  // здесь тот же вид, но на своих данных и в своём разделе.
+  const miniMonth = { hw: null, exam: null };
+  function shiftMiniMonth(which, delta) {
+    const base = miniMonth[which] || new Date();
+    miniMonth[which] = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+    if (which === 'hw') renderHomeworkList(); else renderExams();
+  }
+  function renderMiniCalendar(which, marks) {
+    const grid = document.getElementById(which === 'hw' ? 'hwCalGrid' : 'examCalGrid');
+    const title = document.getElementById(which === 'hw' ? 'hwCalTitle' : 'examCalTitle');
+    if (!grid) return;
+    const base = miniMonth[which] || new Date();
+    const y = base.getFullYear(), m = base.getMonth();
+    title.textContent = base.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+    const first = new Date(y, m, 1);
+    const shift = (first.getDay() + 6) % 7;             // неделя с понедельника
+    const days = new Date(y, m + 1, 0).getDate();
+    const todayKey = dayKey(new Date());
+    // Шапка с днями недели: без неё непонятно, на какой день попадает отметка
+    let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+      .map(w => '<span class="cal-day cal-wd" aria-hidden="true">' + w + '</span>').join('');
+    for (let i = 0; i < shift; i++) html += '<span class="cal-day is-out"></span>';
+    for (let d = 1; d <= days; d++) {
+      const key = dayKey(new Date(y, m, d));
+      const n = marks[key] || 0;
+      html += '<span class="cal-day' + (key === todayKey ? ' is-today' : '') + (n ? ' has-mark' : '') + '">' +
+        d + (n ? '<i class="cal-marks" aria-hidden="true"></i>' : '') + '</span>';
+    }
+    grid.innerHTML = html;
+  }
+
+  // ===== «Домашка»: все задания, сгруппированные по датам =====
+  function renderHomeworkList() {
+    const box = document.getElementById('homeworkListBody');
+    if (!box) return;
+    const list = (appData.homework || []).slice()
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+
+    const marks = {};
+    list.forEach(h => {
+      if (!h.dueDate) return;
+      const k = dayKey(deadlineDate(h.dueDate));
+      marks[k] = (marks[k] || 0) + 1;
+    });
+    renderMiniCalendar('hw', marks);
+
+    if (!list.length) { box.innerHTML = '<div class="dl-empty">Домашних заданий пока нет</div>'; return; }
+
+    const groups = {};
+    list.forEach(h => {
+      const key = h.dueDate || 'nodate';
+      (groups[key] = groups[key] || []).push(h);
+    });
+    box.innerHTML = Object.keys(groups).sort().map(key => {
+      const when = key === 'nodate' ? 'Без срока' : dlFormatDate(deadlineDate(key));
+      const rel = key === 'nodate' ? '' : deadlineRelative(deadlineDaysLeft(key));
+      return '<div class="dl-group">' + escapeHtml(when) + (rel ? ' · ' + escapeHtml(rel) : '') + '</div>' +
+        groups[key].map(h =>
+          '<div class="dl-card"><div class="dl-subject">' + escapeHtml(h.subject) + '</div>' +
+          '<div class="dl-text">' + escapeHtml(h.text || '') + '</div>' +
+          '<div class="dl-meta"><span class="dl-date">' +
+          escapeHtml([h.type, h.subgroup ? 'подгр. ' + h.subgroup : ''].filter(Boolean).join(' · ')) +
+          '</span></div></div>').join('');
+    }).join('');
+  }
+
+  // ===== «Зачёты и экзамены»: форма контроля по предметам и даты от админа =====
+  function renderExams() {
+    const box = document.getElementById('examsBody');
+    if (!box) return;
+    // Даты, которые внёс админ: записи с типом «зачёт» или «экзамен»
+    const dated = (appData.deadlines || []).filter(d => d.type === 'zachet' || d.type === 'exam');
+    const bySubject = {};
+    dated.forEach(d => { (bySubject[d.subject] = bySubject[d.subject] || []).push(d); });
+
+    const marks = {};
+    dated.forEach(d => {
+      const k = dayKey(deadlineDate(d.dueDate));
+      marks[k] = (marks[k] || 0) + 1;
+    });
+    renderMiniCalendar('exam', marks);
+
+    // Форма контроля берётся оттуда же, откуда её показывают «Преподаватели»
+    const subjects = (appData.teachers || []).map(t => t.subject);
+    (appData.subjects || []).forEach(sub => { if (subjects.indexOf(sub) === -1) subjects.push(sub); });
+
+    const rows = subjects.map(sub => ({
+      sub: sub,
+      form: getExamType(sub),
+      dates: (bySubject[sub] || []).slice().sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
+    })).sort((a, b) => {
+      const ad = a.dates[0] ? a.dates[0].dueDate : '9999';
+      const bd = b.dates[0] ? b.dates[0].dueDate : '9999';
+      return ad.localeCompare(bd) || a.sub.localeCompare(b.sub, 'ru');
+    });
+
+    box.innerHTML = rows.map(r => {
+      const d = r.dates[0];
+      const when = d
+        ? dlFormatDate(deadlineDate(d.dueDate)) + ' · ' + deadlineRelative(deadlineDaysLeft(d.dueDate))
+        : 'дата пока не назначена';
+      return '<div class="dl-card' + (d && deadlineDaysLeft(d.dueDate) <= 3 ? ' is-soon' : '') + '">' +
+        '<div class="dl-subject"><span class="dl-kind">' + (r.form === 'зачёт' ? 'Зачёт' : 'Экзамен') + '</span>' +
+        escapeHtml(r.sub) + '</div>' +
+        '<div class="dl-meta"><span class="dl-date">' + escapeHtml(when) + '</span></div>' +
+        (d && d.text ? '<div class="dl-text">' + escapeHtml(d.text) + '</div>' : '') +
+        '</div>';
+    }).join('');
   }
 
   // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
@@ -2635,8 +2767,10 @@
     select.value = existing ? existing.subject : '';
     document.getElementById('deadlineText').value = existing ? (existing.text || '') : '';
     document.getElementById('deadlineDueDate').value = existing ? existing.dueDate : '';
-    const isZachet = !!existing && existing.type === 'zachet';
-    document.getElementById(isZachet ? 'deadlineTypeZachet' : 'deadlineTypeDeadline').checked = true;
+    const type = existing && existing.type ? existing.type : 'deadline';
+    document.getElementById(
+      type === 'exam' ? 'deadlineTypeExam' : type === 'zachet' ? 'deadlineTypeZachet' : 'deadlineTypeDeadline'
+    ).checked = true;
     updateDeadlineFormType();
     const listModal = bootstrap.Modal.getInstance(document.getElementById('deadlinesModal'));
     if (listModal) listModal.hide();
@@ -2645,16 +2779,21 @@
 
   // Тип записи: «Дедлайн» (что сделать и срок) или «Зачёт» (дата и необязательный комментарий).
   // В data.json — поле type: 'deadline' | 'zachet'; записи без type считаются дедлайнами.
+  // Записи без type, сделанные до появления экзаменов, читаются как дедлайны
   function deadlineFormType() {
-    return document.getElementById('deadlineTypeZachet').checked ? 'zachet' : 'deadline';
+    if (document.getElementById('deadlineTypeExam').checked) return 'exam';
+    if (document.getElementById('deadlineTypeZachet').checked) return 'zachet';
+    return 'deadline';
   }
   function updateDeadlineFormType() {
-    const isZachet = deadlineFormType() === 'zachet';
+    const type = deadlineFormType();
+    const control = type === 'zachet' || type === 'exam';   // зачёт и экзамен — это дата, а не срок
+    const noun = type === 'exam' ? 'экзамен' : type === 'zachet' ? 'зачёт' : 'дедлайн';
     const editing = !!editingDeadlineId;
-    document.getElementById('deadlineFormTitle').innerText = isZachet ? (editing ? 'Изменить зачёт' : 'Новый зачёт') : (editing ? 'Изменить дедлайн' : 'Новый дедлайн');
-    document.getElementById('deadlineTextLabel').innerText = isZachet ? 'Комментарий (необязательно)' : 'Что нужно сделать';
-    document.getElementById('deadlineText').placeholder = isZachet ? 'Например: аудитория 512, с собой зачётку' : 'Например: сдать презентацию по модели 4P';
-    document.getElementById('deadlineDueDateLabel').innerText = isZachet ? 'Дата зачёта' : 'Срок';
+    document.getElementById('deadlineFormTitle').innerText = (editing ? 'Изменить ' : 'Новый ') + noun;
+    document.getElementById('deadlineTextLabel').innerText = control ? 'Комментарий (необязательно)' : 'Что нужно сделать';
+    document.getElementById('deadlineText').placeholder = control ? 'Например: аудитория 512, с собой зачётку' : 'Например: сдать презентацию по модели 4P';
+    document.getElementById('deadlineDueDateLabel').innerText = type === 'exam' ? 'Дата экзамена' : type === 'zachet' ? 'Дата зачёта' : 'Срок';
   }
 
   // Закрыть форму и вернуться к списку дедлайнов
@@ -2670,8 +2809,8 @@
     const text = document.getElementById('deadlineText').value.trim();
     const dueDate = document.getElementById('deadlineDueDate').value;
     const type = deadlineFormType();
-    const isZachet = type === 'zachet';
-    const noun = isZachet ? 'зачёт' : 'дедлайн';
+    const isZachet = type === 'zachet' || type === 'exam';   // у обоих это дата, а не срок
+    const noun = type === 'exam' ? 'экзамен' : type === 'zachet' ? 'зачёт' : 'дедлайн';
     if (!subject) return showAlert('Выберите предмет');
     if (!text && !isZachet) return showAlert('Опишите, что нужно сделать');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert(isZachet ? 'Укажите дату зачёта' : 'Укажите срок');

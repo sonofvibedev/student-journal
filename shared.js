@@ -31,7 +31,11 @@ function deadlineRelative(n) {
   return `просрочено на ${-n} ${daysWord(n)}`;
 }
 const activeDeadlines = () => (appData.deadlines || []).filter(d => deadlineDaysLeft(d.dueDate) >= -7);
-const isZachet = (d) => d.type === 'zachet';
+// Тип записи: 'deadline' (по умолчанию), 'zachet' или 'exam'.
+// У записей, сделанных до появления экзаменов, поля type нет — это дедлайны.
+const isZachet = (d) => d.type === 'zachet' || d.type === 'exam';
+const isExam = (d) => d.type === 'exam';
+const deadlineKindName = (d) => (isExam(d) ? 'Экзамен' : d.type === 'zachet' ? 'Зачёт' : 'Дедлайн');
 
 function deadlineCard(d) {
   const n = deadlineDaysLeft(d.dueDate);
@@ -40,7 +44,7 @@ function deadlineCard(d) {
   card.className = 'dl-card' + (zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
   card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
   card.querySelector('.dl-subject').textContent = d.subject;
-  if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">Зачёт</span>');
+  if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">' + deadlineKindName(d) + '</span>');
   const text = card.querySelector('.dl-text');
   if (d.text) text.textContent = d.text; else text.remove();
   card.querySelector('.dl-date').textContent = zachet ? dlFormatDate(deadlineDate(d.dueDate)) : `до ${dlFormatDate(deadlineDate(d.dueDate))}`;
