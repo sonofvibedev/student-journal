@@ -113,8 +113,8 @@
   --g-d-surface-3:     #29292b;                   --g-l-surface-3:     #E9EBF0;
   --g-d-surface-4:     #373739;                   --g-l-surface-4:     #e0e2e8;
   --g-d-border:        #3a3a3b;                   --g-l-border:        #D7D9E0;
-  --g-d-border-mid:    #4a4a4b;                   --g-l-border-mid:    #c2c3NaN;
-  --g-d-border-strong: #656566;                   --g-l-border-strong: #a8a9NaN;
+  --g-d-border-mid:    #4a4a4b;                   --g-l-border-mid:    #c2c5cf;
+  --g-d-border-strong: #656566;                   --g-l-border-strong: #a8abb8;
   --g-d-separator:     #2a2a2b;                   --g-l-separator:     #e0e2e8;
   --g-d-accent-hover:  #369aff;                   --g-l-accent-hover:  #0867c8;
   --g-d-accent-soft:   #4aa4ff;                   --g-l-accent-soft:   #0760ba;
@@ -143,8 +143,8 @@
   --g-d-surface-3:     #262d2b;                   --g-l-surface-3:     #E5EFEA;
   --g-d-surface-4:     #353b39;                   --g-l-surface-4:     #dbe9e2;
   --g-d-border:        #373d3b;                   --g-l-border:        #D1E2D9;
-  --g-d-border-mid:    #474d4b;                   --g-l-border-mid:    #bccbNaN;
-  --g-d-border-strong: #636866;                   --g-l-border-strong: #a3b0NaN;
+  --g-d-border-mid:    #474d4b;                   --g-l-border-mid:    #bccbc5;
+  --g-d-border-strong: #636866;                   --g-l-border-strong: #a3b0aa;
   --g-d-separator:     #282d2b;                   --g-l-separator:     #dce9e2;
   --g-d-accent-hover:  #53dcb1;                   --g-l-accent-hover:  #1a765a;
   --g-d-accent-soft:   #64dfb9;                   --g-l-accent-soft:   #186e54;
@@ -173,8 +173,8 @@
   --g-d-surface-3:     #292933;                   --g-l-surface-3:     #EAE8F6;
   --g-d-surface-4:     #373741;                   --g-l-surface-4:     #e3e0f2;
   --g-d-border:        #3a3a43;                   --g-l-border:        #DBD7EE;
-  --g-d-border-mid:    #4a4a52;                   --g-l-border-mid:    #c5c2NaN;
-  --g-d-border-strong: #65656c;                   --g-l-border-strong: #aba8NaN;
+  --g-d-border-mid:    #4a4a52;                   --g-l-border-mid:    #c5c2d2;
+  --g-d-border-strong: #65656c;                   --g-l-border-strong: #aba8ba;
   --g-d-separator:     #2b2b33;                   --g-l-separator:     #e3e0f2;
   --g-d-accent-hover:  #9486ff;                   --g-l-accent-hover:  #6357cd;
   --g-d-accent-soft:   #9e92ff;                   --g-l-accent-soft:   #5d51bf;
@@ -203,8 +203,8 @@
   --g-d-surface-3:     #2d2925;                   --g-l-surface-3:     #F0EBE2;
   --g-d-surface-4:     #3b3733;                   --g-l-surface-4:     #e9e3d7;
   --g-d-border:        #3d3a35;                   --g-l-border:        #E2DACB;
-  --g-d-border-mid:    #4d4a45;                   --g-l-border-mid:    #cbc4NaN;
-  --g-d-border-strong: #686561;                   --g-l-border-strong: #b0aaNaN;
+  --g-d-border-mid:    #4d4a45;                   --g-l-border-mid:    #cbc4b8;
+  --g-d-border-strong: #686561;                   --g-l-border-strong: #b0aa9e;
   --g-d-separator:     #2e2b27;                   --g-l-separator:     #eae3d8;
   --g-d-accent-hover:  #ffb560;                   --g-l-accent-hover:  #8f5d22;
   --g-d-accent-soft:   #ffbc6f;                   --g-l-accent-soft:   #865720;
@@ -233,8 +233,8 @@
   --g-d-surface-3:     #2c2627;                   --g-l-surface-3:     #F7E7E9;
   --g-d-surface-4:     #3a3436;                   --g-l-surface-4:     #f3dee1;
   --g-d-border:        #3c3638;                   --g-l-border:        #EED5D8;
-  --g-d-border-mid:    #4c4648;                   --g-l-border-mid:    #d6c0NaN;
-  --g-d-border-strong: #676264;                   --g-l-border-strong: #baa6NaN;
+  --g-d-border-mid:    #4c4648;                   --g-l-border-mid:    #d6c0c4;
+  --g-d-border-strong: #676264;                   --g-l-border-strong: #baa6aa;
   --g-d-separator:     #2d2829;                   --g-l-separator:     #f3dfe1;
   --g-d-accent-hover:  #f47478;                   --g-l-accent-hover:  #b53f44;
   --g-d-accent-soft:   #f58185;                   --g-l-accent-soft:   #a93b3f;
@@ -1074,4 +1074,195 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 /* статичная версия */
 @media (prefers-reduced-motion: reduce) {
   .sk-tilt, .sk-pass, .sk-face::before, .sk-aurora i, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================================
+   СТИЛЬ «СТЕКЛО»
+   Поверхности полупрозрачные и размывают то, что под ними. Глубина задаётся
+   светлой кромкой сверху и мягкой тенью, а не плотной заливкой.
+
+   Три правила, чтобы стекло не превратилось в кашу:
+     1. Текст и иконки лежат НЕ на стекле, а на своём фоне — контраст AA держат
+        токены --color-text*, они не меняются.
+     2. Стеклянные слои не накладываются друг на друга больше чем в два слоя.
+     3. Нет поддержки backdrop-filter или включено «меньше движения» —
+        поверхность становится обычной непрозрачной.
+   ========================================================================== */
+:root {
+  --glass-bg:        rgba(var(--color-surface-rgb), .58);
+  --glass-bg-strong: rgba(var(--color-surface-rgb), .74);
+  --glass-edge:      rgba(255, 255, 255, .10);
+  --glass-blur:      saturate(170%) blur(20px);
+  --glass-shadow:    0 8px 32px rgba(0, 0, 0, .22);
+}
+[data-bs-theme=light] {
+  --glass-bg:        rgba(var(--color-surface-rgb), .66);
+  --glass-bg-strong: rgba(var(--color-surface-rgb), .82);
+  --glass-edge:      rgba(0, 0, 0, .07);
+  --glass-shadow:    0 8px 28px rgba(16, 24, 40, .10);
+}
+
+/* Фон, по которому стеклу есть что размывать: две мягкие заливки акцентом.
+   Они не двигаются и ничего не стоят в отрисовке. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 42% at 18% 0%,   rgba(var(--color-accent-rgb), .16), transparent 70%),
+    radial-gradient(52% 38% at 92% 28%,  rgba(var(--color-accent-rgb), .10), transparent 72%);
+}
+
+.stat-card,
+.table-container,
+.student-summary-card,
+.subject-slot-card,
+.teacher-card,
+.dl-card,
+.glass {
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* Таб-бар и листы — плотнее: под ними проезжает содержимое страницы */
+.bottom-tabbar,
+.modal-content {
+  background-color: var(--glass-bg-strong);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* Запасной вариант: без размытия поверхности становятся обычными */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-bg: var(--color-surface); --glass-bg-strong: var(--color-surface-2); }
+  body::before { display: none; }
+}
+
+/* ===== Плитки раздела «Учёба» и сводки ===== */
+.tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.tile-grid .wide { grid-column: 1 / -1; }
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 108px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.tile:active { transform: scale(.975); }
+.tile-ico { width: 28px; height: 28px; color: var(--color-accent); }
+.tile-ico svg { width: 100%; height: 100%; }
+.tile-name { color: var(--color-text); font-weight: 600; font-size: var(--fs-body); }
+.tile-note { color: var(--color-text-secondary); font-size: var(--fs-small); }
+.tile-num { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
+/* Красный кружок со счётчиком «горящих» дедлайнов */
+.tile-count {
+  position: absolute; top: 12px; right: 12px;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger); color: #fff;
+  font-size: var(--fs-small); font-weight: 700;
+}
+
+/* ===== Плавающая кнопка «+» (только администратор) ===== */
+.fab {
+  position: fixed;
+  z-index: 1029;
+  right: var(--space-4);
+  bottom: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + var(--space-3));
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--radius-pill);
+  background: var(--color-accent); color: #fff;
+  box-shadow: 0 8px 24px rgba(var(--color-accent-rgb), .36);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.fab svg { width: 26px; height: 26px; transition: transform var(--dur) var(--ease-out); }
+.fab[aria-expanded="true"] svg { transform: rotate(45deg); }
+.fab:active { transform: scale(.93); }
+
+/* ===== Переключатель разделов внутри экрана (Зачётка / Калькулятор и т.п.) ===== */
+.seg {
+  display: flex; gap: 2px; padding: 3px; margin-bottom: var(--space-4);
+  background-color: var(--color-surface-3);
+  border-radius: var(--radius-pill);
+  overflow-x: auto; scrollbar-width: none;
+}
+.seg::-webkit-scrollbar { display: none; }
+.seg-item {
+  flex: 1 0 auto; padding: 8px 16px;
+  border: 0; background: none; border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font: inherit; font-size: var(--fs-chip); white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.seg-item.active { background-color: var(--color-surface); color: var(--color-text); font-weight: 600; }
+
+/* ===== Сворачиваемая таблица пропусков по предметам ===== */
+.subj-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%; padding: 12px var(--space-4);
+  border: 0; border-top: 1px solid var(--color-separator);
+  background: none; color: inherit; font: inherit; text-align: left;
+}
+.subj-row:first-child { border-top: 0; }
+.subj-row .chev { transition: transform var(--dur-fast) var(--ease-out); flex: none; }
+.subj-row[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.subj-body { display: none; padding: 0 var(--space-4) var(--space-3); }
+.subj-body.open { display: block; animation: subjIn var(--dur) var(--ease-out) both; }
+@keyframes subjIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* ===== Боковая панель вместо таб-бара от 1024 px ===== */
+@media (min-width: 1024px) {
+  .bottom-tabbar {
+    left: 0; right: auto; top: 0; bottom: 0;
+    width: 248px; max-width: none; height: auto;
+    margin: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 2px;
+    padding: var(--space-4) var(--space-3);
+    border-radius: 0;
+    border: 0;
+    border-right: 1px solid var(--color-border);
+    box-shadow: none;
+    overflow-y: auto;
+  }
+  .tabbar-item {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    padding: 11px var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-body);
+  }
+  .tabbar-item .tab-ico { width: 22px; height: 22px; }
+  .tabbar-item .tabbar-badge-dot { position: static; margin-left: auto; }
+  body { padding-left: 248px; }
+  .fab { right: var(--space-8); }
+}
+
+/* «Меньше движения»: стекло остаётся, движение — нет */
+@media (prefers-reduced-motion: reduce) {
+  .tile, .fab, .seg-item, .subj-row .chev { transition: none; }
+  .subj-body.open { animation: none; }
 }
