@@ -729,6 +729,109 @@
     FX.reveal('#cabinetContentSection > .student-summary-card');
   }
 
+  // ===== Четыре блока профиля =====
+  // Ближайший срок, ближайшая домашка, действующие справки и пропуски
+  // по предметам. Данные те же, что и везде: appData и myStudentId.
+
+  // Ближайший дедлайн и ближайшая домашка — по одной строке
+  function renderProfileNext() {
+    const dl = activeDeadlines()
+      .slice()
+      .sort((a, b) => deadlineDaysLeft(a) - deadlineDaysLeft(b))[0];
+    const elDl = document.getElementById('profileNextDeadline');
+    if (elDl) {
+      elDl.textContent = dl
+        ? (dl.text || dl.subject) + ' · ' + deadlineRelative(deadlineDaysLeft(dl))
+        : 'ничего не горит';
+    }
+
+    const today = dayKey(new Date());
+    const hw = (appData.homework || [])
+      .filter(h => !h.dueDate || dayKey(deadlineDate(h.dueDate)) >= today)
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
+    const elHw = document.getElementById('profileNextHomework');
+    if (elHw) {
+      elHw.textContent = hw
+        ? hw.subject + ' · до ' + dlFormatDate(deadlineDate(hw.dueDate))
+        : 'заданий нет';
+    }
+  }
+
+  // Действующие пропуски: уважительные записи, по которым справка ещё
+  // не сдана. Сданные показываем ниже отдельной строкой, чтобы было видно,
+  // что они приняты, и человек не искал их заново.
+  function renderProfileCerts() {
+    const box = document.getElementById('profileActiveCerts');
+    if (!box) return;
+    const mine = myAbsencesSorted().filter(a => a.isExcused && a.certType);
+    const pending = mine.filter(a => !a.certSubmitted);
+    const done = mine.filter(a => a.certSubmitted);
+
+    if (!mine.length) {
+      box.innerHTML = '<div class="row-i"><span class="lbl text-secondary">Справок нет</span></div>';
+      return;
+    }
+    const line = (a) =>
+      '<div class="row-i"><span class="lbl">' + (a.subject || 'Пропуск') +
+      '<small class="d-block text-secondary">' + formatDateShort(a.date) + ' · ' +
+      (Number(a.totalHours) || 0) + ' ч</small></span>' +
+      '<span class="val">' + certStatusBadge(a) + '</span></div>';
+
+    box.innerHTML = pending.map(line).join('') +
+      (done.length
+        ? '<div class="row-i"><span class="lbl text-secondary">Принято справок</span>' +
+          '<span class="val">' + done.length + '</span></div>'
+        : '');
+  }
+
+  // Пропуски по предметам: строка раскрывается в свои записи.
+  // Считает тот же buildSubjectBreakdown, что и журнал, — цифры сходятся.
+  function renderProfileSubjects() {
+    const box = document.getElementById('profileSubjects');
+    if (!box) return;
+    const mine = myAbsencesSorted();
+    const map = buildSubjectBreakdown(mine);
+    const rows = Object.keys(map)
+      .map(sub => ({ sub, ...map[sub], total: map[sub].unexcused + map[sub].excused }))
+      .filter(r => r.total > 0)
+      .sort((a, b) => b.unexcused - a.unexcused || b.total - a.total);
+
+    if (!rows.length) {
+      box.innerHTML = '<div class="row-i"><span class="lbl text-secondary">Пропусков нет</span></div>';
+      return;
+    }
+
+    box.innerHTML = rows.map((r, i) => {
+      const id = 'subjBody' + i;
+      const recs = mine.filter(a => (a.subject || 'Прочее') === r.sub)
+        .map(a => '<div class="row-i"><span class="lbl">' + formatDateShort(a.date) +
+          '<small class="d-block text-secondary">' + (a.isExcused ? 'уважительный' : 'неуважительный') +
+          (a.comment ? ' · ' + a.comment : '') + '</small></span>' +
+          '<span class="val">' + (Number(a.totalHours) || 0) + ' ч</span></div>').join('');
+      return '<button type="button" class="subj-row" aria-expanded="false" aria-controls="' + id + '">' +
+        '<span class="lbl">' + r.sub + '</span>' +
+        '<span class="val">' + r.unexcused + ' / ' + r.excused + '</span>' +
+        '<span class="chev" aria-hidden="true">⌄</span></button>' +
+        '<div class="subj-body" id="' + id + '">' + recs + '</div>';
+    }).join('') +
+      '<div class="row-i"><span class="lbl text-secondary">неуважительные / уважительные, часы</span></div>';
+  }
+
+  // Раскрытие строки предмета
+  document.addEventListener('click', (e) => {
+    const row = e.target.closest && e.target.closest('.subj-row');
+    if (!row) return;
+    const body = document.getElementById(row.getAttribute('aria-controls'));
+    if (!body) return;
+    const open = body.classList.toggle('open');
+    row.setAttribute('aria-expanded', open ? 'true' : 'false');
+    haptic('selection');
+  });
+
+  afterRender('renderMyAbsences', () => { renderProfileCerts(); renderProfileSubjects(); });
+  afterRender('renderDeadlines', renderProfileNext);
+  afterRender('showCabinetContent', () => { renderProfileNext(); renderProfileCerts(); renderProfileSubjects(); });
+
   // Разделы кабинета переехали в общий роутер приложения: «Зачётка» и «Дедлайны»
   // стали отдельными экранами раздела «Учёба», а то, что осталось личным, живёт
   // на экране «Профиль». Обёртка ниже сохранена, потому что на неё ссылается
