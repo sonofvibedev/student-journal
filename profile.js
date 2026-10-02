@@ -771,8 +771,10 @@
       box.innerHTML = '<div class="row-i"><span class="lbl text-secondary">Справок нет</span></div>';
       return;
     }
+    // Название предмета приходит из data.json и собирается в HTML — экранируем.
+    // certStatusBadge отдаёт готовую разметку, её вставляем как есть.
     const line = (a) =>
-      '<div class="row-i"><span class="lbl">' + (a.subject || 'Пропуск') +
+      '<div class="row-i"><span class="lbl">' + escapeHtml(a.subject || 'Пропуск') +
       '<small class="d-block text-secondary">' + formatDateShort(a.date) + ' · ' +
       (Number(a.totalHours) || 0) + ' ч</small></span>' +
       '<span class="val">' + certStatusBadge(a) + '</span></div>';
@@ -804,12 +806,13 @@
     box.innerHTML = rows.map((r, i) => {
       const id = 'subjBody' + i;
       const recs = mine.filter(a => (a.subject || 'Прочее') === r.sub)
+        // Комментарий к пропуску админ пишет руками — экранируем перед вставкой
         .map(a => '<div class="row-i"><span class="lbl">' + formatDateShort(a.date) +
           '<small class="d-block text-secondary">' + (a.isExcused ? 'уважительный' : 'неуважительный') +
-          (a.comment ? ' · ' + a.comment : '') + '</small></span>' +
+          (a.comment ? ' · ' + escapeHtml(a.comment) : '') + '</small></span>' +
           '<span class="val">' + (Number(a.totalHours) || 0) + ' ч</span></div>').join('');
       return '<button type="button" class="subj-row" aria-expanded="false" aria-controls="' + id + '">' +
-        '<span class="lbl">' + r.sub + '</span>' +
+        '<span class="lbl">' + escapeHtml(r.sub) + '</span>' +
         '<span class="val">' + r.unexcused + ' / ' + r.excused + '</span>' +
         '<span class="chev" aria-hidden="true">⌄</span></button>' +
         '<div class="subj-body" id="' + id + '">' + recs + '</div>';
