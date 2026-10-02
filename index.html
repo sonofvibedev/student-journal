@@ -1192,7 +1192,7 @@
             <input type="password" id="changePasswordRepeatInput" class="form-control mb-3" autocomplete="new-password">
             <button type="submit" class="btn btn-primary w-100 fw-bold" id="changePasswordBtn">Сохранить пароль</button>
           </form>
-          <button type="button" class="row-i d-none" id="adminPanelRow" onclick="toggleAdminModal()"><span class="ic" style="--ic: #5e5ce6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lbl">Админ-панель</span><span class="val" id="adminPanelState">Войти</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i d-none" id="adminPanelRow" onclick="openAdminPanel()"><span class="ic" style="--ic: #5e5ce6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lbl">Админ-панель</span><span class="val" id="adminPanelState">Войти</span><span class="chev" aria-hidden="true">›</span></button>
           <button type="button" class="row-i tg-exit" onclick="logoutCabinet()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></span><span class="lbl">Выйти</span></button>
         </div>
       </div>
@@ -1985,7 +1985,7 @@
           <div class="admin-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
           <div class="fw-bold text-white fs-5" id="adminActiveTitle" role="status">Админ-режим включён</div>
           <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, объявления, дедлайны и зачёты.</p>
-          <a href="index.html" class="btn btn-primary w-100 fw-bold mb-2">Перейти в журнал</a>
+          <button type="button" class="btn btn-primary w-100 fw-bold mb-2" data-bs-dismiss="modal" onclick="goView('admin')">Открыть админ-панель</button>
           <button type="button" class="btn btn-outline-danger w-100" onclick="logoutAdmin()">Выйти из админки</button>
         </div>
       </div>
@@ -2492,6 +2492,13 @@
         (d && d.text ? '<div class="dl-text">' + escapeHtml(d.text) + '</div>' : '') +
         '</div>';
     }).join('');
+  }
+
+  // Строка «Админ-панель» в профиле: вошедшего админа ведём сразу на экран,
+  // остальным показываем окно входа по токену.
+  function openAdminPanel() {
+    if (githubToken) goView('admin');
+    else toggleAdminModal();
   }
 
   // ===== Плавающая кнопка «+» и её быстрое меню =====
