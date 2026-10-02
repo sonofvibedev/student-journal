@@ -6,6 +6,14 @@
       "text": "УСРС №1 по лекциям: https://elearning.bseu.by/mod/assign/view.php?id=134968",
       "dueDate": "2026-10-10",
       "createdAt": "2026-09-27T17:11:42.634Z"
+    },
+    {
+      "id": "dl-1790945129020",
+      "type": "zachet",
+      "subject": "Логистика",
+      "text": "1/1005",
+      "dueDate": "2026-12-11",
+      "createdAt": "2026-10-02T12:45:29.020Z"
     }
   ],
   "subjects": [
@@ -79,7 +87,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-02T10:42:13.898Z",
+  "lastUpdated": "2026-10-02T12:45:30.075Z",
   "homework": [
     {
       "id": "hw-1790897160111",
