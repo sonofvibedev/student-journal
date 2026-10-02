@@ -1476,3 +1476,8 @@ body::before {
 .sch-dl-body { min-width: 0; }
 .sch-dl-body b { display: block; color: var(--color-text); font-size: var(--fs-caption); }
 .sch-dl-body small { display: block; color: var(--color-text-secondary); font-size: var(--fs-small); }
+
+/* Длинная ссылка в тексте дедлайна не должна разрывать карточку */
+.dl-text, .today-next b, .sch-dl-body b { overflow-wrap: anywhere; }
+/* Цвет крупной цифры на плитке задаёт сама плитка, а не унаследованный «успех» */
+.tile-num { color: var(--color-text); }

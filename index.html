@@ -990,7 +990,7 @@
     </button>
 
     <!-- Зачётка и калькулятор -->
-    <button type="button" class="tile" onclick="goView('zachetka')">
+    <button type="button" class="tile" id="homeZachetkaTile" onclick="goView('zachetka')">
       <span class="tile-num" id="todayZachetkaAvg">—</span>
       <span class="tile-note">средний балл</span>
       <span class="tile-note">рейтинг <b id="todayRating">—</b></span>
@@ -2293,6 +2293,7 @@
     const guest = document.getElementById('homeGuest');
     if (guest) guest.classList.toggle('d-none', !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
+    document.getElementById('homeZachetkaTile').classList.toggle('d-none', !me);
 
     // Часы за текущий месяц: отдельно неуважительные и уважительные
     if (me) {
