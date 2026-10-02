@@ -6,14 +6,6 @@
       "text": "УСРС №1 по лекциям: https://elearning.bseu.by/mod/assign/view.php?id=134968",
       "dueDate": "2026-10-10",
       "createdAt": "2026-09-27T17:11:42.634Z"
-    },
-    {
-      "id": "dl-1790581913683",
-      "type": "deadline",
-      "subject": "Стратегический маркетинг",
-      "text": "Конкурс: отправить Сверлову на почту alekseisv@mail.ru",
-      "dueDate": "2026-09-30",
-      "createdAt": "2026-09-28T07:51:53.683Z"
     }
   ],
   "subjects": [
@@ -87,7 +79,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-02T10:39:24.179Z",
+  "lastUpdated": "2026-10-02T10:39:29.288Z",
   "homework": [
     {
       "id": "hw-1790897160111",
