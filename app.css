@@ -1351,6 +1351,9 @@ body::before {
 .tile-ico svg { width: 100%; height: 100%; }
 .tile-name { color: var(--color-text); font-weight: 600; font-size: var(--fs-body); }
 .tile-note { color: var(--color-text-secondary); font-size: var(--fs-small); }
+/* Строка «заголовок + кнопка справа» внутри плитки: без width:100% кнопка
+   с ms-auto выезжает за скруглённый край */
+.tile > .d-flex { width: 100%; min-width: 0; }
 .tile-num { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
 /* Красный кружок со счётчиком «горящих» дедлайнов */
 .tile-count {

@@ -842,6 +842,64 @@
 </div>
 
 
+<!-- Раздел «Учёба» (index.html#study) — шесть плиток -->
+<section id="viewStudy" class="app-view d-none">
+  <div class="tile-grid">
+    <button type="button" class="tile" onclick="goView('zachetka')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h11a3 3 0 013 3V21H8a3 3 0 01-3-3z"/><path d="M5 18a3 3 0 013-3h11"/></svg></span>
+      <span class="tile-name">Зачётка и калькулятор</span>
+      <span class="tile-note" id="studyZachetkaNote">оценки и рейтинг</span>
+    </button>
+
+    <button type="button" class="tile" onclick="goView('deadlines')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span>
+      <span class="tile-name">Дедлайны</span>
+      <span class="tile-note" id="studyDeadlinesNote">список и календарь</span>
+      <span class="tile-count d-none" id="studyDeadlinesCount">0</span>
+    </button>
+
+    <button type="button" class="tile" onclick="goView('homework')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h8M8 17h5"/></svg></span>
+      <span class="tile-name">Домашка</span>
+      <span class="tile-note" id="studyHomeworkNote">все задания по датам</span>
+    </button>
+
+    <button type="button" class="tile" onclick="goView('teachers')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4L2.5 9 12 14l9.5-5L12 4z"/><path d="M6.5 11.8V16c0 1.5 2.5 2.8 5.5 2.8s5.5-1.3 5.5-2.8v-4.2"/></svg></span>
+      <span class="tile-name">Преподаватели</span>
+      <span class="tile-note" id="studyTeachersNote">кто что ведёт</span>
+    </button>
+
+    <button type="button" class="tile" onclick="goView('stats')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+      <span class="tile-name">Статистика группы</span>
+      <span class="tile-note" id="studyStatsNote">пропуски всей группы</span>
+    </button>
+
+    <button type="button" class="tile" onclick="goView('exams')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 13l1.6 1.6L15 11"/></svg></span>
+      <span class="tile-name">Зачёты и экзамены</span>
+      <span class="tile-note" id="studyExamsNote">формы контроля и даты</span>
+    </button>
+  </div>
+</section>
+
+<!-- Раздел «Домашка» (index.html#homework) — все задания по датам -->
+<section id="viewHomeworkList" class="app-view d-none">
+  <div id="homeworkListBody"></div>
+</section>
+
+<!-- Раздел «Зачёты и экзамены» (index.html#exams) -->
+<section id="viewExams" class="app-view d-none">
+  <div id="examsBody"></div>
+</section>
+
+<!-- Раздел «Админ-панель» (index.html#admin) -->
+<section id="viewAdmin" class="app-view d-none">
+  <div id="adminPanelBody"></div>
+</section>
+
+
 <!-- Раздел «Главная» (index.html#home) — сводка дня -->
 <section id="viewHome" class="app-view d-none">
 
@@ -902,7 +960,7 @@
   </div>
 
   <!-- Строку заполняет updateTodayGrades() из profile.js: ближайший срок одной строкой -->
-  <button type="button" class="tile wide mt-3 d-none" id="todayNext" onclick="goView('deadlines')">
+  <button type="button" class="w wide today-next d-none" id="todayNext" onclick="goView('deadlines')">
     <small class="text-secondary" id="todayNextKind"></small>
     <b class="tile-name" id="todayNextTitle"></b>
     <span class="tile-note" id="todayNextMeta"></span>
@@ -2049,15 +2107,23 @@
 
   // «Назад» в Telegram закрывает верхнее открытое окно
   // «Назад» Telegram — только чтобы закрыть открытое окно; разделы переключаются таб-баром и свайпом
+  // «Назад» в Telegram видна на вложенных экранах и при открытом окне.
+  // На вкладках её нет: между ними ходят таб-баром и свайпом.
   function syncTelegramBackButton() {
     if (!tgSupports('6.1') || !TG.BackButton) return;
-    if (document.querySelector('.modal.show')) TG.BackButton.show();
+    const nested = typeof currentViewName === 'string' && typeof isNestedView === 'function' && isNestedView(currentViewName);
+    const studak = typeof studakIsOpen === 'function' && studakIsOpen();
+    if (document.querySelector('.modal.show') || nested || studak) TG.BackButton.show();
     else TG.BackButton.hide();
   }
 
+  // Сначала закрываем верхнее окно, затем пропуск, и только потом уходим
+  // с вложенного экрана — тем же путём, что и кнопкой «назад» телефона.
   function onTelegramBack() {
     const open = document.querySelectorAll('.modal.show');
-    if (open.length) bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide();
+    if (open.length) { bootstrap.Modal.getOrCreateInstance(open[open.length - 1]).hide(); return; }
+    if (typeof studakIsOpen === 'function' && studakIsOpen()) { closeStudak(); return; }
+    if (typeof isNestedView === 'function' && isNestedView(currentViewName)) history.back();
   }
 
   function setupTelegram() {
@@ -2093,72 +2159,208 @@
   // Переключение без перезагрузки — таб-баром или свайпом влево/вправо. Адрес (#teachers …) меняется
   // без новой записи в истории: прямые ссылки работают, а кнопка «назад» по разделам не ходит.
   // Активна та кнопка таб-бара, чей раздел открыт.
-  function setActiveTab(tab) {
-    document.querySelectorAll('.bottom-tabbar .tabbar-item').forEach(t => {
-      const on = t === tab;
-      t.classList.toggle('active', on);
-      if (on) t.setAttribute('aria-current', 'page');
-      else t.removeAttribute('aria-current');
-    });
-  }
-  // «Дедлайны» остались разделом страницы: кнопки в таб-баре у них больше нет, но адрес
-  // index.html#deadlines и кнопка «Управлять» в админке работают как прежде.
-  const VIEWS = { stats: 'viewStats', teachers: 'viewTeachers', homework: 'viewHomework', deadlines: 'viewDeadlines' };
+  // ===== Один роутер на всё приложение =====
+  // Четыре кнопки таб-бара — Главная, Расписание, Учёба, Профиль. Остальные экраны
+  // вложенные: открываются из плиток и строк, подсвечивают «свою» кнопку (SCREEN_HOST
+  // в shared.js) и записываются в историю, поэтому кнопка «назад» телефона возвращает
+  // на экран, с которого пришли. Переключение между вкладками историю не копит.
+  const VIEWS = {
+    home:      'viewHome',
+    schedule:  'viewHomework',      // расписание с домашкой
+    study:     'viewStudy',
+    profile:   'viewProfile',
+    // вложенные
+    stats:     'viewStats',         // статистика группы
+    teachers:  'viewTeachers',
+    deadlines: 'viewDeadlines',
+    homework:  'viewHomeworkList',  // общий список домашних заданий
+    exams:     'viewExams',
+    zachetka:  'viewZachetka',
+    absences:  'viewAbsences',
+    admin:     'viewAdmin'
+  };
+  const TAB_IDS = APP_TABS.map(t => t.id);
   let swipeDrivenView = false;   // раздел меняют свайпом: анимацию покажет swipeIn
   let currentViewName = null;
+
   function currentView() {
     const h = location.hash.slice(1);
-    return VIEWS[h] ? h : 'stats';
+    return VIEWS[h] ? h : 'home';
   }
+  function isNestedView(name) { return TAB_IDS.indexOf(name) === -1; }
+
+  // goView — обычный переход. Вложенный экран добавляется в историю, вкладка — нет.
   function goView(name) {
-    if (!VIEWS[name]) name = 'stats';
-    if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+    if (!VIEWS[name]) name = 'home';
+    if (location.hash !== '#' + name) {
+      if (isNestedView(name)) history.pushState(null, '', '#' + name);
+      else history.replaceState(null, '', '#' + name);
+    }
     showView(name);
   }
+
   function showView(name) {
-    if (!VIEWS[name]) name = 'stats';
+    if (!VIEWS[name]) name = 'home';
     const changed = currentViewName !== name;
     currentViewName = name;
-    Object.keys(VIEWS).forEach(k => document.getElementById(VIEWS[k]).classList.toggle('d-none', k !== name));
-    setActiveTab(document.querySelector(`.bottom-tabbar .tabbar-item[data-view="${name}"]`));
+    Object.keys(VIEWS).forEach(k => {
+      const el = document.getElementById(VIEWS[k]);
+      if (el) el.classList.toggle('d-none', k !== name);
+    });
+    renderTabbar(name, { study: hasHotDeadlines() });
+
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
-    if (name === 'homework') { renderHomeworkView(); updateAdminUI(); }
-    // Плашка месяца и «Пропуски актуальны на» относятся к пропускам:
-    // в «Домашке» они сбивают с толку, поэтому видны только в «Статистике».
-    // Колокольчик объявлений и бейдж группы остаются на всех разделах.
-    const absenceHeader = name !== 'homework';
-    document.getElementById('periodCaption').classList.toggle('d-none', !absenceHeader);
-    document.getElementById('dataLastUpdated').classList.toggle('d-none', !absenceHeader);
-    if (name === 'deadlines') {
-      renderDeadlines();
-      markDeadlinesSeen();
-      updateDeadlinesDot();
-    }
+    if (name === 'schedule') { renderHomeworkView(); updateAdminUI(); }
+    if (name === 'study')    { renderStudyTiles(); }
+    if (name === 'home')     { renderHome(); }
+    if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
+    if (name === 'absences' && typeof renderPersonalStats === 'function') renderPersonalStats();
+
+    // Плашка месяца и «Пропуски актуальны на» относятся к пропускам группы:
+    // на других экранах они сбивают с толку
+    const absenceHeader = name === 'stats';
+    const pc = document.getElementById('periodCaption');
+    const du = document.getElementById('dataLastUpdated');
+    if (pc) pc.classList.toggle('d-none', !absenceHeader);
+    if (du) du.classList.toggle('d-none', !absenceHeader);
+
     if (changed) {
       window.scrollTo(0, 0);
       // При свайпе раздел уже «въезжает» через swipeIn — не наслаиваем вторую анимацию
-      if (!swipeDrivenView) restartAnimation(document.getElementById(VIEWS[name]), 'view-enter');
+      const el = document.getElementById(VIEWS[name]);
+      if (!swipeDrivenView && el) restartAnimation(el, 'view-enter');
     }
     syncTelegramBackButton();
   }
-  window.addEventListener('hashchange', () => showView(currentView()));   // адрес изменили вручную
-  // Кнопки таб-бара — ссылки #stats / #teachers / #homework: переключаем сами, без записи в истории
-  // (таб-бар в разметке ниже скрипта — поэтому слушаем клики на документе)
+
+  // ===== Главная: сводка дня =====
+  // Личные цифры показываются только вошедшему студенту; гостю вместо них —
+  // строка с приглашением войти. Дедлайны и ближайшую пару видно всем.
+  function renderHome() {
+    const me = (typeof myStudentId !== 'undefined' && myStudentId) ? myStudentId : null;
+    const guest = document.getElementById('homeGuest');
+    if (guest) guest.classList.toggle('d-none', !!me);
+    document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
+
+    // Часы за текущий месяц: отдельно неуважительные и уважительные
+    if (me) {
+      const now = new Date();
+      let un = 0, ex = 0;
+      (appData.absences || []).forEach(a => {
+        if (a.studentId !== me) return;
+        const d = new Date(a.date);
+        if (isNaN(d) || d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return;
+        if (a.isExcused) ex += Number(a.totalHours) || 0; else un += Number(a.totalHours) || 0;
+      });
+      document.getElementById('homeHoursUnexcused').textContent = un;
+      document.getElementById('homeHoursExcused').textContent = ex;
+    }
+
+    renderHomeLesson();
+    renderHomeHomework();
+    if (typeof renderToday === 'function') renderToday();
+  }
+
+  // Текущая или следующая пара. Расписание — в schedule.js, домашка — в data.json.
+  function renderHomeLesson() {
+    const card = document.getElementById('homeLessonCard');
+    if (!card || typeof lessonsOfDay !== 'function') return;
+    const now = new Date();
+    // lessonsOfDay(неделя, день): неделю считает currentSemesterWeek() из schedule.js
+    const week = currentSemesterWeek(now);
+    const day = now.getDay() === 0 ? 7 : now.getDay();
+    const list = (day <= 6 && week ? lessonsOfDay(week, day) : []) || [];
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const toMin = (hm) => { const p = String(hm).split(':'); return (+p[0]) * 60 + (+p[1]); };
+    let lesson = null, when = '';
+    for (const l of list) {
+      if (mins >= toMin(l.from) && mins <= toMin(l.to)) { lesson = l; when = 'Идёт сейчас'; break; }
+      if (mins < toMin(l.from)) { lesson = l; when = 'Следующая пара'; break; }
+    }
+    card.classList.toggle('d-none', !lesson);
+    if (!lesson) return;
+    document.getElementById('homeLessonWhen').textContent = when;
+    document.getElementById('homeLessonWhen').className = 'badge ' + (when === 'Идёт сейчас' ? 'bg-success' : 'bg-secondary');
+    document.getElementById('homeLessonTime').textContent = lesson.from + '–' + lesson.to;
+    document.getElementById('homeLessonSubject').textContent = lesson.subject;
+    document.getElementById('homeLessonMeta').textContent =
+      [LESSON_KIND_FULL[lesson.kind] || lesson.kind, lesson.teacher, lesson.room && ('ауд. ' + lesson.room)]
+        .filter(Boolean).join(' · ');
+    const hw = (appData.homework || []).filter(h => h.subject === lesson.subject)
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
+    document.getElementById('homeLessonHw').textContent = hw ? 'ДЗ: ' + hw.text : '';
+  }
+
+  // Три ближайших задания по сроку сдачи
+  function renderHomeHomework() {
+    const box = document.getElementById('homeHomework');
+    if (!box) return;
+    const today = dayKey(new Date());
+    const list = (appData.homework || [])
+      .filter(h => !h.dueDate || dayKey(deadlineDate(h.dueDate)) >= today)
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
+      .slice(0, 3);
+    if (!list.length) { box.innerHTML = '<div class="today-empty">Домашки пока нет</div>'; return; }
+    box.innerHTML = list.map(h =>
+      '<div class="row-i"><span class="lbl">' + escapeHtml(h.subject) +
+      '<small class="d-block text-secondary">' + escapeHtml(h.text || '') + '</small></span>' +
+      '<span class="val">' + (h.dueDate ? dlFormatDate(deadlineDate(h.dueDate)) : '—') + '</span></div>').join('');
+  }
+
+  // ===== «Учёба»: подписи и счётчик на плитках =====
+  function renderStudyTiles() {
+    const hot = (typeof activeDeadlines === 'function' ? activeDeadlines() : []).filter(d => deadlineDaysLeft(d) <= 1);
+    const cnt = document.getElementById('studyDeadlinesCount');
+    cnt.textContent = hot.length;
+    cnt.classList.toggle('d-none', hot.length === 0);
+
+    const dls = (typeof activeDeadlines === 'function' ? activeDeadlines() : []).length;
+    document.getElementById('studyDeadlinesNote').textContent = dls ? dls + ' впереди' : 'список и календарь';
+    const hw = (appData.homework || []).length;
+    document.getElementById('studyHomeworkNote').textContent = hw ? hw + ' заданий' : 'все задания по датам';
+    document.getElementById('studyTeachersNote').textContent = (appData.teachers || []).length + ' предметов';
+    const avg = document.getElementById('todayZachetkaAvg');
+    document.getElementById('studyZachetkaNote').textContent =
+      avg && avg.textContent !== '—' ? 'средний балл ' + avg.textContent : 'оценки и рейтинг';
+  }
+
+  // Экранирование для строк, которые собираются в HTML
+  function escapeHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
+  function hasHotDeadlines() {
+    try {
+      return activeDeadlines().some(d => deadlineDaysLeft(d) <= 1);
+    } catch (e) { return false; }
+  }
+
+  // Адрес изменили вручную или нажали «назад» в браузере
+  window.addEventListener('hashchange', () => showView(currentView()));
+  window.addEventListener('popstate', () => showView(currentView()));
+
+  // Кнопки таб-бара — ссылки #home / #schedule / #study / #profile.
+  // Таб-бар рисует renderTabbar() уже после этого скрипта, поэтому слушаем документ.
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('.bottom-tabbar a[data-view]');
     if (!a) return;
     e.preventDefault();
     goView(a.dataset.view);
   });
-  // Свайп: Статистика ↔ Преподаватели ↔ Дедлайны ↔ Личный кабинет (порядок кнопок таб-бара)
-  enableTabSwipe(() => ['stats', 'teachers', 'homework', 'cabinet'], () => currentViewName, (name, dir) => {
-    haptic('selection');
-    if (name === 'cabinet') { location.href = 'cabinet.html'; return; }
-    swipeDrivenView = true;
-    goView(name);
-    swipeDrivenView = false;
-    swipeIn(document.getElementById(VIEWS[name]), dir);
-  });
+
+  // Свайп влево-вправо — соседняя вкладка
+  enableTabSwipe(
+    () => TAB_IDS,
+    () => tabForScreen(currentViewName),
+    (name, dir) => {
+      haptic('selection');
+      swipeDrivenView = true;
+      goView(name);
+      swipeDrivenView = false;
+      swipeIn(document.getElementById(VIEWS[name]), dir);
+    });
 
   // Замена браузерных showAlert()/confirm() на модалки в стиле приложения.
   // showAlert — просто показать сообщение, ждать не обязательно (сразу продолжаем/выходим).
@@ -2238,7 +2440,6 @@
       updateStats();
       renderTable();
       renderGeneralAnnouncements();
-      updateCabinetUnreadBadge();
       renderExtendedStats();
       renderAnalyticsChart();
     } catch (err) {
@@ -2283,28 +2484,8 @@
     } catch (e) {
       // Нет сети — остаётся сохранённый профиль
     }
-    updateCabinetUnreadBadge();
   }
 
-  // Красная точка на вкладке "Личный кабинет" в таб-баре, если у вошедшего на этом
-  // устройстве студента есть персональные объявления, которые он ещё не открывал (seen_announcements),
-  // или новые дедлайны, которые он ещё не видел (seen_deadlines; прошедшие больше недели назад не считаются)
-  function updateCabinetUnreadBadge() {
-    const dot = document.getElementById('cabinetUnreadDot');
-    if (!dot) return;
-
-    const myId = myCabinetProfile && myCabinetProfile.student_id;
-    if (!myId) { dot.classList.add('d-none'); return; }
-
-    let seen = [];
-    try { seen = JSON.parse(lsGet('seen_announcements') || '[]'); } catch (e) {}
-
-    const hasUnread = (appData.announcements || []).some(a =>
-      a.targetType === 'STUDENT' && a.targetStudentId === myId && !seen.includes(a.id)
-    );
-    // Новые дедлайны — своя точка на кнопке «Дедлайны» (updateDeadlinesDot, shared.js)
-    dot.classList.toggle('d-none', !hasUnread);
-  }
 
   function updateStats() {
     const totalStudents = appData.students.length;
@@ -2384,7 +2565,6 @@
     await saveDataToGitHub('Добавлено объявление');
     announcementModal.hide();
     renderGeneralAnnouncements();
-    updateCabinetUnreadBadge();
   }
 
   async function deleteAnnouncement(id) {
@@ -2392,7 +2572,6 @@
     appData.announcements = appData.announcements.filter(a => a.id !== id);
     await saveDataToGitHub('Удалено объявление');
     renderGeneralAnnouncements();
-    updateCabinetUnreadBadge();
   }
 
   // --- Дедлайны (админ): список, добавление, изменение, удаление. Хранятся в appData.deadlines:
@@ -2520,7 +2699,6 @@
     // Сначала админ видит «Изменения успешно сохранены!», после закрытия — снова список дедлайнов
     document.getElementById('customAlertModal').addEventListener('hidden.bs.modal', () => openDeadlinesModal(), { once: true });
     bootstrap.Modal.getOrCreateInstance(document.getElementById('deadlineFormModal')).hide();
-    updateCabinetUnreadBadge();
     renderDeadlines();
   }
 
@@ -2534,7 +2712,6 @@
     const ok = await saveDataToGitHub(`Удалён ${noun}: ${d.subject} — ${d.type === 'zachet' ? '' : 'до '}${formatDateShort(deadlineDate(d.dueDate))}`);
     if (!ok) appData.deadlines = backup;
     renderDeadlinesAdminList();
-    updateCabinetUnreadBadge();
     renderDeadlines();
   }
 
@@ -4549,30 +4726,8 @@
 <script src="profile.js?v=14"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
-<nav class="bottom-tabbar" aria-label="Разделы">
-  <a class="tabbar-item active" aria-current="page" href="#stats" data-view="stats" data-tab-home>
-    <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M18.8738 2C19.57 2 20.2377 2.27656 20.73 2.76884C21.2223 3.26113 21.4988 3.92881 21.4988 4.625V22.7083C21.4988 23.4045 21.2223 24.0722 20.73 24.5645C20.2377 25.0568 19.57 25.3333 18.8738 25.3333H6.625C5.92881 25.3333 5.26113 25.0568 4.76884 24.5645C4.27656 24.0722 4 23.4045 4 22.7083V4.625C4 3.92881 4.27656 3.26113 4.76884 2.76884C5.26113 2.27656 5.92881 2 6.625 2H18.8738ZM22.6667 17.169H23.5417C23.7531 17.169 23.9574 17.2456 24.1168 17.3846C24.2761 17.5235 24.3797 17.7155 24.4085 17.925L24.4167 18.044V19.7917C24.4167 20.0031 24.3401 20.2074 24.2011 20.3668C24.0621 20.5261 23.8701 20.6297 23.6607 20.6585L23.5417 20.6667H22.6667V17.169ZM22.6667 12.5023H23.5417C23.7531 12.5023 23.9574 12.5789 24.1168 12.7179C24.2761 12.8569 24.3797 13.0489 24.4085 13.2583L24.4167 13.3773V15.125C24.4167 15.3364 24.3401 15.5407 24.2011 15.7001C24.0621 15.8594 23.8701 15.9631 23.6607 15.9918L23.5417 16H22.6667V12.5023ZM22.6667 7.83567H23.5417C23.7531 7.83568 23.9574 7.91225 24.1168 8.05123C24.2761 8.19021 24.3797 8.38219 24.4085 8.59167L24.4167 8.71067V10.4583C24.4167 10.6698 24.3401 10.8741 24.2011 11.0334C24.0621 11.1928 23.8701 11.2964 23.6607 11.3252L23.5417 11.3333H22.6667V7.83567ZM16.5463 6.07983H8.95833C8.74671 6.07988 8.54228 6.15662 8.3829 6.29583C8.22352 6.43505 8.12 6.62731 8.0915 6.837L8.08333 6.95483V8.7095C8.08333 9.15283 8.4135 9.518 8.8405 9.57633L8.95833 9.5845H16.5452C16.7566 9.58449 16.9609 9.50792 17.1203 9.36894C17.2796 9.22996 17.3832 9.03798 17.412 8.8285L17.4202 8.7095V6.95483C17.4202 6.72277 17.328 6.50021 17.1639 6.33612C16.9998 6.17202 16.7784 6.07983 16.5463 6.07983Z"/></svg>
-    <span>Статистика</span>
-  </a>
-  <a class="tabbar-item" href="#teachers" data-view="teachers" aria-label="Преподаватели" onclick="openTeachersList(); return false;">
-    <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M14 20.125C13.8477 20.125 13.698 20.0852 13.5658 20.0096L5.90625 15.6319C5.83969 15.5934 5.76419 15.5732 5.68734 15.5732C5.61049 15.5733 5.535 15.5935 5.46847 15.632C5.40194 15.6705 5.34672 15.7258 5.30837 15.7924C5.27002 15.859 5.24989 15.9345 5.25 16.0114V20.125C5.24987 20.2812 5.29154 20.4345 5.37068 20.5691C5.44983 20.7038 5.56356 20.8148 5.70008 20.8906L13.5751 25.2656C13.7051 25.3378 13.8513 25.3757 14 25.3757C14.1487 25.3757 14.2949 25.3378 14.4249 25.2656L22.2999 20.8906C22.4364 20.8148 22.5502 20.7038 22.6293 20.5691C22.7085 20.4345 22.7501 20.2812 22.75 20.125V16.0114C22.7501 15.9345 22.73 15.859 22.6916 15.7924C22.6533 15.7258 22.5981 15.6705 22.5315 15.632C22.465 15.5935 22.3895 15.5733 22.3127 15.5732C22.2358 15.5732 22.1603 15.5934 22.0938 15.6319L14.4342 20.0096C14.302 20.0852 14.1523 20.125 14 20.125Z"/><path d="M27.1207 10.4179V10.4119C27.1065 10.2732 27.0594 10.1399 26.9833 10.0231C26.9072 9.90627 26.8043 9.80933 26.6832 9.74034L14.4332 2.74034C14.3009 2.66476 14.1513 2.625 13.9989 2.625C13.8466 2.625 13.697 2.66476 13.5647 2.74034L1.31472 9.74034C1.18084 9.81689 1.06957 9.92746 0.992175 10.0609C0.914784 10.1943 0.874023 10.3457 0.874023 10.5C0.874023 10.6542 0.914784 10.8057 0.992175 10.939C1.06957 11.0724 1.18084 11.183 1.31472 11.2596L13.5647 18.2596C13.697 18.3351 13.8466 18.3749 13.9989 18.3749C14.1513 18.3749 14.3009 18.3351 14.4332 18.2596L25.211 12.1012C25.2276 12.0916 25.2465 12.0865 25.2658 12.0865C25.285 12.0866 25.3039 12.0917 25.3205 12.1013C25.3372 12.111 25.351 12.1248 25.3605 12.1415C25.3701 12.1582 25.3751 12.1771 25.375 12.1964V20.1003C25.375 20.5712 25.7371 20.9753 26.2079 20.9989C26.3262 21.0046 26.4445 20.9862 26.5555 20.9448C26.6665 20.9035 26.7679 20.84 26.8537 20.7583C26.9394 20.6766 27.0077 20.5784 27.0543 20.4695C27.101 20.3606 27.125 20.2434 27.125 20.125V10.5C27.1249 10.4726 27.1235 10.4452 27.1207 10.4179Z"/></svg>
-    <span class="lbl-full">Преподаватели</span><span class="lbl-short">Преподы</span>
-  </a>
-  <a class="tabbar-item" href="#homework" data-view="homework">
-    <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" aria-hidden="true"><path d="M6 3.5h8.5A2.5 2.5 0 0 1 17 6v16.5a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5V6A2.5 2.5 0 0 1 6 3.5Zm1.3 3.1v15.3h1.1V6.6H7.3Zm3.2 4.1a.9.9 0 1 0 0 1.8h3.9a.9.9 0 0 0 0-1.8h-3.9Zm0 4.9a.9.9 0 1 0 0 1.8h3.9a.9.9 0 0 0 0-1.8h-3.9Z"/><path d="M19.2 24.8 18.5 21.25 23.5 7.0q1.3-2.8 2.6.4L21.76 22.24 19.2 24.8Z"/></svg>
-    <span>Домашка</span>
-    <span id="homeworkTabDot" class="tabbar-badge-dot d-none js-deadlines-dot"></span>
-  </a>
-  <a class="tabbar-item" href="cabinet.html">
-    <span class="tab-selection"></span>
-    <svg class="tab-ico" viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.8098 25.6652L14 25.6667C13.7425 25.6667 13.485 25.6583 13.2279 25.6416C12.9099 25.6207 12.5928 25.587 12.2775 25.5404C11.9112 25.4861 11.5476 25.4145 11.1882 25.3256C10.8338 25.2379 10.4838 25.1335 10.1392 25.0128L10.1373 25.0121C9.57 24.8131 9.019 24.5703 8.48933 24.2858C8.1134 24.084 7.74886 23.8617 7.39733 23.6198C7.00202 23.348 6.6238 23.0521 6.2648 22.7339C6.13937 22.6227 6.01634 22.5089 5.89577 22.3925C3.69925 20.2708 2.33337 17.2949 2.33337 14C2.33337 7.55674 7.55674 2.33337 14 2.33337C15.5321 2.33337 17.0492 2.63513 18.4647 3.22143C19.8801 3.80773 21.1663 4.66709 22.2496 5.75044C23.333 6.83379 24.1923 8.11991 24.7787 9.53538C25.365 10.9508 25.6667 12.4679 25.6667 14C25.6667 17.2951 24.3007 20.271 22.1042 22.3926C22.1041 22.3927 22.1041 22.393 22.1042 22.3932C21.5516 22.9266 20.948 23.4045 20.302 23.8199L20.293 23.8257C20.1465 23.9198 19.9979 24.0105 19.8473 24.0979L19.8314 24.1071C19.5679 24.2594 19.2985 24.4013 19.0239 24.5326C18.9165 24.5838 18.8083 24.6335 18.6994 24.6816C18.5858 24.7315 18.4714 24.7797 18.3564 24.8262C18.2448 24.871 18.1326 24.9142 18.0198 24.9557C17.9057 24.9975 17.791 25.0375 17.6758 25.0759C17.5625 25.1134 17.4486 25.1492 17.3343 25.1833C17.2131 25.2193 17.0914 25.2534 16.9691 25.2856C16.8501 25.3167 16.7307 25.346 16.6108 25.3735C16.4912 25.4008 16.3712 25.4262 16.2507 25.4498C15.7599 25.5457 15.2635 25.6099 14.7644 25.6421C14.6404 25.6501 14.5162 25.6562 14.392 25.6603L14.3896 25.6603C14.1964 25.6667 14.0031 25.6683 13.8098 25.6652ZM15.1667 18.6667H12.8334C10.9749 18.6667 9.34956 19.7603 8.60237 21.3593L8.51787 21.553L8.59099 21.6071C9.92077 22.5543 11.5095 23.1616 13.2304 23.3021C13.2817 23.3063 13.3332 23.3101 13.3848 23.3134L13.2375 23.3026C13.2876 23.3067 13.3378 23.3104 13.3882 23.3136L13.3848 23.3134C13.4347 23.3167 13.4846 23.3196 13.5346 23.322L13.3882 23.3136C13.4401 23.317 13.4922 23.32 13.5445 23.3224L13.5346 23.322C13.5721 23.3238 13.6097 23.3254 13.6472 23.3268L14 23.3334L14.1463 23.3323C14.2001 23.3315 14.2539 23.3302 14.3076 23.3285L14.16 23.332C14.2097 23.3312 14.2594 23.33 14.309 23.3283L14.3076 23.3284C14.3576 23.3268 14.4075 23.3248 14.4574 23.3224L14.309 23.3283C14.3604 23.3266 14.4118 23.3246 14.4632 23.3221L14.4574 23.3224C14.5093 23.3198 14.5611 23.3169 14.6127 23.3136L14.4632 23.3221C14.5137 23.3196 14.5642 23.3167 14.6147 23.3135L14.6127 23.3136C14.6633 23.3103 14.7137 23.3066 14.764 23.3026L14.6146 23.3135C14.666 23.3101 14.7174 23.3064 14.7687 23.3022L14.764 23.3026C14.8129 23.2986 14.8616 23.2942 14.9102 23.2896L14.7687 23.3022C14.8197 23.298 14.8706 23.2934 14.9215 23.2885L14.9102 23.2896C16.5736 23.1286 18.1092 22.5309 19.4011 21.6127L19.481 21.553L19.3978 21.3595C18.6833 19.83 17.1651 18.7628 15.4078 18.6729L15.1667 18.6667ZM14 4.66673C8.8454 4.66673 4.66673 8.8454 4.66673 14C4.66673 16.226 5.44597 18.27 6.74655 19.874C7.9512 17.7591 10.2258 16.3334 12.8334 16.3334H15.1667C17.7744 16.3334 20.049 17.7592 21.2534 19.8738C22.5541 18.27 23.3334 16.226 23.3334 14C23.3334 8.8454 19.1547 4.66673 14 4.66673ZM14 5.83337C16.5774 5.83337 18.6667 7.92271 18.6667 10.5C18.6667 12.9992 16.7021 15.0396 14.2329 15.161L14 15.1667C11.4227 15.1667 9.33337 13.0774 9.33337 10.5C9.33337 8.0008 11.298 5.96041 13.7671 5.83906L14 5.83337ZM14 8.16673C12.7114 8.16673 11.6667 9.21137 11.6667 10.5C11.6667 11.7887 12.7114 12.8334 14 12.8334C15.2887 12.8334 16.3334 11.7887 16.3334 10.5C16.3334 9.21137 15.2887 8.16673 14 8.16673Z"/></svg>
-    <span>Личный кабинет</span>
-    <span id="cabinetUnreadDot" class="tabbar-badge-dot d-none"></span>
-  </a>
-</nav>
+<!-- Таб-бар рисует renderTabbar() из shared.js — один и тот же состав на всё приложение -->
+<nav class="bottom-tabbar" aria-label="Разделы"></nav>
 
 </body>
 </html>
