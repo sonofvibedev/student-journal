@@ -27,6 +27,8 @@
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
   <link href="app.css?v=13" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
+  <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
+  <link href="profile.css?v=14" rel="stylesheet">
   <script src="theme.js?v=13"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
@@ -839,6 +841,347 @@
   </section>
 </div>
 
+
+<!-- Раздел «Главная» (index.html#home) — сводка дня -->
+<section id="viewHome" class="app-view d-none">
+
+  <!-- Гостю вместо личных цифр — приглашение войти -->
+  <div class="group d-none" id="homeGuest">
+    <div class="inset">
+      <button type="button" class="row-i" onclick="goView('profile')">
+        <span class="ic" style="--ic: #0a84ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+        <span class="lbl">Войдите в кабинет<small class="d-block text-secondary">чтобы видеть свои пропуски и оценки</small></span>
+        <span class="chev" aria-hidden="true">›</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Текущая или следующая пара -->
+  <button type="button" class="tile wide mb-3 d-none" id="homeLessonCard" onclick="goView('schedule')">
+    <span class="d-flex align-items-center gap-2">
+      <span class="badge" id="homeLessonWhen">—</span>
+      <small class="text-secondary ms-auto" id="homeLessonTime"></small>
+    </span>
+    <span class="tile-name" id="homeLessonSubject">—</span>
+    <span class="tile-note" id="homeLessonMeta"></span>
+    <span class="tile-note" id="homeLessonHw"></span>
+  </button>
+
+  <div class="tile-grid">
+    <!-- Часы пропусков за месяц: по нажатию — календарь пропусков -->
+    <button type="button" class="tile" id="homeHoursTile" onclick="goView('absences')">
+      <span class="tile-num" id="homeHoursUnexcused">0</span>
+      <span class="tile-note">неуважительных часов за месяц</span>
+      <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
+    </button>
+
+    <!-- Зачётка и калькулятор -->
+    <button type="button" class="tile" onclick="goView('zachetka')">
+      <span class="tile-num" id="todayZachetkaAvg">—</span>
+      <span class="tile-note">средний балл</span>
+      <span class="tile-note">рейтинг <b id="todayRating">—</b></span>
+    </button>
+
+    <!-- Ближайшие дедлайны -->
+    <div class="tile wide">
+      <span class="d-flex align-items-center gap-2">
+        <span class="tile-name">Ближайшие дедлайны</span>
+        <button type="button" class="btn btn-sm btn-secondary ms-auto" id="todayDeadlinesMore" onclick="goView('deadlines')">Все</button>
+      </span>
+      <div class="inset mt-2" id="todayDeadlines"></div>
+    </div>
+
+    <!-- Ближайшие домашки -->
+    <div class="tile wide">
+      <span class="d-flex align-items-center gap-2">
+        <span class="tile-name">Ближайшие домашки</span>
+        <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('homework')">Все</button>
+      </span>
+      <div class="inset mt-2" id="homeHomework"></div>
+    </div>
+  </div>
+
+  <!-- Строку заполняет updateTodayGrades() из profile.js: ближайший срок одной строкой -->
+  <button type="button" class="tile wide mt-3 d-none" id="todayNext" onclick="goView('deadlines')">
+    <small class="text-secondary" id="todayNextKind"></small>
+    <b class="tile-name" id="todayNextTitle"></b>
+    <span class="tile-note" id="todayNextMeta"></span>
+  </button>
+</section>
+
+
+<!-- ======================= ЛИЧНЫЕ ЭКРАНЫ =======================
+     Разметка перенесена из cabinet.html: id и обработчики прежние,
+     поэтому перенесённый код в profile.js работает без правок.
+     ============================================================ -->
+
+<!-- Раздел «Профиль» (index.html#profile) -->
+<section id="viewProfile" class="app-view d-none">
+  <div id="cabinetSkeleton" class="cabinet-skeleton" aria-hidden="true">
+    <span class="skel skel-card"></span>
+    <span class="skel skel-line"></span>
+    <div class="skel-stats"><span class="skel skel-stat"></span><span class="skel skel-stat"></span></div>
+    <span class="skel skel-block"></span>
+  </div>
+
+  <div id="cabinetLoginSection" class="d-none login-card">
+    <div class="greet">Личный кабинет</div>
+    <p class="small text-secondary mb-3">Войдите, чтобы увидеть свои пропуски и зачётку</p>
+    <div class="seg" id="authSeg" role="tablist" data-active="login">
+      <button type="button" role="tab" id="authTabLogin" aria-selected="true" onclick="setAuthTab('login')">Войти</button>
+      <button type="button" role="tab" id="authTabInvite" aria-selected="false" onclick="setAuthTab('invite')">Первый вход</button>
+    </div>
+
+    <form id="authPaneLogin" onsubmit="attemptLogin(); return false;" novalidate>
+      <div class="mb-2">
+        <label class="form-label text-secondary small" for="cabinetLoginInput">Логин</label>
+        <input type="text" id="cabinetLoginInput" class="form-control" placeholder="Ваш логин" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="mb-3">
+        <label class="form-label text-secondary small" for="cabinetPasswordInput">Пароль</label>
+        <input type="password" id="cabinetPasswordInput" class="form-control" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary w-100 fw-bold" id="loginSubmitBtn">Войти</button>
+      <p class="auth-hint mt-3">Забыли пароль? Попросите у старосты новый код и введите его во вкладке «Первый вход».</p>
+    </form>
+
+    <div id="authPaneInvite" class="d-none">
+      <form id="inviteCodeForm" onsubmit="submitInviteCode(); return false;" novalidate>
+        <label class="form-label text-secondary small" for="inviteCodeInput">Одноразовый код от старосты</label>
+        <input type="text" id="inviteCodeInput" class="form-control mb-3" placeholder="ABCDE-23456" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="13">
+        <button type="submit" class="btn btn-primary w-100 fw-bold" id="inviteCodeBtn">Продолжить</button>
+        <p class="auth-hint mt-3">Код действует один раз. По нему вы создадите свой логин и пароль.</p>
+      </form>
+      <form id="inviteAccountForm" class="d-none" onsubmit="submitNewAccount(); return false;" novalidate>
+        <div class="inset invite-who">
+          <span class="text-secondary small">Это вы?</span>
+          <b id="inviteStudentName">—</b>
+          <span class="auth-hint" id="inviteAccountNote"></span>
+        </div>
+        <div class="mb-2">
+          <label class="form-label text-secondary small" for="newLoginInput">Логин</label>
+          <input type="text" id="newLoginInput" class="form-control" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32">
+          <div class="auth-hint mt-1">3–32 символа: латинские буквы, цифры, «_» и «.»</div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label text-secondary small" for="newPasswordInput">Пароль</label>
+          <input type="password" id="newPasswordInput" class="form-control" autocomplete="new-password" minlength="8">
+          <div class="auth-hint mt-1">Не короче 8 символов</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="newPasswordRepeatInput">Пароль ещё раз</label>
+          <input type="password" id="newPasswordRepeatInput" class="form-control" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary w-100 fw-bold" id="inviteSubmitBtn">Создать аккаунт</button>
+        <button type="button" class="btn btn-link w-100 mt-2 text-secondary" onclick="resetInviteForm()">Это не я — ввести другой код</button>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="cabinetContentSection" class="d-none">
+    <div id="cabinetGreeting" class="visually-hidden">Привет!</div>
+
+      <div class="dash-top">
+          <button type="button" class="avatar-btn" id="avatarButton" onclick="toggleAvatarMenu()" aria-haspopup="true" aria-expanded="false" aria-controls="avatarMenu" aria-label="Фото профиля">
+          <div class="avatar js-avatar" style="--av: 56px"></div>
+          <span class="avatar-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+        </button>
+          <div class="dash-who">
+            <div class="dash-name" id="cabinetStudentName">—</div>
+            <div class="dash-sub"><span class="js-role">Студент</span> · 24ДММ-2 · <span class="js-login">—</span></div>
+            <span class="admin-mode-chip d-none" id="adminModeChip"><i aria-hidden="true"></i>Админ-режим</span>
+          </div>
+          <button type="button" class="sk-open-btn" id="studakOpenBtn" onclick="openStudak()" aria-haspopup="dialog" aria-controls="studakOverlay" aria-label="Открыть пропуск Studak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="12" r="2.5"/><path d="M14 10h4M14 14h3"/></svg>Studak</button>
+        </div>
+        <div class="inset avatar-menu d-none" id="avatarMenu">
+          <label class="row-i" for="avatarFileInput"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span class="lbl">Выбрать фото</span></label>
+          <button type="button" class="row-i" id="avatarResetBtn" onclick="resetAvatar()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><span class="lbl">Сбросить фото</span></button>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
+
+    <!-- Четыре блока профиля: ближайший срок, ближайшая домашка,
+         действующие справки и пропуски по предметам -->
+    <div class="group">
+      <div class="kicker">Ближайшее</div>
+      <div class="inset">
+        <button type="button" class="row-i" onclick="goView('deadlines')">
+          <span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span>
+          <span class="lbl">Ближайший дедлайн<small class="d-block text-secondary" id="profileNextDeadline">—</small></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="row-i" onclick="goView('homework')">
+          <span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h11a3 3 0 013 3V21H8a3 3 0 01-3-3z"/><path d="M5 18a3 3 0 013-3h11"/></svg></span>
+          <span class="lbl">Ближайшая домашка<small class="d-block text-secondary" id="profileNextHomework">—</small></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Действующие пропуски: уважительные записи со статусом справки -->
+    <div class="group">
+      <div class="kicker">Справки<span class="val" id="cabinetCertsPending">—</span></div>
+      <div class="inset" id="profileActiveCerts"></div>
+    </div>
+
+    <!-- Пропуски по предметам: строка раскрывается в свои записи -->
+    <div class="group">
+      <div class="kicker">Пропуски по предметам</div>
+      <div class="inset" id="profileSubjects"></div>
+      <div class="d-none"><table><tbody id="myAbsSubjectBody"></tbody></table></div>
+    </div>
+
+      <!-- Уведомления: включить можно и позже, окно с объяснением — notify.js -->
+      <div class="group">
+        <div class="kicker">Уведомления</div>
+        <div class="inset">
+          <div class="notify-row">
+            <span class="notify-lbl">Напоминания о сроках<span class="notify-val" id="notifyStateValue">—</span></span>
+            <button type="button" class="btn btn-sm btn-secondary" id="notifyToggleBtn">Включить</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Оформление: тема и цветовая гамма (разметку кнопок рисует theme.js) -->
+      <div class="group">
+        <div class="kicker">Оформление</div>
+        <div class="inset theme-box">
+          <div class="theme-line">
+            <span class="theme-label">Тема</span>
+            <div class="theme-modes" id="themeModeRow"></div>
+          </div>
+          <div class="theme-hint" id="themeModeHint"></div>
+          <div class="theme-label theme-label-top">Цветовая гамма</div>
+          <div class="theme-gammas" id="themeGammaRow"></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="inset">
+          <button type="button" class="row-i d-none" id="studakScanRow" onclick="scanStudak()"><span class="ic" style="--ic: #0a84ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg></span><span class="lbl">Сканировать пропуск</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i" onclick="toggleStarostaPicker()"><span class="ic" style="--ic: #28c9b7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2 2 6 3-4 5 4Z"/></svg></span><span class="lbl">Написать старосте</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i" onclick="toggleAccountForm('login')"><span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="lbl">Сменить логин</span><span class="val" id="cabinetLoginValue">—</span><span class="chev" aria-hidden="true">›</span></button>
+          <form id="changeLoginForm" class="account-form d-none" onsubmit="saveNewLogin(); return false;" novalidate>
+            <label class="form-label text-secondary small" for="changeLoginInput">Новый логин</label>
+            <input type="text" id="changeLoginInput" class="form-control mb-1" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32">
+            <div class="auth-hint mb-3">3–32 символа: латинские буквы, цифры, «_» и «.»</div>
+            <button type="submit" class="btn btn-primary w-100 fw-bold" id="changeLoginBtn">Сохранить логин</button>
+          </form>
+          <button type="button" class="row-i" onclick="toggleAccountForm('password')"><span class="ic" style="--ic: #8e8e93"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span class="lbl">Сменить пароль</span><span class="chev" aria-hidden="true">›</span></button>
+          <form id="changePasswordForm" class="account-form d-none" onsubmit="saveNewPassword(); return false;" novalidate>
+            <input type="text" class="d-none" autocomplete="username" id="changePasswordUsername" aria-hidden="true" tabindex="-1">
+            <label class="form-label text-secondary small" for="currentPasswordInput">Текущий пароль</label>
+            <input type="password" id="currentPasswordInput" class="form-control mb-2" autocomplete="current-password">
+            <label class="form-label text-secondary small" for="changePasswordInput">Новый пароль (не короче 8 символов)</label>
+            <input type="password" id="changePasswordInput" class="form-control mb-2" autocomplete="new-password">
+            <label class="form-label text-secondary small" for="changePasswordRepeatInput">Новый пароль ещё раз</label>
+            <input type="password" id="changePasswordRepeatInput" class="form-control mb-3" autocomplete="new-password">
+            <button type="submit" class="btn btn-primary w-100 fw-bold" id="changePasswordBtn">Сохранить пароль</button>
+          </form>
+          <button type="button" class="row-i d-none" id="adminPanelRow" onclick="toggleAdminModal()"><span class="ic" style="--ic: #5e5ce6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lbl">Админ-панель</span><span class="val" id="adminPanelState">Войти</span><span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="row-i tg-exit" onclick="logoutCabinet()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></span><span class="lbl">Выйти</span></button>
+        </div>
+      </div>
+
+      <div id="starostaPickerList" class="mb-3 d-none"></div>
+  </div>
+</section>
+
+<!-- Раздел «Зачётка и калькулятор» (index.html#zachetka) -->
+<section id="viewZachetka" class="app-view d-none">
+      <div class="seg" id="gradesSeg" role="tablist" data-active="zachetka">
+        <button type="button" role="tab" id="gradesSegZachetka" aria-selected="true" onclick="setGradesTab('zachetka')">Зачётка</button>
+        <button type="button" role="tab" id="gradesSegCalc" aria-selected="false" onclick="setGradesTab('calc')">Калькулятор</button>
+      </div>
+      <div id="gradesPaneZachetka">
+      <div class="group">
+        <div class="group-title">Зачётка</div>
+        <div id="zachetkaList"></div>
+        <div class="group-foot">Оценки вносите сами — хранятся только в этом браузере. «Зачтено» в средний балл не входит.</div>
+      </div>
+      <div class="group">
+        <div class="inset"><div class="row-i"><span class="lbl">Средний балл за сессию</span><span class="val fw-bold text-success fs-5" id="zachetkaAverage">—</span></div></div>
+      </div>
+          </div>
+
+      <div id="gradesPaneCalc" class="d-none">
+        <!-- Калькулятор рейтинга (вариант «Слайдеры»): итог сверху, оценки — ползунком и «+» -->
+        <div class="rc-hero">
+          <small>Итоговый рейтинг</small>
+          <span class="rc-big num" id="finalRatingResult">—</span>
+          <div class="rc-sub"><span>Семинарские <b class="num" id="seminarRatingResult">—</b></span><span>Экзамен <b class="num" id="examGradeValue">—</b></span></div>
+          <div class="rc-formula num" id="ratingFormula"></div>
+        </div>
+        <div class="group">
+          <div class="group-title">Контрольные</div>
+          <div class="inset">
+            <div class="rc-pick"><output class="num" id="controlPickValue" for="controlPickRange">8</output><input type="range" id="controlPickRange" min="1" max="10" step="1" value="8" aria-label="Оценка (контрольные)" oninput="document.getElementById('controlPickValue').textContent = this.value"><button type="button" class="rc-plus" onclick="addRatingGrade('control')" aria-label="Добавить оценку (контрольные)">+</button></div>
+            <div id="controlGradesList" class="rc-pills"></div>
+            <div class="rc-meta"><span>Средний балл</span><b id="controlAvg" class="num">—</b></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">Устные</div>
+          <div class="inset">
+            <div class="rc-pick"><output class="num" id="oralPickValue" for="oralPickRange">8</output><input type="range" id="oralPickRange" min="1" max="10" step="1" value="8" aria-label="Оценка (устные)" oninput="document.getElementById('oralPickValue').textContent = this.value"><button type="button" class="rc-plus" onclick="addRatingGrade('oral')" aria-label="Добавить оценку (устные)">+</button></div>
+            <div id="oralGradesList" class="rc-pills"></div>
+            <div class="rc-meta"><span>Средний балл</span><b id="oralAvg" class="num">—</b></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">Коэффициенты</div>
+          <div class="inset">
+            <div class="rc-slot"><div class="rc-lab"><label for="seminarCoefSelect">Контрольные / устные</label><b class="num" id="seminarCoefLabel">0.6 / 0.4</b></div><input type="range" id="seminarCoefSelect" min="0.5" max="0.7" step="0.1" value="0.6" oninput="recalcRating()"><div class="rc-ticks"><span>0.5</span><span>0.6</span><span>0.7</span></div></div>
+            <div class="rc-slot"><div class="rc-lab"><label for="finalCoefSelect">Семестр / экзамен</label><b class="num" id="finalCoefLabel">0.4 / 0.6</b></div><input type="range" id="finalCoefSelect" min="0.4" max="0.5" step="0.1" value="0.4" oninput="recalcRating()"><div class="rc-ticks"><span>0.4</span><span>0.5</span></div></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-title">Экзамен</div>
+          <div class="inset">
+            <div class="rc-lab"><label for="examGradeRange">Оценка на экзамене</label><b class="num" id="examGradeLabel">—</b></div>
+            <input type="range" id="examGradeRange" min="0" max="10" step="0.5" value="8" oninput="setExamFromRange()">
+            <div class="rc-ticks"><span>0</span><span>5</span><span>10</span></div>
+            <label class="rc-toggle"><input type="checkbox" id="examNotYet" onchange="toggleExamNotYet()"> Экзамен ещё не сдан</label>
+            <input type="hidden" id="examGradeInput" value="">
+          </div>
+          <div class="group-foot">Оценки хранятся только в этом браузере.</div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary w-100 mb-4" onclick="clearRatingCalc()">Очистить</button>
+      </div>
+</section>
+
+<!-- Календарь пропусков (index.html#absences) — открывается с плитки «Часы за месяц» -->
+<section id="viewAbsences" class="app-view d-none">
+  <div class="pill-row">
+    <select id="cabinetPeriod" class="pill-select" onchange="renderPersonalStats()" aria-label="Период">
+      <option value="WEEK">За неделю</option>
+      <option value="MONTH" selected>За месяц</option>
+      <option value="SEMESTER">За семестр</option>
+    </select>
+    <select id="cabinetSubject" class="pill-select" onchange="renderPersonalStats()" aria-label="Предмет">
+      <option value="ALL">Все предметы</option>
+    </select>
+  </div>
+  <div class="dash-grid mb-3">
+    <div class="w"><span class="k">Неуважительные</span><span class="v"><span id="cabinetUnexcused">0</span><small> ч</small></span><span class="s">уважительных <b id="cabinetExcused">0</b> ч</span></div>
+  </div>
+      <div id="statsViewCalendar" class="d-none">
+        <div class="cal">
+          <div class="cal-head">
+            <button type="button" class="cal-nav" onclick="shiftCalendarMonth(-1)" aria-label="Предыдущий месяц">‹</button>
+            <b id="calendarTitle">—</b>
+            <button type="button" class="cal-nav" onclick="shiftCalendarMonth(1)" aria-label="Следующий месяц">›</button>
+          </div>
+          <div class="cal-grid" id="calendarGrid"></div>
+          <div class="cal-legend"><span><i class="u"></i>неуважительный</span><span><i class="e"></i>уважительный</span></div>
+        </div>
+        <div class="cap" id="calendarDayTitle"></div>
+        <div id="calendarDayList"></div>
+      </div>
+  <div id="myAbsList" class="feed"></div>
+  <div id="feedEmpty" class="feed-empty d-none">Здесь пока пусто</div>
+</section>
+
 <!-- Модальное окно: Внести пропуски -->
 <div class="modal fade" id="addAbsenceModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-scrollable">
@@ -1492,6 +1835,68 @@
   </div>
 </div>
 
+
+<!-- Личные окна, перенесены из cabinet.html -->
+<div class="modal fade" id="changelogModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white">История изменений</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="changelogList"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary fw-bold w-100" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Что нового -->
+<!-- Замена стандартного alert() -->
+<!-- Вход администратора (перенесён с главной). Токен GitHub хранится только в localStorage gh_pat -->
+<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalTitle">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="adminModalTitle">Админ-панель</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div id="adminLoginView">
+          <p class="small text-secondary mb-2" id="adminLoggedOutNote" role="status"></p>
+          <form onsubmit="saveAdminToken(); return false;" novalidate>
+            <label class="form-label small text-secondary" for="githubTokenInput">Введите ваш Personal Access Token (Classic) с правами <code>repo</code>. Он хранится только на этом устройстве.</label>
+            <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" autocapitalize="none" spellcheck="false">
+            <button type="submit" class="btn btn-primary w-100 fw-bold">Войти</button>
+          </form>
+        </div>
+        <div id="adminActiveView" class="d-none text-center">
+          <div class="admin-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+          <div class="fw-bold text-white fs-5" id="adminActiveTitle" role="status">Админ-режим включён</div>
+          <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, объявления, дедлайны и зачёты.</p>
+          <a href="index.html" class="btn btn-primary w-100 fw-bold mb-2">Перейти в журнал</a>
+          <button type="button" class="btn btn-outline-danger w-100" onclick="logoutAdmin()">Выйти из админки</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="sk-overlay no-swipe" id="studakOverlay" role="dialog" aria-modal="true" aria-label="Пропуск Studak" hidden>
+  <span class="sk-grab" aria-hidden="true"></span>
+  <button type="button" class="sk-close" id="studakClose" onclick="closeStudak()" aria-label="Закрыть пропуск"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="sk-drag" id="studakDrag">
+    <div class="sk-stage" id="studakStage"></div>
+    <p class="sk-hint" id="studakHint">Нажмите на пропуск — на обороте QR-код для проверки. Смахните вниз, чтобы закрыть.</p>
+    <button type="button" class="sk-ask" id="studakTiltBtn" hidden>Включить наклон</button>
+  </div>
+</div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
 <script src="changelog.js?v=13"></script>
@@ -1524,7 +1929,7 @@
     return `${dd}.${mm}.${yy}`;
   }
 
-  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [] };
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], announcements: [], deadlines: [], homework: [] };
   let githubToken = lsGet('gh_pat') || '';
   let currentHistoryStudentId = null;
 
@@ -1802,8 +2207,7 @@
     updateDeadlinesDot();
     refreshCabinetProfile();
     updateAdminUI();
-    startNotifyFlow(checkWhatsNew());
-    checkLocalReminders();
+    await initProfile();                     // вход, профиль, зачётка, пропуски — profile.js
   }
 
   // «Что нового», номер версии и история изменений — в changelog.js (общий для обеих страниц).
@@ -4137,6 +4541,13 @@
     });
   }
 </script>
+<!-- Личный кабинет: пропуск Studak и перенесённая логика кабинета.
+     Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
+     к appData и sb, а они объявлены там через let. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="studak.js?v=14"></script>
+<script src="profile.js?v=14"></script>
+
 <!-- Нижняя панель навигации (моб.) -->
 <nav class="bottom-tabbar" aria-label="Разделы">
   <a class="tabbar-item active" aria-current="page" href="#stats" data-view="stats" data-tab-home>

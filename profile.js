@@ -144,28 +144,10 @@
     if (e.target.closest && e.target.closest('.tabbar-item')) haptic('impact');
   });
 
+  // Личная часть запускается из init() в index.html — после того, как
+  // страница загрузила data.json и настроила Telegram. Свою загрузку данных
+  // и свой setupTelegram кабинет больше не делает: это была вторая копия.
   async function initProfile() {
-    if (window.Telegram && window.Telegram.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.expand();
-      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-      tg.ready();
-    }
-    setupTelegram();
-
-    try {
-      const response = await fetch(`./data.json?t=${Date.now()}`);
-      appData = await response.json();
-      if (!appData.subjects || appData.subjects.length === 0) appData.subjects = DEFAULT_SUBJECTS;
-      if (!appData.teachers) appData.teachers = [];
-      if (!appData.announcements) appData.announcements = [];
-      if (!appData.deadlines) appData.deadlines = [];
-    } catch (err) {
-      console.error('Ошибка загрузки данных:', err);
-      document.getElementById('cabinetSkeleton').innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
-      return;
-    }
-
     document.getElementById('cabinetSkeleton').classList.add('d-none');
     await openPersonalCabinet();
     renderAppVersionLabel('cabinetVersion');
@@ -745,7 +727,6 @@
     renderZachetka();
     setGradesTab(lsGet('grades_tab'));
     FX.reveal('#cabinetContentSection > .student-summary-card');
-    cabinetSection = null;
   }
 
   // Разделы кабинета переехали в общий роутер приложения: «Зачётка» и «Дедлайны»
@@ -1200,14 +1181,6 @@
     try { lsSet('grades_tab', tab); } catch (e) {}
   }
 
-  initProfile();
-
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch((err) => console.error('SW registration failed:', err));
-    });
-  }
-
   // ===== Визуальные надстройки кабинета: приветствие, цвет часов, шкала места, хронология по месяцам, аватарка =====
   function periodHours() {
     const range = getPeriodRangeFor(document.getElementById('cabinetPeriod').value);
@@ -1439,16 +1412,6 @@
   afterRender('showCabinetContent', updateTodayGrades);
   afterRender('recalcRating', updateTodayGrades);
   afterRender('setCabinetSection', updateTodayGrades);
-  // Свайп: Статистика (главная) ↔ Зачётка ↔ Дедлайны ↔ Личный кабинет (порядок кнопок таб-бара)
-  enableTabSwipe(() => ['journal', 'grades', 'deadlines', 'stats'],
-    () => (myStudentId && !document.getElementById('cabinetContentSection').classList.contains('d-none')) ? cabinetSection : null,
-    (name, dir) => {
-      haptic('impact');
-      if (name === 'journal') { location.href = 'index.html#stats'; return; }
-      setCabinetSection(name);
-      swipeIn(document.getElementById({ stats: 'cabinetSectionStats', grades: 'cabinetSectionGrades', deadlines: 'cabinetSectionDeadlines' }[name]), dir);
-    });
-
   // ===== Studak: электронный пропуск (оформление и общий код — в studak.js) =====
   // Код в QR — одноразовый токен на 5 минут: его выдаёт issue_pass_token() в Supabase (в базе только хэш),
   // проверяет pass.html через Edge Function verify-pass. Новый код запрашиваем за 20 секунд до конца,
