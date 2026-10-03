@@ -31,7 +31,11 @@ function deadlineRelative(n) {
   return `просрочено на ${-n} ${daysWord(n)}`;
 }
 const activeDeadlines = () => (appData.deadlines || []).filter(d => deadlineDaysLeft(d.dueDate) >= -7);
-const isZachet = (d) => d.type === 'zachet';
+// Тип записи: 'deadline' (по умолчанию), 'zachet' или 'exam'.
+// У записей, сделанных до появления экзаменов, поля type нет — это дедлайны.
+const isZachet = (d) => d.type === 'zachet' || d.type === 'exam';
+const isExam = (d) => d.type === 'exam';
+const deadlineKindName = (d) => (isExam(d) ? 'Экзамен' : d.type === 'zachet' ? 'Зачёт' : 'Дедлайн');
 
 function deadlineCard(d) {
   const n = deadlineDaysLeft(d.dueDate);
@@ -40,7 +44,7 @@ function deadlineCard(d) {
   card.className = 'dl-card' + (zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
   card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
   card.querySelector('.dl-subject').textContent = d.subject;
-  if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">Зачёт</span>');
+  if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">' + deadlineKindName(d) + '</span>');
   const text = card.querySelector('.dl-text');
   if (d.text) text.textContent = d.text; else text.remove();
   card.querySelector('.dl-date').textContent = zachet ? dlFormatDate(deadlineDate(d.dueDate)) : `до ${dlFormatDate(deadlineDate(d.dueDate))}`;
@@ -201,4 +205,91 @@ function swipeIn(el, dir) {
   el.classList.remove('swipe-in-left', 'swipe-in-right');
   void el.offsetWidth;
   el.classList.add(dir === 'left' ? 'swipe-in-left' : 'swipe-in-right');
+}
+
+// ============================================================================
+// Один таб-бар на всё приложение
+//
+// Раньше у index.html и cabinet.html были разные наборы кнопок на одних и тех же
+// местах. Теперь набор ровно один и живёт здесь: страница зовёт renderTabbar()
+// и получает ту же разметку, что и любая другая.
+//
+// SCREEN_HOST отвечает на вопрос «какую кнопку подсветить», когда открыт
+// вложенный экран (например, «Преподаватели» лежат внутри «Учёбы»).
+// ============================================================================
+
+const APP_TABS = [
+  { id: 'home', label: 'Главная', icon:
+    '<path d="M3.5 11.2 14 3l10.5 8.2"/><path d="M6.4 10v13.5h15.2V10"/>' },
+  { id: 'schedule', label: 'Расписание', icon:
+    '<rect x="3.5" y="5.8" width="21" height="18.7" rx="3.5"/><path d="M9.3 3.5v4.6M18.7 3.5v4.6M3.5 11.7h21"/>' },
+  { id: 'study', label: 'Учёба', icon:
+    '<path d="M14 4.7 2.9 10.5 14 16.3l11.1-5.8z"/><path d="M7 12.9v5.8c0 1.8 3.1 3.3 7 3.3s7-1.5 7-3.3v-5.8"/>' },
+  { id: 'profile', label: 'Профиль', icon:
+    '<circle cx="14" cy="9.9" r="4.4"/><path d="M5.3 23.3c0-4.2 3.9-6.7 8.7-6.7s8.7 2.5 8.7 6.7"/>' }
+];
+
+// Вложенный экран → кнопка таб-бара, которую он подсвечивает
+const SCREEN_HOST = {
+  absences: 'home',
+  deadlines: 'study', homework: 'study', teachers: 'study',
+  stats: 'study', exams: 'study', zachetka: 'study',
+  settings: 'profile', admin: 'profile'
+};
+
+function tabForScreen(screen) {
+  return SCREEN_HOST[screen] || screen;
+}
+
+// Разметка таб-бара. dots — { tabId: true } для красной точки непрочитанного.
+function renderTabbar(current, dots) {
+  const host = tabForScreen(current);
+  const nav = document.querySelector('.bottom-tabbar');
+  if (!nav) return;
+  nav.innerHTML = APP_TABS.map(t => {
+    const on = t.id === host;
+    return '<a class="tabbar-item' + (on ? ' active' : '') + '" href="#' + t.id + '" data-view="' + t.id + '"' +
+      (on ? ' aria-current="page"' : '') + '>' +
+      '<span class="tab-selection"></span>' +
+      '<svg class="tab-ico" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + t.icon + '</svg>' +
+      '<span>' + t.label + '</span>' +
+      (dots && dots[t.id] ? '<span class="tabbar-badge-dot"></span>' : '') +
+      '</a>';
+  }).join('');
+}
+
+// --- Нижний лист: смахивание вниз закрывает ---
+// Работает поверх модалки Bootstrap: тянем .modal-content, на отпускании либо
+// возвращаем на место, либо закрываем штатным hide().
+function enableSheetSwipe(modalEl) {
+  if (!modalEl || modalEl.dataset.swipeReady) return;
+  modalEl.dataset.swipeReady = '1';
+  const sheet = modalEl.querySelector('.modal-content');
+  if (!sheet) return;
+  let y0 = 0, dy = 0, drag = false;
+  const body = modalEl.querySelector('.modal-body');
+  sheet.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    if (body && body.scrollTop > 0) return;
+    if (e.target.closest && e.target.closest('input, select, textarea, .table-responsive, .cal-grid')) return;
+    y0 = e.touches[0].clientY; dy = 0; drag = true;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+  sheet.addEventListener('touchmove', (e) => {
+    if (!drag) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy < 0) dy = 0;
+    sheet.style.transform = 'translateY(' + dy + 'px)';
+  }, { passive: true });
+  sheet.addEventListener('touchend', () => {
+    if (!drag) return;
+    drag = false;
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    if (dy > 110) {
+      const inst = bootstrap.Modal.getInstance(modalEl);
+      if (inst) inst.hide();
+    }
+  });
 }

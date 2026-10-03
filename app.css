@@ -113,8 +113,8 @@
   --g-d-surface-3:     #29292b;                   --g-l-surface-3:     #E9EBF0;
   --g-d-surface-4:     #373739;                   --g-l-surface-4:     #e0e2e8;
   --g-d-border:        #3a3a3b;                   --g-l-border:        #D7D9E0;
-  --g-d-border-mid:    #4a4a4b;                   --g-l-border-mid:    #c2c3NaN;
-  --g-d-border-strong: #656566;                   --g-l-border-strong: #a8a9NaN;
+  --g-d-border-mid:    #4a4a4b;                   --g-l-border-mid:    #c2c5cf;
+  --g-d-border-strong: #656566;                   --g-l-border-strong: #a8abb8;
   --g-d-separator:     #2a2a2b;                   --g-l-separator:     #e0e2e8;
   --g-d-accent-hover:  #369aff;                   --g-l-accent-hover:  #0867c8;
   --g-d-accent-soft:   #4aa4ff;                   --g-l-accent-soft:   #0760ba;
@@ -143,8 +143,8 @@
   --g-d-surface-3:     #262d2b;                   --g-l-surface-3:     #E5EFEA;
   --g-d-surface-4:     #353b39;                   --g-l-surface-4:     #dbe9e2;
   --g-d-border:        #373d3b;                   --g-l-border:        #D1E2D9;
-  --g-d-border-mid:    #474d4b;                   --g-l-border-mid:    #bccbNaN;
-  --g-d-border-strong: #636866;                   --g-l-border-strong: #a3b0NaN;
+  --g-d-border-mid:    #474d4b;                   --g-l-border-mid:    #bccbc5;
+  --g-d-border-strong: #636866;                   --g-l-border-strong: #a3b0aa;
   --g-d-separator:     #282d2b;                   --g-l-separator:     #dce9e2;
   --g-d-accent-hover:  #53dcb1;                   --g-l-accent-hover:  #1a765a;
   --g-d-accent-soft:   #64dfb9;                   --g-l-accent-soft:   #186e54;
@@ -173,8 +173,8 @@
   --g-d-surface-3:     #292933;                   --g-l-surface-3:     #EAE8F6;
   --g-d-surface-4:     #373741;                   --g-l-surface-4:     #e3e0f2;
   --g-d-border:        #3a3a43;                   --g-l-border:        #DBD7EE;
-  --g-d-border-mid:    #4a4a52;                   --g-l-border-mid:    #c5c2NaN;
-  --g-d-border-strong: #65656c;                   --g-l-border-strong: #aba8NaN;
+  --g-d-border-mid:    #4a4a52;                   --g-l-border-mid:    #c5c2d2;
+  --g-d-border-strong: #65656c;                   --g-l-border-strong: #aba8ba;
   --g-d-separator:     #2b2b33;                   --g-l-separator:     #e3e0f2;
   --g-d-accent-hover:  #9486ff;                   --g-l-accent-hover:  #6357cd;
   --g-d-accent-soft:   #9e92ff;                   --g-l-accent-soft:   #5d51bf;
@@ -203,8 +203,8 @@
   --g-d-surface-3:     #2d2925;                   --g-l-surface-3:     #F0EBE2;
   --g-d-surface-4:     #3b3733;                   --g-l-surface-4:     #e9e3d7;
   --g-d-border:        #3d3a35;                   --g-l-border:        #E2DACB;
-  --g-d-border-mid:    #4d4a45;                   --g-l-border-mid:    #cbc4NaN;
-  --g-d-border-strong: #686561;                   --g-l-border-strong: #b0aaNaN;
+  --g-d-border-mid:    #4d4a45;                   --g-l-border-mid:    #cbc4b8;
+  --g-d-border-strong: #686561;                   --g-l-border-strong: #b0aa9e;
   --g-d-separator:     #2e2b27;                   --g-l-separator:     #eae3d8;
   --g-d-accent-hover:  #ffb560;                   --g-l-accent-hover:  #8f5d22;
   --g-d-accent-soft:   #ffbc6f;                   --g-l-accent-soft:   #865720;
@@ -233,8 +233,8 @@
   --g-d-surface-3:     #2c2627;                   --g-l-surface-3:     #F7E7E9;
   --g-d-surface-4:     #3a3436;                   --g-l-surface-4:     #f3dee1;
   --g-d-border:        #3c3638;                   --g-l-border:        #EED5D8;
-  --g-d-border-mid:    #4c4648;                   --g-l-border-mid:    #d6c0NaN;
-  --g-d-border-strong: #676264;                   --g-l-border-strong: #baa6NaN;
+  --g-d-border-mid:    #4c4648;                   --g-l-border-mid:    #d6c0c4;
+  --g-d-border-strong: #676264;                   --g-l-border-strong: #baa6aa;
   --g-d-separator:     #2d2829;                   --g-l-separator:     #f3dfe1;
   --g-d-accent-hover:  #f47478;                   --g-l-accent-hover:  #b53f44;
   --g-d-accent-soft:   #f58185;                   --g-l-accent-soft:   #a93b3f;
@@ -249,6 +249,187 @@
   --g-d-bg-rgb:        9, 6, 7;                   --g-l-bg-rgb:        252, 242, 243;
   --g-d-surface-rgb:   23, 16, 18;                --g-l-surface-rgb:   255, 255, 255;
   --g-d-accent-hover-rgb: 244, 116, 120;             --g-l-accent-hover-rgb: 181, 63, 68;
+}
+
+
+/* Океан */
+[data-gamma="ocean"] {
+  --g-d-accent:        #188095;       --g-l-accent:        #158196;
+  --g-d-accent-rgb:    24, 128, 149;  --g-l-accent-rgb:    21, 129, 150;
+  --g-d-active:        #136272;       --g-l-active:        #127184;
+  --g-d-bg:            #060707;       --g-l-bg:            #f3f6f7;
+  --g-d-surface:       #121415;       --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0b0c0d;       --g-l-sunken:        #e7edee;
+  --g-d-surface-2:     #1a1d1e;       --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #262a2b;       --g-l-surface-3:     #e7edee;
+  --g-d-surface-4:     #323839;       --g-l-surface-4:     #dce4e5;
+  --g-d-border:        #383d3e;       --g-l-border:        #d6dfe1;
+  --g-d-border-mid:    #464c4e;       --g-l-border-mid:    #c2ced1;
+  --g-d-border-strong: #62696a;       --g-l-border-strong: #a6b6b9;
+  --g-d-separator:     #282c2d;       --g-l-separator:     #dce4e5;
+  --g-d-accent-hover:  #1d9bb4;       --g-l-accent-hover:  #13798d;
+  --g-d-accent-soft:   #21aeca;       --g-l-accent-soft:   #116a7b;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #301c23;       --g-l-type-1-bg:     #f7e8ed;
+  --g-d-type-1-text:   #e283a3;       --g-l-type-1-text:   #691732;
+  --g-d-type-2-bg:     #302a1c;       --g-l-type-2-bg:     #f7f2e8;
+  --g-d-type-2-text:   #e2c283;       --g-l-type-2-text:   #694d17;
+  --g-d-type-3-bg:     #201c30;       --g-l-type-3-bg:     #ebe8f7;
+  --g-d-type-3-text:   #9383e2;       --g-l-type-3-text:   #251769;
+  /* Тройки для rgba() Bootstrap */
+  --g-d-bg-rgb:        6, 7, 7;       --g-l-bg-rgb:        243, 246, 247;
+  --g-d-surface-rgb:   18, 20, 21;    --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 29, 155, 180;--g-l-accent-hover-rgb: 19, 121, 141;
+}
+
+/* Мох */
+[data-gamma="moss"] {
+  --g-d-accent:        #438439;       --g-l-accent:        #3d8632;
+  --g-d-accent-rgb:    67, 132, 57;   --g-l-accent-rgb:    61, 134, 50;
+  --g-d-active:        #34682c;       --g-l-active:        #36772c;
+  --g-d-bg:            #060706;       --g-l-bg:            #f3f7f3;
+  --g-d-surface:       #121512;       --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0b0d0b;       --g-l-sunken:        #e8eee7;
+  --g-d-surface-2:     #1b1e1a;       --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #272b26;       --g-l-surface-3:     #e8eee7;
+  --g-d-surface-4:     #333932;       --g-l-surface-4:     #dde5dc;
+  --g-d-border:        #383e38;       --g-l-border:        #d7e1d6;
+  --g-d-border-mid:    #474e46;       --g-l-border-mid:    #c4d1c2;
+  --g-d-border-strong: #636a62;       --g-l-border-strong: #a9b9a6;
+  --g-d-separator:     #282d28;       --g-l-separator:     #dde5dc;
+  --g-d-accent-hover:  #4f9d43;       --g-l-accent-hover:  #397f2f;
+  --g-d-accent-soft:   #58af4b;       --g-l-accent-soft:   #337029;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #241c30;       --g-l-type-1-bg:     #eee8f7;
+  --g-d-type-1-text:   #a683e2;       --g-l-type-1-text:   #351769;
+  --g-d-type-2-bg:     #301c29;       --g-l-type-2-bg:     #f7e8f2;
+  --g-d-type-2-text:   #e283bf;       --g-l-type-2-text:   #69174b;
+  --g-d-type-3-bg:     #1c302e;       --g-l-type-3-bg:     #e8f7f5;
+  --g-d-type-3-text:   #83e2d5;       --g-l-type-3-text:   #17695e;
+  /* Тройки для rgba() Bootstrap */
+  --g-d-bg-rgb:        6, 7, 6;       --g-l-bg-rgb:        243, 247, 243;
+  --g-d-surface-rgb:   18, 21, 18;    --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 79, 157, 67;--g-l-accent-hover-rgb: 57, 127, 47;
+}
+
+/* Слива */
+[data-gamma="plum"] {
+  --g-d-accent:        #b646be;       --g-l-accent:        #ba41c3;
+  --g-d-accent-rgb:    182, 70, 190;  --g-l-accent-rgb:    186, 65, 195;
+  --g-d-active:        #9b39a2;       --g-l-active:        #ae3ab6;
+  --g-d-bg:            #070607;       --g-l-bg:            #f7f3f7;
+  --g-d-surface:       #141215;       --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0d0b0d;       --g-l-sunken:        #eee7ee;
+  --g-d-surface-2:     #1e1a1e;       --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #2b262b;       --g-l-surface-3:     #eee7ee;
+  --g-d-surface-4:     #383239;       --g-l-surface-4:     #e5dce5;
+  --g-d-border:        #3d383e;       --g-l-border:        #e0d6e1;
+  --g-d-border-mid:    #4d464e;       --g-l-border-mid:    #d0c2d1;
+  --g-d-border-strong: #6a626a;       --g-l-border-strong: #b8a6b9;
+  --g-d-separator:     #2c282d;       --g-l-separator:     #e5dce5;
+  --g-d-accent-hover:  #c060c7;       --g-l-accent-hover:  #b53cbe;
+  --g-d-accent-soft:   #c873ce;       --g-l-accent-soft:   #a637ae;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #28301c;       --g-l-type-1-bg:     #f1f7e8;
+  --g-d-type-1-text:   #b9e283;       --g-l-type-1-text:   #456917;
+  --g-d-type-2-bg:     #1c3025;       --g-l-type-2-bg:     #e8f7ef;
+  --g-d-type-2-text:   #83e2ac;       --g-l-type-2-text:   #17693a;
+  --g-d-type-3-bg:     #301c1e;       --g-l-type-3-bg:     #f7e8e9;
+  --g-d-type-3-text:   #e28389;       --g-l-type-3-text:   #69171c;
+  /* Тройки для rgba() Bootstrap */
+  --g-d-bg-rgb:        7, 6, 7;       --g-l-bg-rgb:        247, 243, 247;
+  --g-d-surface-rgb:   20, 18, 21;    --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 192, 96, 199;--g-l-accent-hover-rgb: 181, 60, 190;
+}
+
+/* Терракота */
+[data-gamma="terracotta"] {
+  --g-d-accent:        #c75126;       --g-l-accent:        #c2532b;
+  --g-d-accent-rgb:    199, 81, 38;   --g-l-accent-rgb:    194, 83, 43;
+  --g-d-active:        #a5431f;       --g-l-active:        #b24c27;
+  --g-d-bg:            #070606;       --g-l-bg:            #f7f4f3;
+  --g-d-surface:       #151212;       --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0d0b0b;       --g-l-sunken:        #eee9e7;
+  --g-d-surface-2:     #1e1b1a;       --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #2b2826;       --g-l-surface-3:     #eee9e7;
+  --g-d-surface-4:     #393432;       --g-l-surface-4:     #e5dedc;
+  --g-d-border:        #3e3938;       --g-l-border:        #e1d9d6;
+  --g-d-border-mid:    #4e4846;       --g-l-border-mid:    #d1c6c2;
+  --g-d-border-strong: #6a6462;       --g-l-border-strong: #b9aca6;
+  --g-d-separator:     #2d2928;       --g-l-separator:     #e5dedc;
+  --g-d-accent-hover:  #d96338;       --g-l-accent-hover:  #ba5029;
+  --g-d-accent-soft:   #dd744d;       --g-l-accent-soft:   #a94825;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #1c302c;       --g-l-type-1-bg:     #e8f7f4;
+  --g-d-type-1-text:   #83e2cc;       --g-l-type-1-text:   #176956;
+  --g-d-type-2-bg:     #1c2130;       --g-l-type-2-bg:     #e8ecf7;
+  --g-d-type-2-text:   #8399e2;       --g-l-type-2-text:   #172a69;
+  --g-d-type-3-bg:     #2b301c;       --g-l-type-3-bg:     #f3f7e8;
+  --g-d-type-3-text:   #c9e283;       --g-l-type-3-text:   #536917;
+  /* Тройки для rgba() Bootstrap */
+  --g-d-bg-rgb:        7, 6, 6;       --g-l-bg-rgb:        247, 244, 243;
+  --g-d-surface-rgb:   21, 18, 18;    --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 217, 99, 56;--g-l-accent-hover-rgb: 186, 80, 41;
+}
+
+/* Графит */
+[data-gamma="graphite"] {
+  --g-d-accent:        #657797;       --g-l-accent:        #61779e;
+  --g-d-accent-rgb:    101, 119, 151; --g-l-accent-rgb:    97, 119, 158;
+  --g-d-active:        #55647f;       --g-l-active:        #596e91;
+  --g-d-bg:            #060607;       --g-l-bg:            #f3f4f7;
+  --g-d-surface:       #121315;       --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0b0b0d;       --g-l-sunken:        #e7eaee;
+  --g-d-surface-2:     #1a1c1e;       --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #26282b;       --g-l-surface-3:     #e7eaee;
+  --g-d-surface-4:     #323539;       --g-l-surface-4:     #dcdfe5;
+  --g-d-border:        #383a3e;       --g-l-border:        #d6dae1;
+  --g-d-border-mid:    #46494e;       --g-l-border-mid:    #c2c7d1;
+  --g-d-border-strong: #62656a;       --g-l-border-strong: #a6adb9;
+  --g-d-separator:     #28292d;       --g-l-separator:     #dcdfe5;
+  --g-d-accent-hover:  #7a8aa6;       --g-l-accent-hover:  #5d7398;
+  --g-d-accent-soft:   #8998b0;       --g-l-accent-soft:   #55698b;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #301f1c;       --g-l-type-1-bg:     #f7eae8;
+  --g-d-type-1-text:   #e29083;       --g-l-type-1-text:   #692217;
+  --g-d-type-2-bg:     #2e301c;       --g-l-type-2-bg:     #f5f7e8;
+  --g-d-type-2-text:   #d5e283;       --g-l-type-2-text:   #5e6917;
+  --g-d-type-3-bg:     #291c30;       --g-l-type-3-bg:     #f2e8f7;
+  --g-d-type-3-text:   #bf83e2;       --g-l-type-3-text:   #4b1769;
+  /* Тройки для rgba() Bootstrap */
+  --g-d-bg-rgb:        6, 6, 7;       --g-l-bg-rgb:        243, 244, 247;
+  --g-d-surface-rgb:   18, 19, 21;    --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 122, 138, 166;--g-l-accent-hover-rgb: 93, 115, 152;
+}
+
+/* Лаванда */
+[data-gamma="lavender"] {
+  --g-d-accent:        #7c52e0;       --g-l-accent:        #805ad8;
+  --g-d-accent-rgb:    124, 82, 224;  --g-l-accent-rgb:    128, 90, 216;
+  --g-d-active:        #622fda;       --g-l-active:        #7349d4;
+  --g-d-bg:            #060607;       --g-l-bg:            #f4f3f7;
+  --g-d-surface:       #131215;       --g-l-surface:       #FFFFFF;
+  --g-d-sunken:        #0b0b0d;       --g-l-sunken:        #e9e7ee;
+  --g-d-surface-2:     #1b1a1e;       --g-l-surface-2:     #FFFFFF;
+  --g-d-surface-3:     #28262b;       --g-l-surface-3:     #e9e7ee;
+  --g-d-surface-4:     #343239;       --g-l-surface-4:     #dedce5;
+  --g-d-border:        #39383e;       --g-l-border:        #d9d6e1;
+  --g-d-border-mid:    #48464e;       --g-l-border-mid:    #c6c2d1;
+  --g-d-border-strong: #64626a;       --g-l-border-strong: #aca6b9;
+  --g-d-separator:     #29282d;       --g-l-separator:     #dedce5;
+  --g-d-accent-hover:  #9370e6;       --g-l-accent-hover:  #7951d6;
+  --g-d-accent-soft:   #a486ea;       --g-l-accent-soft:   #6d41d2;
+  /* Виды занятий: оттенки отстоят от акцента не меньше чем на 45° */
+  --g-d-type-1-bg:     #302c1c;       --g-l-type-1-bg:     #f7f4e8;
+  --g-d-type-1-text:   #e2cf83;       --g-l-type-1-text:   #695817;
+  --g-d-type-2-bg:     #20301c;       --g-l-type-2-bg:     #ebf7e8;
+  --g-d-type-2-text:   #96e283;       --g-l-type-2-text:   #276917;
+  --g-d-type-3-bg:     #301c2a;       --g-l-type-3-bg:     #f7e8f3;
+  --g-d-type-3-text:   #e283c5;       --g-l-type-3-text:   #691750;
+  /* Тройки для rgba() Bootstrap */
+  --g-d-bg-rgb:        6, 6, 7;       --g-l-bg-rgb:        244, 243, 247;
+  --g-d-surface-rgb:   19, 18, 21;    --g-l-surface-rgb:   255, 255, 255;
+  --g-d-accent-hover-rgb: 147, 112, 230;--g-l-accent-hover-rgb: 121, 81, 214;
 }
 
 /* ===== Рабочие токены: тёмная схема ===== */
@@ -1075,3 +1256,228 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .sk-tilt, .sk-pass, .sk-face::before, .sk-aurora i, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
 }
+
+/* ============================================================================
+   СТИЛЬ «СТЕКЛО»
+   Поверхности полупрозрачные и размывают то, что под ними. Глубина задаётся
+   светлой кромкой сверху и мягкой тенью, а не плотной заливкой.
+
+   Три правила, чтобы стекло не превратилось в кашу:
+     1. Текст и иконки лежат НЕ на стекле, а на своём фоне — контраст AA держат
+        токены --color-text*, они не меняются.
+     2. Стеклянные слои не накладываются друг на друга больше чем в два слоя.
+     3. Нет поддержки backdrop-filter или включено «меньше движения» —
+        поверхность становится обычной непрозрачной.
+   ========================================================================== */
+:root {
+  --glass-bg:        rgba(var(--color-surface-rgb), .58);
+  --glass-bg-strong: rgba(var(--color-surface-rgb), .74);
+  --glass-edge:      rgba(255, 255, 255, .10);
+  --glass-blur:      saturate(170%) blur(20px);
+  --glass-shadow:    0 8px 32px rgba(0, 0, 0, .22);
+}
+[data-bs-theme=light] {
+  --glass-bg:        rgba(var(--color-surface-rgb), .66);
+  --glass-bg-strong: rgba(var(--color-surface-rgb), .82);
+  --glass-edge:      rgba(0, 0, 0, .07);
+  --glass-shadow:    0 8px 28px rgba(16, 24, 40, .10);
+}
+
+/* Фон, по которому стеклу есть что размывать: две мягкие заливки акцентом.
+   Они не двигаются и ничего не стоят в отрисовке. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 42% at 18% 0%,   rgba(var(--color-accent-rgb), .16), transparent 70%),
+    radial-gradient(52% 38% at 92% 28%,  rgba(var(--color-accent-rgb), .10), transparent 72%);
+}
+
+.stat-card,
+.table-container,
+.student-summary-card,
+.subject-slot-card,
+.teacher-card,
+.dl-card,
+.glass {
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* Таб-бар и листы — плотнее: под ними проезжает содержимое страницы */
+.bottom-tabbar,
+.modal-content {
+  background-color: var(--glass-bg-strong);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* Запасной вариант: без размытия поверхности становятся обычными */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-bg: var(--color-surface); --glass-bg-strong: var(--color-surface-2); }
+  body::before { display: none; }
+}
+
+/* ===== Плитки раздела «Учёба» и сводки ===== */
+.tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.tile-grid .wide { grid-column: 1 / -1; }
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 108px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.tile:active { transform: scale(.975); }
+.tile-ico { width: 28px; height: 28px; color: var(--color-accent); }
+.tile-ico svg { width: 100%; height: 100%; }
+.tile-name { color: var(--color-text); font-weight: 600; font-size: var(--fs-body); }
+.tile-note { color: var(--color-text-secondary); font-size: var(--fs-small); }
+/* Строка «заголовок + кнопка справа» внутри плитки: без width:100% кнопка
+   с ms-auto выезжает за скруглённый край */
+.tile > .d-flex { width: 100%; min-width: 0; }
+.tile-num { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
+/* Красный кружок со счётчиком «горящих» дедлайнов */
+.tile-count {
+  position: absolute; top: 12px; right: 12px;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger); color: #fff;
+  font-size: var(--fs-small); font-weight: 700;
+}
+
+/* ===== Плавающая кнопка «+» (только администратор) ===== */
+.fab {
+  position: fixed;
+  z-index: 1029;
+  right: var(--space-4);
+  bottom: calc(var(--tabbar-inset) + var(--tabbar-gap) + var(--tabbar-h) + var(--space-3));
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--radius-pill);
+  background: var(--color-accent); color: #fff;
+  box-shadow: 0 8px 24px rgba(var(--color-accent-rgb), .36);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.fab svg { width: 26px; height: 26px; transition: transform var(--dur) var(--ease-out); }
+.fab[aria-expanded="true"] svg { transform: rotate(45deg); }
+.fab:active { transform: scale(.93); }
+
+/* ===== Переключатель разделов внутри экрана (Зачётка / Калькулятор и т.п.) ===== */
+.seg {
+  display: flex; gap: 2px; padding: 3px; margin-bottom: var(--space-4);
+  background-color: var(--color-surface-3);
+  border-radius: var(--radius-pill);
+  overflow-x: auto; scrollbar-width: none;
+}
+.seg::-webkit-scrollbar { display: none; }
+.seg-item {
+  flex: 1 0 auto; padding: 8px 16px;
+  border: 0; background: none; border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font: inherit; font-size: var(--fs-chip); white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.seg-item.active { background-color: var(--color-surface); color: var(--color-text); font-weight: 600; }
+
+/* ===== Сворачиваемая таблица пропусков по предметам ===== */
+.subj-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%; padding: 12px var(--space-4);
+  border: 0; border-top: 1px solid var(--color-separator);
+  background: none; color: inherit; font: inherit; text-align: left;
+}
+.subj-row:first-child { border-top: 0; }
+.subj-row .chev { transition: transform var(--dur-fast) var(--ease-out); flex: none; }
+.subj-row[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.subj-body { display: none; padding: 0 var(--space-4) var(--space-3); }
+.subj-body.open { display: block; animation: subjIn var(--dur) var(--ease-out) both; }
+@keyframes subjIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* ===== Боковая панель вместо таб-бара от 1024 px ===== */
+@media (min-width: 1024px) {
+  .bottom-tabbar {
+    left: 0; right: auto; top: 0; bottom: 0;
+    width: 248px; max-width: none; height: auto;
+    margin: 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 2px;
+    padding: var(--space-4) var(--space-3);
+    border-radius: 0;
+    border: 0;
+    border-right: 1px solid var(--color-border);
+    box-shadow: none;
+    overflow-y: auto;
+  }
+  .tabbar-item {
+    flex: none;
+    /* В колонке базовая height: 100% растягивает кнопку на всю панель */
+    height: auto;
+    align-self: stretch;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    padding: 11px var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-body);
+  }
+  .tabbar-item .tab-ico { width: 22px; height: 22px; }
+  .tabbar-item .tabbar-badge-dot { position: static; margin-left: auto; }
+  body { padding-left: 248px; }
+  .fab { right: var(--space-8); }
+}
+
+/* «Меньше движения»: стекло остаётся, движение — нет */
+@media (prefers-reduced-motion: reduce) {
+  .tile, .fab, .seg-item, .subj-row .chev { transition: none; }
+  .subj-body.open { animation: none; }
+}
+
+/* Шапка дней недели в маленьких календарях «Домашки» и «Зачётов» */
+.cal-day.cal-wd { color: var(--color-text-tertiary); font-size: var(--fs-small); pointer-events: none; }
+
+/* ===== Дедлайн в расписании: стоит на своём дне под парами ===== */
+.sch-dl {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%; margin-top: var(--space-2); padding: 12px var(--space-4);
+  border: 0; border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background-color: var(--color-warn-bg);
+  color: inherit; font: inherit; text-align: left;
+}
+.sch-dl.is-zachet { border-left-color: var(--color-danger); background-color: var(--color-danger-bg); }
+.sch-dl-kind {
+  flex: none; padding: 3px 9px; border-radius: var(--radius-pill);
+  background: rgba(var(--color-bg-rgb), .45);
+  font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  color: var(--color-text);
+}
+.sch-dl-body { min-width: 0; }
+.sch-dl-body b { display: block; color: var(--color-text); font-size: var(--fs-caption); }
+.sch-dl-body small { display: block; color: var(--color-text-secondary); font-size: var(--fs-small); }
+
+/* Длинная ссылка в тексте дедлайна не должна разрывать карточку */
+.dl-text, .today-next b, .sch-dl-body b { overflow-wrap: anywhere; }
+/* Цвет крупной цифры на плитке задаёт сама плитка, а не унаследованный «успех» */
+.tile-num { color: var(--color-text); }
