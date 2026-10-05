@@ -603,6 +603,21 @@
     </div>
   </div>
 
+  <!-- Достижения — заглушка: сам раздел ещё не сделан -->
+  <div class="modal fade swipe-sheet" id="achievementsSheet" tabindex="-1" aria-labelledby="achievementsSheetTitle" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="achievementsSheetTitle">Достижения</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <div class="va-empty">Раздел в разработке</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Раздел «Статистика» (index.html#stats) -->
   <div id="viewStats" class="app-view">
 
@@ -997,11 +1012,12 @@
       <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
     </button>
 
-    <!-- Зачётка и калькулятор -->
-    <button type="button" class="tile" id="homeZachetkaTile" onclick="goView('zachetka')">
-      <span class="tile-num" id="todayZachetkaAvg">—</span>
-      <span class="tile-note">средний балл</span>
-      <span class="tile-note">рейтинг <b id="todayRating">—</b></span>
+    <!-- Достижения: раздел ещё не сделан, плитка показывает «Скоро» -->
+    <button type="button" class="tile" id="homeAchievementsTile" onclick="openAchievementsSheet()">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 5.5H5.5v1.5A3 3 0 008.4 10M16 5.5h2.5V7a3 3 0 01-2.9 3"/><path d="M12 13v3.5M9 20h6M10.5 16.5h3l.7 3.5h-4.4z"/></svg></span>
+      <span class="tile-name">Достижения</span>
+      <span class="tile-note">значки за учёбу</span>
+      <span class="tile-soon">Скоро</span>
     </button>
 
     <!-- Ближайшие дедлайны -->
@@ -2311,7 +2327,6 @@
     if (tiles) tiles.classList.toggle('d-none', loading);
     if (guest) guest.classList.toggle('d-none', loading || !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
-    document.getElementById('homeZachetkaTile').classList.toggle('d-none', !me);
     if (loading) {
       document.getElementById('homeLessonCard').classList.add('d-none');
       document.getElementById('todayNext').classList.add('d-none');
@@ -2395,9 +2410,10 @@
     const hw = (appData.homework || []).length;
     document.getElementById('studyHomeworkNote').textContent = hw ? hw + ' заданий' : 'все задания по датам';
     document.getElementById('studyTeachersNote').textContent = (appData.teachers || []).length + ' предметов';
-    const avg = document.getElementById('todayZachetkaAvg');
+    // Средний балл берём прямо из зачётки: своей плитки на главной у него больше нет
+    const avg = document.getElementById('zachetkaAverage');
     document.getElementById('studyZachetkaNote').textContent =
-      avg && avg.textContent !== '—' ? 'средний балл ' + avg.textContent : 'оценки и рейтинг';
+      avg && avg.textContent && avg.textContent !== '—' ? 'средний балл ' + avg.textContent : 'оценки и рейтинг';
   }
 
   // Экранирование для строк, которые собираются в HTML
@@ -2591,6 +2607,14 @@
     markDeadlinesSeen();
     updateDeadlinesDot();
     updateBellDot();
+  }
+
+  // Достижения: раздела пока нет, по плитке открывается заглушка
+  function openAchievementsSheet() {
+    haptic('impact');
+    const el = document.getElementById('achievementsSheet');
+    enableSheetSwipe(el);
+    bootstrap.Modal.getOrCreateInstance(el).show();
   }
 
   // Точка на колокольчике — та же, что на вкладке «Учёба»

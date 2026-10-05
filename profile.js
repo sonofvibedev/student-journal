@@ -1128,20 +1128,9 @@
     const more = document.getElementById('todayDeadlinesMore');
     more.textContent = dls.length > 3 ? `Все ${dls.length} ›` : 'Все ›';
   }
-  // Зачётка на «Сегодня»: средний балл из зачётки и итог калькулятора (из тех же ключей localStorage)
-  function updateTodayGrades() {
-    document.getElementById('todayZachetkaAvg').innerText = document.getElementById('zachetkaAverage').innerText;
-    let st = null;
-    try { st = JSON.parse(lsGet('rating_calc_state') || 'null'); } catch (e) {}
-    const c = st && Array.isArray(st.control) ? st.control : [], o = st && Array.isArray(st.oral) ? st.oral : [];
-    const k = parseFloat(lsGet('rating_seminar_coef')) || 0.6;
-    const w = parseFloat(lsGet('rating_final_coef')) || 0.4;
-    const exam = parseFloat(lsGet('rating_exam_grade'));
-    const sem = avgOf(c) * k + avgOf(o) * (1 - k);
-    const el = document.getElementById('todayRating');
-    if (!c.length && !o.length) el.innerText = '—';
-    else el.innerText = isNaN(exam) ? `${sem.toFixed(2)} за семинары` : (sem * w + exam * (1 - w)).toFixed(2);
-  }
+  // Плитки со средним баллом и рейтингом на главной больше нет: средний балл
+  // и калькулятор живут в зачётке (zachetkaAverage и recalcRating), заметку
+  // «средний балл» на вкладке «Учёба» рисует renderStudyTiles() в index.html.
 
 
 
@@ -1536,9 +1525,7 @@
   }
   afterRender('showCabinetContent', renderCabinetAvatars);
   // «Сегодня»: средний балл и итог калькулятора обновляются при входе, пересчёте и переключении разделов
-  afterRender('showCabinetContent', updateTodayGrades);
-  afterRender('recalcRating', updateTodayGrades);
-  afterRender('setCabinetSection', updateTodayGrades);
+
   // ===== Studak: электронный пропуск (оформление и общий код — в studak.js) =====
   // Код в QR — одноразовый токен на 5 минут: его выдаёт issue_pass_token() в Supabase (в базе только хэш),
   // проверяет pass.html через Edge Function verify-pass. Новый код запрашиваем за 20 секунд до конца,
