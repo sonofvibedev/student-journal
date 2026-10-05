@@ -600,9 +600,12 @@ function achInitials(id) {
 
 function achRowHtml(row, me, pinned) {
   const isMe = row.student_id === me;
+  // user_id приходит из rpc_leaderboard: по нему лежит файл аватарки <user_id>.jpg.
+  // У тех, кто ещё не завёл аккаунт, его нет — остаются инициалы.
+  const ava = row.user_id ? ' data-user="' + escapeHtml(row.user_id) + '"' : '';
   return '<div class="ach-row' + (isMe ? ' is-me' : '') + (pinned ? ' ach-me-pinned' : '') + '">' +
     '<span class="ach-place">' + row.place + '</span>' +
-    '<span class="ach-ava" data-student="' + escapeHtml(row.student_id) + '">' + escapeHtml(achInitials(row.student_id)) + '</span>' +
+    '<span class="ach-ava"' + ava + '>' + escapeHtml(achInitials(row.student_id)) + '</span>' +
     '<span class="ach-name">' + escapeHtml(achStudentName(row.student_id)) + '</span>' +
     '<span class="text-end"><span class="ach-score">' + row.points + '</span>' +
     '<span class="ach-score-note d-block">' + row.badges_count + ' знач.</span></span>' +
@@ -628,26 +631,23 @@ function renderAchBoard() {
   achFillBoardAvatars();
 }
 
-// Аватарки рисуем после списка: каждая — отдельная загрузка из приватного бакета
+// Аватарки рисуем после списка: каждая — отдельная загрузка из приватного бакета.
+// Таблицу profiles не трогаем: она связывает user_id с логином и отдаёт только
+// свою строку. user_id приходит прямо в строке рейтинга.
 async function achFillBoardAvatars() {
   if (!sb) return;
-  const cells = [...document.querySelectorAll('#achPaneBoard .ach-ava[data-student]')];
-  if (!cells.length) return;
-  try {
-    const { data } = await sb.from('profiles').select('user_id, student_id');
-    const byStudent = new Map((data || []).map((p) => [p.student_id, p.user_id]));
-    for (const cell of cells) {
-      const userId = byStudent.get(cell.dataset.student);
-      if (!userId) continue;
-      const { data: blob } = await sb.storage.from('avatars').download(`${userId}.jpg`);
+  const cells = [...document.querySelectorAll('#achPaneBoard .ach-ava[data-user]')];
+  for (const cell of cells) {
+    try {
+      const { data: blob } = await sb.storage.from('avatars').download(`${cell.dataset.user}.jpg`);
       if (!blob) continue;
       const img = document.createElement('img');
       img.alt = '';
       img.decoding = 'async';
       img.src = URL.createObjectURL(blob);
       cell.appendChild(img);
-    }
-  } catch (e) { /* нет фото — остаются инициалы */ }
+    } catch (e) { /* нет фото — остаются инициалы */ }
+  }
 }
 
 // ===== Как считаются баллы =====
