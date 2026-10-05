@@ -1355,16 +1355,6 @@ body::before {
    с ms-auto выезжает за скруглённый край */
 .tile > .d-flex { width: 100%; min-width: 0; }
 .tile-num { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
-/* Пометка «Скоро» на плитке раздела, которого ещё нет */
-.tile-soon {
-  position: absolute; top: 12px; right: 12px;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-2);
-  color: var(--color-text-secondary);
-  font-size: var(--fs-small); font-weight: 600;
-}
-
 /* Красный кружок со счётчиком «горящих» дедлайнов */
 .tile-count {
   position: absolute; top: 12px; right: 12px;

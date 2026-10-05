@@ -417,3 +417,326 @@ function achMyPlace() {
   const row = achState.board.find((r) => r.student_id === id);
   return row ? row.place : null;
 }
+
+// ============================================================================
+// Экраны: плитка на главной, раздел «Достижения», полоска значков в профиле,
+// всплывашка о новом значке.
+// ============================================================================
+
+const achFormatDate = (iso) => {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : dlFormatDate(d);
+};
+
+// Склонение: 1 балл, 2 балла, 5 баллов
+function achPointsWord(n) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return 'баллов';
+  if (b === 1) return 'балл';
+  if (b >= 2 && b <= 4) return 'балла';
+  return 'баллов';
+}
+
+// ===== Плитка на главной =====
+function renderHomeAchievements() {
+  const tile = document.getElementById('homeAchievementsTile');
+  if (!tile) return;
+  const signed = AppState.auth === 'signed';
+  tile.classList.toggle('d-none', !signed);
+  if (!signed || !achState.loaded) return;
+
+  const stats = achStats();
+  const latest = achLatest();
+  const next = achNextUp(stats);
+  const place = achMyPlace();
+
+  // Пока значков нет — кубок «Чистого семестра» серым, как цель
+  const badgeBox = document.getElementById('homeAchBadge');
+  badgeBox.innerHTML = achBadgeHtml(latest ? latest.code : 'clean_term', !latest);
+  if (badgeBox.firstElementChild) badgeBox.firstElementChild.style.setProperty('--ach-size', '34px');
+  document.getElementById('homeAchPoints').textContent = stats.points;
+  document.getElementById('homeAchPlace').textContent =
+    place ? `${achPointsWord(stats.points)} · ${place}-е место` : `${achPointsWord(stats.points)} за семестр`;
+
+  const bar = tile.querySelector('.ach-bar i');
+  const note = document.getElementById('homeAchNext');
+  if (next) {
+    bar.style.setProperty('--ach-fill', String(Math.max(0, Math.min(1, next.p.have / next.p.need))));
+    note.textContent = `${next.a.title}: ${next.p.text}`;
+  } else {
+    bar.style.setProperty('--ach-fill', '1');
+    note.textContent = latest ? `Последний значок: ${ACH_BY_CODE[latest.code].title}` : 'Собирайте значки за учёбу';
+  }
+}
+
+// ===== Раздел «Достижения» =====
+let achTab = 'mine';
+
+function setAchTab(tab) {
+  achTab = ['mine', 'board', 'rules'].indexOf(tab) === -1 ? 'mine' : tab;
+  haptic('selection');
+  [['mine', 'achTabMine', 'achPaneMine'], ['board', 'achTabBoard', 'achPaneBoard'], ['rules', 'achTabRules', 'achPaneRules']]
+    .forEach(([id, tabId, paneId]) => {
+      const on = id === achTab;
+      const btn = document.getElementById(tabId);
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', String(on));
+      document.getElementById(paneId).classList.toggle('d-none', !on);
+    });
+  if (achTab === 'board') renderAchBoard();
+}
+
+async function renderAchievementsView() {
+  if (!achState.loaded) await achLoadAll();
+  else { achLoadMine(); achLoadBoard(); }   // обновляем в фоне, экран рисуем сразу
+  renderAchSummary();
+  renderAchMine();
+  if (achTab === 'board') renderAchBoard();
+  renderAchRules();
+  setAchTab(achTab);
+}
+
+function renderAchSummary() {
+  const box = document.getElementById('achSummary');
+  if (!box) return;
+  if (AppState.auth !== 'signed') {
+    box.innerHTML = '<div class="ach-sum-note">Войдите в кабинет, чтобы собирать значки и попасть в рейтинг</div>';
+    return;
+  }
+  const stats = achStats();
+  const place = achMyPlace();
+  box.innerHTML =
+    '<div><div class="ach-sum-num">' + stats.points + '</div>' +
+    '<div class="ach-sum-note">' + achPointsWord(stats.points) + ' за семестр</div></div>' +
+    '<div class="ms-auto text-end"><div class="ach-sum-num">' + (place ? place : '—') + '</div>' +
+    '<div class="ach-sum-note">место в рейтинге</div></div>';
+}
+
+// Карточка достижения со шкалой выполнения
+function achCardHtml(a, stats) {
+  const p = achProgressOf(a.code, stats) || { have: 0, need: 1, text: '' };
+  const row = achState.earned.get(a.code);
+  const fill = p.need ? Math.max(0, Math.min(1, p.have / p.need)) : 0;
+  const cls = ['ach-card'];
+  if (p.earned) cls.push('is-earned');
+  if (a.anti) cls.push('is-anti');
+  if (p.blocked) cls.push('is-blocked');
+
+  let extra = '';
+  if (p.checklist) {
+    extra = '<ul class="ach-check">' + p.checklist.map((c) =>
+      '<li class="' + (c.done ? 'done' : '') + '">' + (c.done ? '✓' : '○') + ' ' + escapeHtml(c.text) + '</li>').join('') + '</ul>';
+  }
+
+  return '<div class="' + cls.join(' ') + '">' +
+    achBadgeHtml(a.code, !p.earned) +
+    '<div class="ach-card-body">' +
+      '<div class="ach-card-title"><b>' + escapeHtml(a.title) + '</b>' +
+        (a.points ? '<span class="ach-points">+' + a.points + '</span>' : '') + '</div>' +
+      '<div class="ach-about">' + escapeHtml(a.about) + '</div>' +
+      extra +
+      '<div class="ach-bar"><i style="--ach-fill:' + fill + '"></i></div>' +
+      '<div class="ach-bar-text">' + escapeHtml(p.text) + '</div>' +
+      (row ? '<div class="ach-when">Получено ' + escapeHtml(achFormatDate(row.earned_at)) + '</div>' : '') +
+    '</div></div>';
+}
+
+// Серия — одна карточка-лесенка из шести ступеней
+function achStreakCardHtml(stats) {
+  const steps = achLadder('streak');
+  const nextStep = steps.find((s) => stats.streak < s.need) || steps[steps.length - 1];
+  const fill = Math.max(0, Math.min(1, stats.streak / nextStep.need));
+  const code = [...steps].reverse().find((s) => achState.earned.has(s.code));
+  return '<div class="ach-card' + (code ? ' is-earned' : '') + '">' +
+    achBadgeHtml(code ? code.code : steps[0].code, !code) +
+    '<div class="ach-card-body">' +
+      '<div class="ach-card-title"><b>Серия без пропусков</b></div>' +
+      '<div class="ach-about">Учебные дни подряд без неуважительных пропусков</div>' +
+      '<div class="ach-bar"><i style="--ach-fill:' + fill + '"></i></div>' +
+      '<div class="ach-bar-text">Серия ' + stats.streak + ' из ' + nextStep.need + ' дней</div>' +
+      '<div class="ach-steps">' + steps.map((s) =>
+        '<span class="ach-step' + (achState.earned.has(s.code) ? ' done' : '') + '">' +
+        s.need + ' · ' + escapeHtml(s.title) + '</span>').join('') + '</div>' +
+    '</div></div>';
+}
+
+function renderAchMine() {
+  const box = document.getElementById('achPaneMine');
+  if (!box) return;
+  if (AppState.auth !== 'signed') {
+    box.innerHTML = '<div class="feed-empty">Значки появятся после входа в кабинет</div>';
+    return;
+  }
+  const stats = achStats();
+  box.innerHTML = ACH_CATEGORIES.map((cat) => {
+    const list = ACHIEVEMENTS.filter((a) => a.cat === cat.id);
+    const cards = cat.id === 'attendance'
+      ? [achStreakCardHtml(stats)].concat(list.filter((a) => a.group !== 'streak').map((a) => achCardHtml(a, stats)))
+      : list.map((a) => achCardHtml(a, stats));
+    const warn = cat.id === 'anti' ? achAntiWarning(stats) : '';
+    return '<div class="kicker mt-3">' + cat.title + '</div>' + warn + cards.join('');
+  }).join('');
+}
+
+// Предупреждение под антидостижениями: сколько часов до следующего
+function achAntiWarning(stats) {
+  const next = achLadder('anti').find((a) => stats.unexcusedHours < a.need);
+  if (!next) return '';
+  const left = next.need - stats.unexcusedHours;
+  return '<div class="ach-bar-text mb-2">Ещё ' + left + ' ч — и следующее антидостижение</div>';
+}
+
+// ===== Рейтинг =====
+// Антидостижения и чужие часы сюда не попадают: rpc_leaderboard их не отдаёт.
+function achStudentName(id) {
+  const s = (typeof appData !== 'undefined' ? appData.students || [] : []).find((x) => x.id === id);
+  return s ? `${s.lastName} ${s.firstName}` : 'Студент';
+}
+function achInitials(id) {
+  const s = (typeof appData !== 'undefined' ? appData.students || [] : []).find((x) => x.id === id);
+  if (!s) return '—';
+  return ((s.lastName || ' ')[0] + (s.firstName || ' ')[0]).toUpperCase();
+}
+
+function achRowHtml(row, me, pinned) {
+  const isMe = row.student_id === me;
+  return '<div class="ach-row' + (isMe ? ' is-me' : '') + (pinned ? ' ach-me-pinned' : '') + '">' +
+    '<span class="ach-place">' + row.place + '</span>' +
+    '<span class="ach-ava" data-student="' + escapeHtml(row.student_id) + '">' + escapeHtml(achInitials(row.student_id)) + '</span>' +
+    '<span class="ach-name">' + escapeHtml(achStudentName(row.student_id)) + '</span>' +
+    '<span class="text-end"><span class="ach-score">' + row.points + '</span>' +
+    '<span class="ach-score-note d-block">' + row.badges_count + ' знач.</span></span>' +
+    '</div>';
+}
+
+function renderAchBoard() {
+  const box = document.getElementById('achPaneBoard');
+  if (!box) return;
+  if (AppState.auth !== 'signed') {
+    box.innerHTML = '<div class="feed-empty">Рейтинг виден после входа в кабинет</div>';
+    return;
+  }
+  if (!achState.board.length) {
+    box.innerHTML = '<div class="feed-empty">Рейтинг ещё не посчитан. Он обновляется раз в час.</div>';
+    return;
+  }
+  const me = AppState.studentId;
+  const mine = achState.board.find((r) => r.student_id === me);
+  box.innerHTML = achState.board.map((r) => achRowHtml(r, me, false)).join('') +
+    // Своя строка прилипает снизу, если она уехала за экран
+    (mine && mine.place > 8 ? achRowHtml(mine, me, true) : '');
+  achFillBoardAvatars();
+}
+
+// Аватарки рисуем после списка: каждая — отдельная загрузка из приватного бакета
+async function achFillBoardAvatars() {
+  if (!sb) return;
+  const cells = [...document.querySelectorAll('#achPaneBoard .ach-ava[data-student]')];
+  if (!cells.length) return;
+  try {
+    const { data } = await sb.from('profiles').select('user_id, student_id');
+    const byStudent = new Map((data || []).map((p) => [p.student_id, p.user_id]));
+    for (const cell of cells) {
+      const userId = byStudent.get(cell.dataset.student);
+      if (!userId) continue;
+      const { data: blob } = await sb.storage.from('avatars').download(`${userId}.jpg`);
+      if (!blob) continue;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.src = URL.createObjectURL(blob);
+      cell.appendChild(img);
+    }
+  } catch (e) { /* нет фото — остаются инициалы */ }
+}
+
+// ===== Как считаются баллы =====
+function renderAchRules() {
+  const box = document.getElementById('achPaneRules');
+  if (!box) return;
+  box.innerHTML =
+    '<div class="group"><div class="inset p-3">' +
+    '<p class="mb-2"><b>Рейтинг считается за семестр.</b> Это сумма баллов за значки, полученные в этом семестре, минус 5 баллов за каждый неуважительный час.</p>' +
+    '<p class="mb-2">В новом семестре рейтинг начинается с нуля, а полученные значки остаются в коллекции навсегда.</p>' +
+    '<p class="mb-2">Уважительные часы баллы не отнимают и серию не прерывают.</p>' +
+    '<p class="mb-2">Серия считается только по учебным дням — тем, когда по расписанию были пары, — и до даты «Пропуски актуальны на».</p>' +
+    '<p class="mb-2">Домашку можно отметить сделанной только у заданий, которые внёс староста, и только один раз за задание.</p>' +
+    '<p class="mb-2">При равных баллах выше тот, у кого меньше неуважительных часов.</p>' +
+    '<p class="mb-0">Антидостижения баллов не снимают и видны только вам. В рейтинге их нет.</p>' +
+    '</div></div>';
+}
+
+// ===== Полоска значков в профиле =====
+function renderProfileBadges() {
+  const box = document.getElementById('profileBadges');
+  if (!box) return;
+  const codes = [...achState.earned.entries()]
+    .filter(([code]) => !(ACH_BY_CODE[code] || {}).anti)
+    .sort((a, b) => String(b[1].earned_at).localeCompare(String(a[1].earned_at)))
+    .map(([code]) => code);
+  box.closest('.group')?.classList.toggle('d-none', codes.length === 0);
+  if (!codes.length) { box.innerHTML = ''; return; }
+  box.innerHTML = codes.slice(0, 8).map((c) => achBadgeHtml(c, false)).join('') +
+    (codes.length > 8 ? '<span class="ach-strip-more">+' + (codes.length - 8) + '</span>' : '');
+}
+
+// ===== Всплывашка о новом значке =====
+// Показывается один раз на значок: что уже показали, помним на устройстве.
+const ACH_SHOWN_KEY = 'ach_shown';
+
+function achShownSet() {
+  try { return new Set(JSON.parse(lsGet(ACH_SHOWN_KEY) || '[]')); } catch (e) { return new Set(); }
+}
+function achMarkShown(codes) {
+  const set = achShownSet();
+  codes.forEach((c) => set.add(c));
+  try { lsSet(ACH_SHOWN_KEY, JSON.stringify([...set])); } catch (e) {}
+}
+
+function achToast(code) {
+  const a = ACH_BY_CODE[code];
+  if (!a || !document.body) return;
+  const el = document.createElement('div');
+  el.className = 'ach-toast';
+  el.setAttribute('role', 'status');
+  el.innerHTML = achBadgeHtml(code, false) +
+    '<div><div class="ach-toast-kicker">Новое достижение' + (a.points ? ' · +' + a.points : '') + '</div>' +
+    '<div class="ach-toast-title">' + escapeHtml(a.title) + '</div></div>';
+  el.addEventListener('click', () => { el.remove(); goView('achievements'); });
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 4200);
+}
+
+// Новые значки с прошлого раза: показываем всплывашку по очереди
+function achShowNewBadges() {
+  const shown = achShownSet();
+  const fresh = [...achState.earned.keys()].filter((c) => !shown.has(c));
+  if (!fresh.length) return;
+  achMarkShown(fresh);
+  // При первом запуске после обновления значков может быть сразу много:
+  // показываем только три, остальные студент увидит в разделе
+  fresh.slice(0, 3).forEach((code, i) => setTimeout(() => achToast(code), i * 900));
+}
+
+// ===== Запуск =====
+// Данные грузим после входа и после загрузки журнала; экраны перерисовываются сами.
+let achInitDone = false;
+async function achInit() {
+  if (AppState.auth !== 'signed' || AppState.data !== 'ready') return;
+  if (achInitDone) return;
+  achInitDone = true;
+  await achMigrateLocalHomework();
+  await achLoadAll();
+  achLogEvent('first_login');
+  renderHomeAchievements();
+  renderProfileBadges();
+  achShowNewBadges();
+  if (currentViewName === 'achievements') renderAchievementsView();
+}
+
+AppState.onChange(() => {
+  if (AppState.auth === 'signed' && AppState.data === 'ready') achInit();
+  else { achInitDone = false; renderHomeAchievements(); }
+});
+if (AppState.auth === 'signed' && AppState.data === 'ready') achInit();
