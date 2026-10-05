@@ -288,6 +288,9 @@
   }
 
   function enterCabinet(profile) {
+    // Сессия могла восстановиться раньше, чем загрузился data.json: без этой
+    // проверки студент «не найден в журнале» только потому, что список пуст
+    if (AppState.data === 'loading') { AppState.onDataSettled(() => enterCabinet(profile)); return; }
     if (!appData.students.find(s => s.id === profile.student_id)) {
       showLoginForm();
       showAlert('Студент не найден в журнале. Обратитесь к старосте.');
@@ -296,11 +299,13 @@
     myProfile = profile;
     myStudentId = profile.student_id;
     document.body.classList.remove('is-login');
+    AppState.setAuth('signed', myStudentId);   // общее состояние: остальные разделы перерисуются сами
     showCabinetContent();
     loadMyAvatar();
   }
 
   function showLoginForm() {
+    AppState.setAuth('guest');                 // вход точно отсутствует: разделы покажут приглашение войти
     document.getElementById('cabinetLoginInput').value = '';
     document.getElementById('cabinetPasswordInput').value = '';
     resetInviteForm();
@@ -693,12 +698,31 @@
     }
   }
 
-  // Сессию завершили в другой вкладке или её не удалось продлить — возвращаемся к экрану входа
+  // Сессия изменилась: её завершили в другой вкладке, не удалось продлить или,
+  // наоборот, восстановили. Раньше здесь ловился только выход, поэтому после входа
+  // главная оставалась с приглашением войти. Теперь каждое событие обновляет
+  // общее состояние (AppState в shared.js), и разделы перерисовываются сами.
   if (sb) {
-    sb.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' && myStudentId) {
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        if (!myStudentId) { AppState.setAuth('guest'); return; }
         setTimeout(() => { if (typeof closeStudak === 'function') closeStudak(true); writeCachedProfile(null); writeCachedAvatar(null); myAvatarUrl = null; myProfile = null; myStudentId = null; showLoginForm(); }, 0);
+        return;
       }
+      // INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED
+      if (!session) {
+        if (event === 'INITIAL_SESSION' && !myStudentId && !readCachedProfile()) AppState.setAuth('guest');
+        return;
+      }
+      if (myStudentId) { AppState.setAuth('signed', myStudentId); return; }
+      // Сессия есть, а профиль ещё не загружен: берём свою строку из profiles
+      setTimeout(async () => {
+        if (myStudentId) return;
+        try {
+          const profile = await loadMyProfile(session);
+          if (profile) enterCabinet(profile);
+        } catch (e) {}
+      }, 0);
     });
   }
 
@@ -1107,20 +1131,9 @@
     const more = document.getElementById('todayDeadlinesMore');
     more.textContent = dls.length > 3 ? `Все ${dls.length} ›` : 'Все ›';
   }
-  // Зачётка на «Сегодня»: средний балл из зачётки и итог калькулятора (из тех же ключей localStorage)
-  function updateTodayGrades() {
-    document.getElementById('todayZachetkaAvg').innerText = document.getElementById('zachetkaAverage').innerText;
-    let st = null;
-    try { st = JSON.parse(lsGet('rating_calc_state') || 'null'); } catch (e) {}
-    const c = st && Array.isArray(st.control) ? st.control : [], o = st && Array.isArray(st.oral) ? st.oral : [];
-    const k = parseFloat(lsGet('rating_seminar_coef')) || 0.6;
-    const w = parseFloat(lsGet('rating_final_coef')) || 0.4;
-    const exam = parseFloat(lsGet('rating_exam_grade'));
-    const sem = avgOf(c) * k + avgOf(o) * (1 - k);
-    const el = document.getElementById('todayRating');
-    if (!c.length && !o.length) el.innerText = '—';
-    else el.innerText = isNaN(exam) ? `${sem.toFixed(2)} за семинары` : (sem * w + exam * (1 - w)).toFixed(2);
-  }
+  // Плитки со средним баллом и рейтингом на главной больше нет: средний балл
+  // и калькулятор живут в зачётке (zachetkaAverage и recalcRating), заметку
+  // «средний балл» на вкладке «Учёба» рисует renderStudyTiles() в index.html.
 
 
 
@@ -1515,9 +1528,7 @@
   }
   afterRender('showCabinetContent', renderCabinetAvatars);
   // «Сегодня»: средний балл и итог калькулятора обновляются при входе, пересчёте и переключении разделов
-  afterRender('showCabinetContent', updateTodayGrades);
-  afterRender('recalcRating', updateTodayGrades);
-  afterRender('setCabinetSection', updateTodayGrades);
+
   // ===== Studak: электронный пропуск (оформление и общий код — в studak.js) =====
   // Код в QR — одноразовый токен на 5 минут: его выдаёт issue_pass_token() в Supabase (в базе только хэш),
   // проверяет pass.html через Edge Function verify-pass. Новый код запрашиваем за 20 секунд до конца,

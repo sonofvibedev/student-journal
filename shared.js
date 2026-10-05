@@ -4,6 +4,74 @@
 // и свои карточки certDueCard(e), absenceDayCard(a) (кабинет — сроки справок и свои пропуски по дням). Разметка раздела — в самих страницах (те же id).
 // Новые (непросмотренные) дедлайны — красная точка .js-deadlines-dot, ключ localStorage seen_deadlines.
 
+// ============================================================================
+// Общая инициализация приложения: данные и вход.
+//
+// Раньше каждый раздел сам решал, что показать, и главная успевала отрисоваться
+// до восстановления сессии Supabase — вошедший студент видел «Войдите в кабинет».
+// Теперь состояние одно на всё приложение, разделы его ждут и перерисовываются
+// на каждое изменение (вход, выход, продление сессии, загрузка data.json).
+//
+//   AppState.data      'loading' | 'ready' | 'error'
+//   AppState.auth      'loading' | 'guest' | 'signed'
+//   AppState.studentId  id студента, когда auth === 'signed'
+//
+// «Гость» показывается только при auth === 'guest' — то есть когда точно
+// известно, что входа нет. Пока идёт проверка — скелетон.
+// ============================================================================
+
+const AppState = {
+  data: 'loading',
+  auth: 'loading',
+  studentId: null,
+  _subs: [],
+  // Подписка на изменения: разделы перерисовывают себя сами
+  onChange(fn) { this._subs.push(fn); return fn; },
+  // Копия списка: подписчик может отписаться прямо во время рассылки
+  _emit() { this._subs.slice().forEach(fn => { try { fn(this); } catch (e) { console.error(e); } }); },
+  setData(state) {
+    if (this.data === state) return;
+    this.data = state;
+    this._emit();
+  },
+  setAuth(state, studentId) {
+    const id = state === 'signed' ? (studentId || null) : null;
+    if (this.auth === state && this.studentId === id) return;
+    this.auth = state;
+    this.studentId = id;
+    this._emit();
+  },
+  // Выполнить один раз, когда data.json загрузился (или точно не загрузится).
+  // Нужно всему, что обращается к appData.students: сессия Supabase может
+  // восстановиться раньше данных, и тогда студента «нет в журнале» только
+  // потому, что список студентов ещё пуст.
+  onDataSettled(fn) {
+    if (this.data !== 'loading') { fn(); return; }
+    const once = (state) => {
+      if (state.data === 'loading') return;
+      const i = this._subs.indexOf(once);
+      if (i !== -1) this._subs.splice(i, 1);
+      fn();
+    };
+    this._subs.push(once);
+  },
+  // Готово ли приложение показывать личные цифры
+  get ready() { return this.data === 'ready' && this.auth !== 'loading'; }
+};
+
+// Сохранённый профиль читается синхронно, ещё до ответа Supabase: вошедшего
+// студента видно сразу и без сети. Если сессия всё же мертва, openPersonalCabinet()
+// вызовет showLoginForm() и состояние станет 'guest'.
+(function primeAuthFromCache() {
+  try {
+    const cached = JSON.parse(lsGet('journal_profile') || 'null');
+    if (cached && cached.student_id) {
+      AppState.auth = 'signed';
+      AppState.studentId = cached.student_id;
+    }
+  } catch (e) {}
+})();
+
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

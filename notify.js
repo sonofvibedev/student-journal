@@ -314,6 +314,94 @@ function checkLocalReminders() {
   });
 }
 
+// ============================================================================
+// Уведомления: красный кружок на колокольчике и лист «Уведомления».
+//
+// Непрочитанным считается то, что появилось после последнего просмотра листа.
+// Событий три вида: добавлен новый дедлайн, добавлена новая домашка, вышла
+// новая версия приложения (по CHANGELOG из changelog.js).
+//
+// Просмотренное лежит в localStorage: id записей и номера версий. При самом
+// первом запуске всё текущее сразу помечается прочитанным — иначе студент
+// увидел бы «новым» весь журнал сразу.
+// ============================================================================
+
+const NOTIFY_READ_KEY = 'notifications_read';   // { deadlines: [id], homework: [id], versions: ['1.3'] }
+
+// null — ключа ещё нет, то есть лист ни разу не открывали на этом устройстве
+function notificationsRead() {
+  let saved = null;
+  try { saved = JSON.parse(lsGet(NOTIFY_READ_KEY) || 'null'); } catch (e) {}
+  if (!saved || typeof saved !== 'object') return null;
+  const list = (v) => (Array.isArray(v) ? v.map(String) : []);
+  return { deadlines: list(saved.deadlines), homework: list(saved.homework), versions: list(saved.versions) };
+}
+function writeNotificationsRead(read) {
+  try { lsSet(NOTIFY_READ_KEY, JSON.stringify(read)); } catch (e) {}
+}
+
+// Дата события приходит в трёх видах: ISO от createdAt, «ГГГГ-ММ-ДД» от срока
+// и «ДД.ММ.ГГГГ[, ЧЧ:ММ]» из changelog.js. Сравнивать их как строки нельзя.
+function notifyTimeOf(value) {
+  const s = String(value || '').trim();
+  if (!s) return 0;
+  const ru = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:,\s*(\d{2}):(\d{2}))?$/);
+  if (ru) return new Date(+ru[3], +ru[2] - 1, +ru[1], +(ru[4] || 0), +(ru[5] || 0)).getTime();
+  const t = Date.parse(s);
+  return isNaN(t) ? 0 : t;
+}
+
+// Все события, которые вообще могут попасть в лист, — новые сверху
+function notificationItems() {
+  if (typeof appData === 'undefined' || !appData) return [];
+  const out = [];
+  (appData.deadlines || []).forEach((d) => out.push({
+    group: 'deadlines',
+    id: String(d.id),
+    at: notifyTimeOf(d.createdAt || d.dueDate),
+    kind: typeof deadlineKindName === 'function' ? deadlineKindName(d) : 'Дедлайн',
+    title: d.text || d.subject,
+    sub: d.subject,
+    day: d.dueDate
+  }));
+  (appData.homework || []).forEach((h) => out.push({
+    group: 'homework',
+    id: String(h.id),
+    at: notifyTimeOf(h.createdAt || h.dueDate),
+    kind: 'Домашка',
+    title: h.text || h.subject,
+    sub: h.subject,
+    day: h.dueDate
+  }));
+  (typeof CHANGELOG === 'undefined' ? [] : CHANGELOG).forEach((e) => out.push({
+    group: 'versions',
+    id: String(e.version),
+    at: notifyTimeOf(changelogDate(e)),
+    kind: 'Обновление',
+    title: e.title || ('Версия ' + e.version),
+    sub: 'Версия ' + e.version,
+    day: null
+  }));
+  return out.sort((a, b) => b.at - a.at);
+}
+
+function unreadNotifications() {
+  const read = notificationsRead();
+  if (!read) return [];                        // первый запуск: нового нет по определению
+  return notificationItems().filter((i) => read[i.group].indexOf(i.id) === -1);
+}
+
+// Всё текущее — прочитано. Вызывается при открытии листа и один раз при
+// самом первом запуске, чтобы старые записи не считались новыми.
+function markNotificationsRead() {
+  const read = { deadlines: [], homework: [], versions: [] };
+  notificationItems().forEach((i) => read[i.group].push(i.id));
+  writeNotificationsRead(read);
+}
+function primeNotificationsRead() {
+  if (!notificationsRead()) markNotificationsRead();
+}
+
 // Окно про уведомления показываем после «Что нового», а не поверх него
 function startNotifyFlow(whatsNewShown) {
   const el = document.getElementById('whatsNewModal');
