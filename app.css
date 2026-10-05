@@ -1355,6 +1355,16 @@ body::before {
    с ms-auto выезжает за скруглённый край */
 .tile > .d-flex { width: 100%; min-width: 0; }
 .tile-num { font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
+/* Пометка «Скоро» на плитке раздела, которого ещё нет */
+.tile-soon {
+  position: absolute; top: 12px; right: 12px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-size: var(--fs-small); font-weight: 600;
+}
+
 /* Красный кружок со счётчиком «горящих» дедлайнов */
 .tile-count {
   position: absolute; top: 12px; right: 12px;
@@ -1454,8 +1464,39 @@ body::before {
   .subj-body.open { animation: none; }
 }
 
-/* Шапка дней недели в маленьких календарях «Домашки» и «Зачётов» */
+/* ===== Маленькие календари «Домашки» и «Зачётов» =====
+   День — кнопка: по нажатию под календарём появляются события этого дня.
+   Сегодня отмечен обводкой, выбранный день залит, день с событиями — точкой. */
 .cal-day.cal-wd { color: var(--color-text-tertiary); font-size: var(--fs-small); pointer-events: none; }
+.cal-day.is-out { pointer-events: none; }
+.cal-day.has-mark { color: var(--color-text); font-weight: 600; }
+.cal-marks i { background: var(--color-accent); }
+.cal-day.is-today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: var(--color-text); font-weight: 600; }
+.cal-day.is-today::after { content: none; }
+.cal-day.is-selected { background: var(--color-accent); color: #fff; font-weight: 700; }
+.cal-day.is-selected.is-today { box-shadow: none; }
+.cal-day.is-selected .cal-marks i { background: #fff; }
+/* Подпись и список выбранного дня стоят под сеткой, внутри карточки календаря */
+.cal .cap { margin-top: 14px; }
+.cal .feed-empty { padding: 12px 0; }
+/* Событие в листе «Уведомления» — кнопка: по нажатию ведёт к себе */
+.nt-card {
+  display: block; width: 100%;
+  border: 0; font: inherit; color: inherit; text-align: left;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.nt-card:active { transform: scale(.985); }
+@media (prefers-reduced-motion: reduce) { .nt-card { transition: none; } }
+
+/* Домашка, которую студент отметил сделанной в карточке пары */
+.dl-card.is-done { opacity: .65; }
+.dl-card.is-done .dl-text { text-decoration: line-through; }
+.dl-done {
+  margin-left: 6px; padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--color-green-soft-bg); color: var(--color-success-text);
+  font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
 
 /* ===== Дедлайн в расписании: стоит на своём дне под парами ===== */
 .sch-dl {

@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=14"></script>
+  <script src="env.js?v=15"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,11 +25,11 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=14" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=15" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=14" rel="stylesheet">
-  <script src="theme.js?v=14"></script>
+  <link href="profile.css?v=15" rel="stylesheet">
+  <script src="theme.js?v=15"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -573,14 +573,14 @@
   <header class="app-header va-header">
     <div id="headerTapArea" class="app-header-main">
       <div class="app-title-row">
-        <h2 class="app-title" id="appTitle">Журнал</h2>
+        <h2 class="app-title" id="appTitle">Главная</h2>
         <span class="group-badge">24ДММ-2</span>
         <span class="period-badge" id="periodCaption"></span>
       </div>
       <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
     <div class="hdr-actions">
-      <button type="button" class="va-bell" id="announcementsBell" onclick="openRemindersSheet()" aria-label="Напоминания">
+      <button type="button" class="va-bell" id="announcementsBell" onclick="openNotificationsSheet()" aria-label="Уведомления">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2v1.3"/><path d="M6.2 16.6V11a5.8 5.8 0 0 1 11.6 0v5.6l1.6 1.7H4.6z"/><path d="M9.9 20.6a2.3 2.3 0 0 0 4.2 0"/></svg>
         <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
       </button>
@@ -598,6 +598,37 @@
         <div class="modal-body">
           <div id="remindersList"></div>
           <div class="va-empty d-none" id="announcementsEmpty">Ничего не горит</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Уведомления — лист снизу по колокольчику: что нового с прошлого раза -->
+  <div class="modal fade swipe-sheet" id="notificationsSheet" tabindex="-1" aria-labelledby="notificationsSheetTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="notificationsSheetTitle">Уведомления</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <div id="notificationsList"></div>
+          <div class="va-empty d-none" id="notificationsEmpty">Новых уведомлений нет</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Достижения — заглушка: сам раздел ещё не сделан -->
+  <div class="modal fade swipe-sheet" id="achievementsSheet" tabindex="-1" aria-labelledby="achievementsSheetTitle" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="achievementsSheetTitle">Достижения</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <div class="va-empty">Раздел в разработке</div>
         </div>
       </div>
     </div>
@@ -809,6 +840,8 @@
   <section id="viewDeadlines" class="app-view d-none" aria-labelledby="deadlinesViewTitle">
     <div class="view-head">
       <h3 class="view-title" id="deadlinesViewTitle">Дедлайны и зачёты</h3>
+      <!-- Лист «Напоминания» переехал сюда с колокольчика: там теперь уведомления -->
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="openRemindersSheet()">Что сдавать</button>
       <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openDeadlinesModal()">Управлять</button>
     </div>
     <div class="cal dl-cal">
@@ -895,6 +928,9 @@
       <button type="button" class="cal-nav" onclick="shiftMiniMonth('hw', 1)" aria-label="Следующий месяц">&rsaquo;</button>
     </div>
     <div class="cal-grid" id="hwCalGrid"></div>
+    <!-- Домашка выбранного дня: заполняет renderMiniDayList('hw') -->
+    <div class="cap" id="hwCalDayTitle"></div>
+    <div id="hwCalDayList"></div>
   </div>
   <div id="homeworkListBody"></div>
 </section>
@@ -908,6 +944,9 @@
       <button type="button" class="cal-nav" onclick="shiftMiniMonth('exam', 1)" aria-label="Следующий месяц">&rsaquo;</button>
     </div>
     <div class="cal-grid" id="examCalGrid"></div>
+    <!-- Зачёты и экзамены выбранного дня: заполняет renderMiniDayList('exam') -->
+    <div class="cap" id="examCalDayTitle"></div>
+    <div id="examCalDayList"></div>
   </div>
   <div id="examsBody"></div>
 </section>
@@ -959,6 +998,14 @@
 <!-- Раздел «Главная» (index.html#home) — сводка дня -->
 <section id="viewHome" class="app-view d-none">
 
+  <!-- Пока неизвестно, вошёл студент или нет (ждём data.json и сессию Supabase),
+       вместо цифр — скелетон. Так «Войдите в кабинет» не мигает вошедшему. -->
+  <div id="homeSkeleton" class="cabinet-skeleton" aria-hidden="true">
+    <span class="skel skel-card"></span>
+    <div class="skel-stats"><span class="skel skel-stat"></span><span class="skel skel-stat"></span></div>
+    <span class="skel skel-block"></span>
+  </div>
+
   <!-- Гостю вместо личных цифр — приглашение войти -->
   <div class="group d-none" id="homeGuest">
     <div class="inset">
@@ -981,7 +1028,7 @@
     <span class="tile-note" id="homeLessonHw"></span>
   </button>
 
-  <div class="tile-grid">
+  <div class="tile-grid" id="homeTiles">
     <!-- Часы пропусков за месяц: по нажатию — календарь пропусков -->
     <button type="button" class="tile" id="homeHoursTile" onclick="goView('absences')">
       <span class="tile-num" id="homeHoursUnexcused">0</span>
@@ -989,11 +1036,12 @@
       <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
     </button>
 
-    <!-- Зачётка и калькулятор -->
-    <button type="button" class="tile" id="homeZachetkaTile" onclick="goView('zachetka')">
-      <span class="tile-num" id="todayZachetkaAvg">—</span>
-      <span class="tile-note">средний балл</span>
-      <span class="tile-note">рейтинг <b id="todayRating">—</b></span>
+    <!-- Достижения: раздел ещё не сделан, плитка показывает «Скоро» -->
+    <button type="button" class="tile" id="homeAchievementsTile" onclick="openAchievementsSheet()">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 5.5H5.5v1.5A3 3 0 008.4 10M16 5.5h2.5V7a3 3 0 01-2.9 3"/><path d="M12 13v3.5M9 20h6M10.5 16.5h3l.7 3.5h-4.4z"/></svg></span>
+      <span class="tile-name">Достижения</span>
+      <span class="tile-note">значки за учёбу</span>
+      <span class="tile-soon">Скоро</span>
     </button>
 
     <!-- Ближайшие дедлайны -->
@@ -1761,6 +1809,18 @@
           <label class="form-label text-secondary small" for="deadlineDueDate" id="deadlineDueDateLabel">Срок</label>
           <input type="date" id="deadlineDueDate" class="form-control">
         </div>
+        <!-- Время и аудитория — только у зачёта и экзамена: их показывает календарь
+             «Зачёты и экзамены» при нажатии на дату. Оба поля необязательные. -->
+        <div class="row g-2 mb-3 d-none" id="deadlineControlFields">
+          <div class="col-6">
+            <label class="form-label text-secondary small" for="deadlineTime">Время (необязательно)</label>
+            <input type="time" id="deadlineTime" class="form-control">
+          </div>
+          <div class="col-6">
+            <label class="form-label text-secondary small" for="deadlineRoom">Аудитория (необязательно)</label>
+            <input type="text" id="deadlineRoom" class="form-control" placeholder="512" maxlength="16">
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" onclick="closeDeadlineForm()">Отмена</button>
@@ -2007,10 +2067,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=14"></script>
-<script src="schedule.js?v=14"></script>
-<script src="notify.js?v=14"></script>
-<script src="shared.js?v=14"></script>
+<script src="changelog.js?v=15"></script>
+<script src="schedule.js?v=15"></script>
+<script src="notify.js?v=15"></script>
+<script src="shared.js?v=15"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -2257,6 +2317,7 @@
       if (el) el.classList.toggle('d-none', k !== name);
     });
     renderTabbar(name, { study: hasHotDeadlines() });
+    renderAppTitle();
     updateBellDot();
 
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
@@ -2285,15 +2346,40 @@
     syncTelegramBackButton();
   }
 
+  // Заголовок шапки меняется по разделу, бейдж «24ДММ-2» рядом остаётся.
+  // Вложенный экран берёт имя своей вкладки (tabForScreen в shared.js):
+  // «Преподаватели» и «Зачётка» лежат внутри «Учёбы», поэтому там «Журнал».
+  const VIEW_TITLES = { home: 'Главная', schedule: 'Расписание', study: 'Журнал', profile: 'Профиль' };
+  function renderAppTitle() {
+    const el = document.getElementById('appTitle');
+    if (!el) return;
+    const view = currentViewName || currentView();
+    el.innerText = view === 'admin' ? 'Админ-панель' : (VIEW_TITLES[tabForScreen(view)] || 'Журнал');
+  }
+
   // ===== Главная: сводка дня =====
-  // Личные цифры показываются только вошедшему студенту; гостю вместо них —
-  // строка с приглашением войти. Дедлайны и ближайшую пару видно всем.
+  // Три состояния, одно общее на всё приложение (AppState в shared.js):
+  //   loading — ждём data.json и сессию Supabase, показываем скелетон;
+  //   guest   — входа точно нет, вместо личных цифр приглашение войти;
+  //   signed  — цифры студента.
+  // «Войдите в кабинет» появляется только в состоянии guest, поэтому вошедший
+  // студент видит свои часы сразу при открытии, без захода в «Профиль».
+  // Дедлайны и ближайшую пару видно всем.
   function renderHome() {
-    const me = (typeof myStudentId !== 'undefined' && myStudentId) ? myStudentId : null;
+    const loading = !AppState.ready;
+    const me = AppState.auth === 'signed' ? AppState.studentId : null;
+    const skel = document.getElementById('homeSkeleton');
     const guest = document.getElementById('homeGuest');
-    if (guest) guest.classList.toggle('d-none', !!me);
+    const tiles = document.getElementById('homeTiles');
+    if (skel) skel.classList.toggle('d-none', !loading);
+    if (tiles) tiles.classList.toggle('d-none', loading);
+    if (guest) guest.classList.toggle('d-none', loading || !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
-    document.getElementById('homeZachetkaTile').classList.toggle('d-none', !me);
+    if (loading) {
+      document.getElementById('homeLessonCard').classList.add('d-none');
+      document.getElementById('todayNext').classList.add('d-none');
+      return;
+    }
 
     // Часы за текущий месяц: отдельно неуважительные и уважительные
     if (me) {
@@ -2372,9 +2458,10 @@
     const hw = (appData.homework || []).length;
     document.getElementById('studyHomeworkNote').textContent = hw ? hw + ' заданий' : 'все задания по датам';
     document.getElementById('studyTeachersNote').textContent = (appData.teachers || []).length + ' предметов';
-    const avg = document.getElementById('todayZachetkaAvg');
+    // Средний балл берём прямо из зачётки: своей плитки на главной у него больше нет
+    const avg = document.getElementById('zachetkaAverage');
     document.getElementById('studyZachetkaNote').textContent =
-      avg && avg.textContent !== '—' ? 'средний балл ' + avg.textContent : 'оценки и рейтинг';
+      avg && avg.textContent && avg.textContent !== '—' ? 'средний балл ' + avg.textContent : 'оценки и рейтинг';
   }
 
   // Экранирование для строк, которые собираются в HTML
@@ -2387,9 +2474,16 @@
   // Большой календарь дедлайнов живёт в shared.js и привязан к своим id;
   // здесь тот же вид, но на своих данных и в своём разделе.
   const miniMonth = { hw: null, exam: null };
+  const miniDay = { hw: null, exam: null };   // выбранный день, ключ YYYY-MM-DD
   function shiftMiniMonth(which, delta) {
     const base = miniMonth[which] || new Date();
     miniMonth[which] = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+    if (which === 'hw') renderHomeworkList(); else renderExams();
+  }
+  // Нажатие на дату: под календарём появляются события именно этого дня
+  function selectMiniDay(which, key) {
+    miniDay[which] = key;
+    haptic('selection');
     if (which === 'hw') renderHomeworkList(); else renderExams();
   }
   function renderMiniCalendar(which, marks) {
@@ -2403,6 +2497,7 @@
     const shift = (first.getDay() + 6) % 7;             // неделя с понедельника
     const days = new Date(y, m + 1, 0).getDate();
     const todayKey = dayKey(new Date());
+    const selected = miniDay[which];
     // Шапка с днями недели: без неё непонятно, на какой день попадает отметка
     let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
       .map(w => '<span class="cal-day cal-wd" aria-hidden="true">' + w + '</span>').join('');
@@ -2410,10 +2505,94 @@
     for (let d = 1; d <= days; d++) {
       const key = dayKey(new Date(y, m, d));
       const n = marks[key] || 0;
-      html += '<span class="cal-day' + (key === todayKey ? ' is-today' : '') + (n ? ' has-mark' : '') + '">' +
-        d + (n ? '<i class="cal-marks" aria-hidden="true"></i>' : '') + '</span>';
+      const cls = ['cal-day'];
+      if (key === todayKey) cls.push('is-today');        // сегодня — обводка
+      if (key === selected) cls.push('is-selected');     // выбранный день — залитый
+      if (n) cls.push('has-mark');
+      html += '<button type="button" class="' + cls.join(' ') + '"' +
+        (key === selected ? ' aria-current="date"' : '') +
+        ' data-day="' + key + '">' +
+        d + (n ? '<i class="cal-marks" aria-hidden="true"><i></i></i>' : '') + '</button>';
     }
     grid.innerHTML = html;
+    // Один обработчик на сетку: разметку дней перерисовываем целиком
+    if (!grid.dataset.bound) {
+      grid.dataset.bound = '1';
+      grid.addEventListener('click', (e) => {
+        const cell = e.target.closest('button[data-day]');
+        if (cell) selectMiniDay(which, cell.dataset.day);
+      });
+    }
+    renderMiniDayList(which);
+  }
+
+  // Список событий выбранного дня под маленьким календарём.
+  // Пока день не выбран — подсказка; день без событий — «В этот день ничего нет».
+  function renderMiniDayList(which) {
+    const title = document.getElementById(which === 'hw' ? 'hwCalDayTitle' : 'examCalDayTitle');
+    const list = document.getElementById(which === 'hw' ? 'hwCalDayList' : 'examCalDayList');
+    if (!title || !list) return;
+    const key = miniDay[which];
+    const base = miniMonth[which] || new Date();
+    const [yy, mm, dd] = String(key || '').split('-').map(Number);
+    // Переключили месяц — выбранный день другого месяца не показываем
+    if (!key || yy !== base.getFullYear() || mm - 1 !== base.getMonth()) {
+      title.textContent = '';
+      list.innerHTML = '<div class="feed-empty">Выберите день, чтобы увидеть события</div>';
+      return;
+    }
+    title.textContent = dd + ' ' + MONTHS_GEN[mm - 1] + (key === dayKey(new Date()) ? ' · сегодня' : '');
+    const items = which === 'hw' ? homeworkOfDay(key) : controlsOfDay(key);
+    if (!items.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
+    list.innerHTML = items.join('');
+  }
+
+  // Зачёты и экзамены этого дня: предмет, тип, время и аудитория, если админ их указал.
+  // Время и аудитория — необязательные поля time и room записи в data.json.
+  function controlsOfDay(key) {
+    return (appData.deadlines || [])
+      .filter(d => isZachet(d) && d.dueDate === key)
+      .sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')) ||
+        String(a.subject).localeCompare(String(b.subject), 'ru'))
+      .map(d => {
+        const meta = [d.time, d.room && ('ауд. ' + d.room)].filter(Boolean).join(' · ');
+        return '<div class="dl-card is-zachet">' +
+          '<div class="dl-subject"><span class="dl-kind">' + escapeHtml(deadlineKindName(d)) + '</span>' +
+          escapeHtml(d.subject) + '</div>' +
+          (meta ? '<div class="dl-meta"><span class="dl-date">' + escapeHtml(meta) + '</span></div>' : '') +
+          (d.text ? '<div class="dl-text">' + escapeHtml(d.text) + '</div>' : '') +
+          '</div>';
+      });
+  }
+
+  // Домашка с этим сроком: предмет, задание и отметка «Сделано»
+  function homeworkOfDay(key) {
+    return (appData.homework || [])
+      .filter(h => h.dueDate === key)
+      .sort((a, b) => String(a.subject).localeCompare(String(b.subject), 'ru'))
+      .map(h => {
+        const done = homeworkDone(h);
+        const meta = [h.type, h.subgroup ? 'подгр. ' + h.subgroup : ''].filter(Boolean).join(' · ');
+        return '<div class="dl-card' + (done ? ' is-done' : '') + '">' +
+          '<div class="dl-subject">' + escapeHtml(h.subject) +
+          (done ? '<span class="dl-done">Сделано</span>' : '') + '</div>' +
+          '<div class="dl-text">' + escapeHtml(h.text || '') + '</div>' +
+          (meta ? '<div class="dl-meta"><span class="dl-date">' + escapeHtml(meta) + '</span></div>' : '') +
+          '</div>';
+      });
+  }
+
+  // «Сделано» у домашки — та же личная отметка, что в карточке пары (ключ
+  // hw_done_<student_id>, внутри «дата|занятие»). Домашка привязана к паре
+  // через homeworkForLesson(), поэтому смотрим пары того дня, к которым она относится.
+  function homeworkDone(h) {
+    if (!h.dueDate || typeof lessonsOfDay !== 'function') return false;
+    const d = deadlineDate(h.dueDate);
+    const week = currentSemesterWeek(d);
+    const day = d.getDay() === 0 ? 7 : d.getDay();
+    if (!week || day > 6) return false;
+    return (lessonsOfDay(week, day) || []).some(l =>
+      homeworkForLesson(l, h.dueDate).some(x => x.id === h.id) && isLessonDone(l, h.dueDate));
   }
 
   // ===== «Домашка»: все задания, сгруппированные по датам =====
@@ -2570,13 +2749,85 @@
     updateBellDot();
   }
 
-  // Точка на колокольчике — та же, что на вкладке «Учёба»
+  // Достижения: раздела пока нет, по плитке открывается заглушка
+  function openAchievementsSheet() {
+    haptic('impact');
+    const el = document.getElementById('achievementsSheet');
+    enableSheetSwipe(el);
+    bootstrap.Modal.getOrCreateInstance(el).show();
+  }
+
+  // ===== Уведомления по колокольчику =====
+  // Счётчик — количество непрочитанных событий трёх видов: новый дедлайн,
+  // новая домашка, новая версия приложения. Что уже видели, помнит notify.js
+  // (ключ notifications_read). Раньше здесь считались «горящие» сроки,
+  // поэтому кружок горел постоянно и не гас после открытия листа.
   function updateBellDot() {
     const dot = document.getElementById('announcementsBellCount');
     if (!dot) return;
-    const n = remindersItems().filter(it => it.n <= 1).length;
+    const n = unreadNotifications().length;
     dot.textContent = n;
     dot.classList.toggle('d-none', n === 0);
+    document.getElementById('announcementsBell').classList.toggle('has-unread', n > 0);
+  }
+
+  // Лист «Уведомления»: список непрочитанного с датой. Нажатие ведёт к событию,
+  // при открытии всё становится прочитанным и кружок гаснет.
+  function openNotificationsSheet() {
+    haptic('impact');
+    const list = document.getElementById('notificationsList');
+    const empty = document.getElementById('notificationsEmpty');
+    const items = unreadNotifications();
+    empty.classList.toggle('d-none', items.length > 0);
+    list.innerHTML = items.map((it, i) =>
+      '<button type="button" class="dl-card nt-card" data-i="' + i + '">' +
+      '<div class="dl-subject"><span class="dl-kind">' + escapeHtml(it.kind) + '</span>' + escapeHtml(it.sub) + '</div>' +
+      '<div class="dl-text">' + escapeHtml(it.title) + '</div>' +
+      '<div class="dl-meta"><span class="dl-date">' + escapeHtml(notificationWhen(it)) + '</span></div>' +
+      '</button>').join('');
+    const el = document.getElementById('notificationsSheet');
+    list.onclick = (e) => {
+      const card = e.target.closest('button[data-i]');
+      if (!card) return;
+      const item = items[Number(card.dataset.i)];
+      bootstrap.Modal.getOrCreateInstance(el).hide();
+      if (item) openNotificationTarget(item);
+    };
+    enableSheetSwipe(el);
+    bootstrap.Modal.getOrCreateInstance(el).show();
+    markNotificationsRead();
+    updateBellDot();
+  }
+
+  // Дата события: у записей — когда их добавили, у версии — когда вышла
+  function notificationWhen(item) {
+    if (!item.at) return '';
+    return dlFormatDate(new Date(item.at));
+  }
+
+  // Переход к событию: дедлайн и домашка открываются на своей дате,
+  // новая версия — окном «Что нового», прошлая — историей изменений.
+  function openNotificationTarget(item) {
+    if (item.group === 'versions') {
+      if (item.id === APP_VERSION) showWhatsNew(true); else openChangelogModal();
+      return;
+    }
+    if (item.group === 'deadlines') {
+      goView('deadlines');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.day || '')) {
+        const d = deadlineDate(item.day);
+        dlCalendarMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        dlCalendarDay = item.day;
+        renderDeadlineCalendar();
+      }
+      return;
+    }
+    goView('homework');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(item.day || '')) {
+      const d = deadlineDate(item.day);
+      miniMonth.hw = new Date(d.getFullYear(), d.getMonth(), 1);
+      selectMiniDay('hw', item.day);
+    }
   }
 
   // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
@@ -2654,6 +2905,7 @@
 
     updateAdminUI();
     await loadData();
+    primeNotificationsRead();                // первый запуск: старые записи сразу прочитаны
     showView(currentView());                 // index.html#teachers / #deadlines — сразу нужный раздел
     updateDeadlinesDot();
     refreshCabinetProfile();
@@ -2685,12 +2937,14 @@
       if (!appData.deadlines) {
         appData.deadlines = [];
       }
+      AppState.setData('ready');               // данные есть: разделы могут показывать цифры
       populateSubjectFilter();
       updateStats();
       renderTable();
       renderExtendedStats();
       renderAnalyticsChart();
     } catch (err) {
+      AppState.setData('error');
       console.error('Ошибка загрузки данных:', err);
       const tbody = document.getElementById('studentsTableBody');
       if (tbody.querySelector('.skeleton-row')) {
@@ -2840,6 +3094,8 @@
     select.value = existing ? existing.subject : '';
     document.getElementById('deadlineText').value = existing ? (existing.text || '') : '';
     document.getElementById('deadlineDueDate').value = existing ? existing.dueDate : '';
+    document.getElementById('deadlineTime').value = existing ? (existing.time || '') : '';
+    document.getElementById('deadlineRoom').value = existing ? (existing.room || '') : '';
     const type = existing && existing.type ? existing.type : 'deadline';
     document.getElementById(
       type === 'exam' ? 'deadlineTypeExam' : type === 'zachet' ? 'deadlineTypeZachet' : 'deadlineTypeDeadline'
@@ -2867,6 +3123,7 @@
     document.getElementById('deadlineTextLabel').innerText = control ? 'Комментарий (необязательно)' : 'Что нужно сделать';
     document.getElementById('deadlineText').placeholder = control ? 'Например: аудитория 512, с собой зачётку' : 'Например: сдать презентацию по модели 4P';
     document.getElementById('deadlineDueDateLabel').innerText = type === 'exam' ? 'Дата экзамена' : type === 'zachet' ? 'Дата зачёта' : 'Срок';
+    document.getElementById('deadlineControlFields').classList.toggle('d-none', !control);
   }
 
   // Закрыть форму и вернуться к списку дедлайнов
@@ -2883,6 +3140,9 @@
     const dueDate = document.getElementById('deadlineDueDate').value;
     const type = deadlineFormType();
     const isZachet = type === 'zachet' || type === 'exam';   // у обоих это дата, а не срок
+    // Время и аудитория есть только у зачёта и экзамена; пустые поля в data.json не пишем
+    const time = isZachet ? document.getElementById('deadlineTime').value : '';
+    const room = isZachet ? document.getElementById('deadlineRoom').value.trim() : '';
     const noun = type === 'exam' ? 'экзамен' : type === 'zachet' ? 'зачёт' : 'дедлайн';
     if (!subject) return showAlert('Выберите предмет');
     if (!text && !isZachet) return showAlert('Опишите, что нужно сделать');
@@ -2896,9 +3156,14 @@
     if (editingDeadlineId) {
       const d = appData.deadlines.find(x => x.id === editingDeadlineId);
       Object.assign(d, { type, subject, text, dueDate });
+      if (time) d.time = time; else delete d.time;
+      if (room) d.room = room; else delete d.room;
       message = `Изменён ${noun}: ${subject} — ${isZachet ? '' : 'до '}${formatDateShort(deadlineDate(dueDate))}`;
     } else {
-      appData.deadlines.push({ id: 'dl-' + Date.now(), type, subject, text, dueDate, createdAt: new Date().toISOString() });
+      const item = { id: 'dl-' + Date.now(), type, subject, text, dueDate, createdAt: new Date().toISOString() };
+      if (time) item.time = time;
+      if (room) item.room = room;
+      appData.deadlines.push(item);
       message = `Добавлен ${noun}: ${subject} — ${isZachet ? '' : 'до '}${formatDateShort(deadlineDate(dueDate))}`;
     }
 
@@ -4871,16 +5136,17 @@
     const adminElements = document.querySelectorAll('.admin-only');
     // Кнопки разделов — только для обычных пользователей
     document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!githubToken));
-    const appTitle = document.getElementById('appTitle');
-
-    if (githubToken) {
-      adminElements.forEach(el => el.classList.remove('d-none'));
-      if (appTitle) appTitle.innerText = 'Admin Workspace';
-    } else {
-      adminElements.forEach(el => el.classList.add('d-none'));
-      if (appTitle) appTitle.innerText = 'Журнал';
-    }
+    // Заголовок шапки принадлежит разделу, а не роли: его ставит renderAppTitle()
+    adminElements.forEach(el => el.classList.toggle('d-none', !githubToken));
   }
+
+  // Данные загрузились, студент вошёл или вышел, сессия продлилась — открытый
+  // раздел перерисовывается сам. Без этого главная оставалась такой, какой её
+  // отрисовали до восстановления сессии.
+  AppState.onChange(() => {
+    if (currentViewName === 'home') renderHome();
+    if (currentViewName === 'study') renderStudyTiles();
+  });
 
   init();
 
@@ -4901,8 +5167,8 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="studak.js?v=14"></script>
-<script src="profile.js?v=14"></script>
+<script src="studak.js?v=15"></script>
+<script src="profile.js?v=15"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
