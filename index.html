@@ -580,7 +580,7 @@
       <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
     <div class="hdr-actions">
-      <button type="button" class="va-bell" id="announcementsBell" onclick="openRemindersSheet()" aria-label="Напоминания">
+      <button type="button" class="va-bell" id="announcementsBell" onclick="openNotificationsSheet()" aria-label="Уведомления">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2v1.3"/><path d="M6.2 16.6V11a5.8 5.8 0 0 1 11.6 0v5.6l1.6 1.7H4.6z"/><path d="M9.9 20.6a2.3 2.3 0 0 0 4.2 0"/></svg>
         <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
       </button>
@@ -598,6 +598,22 @@
         <div class="modal-body">
           <div id="remindersList"></div>
           <div class="va-empty d-none" id="announcementsEmpty">Ничего не горит</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Уведомления — лист снизу по колокольчику: что нового с прошлого раза -->
+  <div class="modal fade swipe-sheet" id="notificationsSheet" tabindex="-1" aria-labelledby="notificationsSheetTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="notificationsSheetTitle">Уведомления</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <div id="notificationsList"></div>
+          <div class="va-empty d-none" id="notificationsEmpty">Новых уведомлений нет</div>
         </div>
       </div>
     </div>
@@ -824,6 +840,8 @@
   <section id="viewDeadlines" class="app-view d-none" aria-labelledby="deadlinesViewTitle">
     <div class="view-head">
       <h3 class="view-title" id="deadlinesViewTitle">Дедлайны и зачёты</h3>
+      <!-- Лист «Напоминания» переехал сюда с колокольчика: там теперь уведомления -->
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="openRemindersSheet()">Что сдавать</button>
       <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openDeadlinesModal()">Управлять</button>
     </div>
     <div class="cal dl-cal">
@@ -2727,13 +2745,77 @@
     bootstrap.Modal.getOrCreateInstance(el).show();
   }
 
-  // Точка на колокольчике — та же, что на вкладке «Учёба»
+  // ===== Уведомления по колокольчику =====
+  // Счётчик — количество непрочитанных событий трёх видов: новый дедлайн,
+  // новая домашка, новая версия приложения. Что уже видели, помнит notify.js
+  // (ключ notifications_read). Раньше здесь считались «горящие» сроки,
+  // поэтому кружок горел постоянно и не гас после открытия листа.
   function updateBellDot() {
     const dot = document.getElementById('announcementsBellCount');
     if (!dot) return;
-    const n = remindersItems().filter(it => it.n <= 1).length;
+    const n = unreadNotifications().length;
     dot.textContent = n;
     dot.classList.toggle('d-none', n === 0);
+    document.getElementById('announcementsBell').classList.toggle('has-unread', n > 0);
+  }
+
+  // Лист «Уведомления»: список непрочитанного с датой. Нажатие ведёт к событию,
+  // при открытии всё становится прочитанным и кружок гаснет.
+  function openNotificationsSheet() {
+    haptic('impact');
+    const list = document.getElementById('notificationsList');
+    const empty = document.getElementById('notificationsEmpty');
+    const items = unreadNotifications();
+    empty.classList.toggle('d-none', items.length > 0);
+    list.innerHTML = items.map((it, i) =>
+      '<button type="button" class="dl-card nt-card" data-i="' + i + '">' +
+      '<div class="dl-subject"><span class="dl-kind">' + escapeHtml(it.kind) + '</span>' + escapeHtml(it.sub) + '</div>' +
+      '<div class="dl-text">' + escapeHtml(it.title) + '</div>' +
+      '<div class="dl-meta"><span class="dl-date">' + escapeHtml(notificationWhen(it)) + '</span></div>' +
+      '</button>').join('');
+    const el = document.getElementById('notificationsSheet');
+    list.onclick = (e) => {
+      const card = e.target.closest('button[data-i]');
+      if (!card) return;
+      const item = items[Number(card.dataset.i)];
+      bootstrap.Modal.getOrCreateInstance(el).hide();
+      if (item) openNotificationTarget(item);
+    };
+    enableSheetSwipe(el);
+    bootstrap.Modal.getOrCreateInstance(el).show();
+    markNotificationsRead();
+    updateBellDot();
+  }
+
+  // Дата события: у записей — когда их добавили, у версии — когда вышла
+  function notificationWhen(item) {
+    if (!item.at) return '';
+    return dlFormatDate(new Date(item.at));
+  }
+
+  // Переход к событию: дедлайн и домашка открываются на своей дате,
+  // новая версия — окном «Что нового», прошлая — историей изменений.
+  function openNotificationTarget(item) {
+    if (item.group === 'versions') {
+      if (item.id === APP_VERSION) showWhatsNew(true); else openChangelogModal();
+      return;
+    }
+    if (item.group === 'deadlines') {
+      goView('deadlines');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(item.day || '')) {
+        const d = deadlineDate(item.day);
+        dlCalendarMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        dlCalendarDay = item.day;
+        renderDeadlineCalendar();
+      }
+      return;
+    }
+    goView('homework');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(item.day || '')) {
+      const d = deadlineDate(item.day);
+      miniMonth.hw = new Date(d.getFullYear(), d.getMonth(), 1);
+      selectMiniDay('hw', item.day);
+    }
   }
 
   // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
@@ -2811,6 +2893,7 @@
 
     updateAdminUI();
     await loadData();
+    primeNotificationsRead();                // первый запуск: старые записи сразу прочитаны
     showView(currentView());                 // index.html#teachers / #deadlines — сразу нужный раздел
     updateDeadlinesDot();
     refreshCabinetProfile();
