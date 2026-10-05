@@ -299,7 +299,7 @@ const APP_TABS = [
 
 // Вложенный экран → кнопка таб-бара, которую он подсвечивает
 const SCREEN_HOST = {
-  absences: 'home', achievements: 'home',
+  absences: 'home',
   deadlines: 'study', homework: 'study', teachers: 'study',
   stats: 'study', exams: 'study', zachetka: 'study',
   settings: 'profile', admin: 'profile'

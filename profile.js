@@ -672,7 +672,6 @@
       myAvatarUrl = await blobToDataUrl(blob);
       writeCachedAvatar({ user_id: myProfile.user_id, data: myAvatarUrl });
       renderCabinetAvatars();
-      if (typeof achLogEvent === 'function') achLogEvent('avatar_set');   // достижение «Первые шаги»
       haptic('success');
     } catch (e) {
       haptic('error');
@@ -1566,7 +1565,6 @@
     document.documentElement.classList.add('sk-lock');
     const st = { root: stage, loading: false, retryAt: 0, opener: document.activeElement };
     studakState = st;
-    if (typeof achLogEvent === 'function') achLogEvent('pass_opened');    // достижение «Первые шаги»
     studakBindFlip(stage, () => haptic('selection'));
     st.stopTilt = studakTilt(stage, document.getElementById('studakTiltBtn'));
     if (studakCode && studakCode.expiresAt - Date.now() > STUDAK_REFRESH * 1000) studakSetQr(stage, studakCode.url);
