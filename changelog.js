@@ -9,12 +9,28 @@
 
 'use strict';
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4';
 const APP_VERSION_DATE = '05.10.2026, 18:58';
 
 // Сверху — самая новая версия. date у прошлых версий фиксированная;
 // у текущей берётся APP_VERSION_DATE, которую ставит деплой.
 const CHANGELOG = [
+  {
+    version: '1.4',
+    date: '06.10.2026',
+    title: 'Достижения, баллы и рейтинг группы',
+    items: [
+      'Новый раздел «Достижения»: 26 значков за посещаемость, приложение и домашку, у каждого — своя шкала выполнения',
+      'Баллы за семестр и рейтинг группы: достижения баллы дают, каждый неуважительный час отнимает 5',
+      'Рейтинг считает сервер раз в час, поэтому подкрутить себе баллы не получится',
+      'Серия без пропусков: учебные дни подряд без неуважительных, шесть ступеней от «Разминки» до «Легенды посещаемости»',
+      'Антидостижения за неуважительные часы видите только вы — в рейтинге их нет',
+      'Отметки «Сделано» у домашки переехали в облако: теперь они не теряются при смене телефона',
+      'Полученный значок показывается всплывашкой и попадает в список колокольчика',
+      'В профиле появилась полоска последних значков',
+      'На главной вместо заглушки «Достижения» — ваши баллы, место и ближайшая цель'
+    ]
+  },
   {
     version: '1.3.1',
     date: '05.10.2026',
@@ -124,8 +140,22 @@ function showWhatsNew(force) {
     });
   }
   modalEl.addEventListener('hidden.bs.modal', markWhatsNewSeen, { once: true });
+  watchWhatsNewRead(modalEl);
   bootstrap.Modal.getOrCreateInstance(modalEl).show();
   if (force) markWhatsNewSeen();
+}
+
+// Достижение «Дотошный технарь»: список прочитан до конца. Если список
+// целиком помещается на экран, прокручивать нечего — засчитываем на закрытии.
+function watchWhatsNewRead(modalEl) {
+  if (typeof achLogEvent !== 'function') return;
+  const body = modalEl.querySelector('.modal-body');
+  if (!body || body.dataset.readWatch) return;
+  body.dataset.readWatch = '1';
+  const atBottom = () => body.scrollHeight - body.scrollTop - body.clientHeight < 8;
+  const done = () => { if (atBottom()) achLogEvent('whats_new_read', APP_VERSION); };
+  body.addEventListener('scroll', done, { passive: true });
+  modalEl.addEventListener('hidden.bs.modal', done);
 }
 
 // Вызывается при запуске страницы: показать, если этой версии ещё не видели.
