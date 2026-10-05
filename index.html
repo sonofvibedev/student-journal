@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=14"></script>
+  <script src="env.js?v=15"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,11 +25,11 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=14" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=15" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=14" rel="stylesheet">
-  <script src="theme.js?v=14"></script>
+  <link href="profile.css?v=15" rel="stylesheet">
+  <script src="theme.js?v=15"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -959,6 +959,14 @@
 <!-- Раздел «Главная» (index.html#home) — сводка дня -->
 <section id="viewHome" class="app-view d-none">
 
+  <!-- Пока неизвестно, вошёл студент или нет (ждём data.json и сессию Supabase),
+       вместо цифр — скелетон. Так «Войдите в кабинет» не мигает вошедшему. -->
+  <div id="homeSkeleton" class="cabinet-skeleton" aria-hidden="true">
+    <span class="skel skel-card"></span>
+    <div class="skel-stats"><span class="skel skel-stat"></span><span class="skel skel-stat"></span></div>
+    <span class="skel skel-block"></span>
+  </div>
+
   <!-- Гостю вместо личных цифр — приглашение войти -->
   <div class="group d-none" id="homeGuest">
     <div class="inset">
@@ -981,7 +989,7 @@
     <span class="tile-note" id="homeLessonHw"></span>
   </button>
 
-  <div class="tile-grid">
+  <div class="tile-grid" id="homeTiles">
     <!-- Часы пропусков за месяц: по нажатию — календарь пропусков -->
     <button type="button" class="tile" id="homeHoursTile" onclick="goView('absences')">
       <span class="tile-num" id="homeHoursUnexcused">0</span>
@@ -2007,10 +2015,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=14"></script>
-<script src="schedule.js?v=14"></script>
-<script src="notify.js?v=14"></script>
-<script src="shared.js?v=14"></script>
+<script src="changelog.js?v=15"></script>
+<script src="schedule.js?v=15"></script>
+<script src="notify.js?v=15"></script>
+<script src="shared.js?v=15"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -2286,14 +2294,29 @@
   }
 
   // ===== Главная: сводка дня =====
-  // Личные цифры показываются только вошедшему студенту; гостю вместо них —
-  // строка с приглашением войти. Дедлайны и ближайшую пару видно всем.
+  // Три состояния, одно общее на всё приложение (AppState в shared.js):
+  //   loading — ждём data.json и сессию Supabase, показываем скелетон;
+  //   guest   — входа точно нет, вместо личных цифр приглашение войти;
+  //   signed  — цифры студента.
+  // «Войдите в кабинет» появляется только в состоянии guest, поэтому вошедший
+  // студент видит свои часы сразу при открытии, без захода в «Профиль».
+  // Дедлайны и ближайшую пару видно всем.
   function renderHome() {
-    const me = (typeof myStudentId !== 'undefined' && myStudentId) ? myStudentId : null;
+    const loading = !AppState.ready;
+    const me = AppState.auth === 'signed' ? AppState.studentId : null;
+    const skel = document.getElementById('homeSkeleton');
     const guest = document.getElementById('homeGuest');
-    if (guest) guest.classList.toggle('d-none', !!me);
+    const tiles = document.getElementById('homeTiles');
+    if (skel) skel.classList.toggle('d-none', !loading);
+    if (tiles) tiles.classList.toggle('d-none', loading);
+    if (guest) guest.classList.toggle('d-none', loading || !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
     document.getElementById('homeZachetkaTile').classList.toggle('d-none', !me);
+    if (loading) {
+      document.getElementById('homeLessonCard').classList.add('d-none');
+      document.getElementById('todayNext').classList.add('d-none');
+      return;
+    }
 
     // Часы за текущий месяц: отдельно неуважительные и уважительные
     if (me) {
@@ -2685,12 +2708,14 @@
       if (!appData.deadlines) {
         appData.deadlines = [];
       }
+      AppState.setData('ready');               // данные есть: разделы могут показывать цифры
       populateSubjectFilter();
       updateStats();
       renderTable();
       renderExtendedStats();
       renderAnalyticsChart();
     } catch (err) {
+      AppState.setData('error');
       console.error('Ошибка загрузки данных:', err);
       const tbody = document.getElementById('studentsTableBody');
       if (tbody.querySelector('.skeleton-row')) {
@@ -4882,6 +4907,14 @@
     }
   }
 
+  // Данные загрузились, студент вошёл или вышел, сессия продлилась — открытый
+  // раздел перерисовывается сам. Без этого главная оставалась такой, какой её
+  // отрисовали до восстановления сессии.
+  AppState.onChange(() => {
+    if (currentViewName === 'home') renderHome();
+    if (currentViewName === 'study') renderStudyTiles();
+  });
+
   init();
 
   // Дорисовать после штатной функции страницы (сами функции не меняются)
@@ -4901,8 +4934,8 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="studak.js?v=14"></script>
-<script src="profile.js?v=14"></script>
+<script src="studak.js?v=15"></script>
+<script src="profile.js?v=15"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>

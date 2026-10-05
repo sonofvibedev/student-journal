@@ -10,7 +10,7 @@
 // shared.js в index.html и cabinet.html, чтобы новая страница никогда не взяла старые стили/скрипт.
 // Свои файлы запрашиваем мимо HTTP-кэша браузера (сервер ответит «не изменилось», если файл тот же):
 // иначе после деплоя телефон мог получить новую страницу со старым app.css.
-const CACHE_VERSION = 'journal-24dmm2-v14';
+const CACHE_VERSION = 'journal-24dmm2-v15';
 
 const PRECACHE_URLS = [
   './env.js',
