@@ -288,6 +288,9 @@
   }
 
   function enterCabinet(profile) {
+    // Сессия могла восстановиться раньше, чем загрузился data.json: без этой
+    // проверки студент «не найден в журнале» только потому, что список пуст
+    if (AppState.data === 'loading') { AppState.onDataSettled(() => enterCabinet(profile)); return; }
     if (!appData.students.find(s => s.id === profile.student_id)) {
       showLoginForm();
       showAlert('Студент не найден в журнале. Обратитесь к старосте.');
