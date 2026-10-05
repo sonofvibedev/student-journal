@@ -14,6 +14,7 @@ const CACHE_VERSION = 'journal-24dmm2-v15';
 
 const PRECACHE_URLS = [
   './env.js',
+  './study-days.json',
   './changelog.js',
   './theme.js',
   './schedule.js',
