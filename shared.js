@@ -27,7 +27,8 @@ const AppState = {
   _subs: [],
   // Подписка на изменения: разделы перерисовывают себя сами
   onChange(fn) { this._subs.push(fn); return fn; },
-  _emit() { this._subs.forEach(fn => { try { fn(this); } catch (e) { console.error(e); } }); },
+  // Копия списка: подписчик может отписаться прямо во время рассылки
+  _emit() { this._subs.slice().forEach(fn => { try { fn(this); } catch (e) { console.error(e); } }); },
   setData(state) {
     if (this.data === state) return;
     this.data = state;
@@ -39,6 +40,20 @@ const AppState = {
     this.auth = state;
     this.studentId = id;
     this._emit();
+  },
+  // Выполнить один раз, когда data.json загрузился (или точно не загрузится).
+  // Нужно всему, что обращается к appData.students: сессия Supabase может
+  // восстановиться раньше данных, и тогда студента «нет в журнале» только
+  // потому, что список студентов ещё пуст.
+  onDataSettled(fn) {
+    if (this.data !== 'loading') { fn(); return; }
+    const once = (state) => {
+      if (state.data === 'loading') return;
+      const i = this._subs.indexOf(once);
+      if (i !== -1) this._subs.splice(i, 1);
+      fn();
+    };
+    this._subs.push(once);
   },
   // Готово ли приложение показывать личные цифры
   get ready() { return this.data === 'ready' && this.auth !== 'loading'; }
