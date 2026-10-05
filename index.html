@@ -573,7 +573,7 @@
   <header class="app-header va-header">
     <div id="headerTapArea" class="app-header-main">
       <div class="app-title-row">
-        <h2 class="app-title" id="appTitle">Журнал</h2>
+        <h2 class="app-title" id="appTitle">Главная</h2>
         <span class="group-badge">24ДММ-2</span>
         <span class="period-badge" id="periodCaption"></span>
       </div>
@@ -2317,6 +2317,7 @@
       if (el) el.classList.toggle('d-none', k !== name);
     });
     renderTabbar(name, { study: hasHotDeadlines() });
+    renderAppTitle();
     updateBellDot();
 
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
@@ -2343,6 +2344,17 @@
       if (!swipeDrivenView && el) restartAnimation(el, 'view-enter');
     }
     syncTelegramBackButton();
+  }
+
+  // Заголовок шапки меняется по разделу, бейдж «24ДММ-2» рядом остаётся.
+  // Вложенный экран берёт имя своей вкладки (tabForScreen в shared.js):
+  // «Преподаватели» и «Зачётка» лежат внутри «Учёбы», поэтому там «Журнал».
+  const VIEW_TITLES = { home: 'Главная', schedule: 'Расписание', study: 'Журнал', profile: 'Профиль' };
+  function renderAppTitle() {
+    const el = document.getElementById('appTitle');
+    if (!el) return;
+    const view = currentViewName || currentView();
+    el.innerText = view === 'admin' ? 'Админ-панель' : (VIEW_TITLES[tabForScreen(view)] || 'Журнал');
   }
 
   // ===== Главная: сводка дня =====
@@ -5124,15 +5136,8 @@
     const adminElements = document.querySelectorAll('.admin-only');
     // Кнопки разделов — только для обычных пользователей
     document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!githubToken));
-    const appTitle = document.getElementById('appTitle');
-
-    if (githubToken) {
-      adminElements.forEach(el => el.classList.remove('d-none'));
-      if (appTitle) appTitle.innerText = 'Admin Workspace';
-    } else {
-      adminElements.forEach(el => el.classList.add('d-none'));
-      if (appTitle) appTitle.innerText = 'Журнал';
-    }
+    // Заголовок шапки принадлежит разделу, а не роли: его ставит renderAppTitle()
+    adminElements.forEach(el => el.classList.toggle('d-none', !githubToken));
   }
 
   // Данные загрузились, студент вошёл или вышел, сессия продлилась — открытый
