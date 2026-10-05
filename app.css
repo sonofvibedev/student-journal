@@ -1464,8 +1464,30 @@ body::before {
   .subj-body.open { animation: none; }
 }
 
-/* Шапка дней недели в маленьких календарях «Домашки» и «Зачётов» */
+/* ===== Маленькие календари «Домашки» и «Зачётов» =====
+   День — кнопка: по нажатию под календарём появляются события этого дня.
+   Сегодня отмечен обводкой, выбранный день залит, день с событиями — точкой. */
 .cal-day.cal-wd { color: var(--color-text-tertiary); font-size: var(--fs-small); pointer-events: none; }
+.cal-day.is-out { pointer-events: none; }
+.cal-day.has-mark { color: var(--color-text); font-weight: 600; }
+.cal-marks i { background: var(--color-accent); }
+.cal-day.is-today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: var(--color-text); font-weight: 600; }
+.cal-day.is-today::after { content: none; }
+.cal-day.is-selected { background: var(--color-accent); color: #fff; font-weight: 700; }
+.cal-day.is-selected.is-today { box-shadow: none; }
+.cal-day.is-selected .cal-marks i { background: #fff; }
+/* Подпись и список выбранного дня стоят под сеткой, внутри карточки календаря */
+.cal .cap { margin-top: 14px; }
+.cal .feed-empty { padding: 12px 0; }
+/* Домашка, которую студент отметил сделанной в карточке пары */
+.dl-card.is-done { opacity: .65; }
+.dl-card.is-done .dl-text { text-decoration: line-through; }
+.dl-done {
+  margin-left: 6px; padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--color-green-soft-bg); color: var(--color-success-text);
+  font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
 
 /* ===== Дедлайн в расписании: стоит на своём дне под парами ===== */
 .sch-dl {
