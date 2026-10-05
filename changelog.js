@@ -124,8 +124,22 @@ function showWhatsNew(force) {
     });
   }
   modalEl.addEventListener('hidden.bs.modal', markWhatsNewSeen, { once: true });
+  watchWhatsNewRead(modalEl);
   bootstrap.Modal.getOrCreateInstance(modalEl).show();
   if (force) markWhatsNewSeen();
+}
+
+// Достижение «Дотошный технарь»: список прочитан до конца. Если список
+// целиком помещается на экран, прокручивать нечего — засчитываем на закрытии.
+function watchWhatsNewRead(modalEl) {
+  if (typeof achLogEvent !== 'function') return;
+  const body = modalEl.querySelector('.modal-body');
+  if (!body || body.dataset.readWatch) return;
+  body.dataset.readWatch = '1';
+  const atBottom = () => body.scrollHeight - body.scrollTop - body.clientHeight < 8;
+  const done = () => { if (atBottom()) achLogEvent('whats_new_read', APP_VERSION); };
+  body.addEventListener('scroll', done, { passive: true });
+  modalEl.addEventListener('hidden.bs.modal', done);
 }
 
 // Вызывается при запуске страницы: показать, если этой версии ещё не видели.
