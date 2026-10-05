@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=15"></script>
+  <script src="env.js?v=16"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,11 +25,13 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=15" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=16" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=15" rel="stylesheet">
-  <script src="theme.js?v=15"></script>
+  <link href="profile.css?v=16" rel="stylesheet">
+  <!-- Достижения: значки, карточки со шкалой, рейтинг -->
+  <link href="achievements.css?v=16" rel="stylesheet">
+  <script src="theme.js?v=16"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -619,21 +621,6 @@
     </div>
   </div>
 
-  <!-- Достижения — заглушка: сам раздел ещё не сделан -->
-  <div class="modal fade swipe-sheet" id="achievementsSheet" tabindex="-1" aria-labelledby="achievementsSheetTitle" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="achievementsSheetTitle">Достижения</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-        </div>
-        <div class="modal-body">
-          <div class="va-empty">Раздел в разработке</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Раздел «Статистика» (index.html#stats) -->
   <div id="viewStats" class="app-view">
 
@@ -951,6 +938,25 @@
   <div id="examsBody"></div>
 </section>
 
+<!-- Раздел «Достижения» (index.html#achievements) — значки, рейтинг и правила.
+     Содержимое рисует achievements.js: разметка здесь только каркасная. -->
+<section id="viewAchievements" class="app-view d-none" aria-labelledby="achViewTitle">
+  <h3 class="visually-hidden" id="achViewTitle">Достижения</h3>
+
+  <div class="ach-sum" id="achSummary"></div>
+
+  <div class="seg" id="achSeg" role="tablist" aria-label="Разделы достижений">
+    <button type="button" class="seg-item active" role="tab" id="achTabMine"  aria-selected="true"  onclick="setAchTab('mine')">Мои</button>
+    <button type="button" class="seg-item"        role="tab" id="achTabBoard" aria-selected="false" onclick="setAchTab('board')">Рейтинг</button>
+    <button type="button" class="seg-item"        role="tab" id="achTabRules" aria-selected="false" onclick="setAchTab('rules')">Как считаются баллы</button>
+  </div>
+
+  <div id="achPaneMine"></div>
+  <div id="achPaneBoard" class="d-none"></div>
+  <div id="achPaneRules" class="d-none"></div>
+</section>
+
+
 <!-- Раздел «Админ-панель» (index.html#admin) — всё, чего нет на кнопке «+» -->
 <section id="viewAdmin" class="app-view d-none">
   <div class="group">
@@ -975,6 +981,13 @@
     <div class="kicker">Справки</div>
     <div class="inset">
       <button type="button" class="row-i" onclick="goView('stats')"><span class="lbl">Подтверждение справок<small class="d-block text-secondary">в карточке студента</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="kicker">Достижения</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="recalcAchievements()"><span class="lbl">Пересчитать достижения<small class="d-block text-secondary">обычно сами раз в час</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
     </div>
   </div>
 
@@ -1036,12 +1049,16 @@
       <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
     </button>
 
-    <!-- Достижения: раздел ещё не сделан, плитка показывает «Скоро» -->
-    <button type="button" class="tile" id="homeAchievementsTile" onclick="openAchievementsSheet()">
-      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 5.5H5.5v1.5A3 3 0 008.4 10M16 5.5h2.5V7a3 3 0 01-2.9 3"/><path d="M12 13v3.5M9 20h6M10.5 16.5h3l.7 3.5h-4.4z"/></svg></span>
-      <span class="tile-name">Достижения</span>
-      <span class="tile-note">значки за учёбу</span>
-      <span class="tile-soon">Скоро</span>
+    <!-- Достижения: баллы за семестр, место, последний значок и ближайшая цель.
+         Содержимое заполняет renderHomeAchievements() из achievements.js -->
+    <button type="button" class="tile" id="homeAchievementsTile" onclick="goView('achievements')">
+      <span class="d-flex align-items-center gap-2">
+        <span id="homeAchBadge"></span>
+        <span class="tile-num" id="homeAchPoints">—</span>
+      </span>
+      <span class="tile-note" id="homeAchPlace">баллы за семестр</span>
+      <span class="ach-bar"><i></i></span>
+      <span class="tile-note" id="homeAchNext"></span>
     </button>
 
     <!-- Ближайшие дедлайны -->
@@ -1161,6 +1178,15 @@
           <button type="button" class="row-i" id="avatarResetBtn" onclick="resetAvatar()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><span class="lbl">Сбросить фото</span></button>
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
+
+    <!-- Последние полученные значки. Группу прячет renderProfileBadges(),
+         пока значков нет. -->
+    <div class="group d-none">
+      <div class="kicker">Достижения</div>
+      <button type="button" class="inset w-100 text-start" onclick="goView('achievements')" aria-label="Все достижения">
+        <div class="ach-strip" id="profileBadges"></div>
+      </button>
+    </div>
 
     <!-- Четыре блока профиля: ближайший срок, ближайшая домашка,
          действующие справки и пропуски по предметам -->
@@ -2067,10 +2093,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=15"></script>
-<script src="schedule.js?v=15"></script>
-<script src="notify.js?v=15"></script>
-<script src="shared.js?v=15"></script>
+<script src="changelog.js?v=16"></script>
+<script src="schedule.js?v=16"></script>
+<script src="notify.js?v=16"></script>
+<script src="shared.js?v=16"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -2286,6 +2312,7 @@
     exams:     'viewExams',
     zachetka:  'viewZachetka',
     absences:  'viewAbsences',
+    achievements: 'viewAchievements',
     admin:     'viewAdmin'
   };
   const TAB_IDS = APP_TABS.map(t => t.id);
@@ -2328,6 +2355,7 @@
     if (name === 'home')     { renderHome(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
     if (name === 'absences' && typeof renderPersonalStats === 'function') renderPersonalStats();
+    if (name === 'achievements' && typeof renderAchievementsView === 'function') renderAchievementsView();
 
     // Плашка месяца и «Пропуски актуальны на» относятся к пропускам группы:
     // на других экранах они сбивают с толку
@@ -2350,11 +2378,12 @@
   // Вложенный экран берёт имя своей вкладки (tabForScreen в shared.js):
   // «Преподаватели» и «Зачётка» лежат внутри «Учёбы», поэтому там «Журнал».
   const VIEW_TITLES = { home: 'Главная', schedule: 'Расписание', study: 'Журнал', profile: 'Профиль' };
+  const VIEW_TITLES_OWN = { admin: 'Админ-панель', achievements: 'Достижения' };
   function renderAppTitle() {
     const el = document.getElementById('appTitle');
     if (!el) return;
     const view = currentViewName || currentView();
-    el.innerText = view === 'admin' ? 'Админ-панель' : (VIEW_TITLES[tabForScreen(view)] || 'Журнал');
+    el.innerText = VIEW_TITLES_OWN[view] || VIEW_TITLES[tabForScreen(view)] || 'Журнал';
   }
 
   // ===== Главная: сводка дня =====
@@ -2397,6 +2426,7 @@
 
     renderHomeLesson();
     renderHomeHomework();
+    if (typeof renderHomeAchievements === 'function') renderHomeAchievements();
     if (typeof renderToday === 'function') renderToday();
   }
 
@@ -2674,6 +2704,24 @@
     }).join('');
   }
 
+  // Пересчёт достижений вручную. Обычно их считает cron раз в час, но после
+  // внесения пропусков старосте удобно увидеть результат сразу.
+  // Функция пускает по JWT: она сама проверяет isAdmin в data.json.
+  async function recalcAchievements() {
+    if (!sb) return showAlert(NO_NETWORK_TEXT);
+    try {
+      const { data, error } = await sb.functions.invoke('recalc-achievements', { body: {} });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      haptic('success');
+      showAlert(`Готово. Студентов: ${data.students}, новых значков: ${data.new_achievements}.`);
+      if (typeof achLoadAll === 'function') { await achLoadAll(); renderHomeAchievements(); }
+    } catch (e) {
+      haptic('error');
+      showAlert('Не удалось пересчитать: ' + (e && e.message ? e.message : 'попробуйте позже'));
+    }
+  }
+
   // Строка «Админ-панель» в профиле: вошедшего админа ведём сразу на экран,
   // остальным показываем окно входа по токену.
   function openAdminPanel() {
@@ -2749,14 +2797,6 @@
     updateBellDot();
   }
 
-  // Достижения: раздела пока нет, по плитке открывается заглушка
-  function openAchievementsSheet() {
-    haptic('impact');
-    const el = document.getElementById('achievementsSheet');
-    enableSheetSwipe(el);
-    bootstrap.Modal.getOrCreateInstance(el).show();
-  }
-
   // ===== Уведомления по колокольчику =====
   // Счётчик — количество непрочитанных событий трёх видов: новый дедлайн,
   // новая домашка, новая версия приложения. Что уже видели, помнит notify.js
@@ -2808,6 +2848,7 @@
   // Переход к событию: дедлайн и домашка открываются на своей дате,
   // новая версия — окном «Что нового», прошлая — историей изменений.
   function openNotificationTarget(item) {
+    if (item.group === 'achievements') { goView('achievements'); return; }
     if (item.group === 'versions') {
       if (item.id === APP_VERSION) showWhatsNew(true); else openChangelogModal();
       return;
@@ -3579,6 +3620,15 @@
     const key = lessonDoneKey(lesson, iso);
     if (done) map[key] = 1; else delete map[key];
     lsSet(doneStorageKey(), JSON.stringify(map));
+    // Отметка живёт и в Supabase: иначе она терялась бы при смене устройства,
+    // а достижения за домашку нельзя было бы проверить на сервере.
+    // В базе отмечается само задание, поэтому пару разворачиваем в её задания.
+    if (typeof achLogEvent === 'function') {
+      homeworkForLesson(lesson, iso).forEach((h) => {
+        if (done) achLogEvent('homework_done', h.id);
+        else achUnlogHomework(h.id);
+      });
+    }
   }
 
   function lessonSheetRow(label, value) {
@@ -5167,8 +5217,9 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="studak.js?v=15"></script>
-<script src="profile.js?v=15"></script>
+<script src="achievements.js?v=16"></script>
+<script src="studak.js?v=16"></script>
+<script src="profile.js?v=16"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
