@@ -163,6 +163,10 @@ Deno.serve(async (req) => {
       else bucket.kinds.add(e.kind);
     }
 
+    // Кто из студентов завёл аккаунт: нужен, чтобы в рейтинге была аватарка
+    const { data: profileRows } = await admin.from('profiles').select('user_id, student_id');
+    const userIdByStudent = new Map((profileRows ?? []).map((p) => [p.student_id, p.user_id]));
+
     // Пропуски по студентам в границах семестра
     const absencesByStudent = new Map<string, Absence[]>();
     for (const a of journal.absences ?? []) {
@@ -264,6 +268,7 @@ Deno.serve(async (req) => {
     const board = scores.map((s, i) => ({
       semester,
       student_id: s.student_id,
+      user_id: userIdByStudent.get(s.student_id) ?? null,
       points: s.points,
       badges_count: s.badges,
       unexcused_hours: s.hours,
