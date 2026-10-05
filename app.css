@@ -1479,6 +1479,15 @@ body::before {
 /* Подпись и список выбранного дня стоят под сеткой, внутри карточки календаря */
 .cal .cap { margin-top: 14px; }
 .cal .feed-empty { padding: 12px 0; }
+/* Событие в листе «Уведомления» — кнопка: по нажатию ведёт к себе */
+.nt-card {
+  display: block; width: 100%;
+  border: 0; font: inherit; color: inherit; text-align: left;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.nt-card:active { transform: scale(.985); }
+@media (prefers-reduced-motion: reduce) { .nt-card { transition: none; } }
+
 /* Домашка, которую студент отметил сделанной в карточке пары */
 .dl-card.is-done { opacity: .65; }
 .dl-card.is-done .dl-text { text-decoration: line-through; }
