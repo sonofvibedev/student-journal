@@ -1455,7 +1455,7 @@
       "comment": "",
       "certType": "Освобождение",
       "certDueDate": "2026-10-11",
-      "certSubmitted": false
+      "certSubmitted": true
     }
   ],
   "teachers": [
@@ -1517,7 +1517,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-05T19:21:09.947Z",
+  "lastUpdated": "2026-10-05T19:22:02.785Z",
   "homework": [
     {
       "id": "hw-1790897160111",
