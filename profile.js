@@ -296,11 +296,13 @@
     myProfile = profile;
     myStudentId = profile.student_id;
     document.body.classList.remove('is-login');
+    AppState.setAuth('signed', myStudentId);   // общее состояние: остальные разделы перерисуются сами
     showCabinetContent();
     loadMyAvatar();
   }
 
   function showLoginForm() {
+    AppState.setAuth('guest');                 // вход точно отсутствует: разделы покажут приглашение войти
     document.getElementById('cabinetLoginInput').value = '';
     document.getElementById('cabinetPasswordInput').value = '';
     resetInviteForm();
@@ -693,12 +695,31 @@
     }
   }
 
-  // Сессию завершили в другой вкладке или её не удалось продлить — возвращаемся к экрану входа
+  // Сессия изменилась: её завершили в другой вкладке, не удалось продлить или,
+  // наоборот, восстановили. Раньше здесь ловился только выход, поэтому после входа
+  // главная оставалась с приглашением войти. Теперь каждое событие обновляет
+  // общее состояние (AppState в shared.js), и разделы перерисовываются сами.
   if (sb) {
-    sb.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' && myStudentId) {
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        if (!myStudentId) { AppState.setAuth('guest'); return; }
         setTimeout(() => { if (typeof closeStudak === 'function') closeStudak(true); writeCachedProfile(null); writeCachedAvatar(null); myAvatarUrl = null; myProfile = null; myStudentId = null; showLoginForm(); }, 0);
+        return;
       }
+      // INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED
+      if (!session) {
+        if (event === 'INITIAL_SESSION' && !myStudentId && !readCachedProfile()) AppState.setAuth('guest');
+        return;
+      }
+      if (myStudentId) { AppState.setAuth('signed', myStudentId); return; }
+      // Сессия есть, а профиль ещё не загружен: берём свою строку из profiles
+      setTimeout(async () => {
+        if (myStudentId) return;
+        try {
+          const profile = await loadMyProfile(session);
+          if (profile) enterCabinet(profile);
+        } catch (e) {}
+      }, 0);
     });
   }
 
