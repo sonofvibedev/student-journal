@@ -9,12 +9,24 @@
 
 'use strict';
 
-const APP_VERSION = '1.4.1';
-const APP_VERSION_DATE = '06.10.2026, 00:49';
+const APP_VERSION = '1.4.2';
+const APP_VERSION_DATE = '06.10.2026, 07:04';
 
 // Сверху — самая новая версия. date у прошлых версий фиксированная;
 // у текущей берётся APP_VERSION_DATE, которую ставит деплой.
 const CHANGELOG = [
+  {
+    version: '1.4.2',
+    date: '06.10.2026',
+    title: 'Достижения вернулись — без баллов и рейтинга',
+    items: [
+      'Раздел «Достижения» снова в приложении: 26 значков за посещаемость, приложение и домашку',
+      'Баллов и рейтинга группы нет: коллекция личная, чужих значков никто не видит',
+      'Серия без пропусков, чистый месяц и чистый семестр считаются как раньше',
+      'Новый значок показывается всплывашкой и попадает в список колокольчика',
+      'Отметки «Сделано» у домашки снова живут в облаке и не теряются при смене телефона'
+    ]
+  },
   {
     version: '1.4.1',
     date: '06.10.2026',
@@ -151,8 +163,22 @@ function showWhatsNew(force) {
     });
   }
   modalEl.addEventListener('hidden.bs.modal', markWhatsNewSeen, { once: true });
+  watchWhatsNewRead(modalEl);
   bootstrap.Modal.getOrCreateInstance(modalEl).show();
   if (force) markWhatsNewSeen();
+}
+
+// Достижение «Дотошный технарь»: список прочитан до конца. Если список
+// целиком помещается на экран, прокручивать нечего — засчитываем на закрытии.
+function watchWhatsNewRead(modalEl) {
+  if (typeof achLogEvent !== 'function') return;
+  const body = modalEl.querySelector('.modal-body');
+  if (!body || body.dataset.readWatch) return;
+  body.dataset.readWatch = '1';
+  const atBottom = () => body.scrollHeight - body.scrollTop - body.clientHeight < 8;
+  const done = () => { if (atBottom()) achLogEvent('whats_new_read', APP_VERSION); };
+  body.addEventListener('scroll', done, { passive: true });
+  modalEl.addEventListener('hidden.bs.modal', done);
 }
 
 // Вызывается при запуске страницы: показать, если этой версии ещё не видели.
