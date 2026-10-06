@@ -145,24 +145,34 @@ async function achLoadStudyDays() {
 }
 
 // Свои значки и события. Гостю ничего не грузим: у него нет аккаунта.
+// Собранное складываем в новые наборы и подменяем целиком в самом конце.
+// Чистить achState до ответа сервера нельзя: обновление идёт и в фоне, и тогда
+// экран успевал отрисоваться по пустой коллекции — все значки гасли до
+// перезагрузки страницы.
 async function achLoadMine() {
-  achState.earned.clear();
-  achState.kinds.clear();
-  achState.homeworkDone.clear();
-  if (!sb || AppState.auth !== 'signed') return;
+  if (!sb || AppState.auth !== 'signed') {
+    achState.earned = new Map();
+    achState.kinds = new Set();
+    achState.homeworkDone = new Set();
+    return;
+  }
   try {
     const [{ data: badges }, { data: events }] = await Promise.all([
       sb.from('student_achievements').select('code, period, earned_at'),
       sb.from('app_events').select('kind, ref')
     ]);
+    const earned = new Map(), kinds = new Set(), homeworkDone = new Set();
     (badges || []).forEach((b) => {
-      const prev = achState.earned.get(b.code);
-      if (!prev || String(b.earned_at) < String(prev.earned_at)) achState.earned.set(b.code, b);
+      const prev = earned.get(b.code);
+      if (!prev || String(b.earned_at) < String(prev.earned_at)) earned.set(b.code, b);
     });
     (events || []).forEach((e) => {
-      if (e.kind === 'homework_done') achState.homeworkDone.add(e.ref);
-      else achState.kinds.add(e.kind);
+      if (e.kind === 'homework_done') homeworkDone.add(e.ref);
+      else kinds.add(e.kind);
     });
+    achState.earned = earned;
+    achState.kinds = kinds;
+    achState.homeworkDone = homeworkDone;
   } catch (e) { console.error('Достижения не загрузились:', e); }
 }
 
@@ -493,8 +503,16 @@ function setAchTab(tab) {
 }
 
 async function renderAchievementsView() {
-  if (!achState.loaded) await achLoadAll();
-  else achLoadMine();              // обновляем в фоне, экран рисуем сразу
+  if (!achState.loaded) {
+    await achLoadAll();
+  } else {
+    // Обновляем в фоне: экран рисуем сразу по тому, что уже собрано,
+    // а когда придёт ответ сервера — перерисовываем ещё раз.
+    achLoadMine().then(() => {
+      achCheckEarned();
+      if (currentViewName === 'achievements') { renderAchSummary(); renderAchMine(); }
+    });
+  }
   renderAchSummary();
   renderAchMine();
   renderAchRules();
