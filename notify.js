@@ -154,6 +154,7 @@ async function enableNotifications() {
       if (!granted) { showNotifyAlert('Без разрешения бот не сможет прислать напоминание.'); return; }
       const ok = await notifySubscribeTelegram(tg.initData);
       lsSet(NOTIFY_MODE_KEY, ok ? 'telegram' : '');
+      if (ok && typeof achLogEvent === 'function') achLogEvent('notifications_on');   // достижение «Всегда в курсе»
       lsSet(NOTIFY_SEEN_KEY, APP_VERSION);
       renderNotifySettings();
       close();
@@ -176,6 +177,7 @@ async function enableNotifications() {
 
   const ok = await notifySubscribePush();
   lsSet(NOTIFY_MODE_KEY, ok ? 'web' : '');
+  if (ok && typeof achLogEvent === 'function') achLogEvent('notifications_on');       // достижение «Всегда в курсе»
   renderNotifySettings();
   close();
   showNotifyAlert(ok
@@ -318,15 +320,16 @@ function checkLocalReminders() {
 // Уведомления: красный кружок на колокольчике и лист «Уведомления».
 //
 // Непрочитанным считается то, что появилось после последнего просмотра листа.
-// Событий три вида: добавлен новый дедлайн, добавлена новая домашка, вышла
-// новая версия приложения (по CHANGELOG из changelog.js).
+// Событий четыре вида: добавлен новый дедлайн, добавлена новая домашка, вышла
+// новая версия приложения (по CHANGELOG из changelog.js) и получен новый
+// значок (их держит achievements.js).
 //
 // Просмотренное лежит в localStorage: id записей и номера версий. При самом
 // первом запуске всё текущее сразу помечается прочитанным — иначе студент
 // увидел бы «новым» весь журнал сразу.
 // ============================================================================
 
-const NOTIFY_READ_KEY = 'notifications_read';   // { deadlines: [id], homework: [id], versions: ['1.3'] }
+const NOTIFY_READ_KEY = 'notifications_read';   // { deadlines: [id], homework: [id], versions: ['1.3'], achievements: [code] }
 
 // null — ключа ещё нет, то есть лист ни разу не открывали на этом устройстве
 function notificationsRead() {
@@ -334,7 +337,12 @@ function notificationsRead() {
   try { saved = JSON.parse(lsGet(NOTIFY_READ_KEY) || 'null'); } catch (e) {}
   if (!saved || typeof saved !== 'object') return null;
   const list = (v) => (Array.isArray(v) ? v.map(String) : []);
-  return { deadlines: list(saved.deadlines), homework: list(saved.homework), versions: list(saved.versions) };
+  return {
+    deadlines: list(saved.deadlines),
+    homework: list(saved.homework),
+    versions: list(saved.versions),
+    achievements: list(saved.achievements)
+  };
 }
 function writeNotificationsRead(read) {
   try { lsSet(NOTIFY_READ_KEY, JSON.stringify(read)); } catch (e) {}
@@ -373,6 +381,22 @@ function notificationItems() {
     sub: h.subject,
     day: h.dueDate
   }));
+  // Значки: их считает и хранит achievements.js
+  if (typeof achState !== 'undefined' && achState.earned) {
+    achState.earned.forEach((row, code) => {
+      const a = (typeof ACH_BY_CODE !== 'undefined' && ACH_BY_CODE[code]) || null;
+      if (!a || a.anti) return;                 // антидостижения в уведомления не идут
+      out.push({
+        group: 'achievements',
+        id: String(code),
+        at: notifyTimeOf(row.earned_at),
+        kind: 'Достижение',
+        title: a.title,
+        sub: 'новый значок',
+        day: null
+      });
+    });
+  }
   (typeof CHANGELOG === 'undefined' ? [] : CHANGELOG).forEach((e) => out.push({
     group: 'versions',
     id: String(e.version),
@@ -394,7 +418,7 @@ function unreadNotifications() {
 // Всё текущее — прочитано. Вызывается при открытии листа и один раз при
 // самом первом запуске, чтобы старые записи не считались новыми.
 function markNotificationsRead() {
-  const read = { deadlines: [], homework: [], versions: [] };
+  const read = { deadlines: [], homework: [], versions: [], achievements: [] };
   notificationItems().forEach((i) => read[i.group].push(i.id));
   writeNotificationsRead(read);
 }

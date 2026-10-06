@@ -67,9 +67,20 @@ if (Test-Path $changelogPath) {
     }
 }
 
+# Список учебных дней собирается из schedule.js: по нему считаются серии
+# в достижениях. Пересобираем перед каждым деплоем, чтобы правка расписания
+# не разъехалась со study-days.json.
+if (Test-Path (Join-Path $RepoPath "tools\build-study-days.js")) {
+    node tools/build-study-days.js
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Не удалось собрать study-days.json. Публикация отменена."
+        exit 1
+    }
+}
+
 # Добавляем изменённые файлы (каждый — только если реально есть в папке)
 git add index.html
-foreach ($name in @("data.json", "cabinet.html", "pass.html", "app.css", "profile.css", "env.js", "theme.js", "changelog.js", "shared.js", "profile.js", "studak.js", "schedule.js", "notify.js", "manifest.json", "sw.js", "icons", "fonts")) {    $p = Join-Path $RepoPath $name
+foreach ($name in @("data.json", "study-days.json", "cabinet.html", "pass.html", "app.css", "profile.css", "env.js", "theme.js", "changelog.js", "shared.js", "profile.js", "studak.js", "schedule.js", "notify.js", "achievements.js", "achievements.css", "manifest.json", "sw.js", "icons", "fonts")) {    $p = Join-Path $RepoPath $name
     if (Test-Path $p) {
         git add $name
     }
