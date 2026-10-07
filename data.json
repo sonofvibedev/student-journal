@@ -1591,15 +1591,6 @@
       "isExcused": false,
       "subject": "Маркетинговые исследования и аналитика",
       "comment": ""
-    },
-    {
-      "id": "abs-1791372863703-0-139",
-      "studentId": "st-1758300000003",
-      "date": "2026-10-07",
-      "totalHours": 2,
-      "isExcused": false,
-      "subject": "Интегрированные маркетинговые коммуникации",
-      "comment": ""
     }
   ],
   "teachers": [
@@ -1661,7 +1652,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-07T11:34:34.407Z",
+  "lastUpdated": "2026-10-07T13:21:49.139Z",
   "homework": [
     {
       "id": "hw-1790937671375",
