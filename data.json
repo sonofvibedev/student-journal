@@ -1456,6 +1456,24 @@
       "certType": "Освобождение",
       "certDueDate": "2026-10-11",
       "certSubmitted": true
+    },
+    {
+      "id": "abs-1791349856579-g0-658",
+      "studentId": "st-1758300000001",
+      "date": "2026-10-06",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Функционально-стоимостный анализ",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791349856579-g1-980",
+      "studentId": "st-1789848068933",
+      "date": "2026-10-06",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Функционально-стоимостный анализ",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -1517,7 +1535,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-06T11:11:21.399Z",
+  "lastUpdated": "2026-10-07T05:10:57.744Z",
   "homework": [
     {
       "id": "hw-1790937671375",
