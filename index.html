@@ -537,6 +537,105 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
+    /* ===== Главная «Бенто» ===================================================
+       Порядок: текущая пара, лента недели, плитки, ближайшие дедлайны,
+       «Что нового». Движение — только transform и opacity. */
+
+    /* --- Текущая пара --- */
+    .now-card .now-bar { display: block; width: 100%; height: 6px; margin-top: 10px; border-radius: 999px; background: var(--color-surface-3); overflow: hidden; }
+    .now-card .now-bar.d-none { display: none; }
+    .now-card .now-bar i { display: block; height: 100%; border-radius: 999px; background: var(--color-accent);
+      transform-origin: left center; transform: scaleX(var(--p, 0));
+      transition: transform var(--dur-slow) var(--ease-out); }
+    .now-card .now-left { margin-top: 6px; color: var(--color-accent); font-size: var(--fs-caption); font-weight: 600; }
+    .now-card .now-left:empty { display: none; }
+    .now-card .now-next { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-separator);
+      width: 100%; color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .now-card .now-next:empty { display: none; }
+
+    /* --- Лента недели --- */
+    .wk { padding: var(--space-4); border-radius: var(--radius-lg); background-color: var(--pane-bg);
+      border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow); }
+    .wk-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .wk-title { color: var(--color-text); font-size: var(--fs-chip); font-weight: 600; }
+    .wk-nav { display: flex; gap: 6px; margin-left: auto; }
+    .wk-arrow { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%;
+      background: var(--color-surface-3); color: var(--color-text-2); font-size: 17px; line-height: 1; }
+    .wk-arrow:active { transform: scale(.92); }
+    .wk-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .wk-strip::-webkit-scrollbar { display: none; }
+    .wk-cell { flex: none; width: 54px; padding: 8px 0 7px; border: 1px solid transparent; border-radius: var(--radius-md);
+      background: var(--color-surface-3); color: var(--color-text-2); scroll-snap-align: center;
+      transition: transform var(--dur-fast) var(--ease-out); }
+    .wk-cell:active { transform: scale(.94); }
+    .wk-cell .wd { display: block; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .wk-cell .dn { display: block; margin-top: 1px; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .wk-cell.is-weekend .wd { color: var(--color-text-disabled); }
+    /* День, в котором что-то есть, «горит»: заливка и точки по видам */
+    .wk-cell.is-mark { background: rgba(var(--color-accent-rgb), .14); color: var(--color-text); }
+    .wk-cell.is-hot { background: var(--status-hot-fill-strong); }
+    .wk-cell.is-today { border-color: var(--color-accent); }
+    .wk-cell.is-sel { background: var(--color-accent); color: #fff; }
+    .wk-cell.is-sel .wd { color: rgba(255, 255, 255, .8); }
+    .wk-marks { display: flex; justify-content: center; gap: 3px; min-height: 5px; margin-top: 4px; }
+    .wk-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--color-border-strong); }
+    .wk-dot.is-dl { background: var(--color-accent); }
+    .wk-dot.is-hw { background: var(--status-soon-line); }
+    .wk-dot.is-zachet { background: var(--status-zachet-line); }
+    .wk-cell.is-sel .wk-dot { background: rgba(255, 255, 255, .9); }
+    .wk-day { margin-top: 12px; }
+    .wk-day-title { margin-bottom: 8px; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--color-text-tertiary); }
+    .wk-ev { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--color-separator); }
+    .wk-ev:first-of-type { border-top: 0; }
+    .wk-ev .wk-ev-body { flex: 1 1 auto; min-width: 0; }
+    .wk-ev .wk-ev-sub { font-size: var(--fs-small); color: var(--color-text-secondary); }
+    .wk-ev .wk-ev-text { color: var(--color-text); font-size: var(--fs-caption); overflow-wrap: anywhere; }
+    .wk-ev.is-done .wk-ev-text { text-decoration: line-through; color: var(--color-text-tertiary); }
+    .wk-ev-kind { flex: none; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3);
+      color: var(--color-text-2); font-size: var(--fs-small); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+    .wk-ev.is-hot .wk-ev-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
+    .wk-ev.kind-zachet .wk-ev-kind { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
+    .wk-ev.kind-hw .wk-ev-kind { background: var(--status-soon-pill); color: var(--status-soon-text); }
+    .wk-done { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--color-border-mid);
+      border-radius: 50%; background: none; color: var(--color-text-tertiary);
+      transition: transform var(--dur-fast) var(--ease-out); }
+    .wk-done:active { transform: scale(.9); }
+    .wk-done svg { width: 15px; height: 15px; opacity: 0; transform: scale(.4);
+      transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) var(--ease-out); }
+    .wk-done.on { border-color: var(--status-done-line); background: var(--status-done-fill-strong); color: var(--status-done-line); }
+    .wk-done.on svg { opacity: 1; transform: none; }
+    .wk-empty { padding: 4px 0; color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .wk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .wk-legend i { margin-right: 5px; vertical-align: 1px; }
+
+    /* --- Кольцо часов на плитке --- */
+    .ring { position: relative; display: grid; place-items: center; width: 64px; height: 64px; }
+    .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+    .ring .ring-bg { stroke: var(--color-surface-3); }
+    .ring .ring-fg { stroke: var(--color-accent); stroke-dasharray: var(--ring-len) var(--ring-len); stroke-dashoffset: var(--ring-len); }
+    .ring.is-warn .ring-fg { stroke: var(--status-hot-line); }
+    .ring .ring-num { position: absolute; font-size: 20px; font-weight: 700; letter-spacing: -.5px; color: var(--color-text); }
+
+    /* --- Красный кружок «горит» на плитке дедлайнов --- */
+    .tile-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-danger); }
+    .tile-dot.d-none { display: none; }
+
+    /* --- Что нового --- */
+    .news-list { margin: 8px 0 10px; padding-left: 18px; color: var(--color-text-2); font-size: var(--fs-caption); }
+    .news-list li { margin-bottom: 4px; }
+    .news-all { align-self: flex-start; }
+
+    /* Плитка раскрывается в свой раздел: View Transitions. Там, где его нет,
+       остаётся обычный переход. Движение внутри перехода — transform и opacity. */
+    ::view-transition-group(tile-open) { animation-duration: var(--dur-slow); }
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur); }
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+    }
+
     /* В Telegram главное действие листа живёт в MainButton — кнопку-дубль прячем */
     .tg-main-hidden [data-tg-main] { display: none; }
 
@@ -1061,7 +1160,8 @@
 </section>
 
 
-<!-- Раздел «Главная» (index.html#home) — сводка дня -->
+<!-- Раздел «Главная» (index.html#home) — «Бенто»: сверху текущая пара,
+     под ней лента недели, плитки, ближайшие дедлайны и «Что нового». -->
 <section id="viewHome" class="app-view d-none">
 
   <!-- Пока неизвестно, вошёл студент или нет (ждём data.json и сессию Supabase),
@@ -1083,39 +1183,85 @@
     </div>
   </div>
 
-  <!-- Текущая или следующая пара -->
-  <button type="button" class="tile wide mb-3 d-none" id="homeLessonCard" onclick="goView('schedule')">
-    <span class="d-flex align-items-center gap-2">
-      <span class="badge" id="homeLessonWhen">—</span>
-      <small class="text-secondary ms-auto" id="homeLessonTime"></small>
-    </span>
-    <span class="tile-name" id="homeLessonSubject">—</span>
-    <span class="tile-note" id="homeLessonMeta"></span>
-    <span class="tile-note" id="homeLessonHw"></span>
-  </button>
+  <div id="homeBody" class="d-none">
 
-  <div class="tile-grid" id="homeTiles">
-    <!-- Часы пропусков за месяц: по нажатию — календарь пропусков -->
-    <button type="button" class="tile" id="homeHoursTile" onclick="goView('absences')">
-      <span class="tile-num" id="homeHoursUnexcused">0</span>
-      <span class="tile-note">неуважительных часов за месяц</span>
-      <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
-    </button>
-
-    <!-- Достижения: собрано значков, последний значок и ближайшая цель.
-         Содержимое заполняет renderHomeAchievements() из achievements.js -->
-    <button type="button" class="tile" id="homeAchievementsTile" onclick="goView('achievements')">
-      <span class="d-flex align-items-center gap-2">
-        <span id="homeAchBadge"></span>
-        <span class="tile-num" id="homeAchCount">—</span>
+    <!-- 1. Текущая пара: полоса прогресса и «ещё N мин», под ней следующая -->
+    <button type="button" class="tile wide now-card mb-3" id="homeNowCard" data-view-target="schedule" onclick="goTile('schedule', this)">
+      <span class="d-flex align-items-center gap-2 w-100">
+        <span class="badge" id="homeNowWhen">—</span>
+        <small class="text-secondary ms-auto" id="homeNowTime"></small>
       </span>
-      <span class="tile-note" id="homeAchTotal">значков за учёбу</span>
-      <span class="ach-bar"><i></i></span>
-      <span class="tile-note" id="homeAchNext"></span>
+      <span class="tile-name" id="homeNowSubject">—</span>
+      <span class="tile-note" id="homeNowMeta"></span>
+      <span class="now-bar d-none" id="homeNowBar" aria-hidden="true"><i></i></span>
+      <span class="now-left" id="homeNowLeft"></span>
+      <span class="now-next" id="homeNowNext"></span>
     </button>
 
-    <!-- Ближайшие дедлайны -->
-    <div class="tile wide">
+    <!-- 2. Лента недели: дни с делами «горят», по нажатию — события дня -->
+    <div class="wk mb-3" id="homeWeek">
+      <div class="wk-head">
+        <b class="wk-title" id="homeWeekTitle">Эта неделя</b>
+        <span class="wk-nav">
+          <button type="button" class="wk-arrow" onclick="shiftHomeWeek(-1)" aria-label="Предыдущая неделя">&lsaquo;</button>
+          <button type="button" class="wk-arrow" onclick="shiftHomeWeek(1)" aria-label="Следующая неделя">&rsaquo;</button>
+        </span>
+      </div>
+      <div class="wk-strip" id="homeWeekStrip"></div>
+      <div class="wk-day" id="homeWeekDay"></div>
+      <div class="wk-legend">
+        <span><i class="wk-dot is-dl"></i>дедлайн</span>
+        <span><i class="wk-dot is-hw"></i>домашка</span>
+        <span><i class="wk-dot is-zachet"></i>зачёт</span>
+      </div>
+    </div>
+
+    <!-- 3. Плитки -->
+    <div class="tile-grid" id="homeTiles">
+
+      <!-- Неуважительные часы за месяц: кольцо до порога предупреждения деканата -->
+      <button type="button" class="tile" id="homeHoursTile" data-view-target="absences" onclick="goTile('absences', this)">
+        <span class="ring" id="homeHoursRing">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <circle class="ring-bg" cx="24" cy="24" r="20"/>
+            <circle class="ring-fg" cx="24" cy="24" r="20"/>
+          </svg>
+          <b class="ring-num" id="homeHoursUnexcused">0</b>
+        </span>
+        <span class="tile-note">неуважительных часов за месяц</span>
+        <span class="tile-note" id="homeHoursLeft"></span>
+        <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
+      </button>
+
+      <!-- Дедлайны: число и красный кружок, если горят -->
+      <button type="button" class="tile" id="homeDeadlinesTile" data-view-target="deadlines" onclick="goTile('deadlines', this)">
+        <span class="tile-dot d-none" id="homeDlHot" aria-hidden="true"></span>
+        <span class="tile-num" id="homeDlCount">0</span>
+        <span class="tile-note">дедлайнов впереди</span>
+        <span class="tile-note" id="homeDlHotNote"></span>
+      </button>
+
+      <!-- Домашка на ближайшие дни -->
+      <button type="button" class="tile" id="homeHomeworkTile" data-view-target="homework" onclick="goTile('homework', this)">
+        <span class="tile-num" id="homeHwCount">0</span>
+        <span class="tile-note">домашек на неделю</span>
+        <span class="tile-note" id="homeHwNote"></span>
+      </button>
+
+      <!-- Достижения: содержимое заполняет renderHomeAchievements() из achievements.js -->
+      <button type="button" class="tile" id="homeAchievementsTile" data-view-target="achievements" onclick="goTile('achievements', this)">
+        <span class="d-flex align-items-center gap-2">
+          <span id="homeAchBadge"></span>
+          <span class="tile-num" id="homeAchCount">—</span>
+        </span>
+        <span class="tile-note" id="homeAchTotal">значков за учёбу</span>
+        <span class="ach-bar"><i></i></span>
+        <span class="tile-note" id="homeAchNext"></span>
+      </button>
+    </div>
+
+    <!-- 4. Ближайшие дедлайны -->
+    <div class="tile wide mt-3">
       <span class="d-flex align-items-center gap-2">
         <span class="tile-name">Ближайшие дедлайны</span>
         <button type="button" class="btn btn-sm btn-secondary ms-auto" id="todayDeadlinesMore" onclick="goView('deadlines')">Все</button>
@@ -1123,22 +1269,23 @@
       <div class="inset mt-2" id="todayDeadlines"></div>
     </div>
 
-    <!-- Ближайшие домашки -->
-    <div class="tile wide">
+    <!-- Строку заполняет updateTodayGrades() из profile.js: ближайший срок одной строкой -->
+    <button type="button" class="w wide today-next d-none mt-3" id="todayNext" onclick="goView('deadlines')">
+      <small class="text-secondary" id="todayNextKind"></small>
+      <b class="tile-name" id="todayNextTitle"></b>
+      <span class="tile-note" id="todayNextMeta"></span>
+    </button>
+
+    <!-- 5. Что нового: версия, дата и главные изменения -->
+    <div class="tile wide mt-3" id="homeWhatsNew">
       <span class="d-flex align-items-center gap-2">
-        <span class="tile-name">Ближайшие домашки</span>
-        <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('homework')">Все</button>
+        <span class="tile-name">Что нового</span>
+        <small class="text-secondary ms-auto" id="homeNewsVersion"></small>
       </span>
-      <div class="inset mt-2" id="homeHomework"></div>
+      <ul class="news-list" id="homeNewsList"></ul>
+      <button type="button" class="btn btn-sm btn-secondary news-all" onclick="openChangelogModal()">Все изменения</button>
     </div>
   </div>
-
-  <!-- Строку заполняет updateTodayGrades() из profile.js: ближайший срок одной строкой -->
-  <button type="button" class="w wide today-next d-none" id="todayNext" onclick="goView('deadlines')">
-    <small class="text-secondary" id="todayNextKind"></small>
-    <b class="tile-name" id="todayNextTitle"></b>
-    <span class="tile-note" id="todayNextMeta"></span>
-  </button>
 </section>
 
 
@@ -2474,95 +2621,399 @@
     el.innerText = VIEW_TITLES_OWN[view] || VIEW_TITLES[tabForScreen(view)] || 'Журнал';
   }
 
-  // ===== Главная: сводка дня =====
+  // ===== Анимации плиток ====================================================
+  // Всё движение — только transform и opacity, 150–350 мс. При включённом
+  // «Уменьшении движения» анимаций нет: число ставится сразу, кольцо рисуется
+  // в конечном положении, переход между разделами обычный.
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Число на плитке «досчитывается» от 0. Меняем только textContent — ни
+  // раскладки, ни перерисовки соседей, поэтому кадры не теряются.
+  const COUNT_MS = 320;
+  function setTileNumber(el, value) {
+    if (!el) return;
+    const to = Number(value) || 0;
+    if (reduceMotion() || to === 0) { el.textContent = to; return; }
+    if (el.dataset.counted === String(to)) { el.textContent = to; return; }
+    el.dataset.counted = String(to);
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / COUNT_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(to * eased);
+      if (t < 1) requestAnimationFrame(step);
+      else el.textContent = to;
+    };
+    el.textContent = '0';
+    requestAnimationFrame(step);
+  }
+
+  // Кольцо часов наполняется при открытии главной.
+  // Единственное исключение из «только transform и opacity»: длину дуги иначе
+  // не анимировать. stroke-dashoffset не вызывает перерасчёт раскладки, кольцо
+  // одно и маленькое, так что кадры это не роняет.
+  function fillRing(ring, progress, warn) {
+    if (!ring) return;
+    const fg = ring.querySelector('.ring-fg');
+    if (!fg) return;
+    const len = 2 * Math.PI * Number(fg.getAttribute('r') || 20);
+    ring.style.setProperty('--ring-len', len.toFixed(1));
+    ring.classList.toggle('is-warn', !!warn);
+    const target = len * (1 - Math.max(0, Math.min(1, progress)));
+    if (reduceMotion()) {
+      fg.style.transition = 'none';
+      fg.style.strokeDashoffset = target.toFixed(1);
+      return;
+    }
+    fg.style.transition = 'none';
+    fg.style.strokeDashoffset = len.toFixed(1);
+    requestAnimationFrame(() => {
+      fg.style.transition = 'stroke-dashoffset var(--dur-slow) var(--ease-out)';
+      fg.style.strokeDashoffset = target.toFixed(1);
+    });
+  }
+
+  // Плитка раскрывается в свой раздел. Где View Transitions нет (а это все
+  // браузеры, кроме свежих Chromium), остаётся обычный переход — тот же goView.
+  function goTile(view, tileEl) {
+    if (!document.startViewTransition || reduceMotion()) { goView(view); return; }
+    const target = document.getElementById(VIEWS[view]);
+    if (tileEl) tileEl.style.viewTransitionName = 'tile-open';
+    if (target) target.style.viewTransitionName = 'tile-open';
+    const done = () => {
+      if (tileEl) tileEl.style.viewTransitionName = '';
+      if (target) target.style.viewTransitionName = '';
+    };
+    const t = document.startViewTransition(() => { goView(view); });
+    t.finished.then(done, done);
+  }
+
+  // ===== Главная «Бенто» ===================================================
   // Три состояния, одно общее на всё приложение (AppState в shared.js):
   //   loading — ждём data.json и сессию Supabase, показываем скелетон;
   //   guest   — входа точно нет, вместо личных цифр приглашение войти;
   //   signed  — цифры студента.
   // «Войдите в кабинет» появляется только в состоянии guest, поэтому вошедший
   // студент видит свои часы сразу при открытии, без захода в «Профиль».
-  // Дедлайны и ближайшую пару видно всем.
+  // Пара, лента недели, дедлайны и «Что нового» видны всем.
+
+  // Порог деканата: с 14 неуважительных часов за месяц ждут предупреждение.
+  // Сам порог нигде не меняется — это та же цифра, что в «Статистике группы».
+  const DEAN_WARNING_HOURS = 14;
+
   function renderHome() {
     const loading = !AppState.ready;
     const me = AppState.auth === 'signed' ? AppState.studentId : null;
-    const skel = document.getElementById('homeSkeleton');
-    const guest = document.getElementById('homeGuest');
-    const tiles = document.getElementById('homeTiles');
-    if (skel) skel.classList.toggle('d-none', !loading);
-    if (tiles) tiles.classList.toggle('d-none', loading);
-    if (guest) guest.classList.toggle('d-none', loading || !!me);
+    document.getElementById('homeSkeleton').classList.toggle('d-none', !loading);
+    document.getElementById('homeBody').classList.toggle('d-none', loading);
+    document.getElementById('homeGuest').classList.toggle('d-none', loading || !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
-    if (loading) {
-      document.getElementById('homeLessonCard').classList.add('d-none');
-      document.getElementById('todayNext').classList.add('d-none');
-      return;
-    }
+    if (loading) return;
 
-    // Часы за текущий месяц: отдельно неуважительные и уважительные
-    if (me) {
-      const now = new Date();
-      let un = 0, ex = 0;
-      (appData.absences || []).forEach(a => {
-        if (a.studentId !== me) return;
-        const d = new Date(a.date);
-        if (isNaN(d) || d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return;
-        if (a.isExcused) ex += Number(a.totalHours) || 0; else un += Number(a.totalHours) || 0;
-      });
-      document.getElementById('homeHoursUnexcused').textContent = un;
-      document.getElementById('homeHoursExcused').textContent = ex;
-    }
-
-    renderHomeLesson();
-    renderHomeHomework();
+    if (me) renderHomeHours(me);
+    renderHomeNow();
+    renderHomeWeek();
+    renderHomeCounters();
+    renderHomeNews();
     if (typeof renderHomeAchievements === 'function') renderHomeAchievements();
     if (typeof renderToday === 'function') renderToday();
   }
 
-  // Текущая или следующая пара. Расписание — в schedule.js, домашка — в data.json.
-  function renderHomeLesson() {
-    const card = document.getElementById('homeLessonCard');
-    if (!card || typeof lessonsOfDay !== 'function') return;
+  // --- Плитка часов: кольцо до порога предупреждения деканата ---
+  function renderHomeHours(me) {
     const now = new Date();
-    // lessonsOfDay(неделя, день): неделю считает currentSemesterWeek() из schedule.js
+    let un = 0, ex = 0;
+    (appData.absences || []).forEach(a => {
+      if (a.studentId !== me) return;
+      const d = new Date(a.date);
+      if (isNaN(d) || d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return;
+      if (a.isExcused) ex += Number(a.totalHours) || 0; else un += Number(a.totalHours) || 0;
+    });
+    setTileNumber(document.getElementById('homeHoursUnexcused'), un);
+    document.getElementById('homeHoursExcused').textContent = ex;
+
+    const left = Math.max(0, DEAN_WARNING_HOURS - un);
+    document.getElementById('homeHoursLeft').textContent = left
+      ? 'до предупреждения ' + left + ' ч'
+      : 'порог предупреждения пройден';
+    fillRing(document.getElementById('homeHoursRing'), Math.min(1, un / DEAN_WARNING_HOURS), un >= DEAN_WARNING_HOURS);
+  }
+
+  // --- Текущая пара и следующая ---
+  // Расписание — в schedule.js (lessonsOfDay), часы пар — в PAIR_TIMES.
+  function renderHomeNow() {
+    if (typeof lessonsOfDay !== 'function') return;
+    const now = new Date();
     const week = currentSemesterWeek(now);
     const day = now.getDay() === 0 ? 7 : now.getDay();
     const list = (day <= 6 && week ? lessonsOfDay(week, day) : []) || [];
     const mins = now.getHours() * 60 + now.getMinutes();
-    const toMin = (hm) => { const p = String(hm).split(':'); return (+p[0]) * 60 + (+p[1]); };
-    let lesson = null, when = '';
-    for (const l of list) {
-      if (mins >= toMin(l.from) && mins <= toMin(l.to)) { lesson = l; when = 'Идёт сейчас'; break; }
-      if (mins < toMin(l.from)) { lesson = l; when = 'Следующая пара'; break; }
+
+    const when = document.getElementById('homeNowWhen');
+    const bar = document.getElementById('homeNowBar');
+    const current = list.find(l => mins >= toMinutes(l.start) && mins < toMinutes(l.end));
+    const next = list.find(l => mins < toMinutes(l.start));
+
+    if (current) {
+      when.textContent = 'Идёт сейчас';
+      when.className = 'badge bg-success';
+      fillHomeLesson(current);
+      const from = toMinutes(current.start), to = toMinutes(current.end);
+      bar.classList.remove('d-none');
+      bar.querySelector('i').style.setProperty('--p', String(Math.max(0, Math.min(1, (mins - from) / (to - from)))));
+      document.getElementById('homeNowLeft').textContent = 'ещё ' + formatLeft(to - mins);
+      document.getElementById('homeNowNext').textContent = next
+        ? 'Дальше: ' + next.start + ' ' + next.subject
+        : 'Это последняя пара на сегодня';
+      return;
     }
-    card.classList.toggle('d-none', !lesson);
-    if (!lesson) return;
-    document.getElementById('homeLessonWhen').textContent = when;
-    document.getElementById('homeLessonWhen').className = 'badge ' + (when === 'Идёт сейчас' ? 'bg-success' : 'bg-secondary');
-    document.getElementById('homeLessonTime').textContent = lesson.from + '–' + lesson.to;
-    document.getElementById('homeLessonSubject').textContent = lesson.subject;
-    document.getElementById('homeLessonMeta').textContent =
-      [LESSON_KIND_FULL[lesson.kind] || lesson.kind, lesson.teacher, lesson.room && ('ауд. ' + lesson.room)]
-        .filter(Boolean).join(' · ');
-    const hw = (appData.homework || []).filter(h => h.subject === lesson.subject)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
-    document.getElementById('homeLessonHw').textContent = hw ? 'ДЗ: ' + hw.text : '';
+
+    bar.classList.add('d-none');
+    document.getElementById('homeNowLeft').textContent = '';
+
+    if (next) {
+      when.textContent = 'Следующая пара';
+      when.className = 'badge bg-secondary';
+      fillHomeLesson(next);
+      document.getElementById('homeNowNext').textContent = 'начало через ' + formatLeft(toMinutes(next.start) - mins);
+      return;
+    }
+
+    // Пар на сегодня больше нет — показываем первую пару следующего учебного дня
+    when.textContent = 'Пары на сегодня закончились';
+    when.className = 'badge bg-secondary';
+    const first = nextStudyDayFirstLesson(now);
+    if (first) {
+      fillHomeLesson(first.lesson);
+      document.getElementById('homeNowNext').textContent = 'Первая пара ' + first.label;
+    } else {
+      document.getElementById('homeNowSubject').textContent = 'Занятий впереди нет';
+      document.getElementById('homeNowTime').textContent = '';
+      document.getElementById('homeNowMeta').textContent = '';
+      document.getElementById('homeNowNext').textContent = '';
+    }
   }
 
-  // Три ближайших задания по сроку сдачи
-  function renderHomeHomework() {
-    const box = document.getElementById('homeHomework');
-    if (!box) return;
-    const today = dayKey(new Date());
-    const list = (appData.homework || [])
-      .filter(h => !h.dueDate || dayKey(deadlineDate(h.dueDate)) >= today)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
-      .slice(0, 3);
-    if (!list.length) { box.innerHTML = '<div class="today-empty">Домашки пока нет</div>'; return; }
-    box.innerHTML = list.map(h =>
-      '<div class="row-i"><span class="lbl">' + escapeHtml(h.subject) +
-      '<small class="d-block text-secondary">' + escapeHtml(h.text || '') + '</small></span>' +
-      '<span class="val">' + (h.dueDate ? dlFormatDate(deadlineDate(h.dueDate)) : '—') + '</span></div>').join('');
+  function fillHomeLesson(l) {
+    document.getElementById('homeNowTime').textContent = l.start + '–' + l.end;
+    document.getElementById('homeNowSubject').textContent = l.subject;
+    document.getElementById('homeNowMeta').textContent =
+      [LESSON_KIND_FULL[l.type] || l.type, l.teacher, l.room && ('ауд. ' + l.room)].filter(Boolean).join(' · ');
   }
+
+  // Ближайший день с занятиями после сегодняшнего: ищем вперёд две недели
+  function nextStudyDayFirstLesson(from) {
+    for (let i = 1; i <= 14; i++) {
+      const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
+      const day = d.getDay() === 0 ? 7 : d.getDay();
+      if (day > 6) continue;
+      const list = lessonsOfDay(currentSemesterWeek(d), day) || [];
+      if (!list.length) continue;
+      const label = i === 1 ? 'завтра' : WD_FULL[day] + ', ' + d.getDate() + ' ' + MONTHS_GEN[d.getMonth()];
+      return { lesson: list[0], label };
+    }
+    return null;
+  }
+
+  // --- Лента недели -------------------------------------------------------
+  // Смещение недели: 0 — эта неделя. Свайп по ленте уводит на соседние.
+  let homeWeekShift = 0;
+  let homeDaySel = null;
+
+  function shiftHomeWeek(delta) {
+    homeWeekShift += delta;
+    homeDaySel = null;
+    haptic('selection');
+    renderHomeWeek();
+  }
+
+  const WD_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  // DAY_NAMES в schedule.js заканчивается субботой — в ленте есть и воскресенье
+  const WD_FULL = ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+  const EV_NAMES = { dl: 'дедлайн', hw: 'домашка', zachet: 'зачёт' };
+
+  function homeWeekMonday() {
+    const m = mondayOf(new Date());
+    return new Date(m.getFullYear(), m.getMonth(), m.getDate() + homeWeekShift * 7);
+  }
+
+  // Все дела дня: дедлайны, зачёты и экзамены из appData.deadlines, домашка из
+  // appData.homework. Порядок — горит, дедлайн, домашка, зачёт.
+  function homeDayEvents(key) {
+    const out = [];
+    (appData.deadlines || []).forEach(d => {
+      if (d.dueDate !== key) return;
+      const zachet = isZachet(d);
+      const n = deadlineDaysLeft(d.dueDate);
+      out.push({
+        kind: zachet ? 'zachet' : 'dl',
+        hot: n <= 1,
+        label: zachet ? deadlineKindName(d) : 'Дедлайн',
+        subject: d.subject,
+        text: d.text || deadlineKindName(d),
+        rel: deadlineRelative(n)
+      });
+    });
+    (appData.homework || []).forEach(h => {
+      if (h.dueDate !== key) return;
+      const n = deadlineDaysLeft(h.dueDate);
+      const done = homeworkDone(h);
+      out.push({
+        kind: 'hw',
+        hot: n <= 1 && !done,
+        label: 'Домашка',
+        subject: h.subject,
+        text: h.text || 'Без описания',
+        rel: deadlineRelative(n),
+        hw: h,
+        done: done
+      });
+    });
+    const rank = (e) => e.hot ? 0 : e.kind === 'dl' ? 1 : e.kind === 'hw' ? 2 : 3;
+    return out.sort((a, b) => rank(a) - rank(b) || String(a.subject).localeCompare(String(b.subject), 'ru'));
+  }
+
+  function renderHomeWeek() {
+    const strip = document.getElementById('homeWeekStrip');
+    if (!strip) return;
+    const monday = homeWeekMonday();
+    const todayKey = dayKey(new Date());
+    if (!homeDaySel) {
+      // Эта неделя открывается на сегодня, соседние — на своём понедельнике
+      homeDaySel = homeWeekShift === 0 ? todayKey : dayKey(monday);
+    }
+
+    document.getElementById('homeWeekTitle').textContent = homeWeekShift === 0
+      ? 'Эта неделя'
+      : monday.getDate() + ' ' + MONTHS_GEN[monday.getMonth()] + ' · неделя ' + currentSemesterWeek(monday);
+
+    strip.innerHTML = WD_SHORT.map((wd, i) => {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      const key = dayKey(d);
+      const evs = homeDayEvents(key);
+      const kinds = ['dl', 'hw', 'zachet'].filter(k => evs.some(e => e.kind === k));
+      const cls = ['wk-cell'];
+      if (i >= 5) cls.push('is-weekend');
+      if (evs.length) cls.push('is-mark');
+      if (evs.some(e => e.hot)) cls.push('is-hot');
+      if (key === todayKey) cls.push('is-today');
+      if (key === homeDaySel) cls.push('is-sel');
+      const label = d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] +
+        (key === todayKey ? ', сегодня' : '') +
+        (evs.length ? ': ' + kinds.map(k => EV_NAMES[k]).join(', ') : ', дел нет');
+      return '<button type="button" class="' + cls.join(' ') + '" data-day="' + key + '" aria-label="' + label + '"' +
+        (key === homeDaySel ? ' aria-current="date"' : '') + '>' +
+        '<span class="wd">' + wd + '</span><span class="dn">' + d.getDate() + '</span>' +
+        '<span class="wk-marks" aria-hidden="true">' +
+        kinds.map(k => '<i class="wk-dot is-' + k + '"></i>').join('') + '</span>' +
+        '</button>';
+    }).join('');
+
+    if (!strip.dataset.bound) {
+      strip.dataset.bound = '1';
+      strip.addEventListener('click', (e) => {
+        const cell = e.target.closest('button[data-day]');
+        if (!cell) return;
+        homeDaySel = cell.dataset.day;
+        haptic('selection');
+        renderHomeWeek();
+      });
+      // Свайпом по ленте — на соседние недели
+      enableHorizontalSwipe(strip, () => shiftHomeWeek(1), () => shiftHomeWeek(-1));
+    }
+
+    const sel = strip.querySelector('.wk-cell.is-sel');
+    if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
+    renderHomeWeekDay();
+  }
+
+  function renderHomeWeekDay() {
+    const box = document.getElementById('homeWeekDay');
+    if (!box) return;
+    const [y, m, d] = String(homeDaySel || '').split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const title = WD_FULL[date.getDay() === 0 ? 7 : date.getDay()] + ', ' + d + ' ' + MONTHS_GEN[m - 1] +
+      (homeDaySel === dayKey(new Date()) ? ' · сегодня' : '');
+    const evs = homeDayEvents(homeDaySel);
+
+    box.innerHTML = '<div class="wk-day-title">' + escapeHtml(title) + '</div>' + (evs.length
+      ? evs.map(e => {
+        const cls = ['wk-ev', 'kind-' + e.kind];
+        if (e.hot) cls.push('is-hot');
+        if (e.done) cls.push('is-done');
+        return '<div class="' + cls.join(' ') + '">' +
+          '<span class="wk-ev-kind">' + escapeHtml(e.hot ? 'Горит' : e.label) + '</span>' +
+          '<span class="wk-ev-body">' +
+          '<span class="wk-ev-sub d-block">' + escapeHtml(e.subject) + ' · ' + escapeHtml(e.rel) + '</span>' +
+          '<span class="wk-ev-text d-block">' + escapeHtml(e.text) + '</span>' +
+          '</span>' +
+          (e.hw
+            ? '<button type="button" class="wk-done' + (e.done ? ' on' : '') + '" data-hw="' + escapeHtml(e.hw.id) + '"' +
+              ' aria-pressed="' + (e.done ? 'true' : 'false') + '" aria-label="Сделано">' +
+              '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></button>'
+            : '') +
+          '</div>';
+      }).join('')
+      : '<div class="wk-empty">В этот день ничего не горит</div>');
+
+    if (!box.dataset.bound) {
+      box.dataset.bound = '1';
+      box.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-hw]');
+        if (btn) toggleHomeworkDoneById(btn.dataset.hw);
+      });
+    }
+  }
+
+  // Отметка «Сделано» у домашки. Сама отметка хранится по паре (setLessonDone):
+  // разворачиваем задание в пары того дня, где оно задано, и отмечаем их.
+  function toggleHomeworkDoneById(id) {
+    const h = (appData.homework || []).find(x => String(x.id) === String(id));
+    if (!h || !h.dueDate || typeof lessonsOfDay !== 'function') return;
+    const date = deadlineDate(h.dueDate);
+    const day = date.getDay() === 0 ? 7 : date.getDay();
+    if (day > 6) return;
+    const lessons = (lessonsOfDay(currentSemesterWeek(date), day) || [])
+      .filter(l => homeworkForLesson(l, h.dueDate).some(x => x.id === h.id));
+    if (!lessons.length) return;
+    const next = !homeworkDone(h);
+    lessons.forEach(l => setLessonDone(l, h.dueDate, next));
+    haptic(next ? 'success' : 'selection');
+    renderHomeWeek();
+  }
+
+  // --- Плитки «Дедлайны» и «Домашка» ---
+  function renderHomeCounters() {
+    const all = typeof activeDeadlines === 'function' ? activeDeadlines() : [];
+    const hot = all.filter(d => deadlineDaysLeft(d.dueDate) <= 1);
+    setTileNumber(document.getElementById('homeDlCount'), all.length);
+    document.getElementById('homeDlHot').classList.toggle('d-none', hot.length === 0);
+    document.getElementById('homeDlHotNote').textContent = hot.length
+      ? hot.length + (hot.length === 1 ? ' горит' : ' горят')
+      : 'список и календарь';
+
+    const today = dayKey(new Date());
+    const edge = dayKey(new Date(Date.now() + 7 * 24 * 3600 * 1000));
+    const hw = (appData.homework || []).filter(h => {
+      if (!h.dueDate) return false;
+      const k = dayKey(deadlineDate(h.dueDate));
+      return k >= today && k <= edge;
+    });
+    setTileNumber(document.getElementById('homeHwCount'), hw.length);
+    document.getElementById('homeHwNote').textContent = hw.length ? 'ближайшая неделя' : 'на неделю ничего';
+  }
+
+  // --- Что нового: версия, дата и три главных изменения (changelog.js) ---
+  function renderHomeNews() {
+    const list = document.getElementById('homeNewsList');
+    if (!list || typeof changelogEntry !== 'function') return;
+    const entry = changelogEntry(APP_VERSION);
+    document.getElementById('homeNewsVersion').textContent = APP_VERSION + ' · ' + changelogDate(entry);
+    list.innerHTML = (entry.items || []).slice(0, 3).map(t => '<li>' + escapeHtml(t) + '</li>').join('');
+  }
+
+  // Пока главная открыта — раз в минуту обновляем «ещё N мин» и полосу пары
+  setInterval(() => { if (currentViewName === 'home' && AppState.ready) renderHomeNow(); }, 60000);
 
   // ===== «Учёба»: подписи и счётчик на плитках =====
   function renderStudyTiles() {
