@@ -160,3 +160,23 @@
 @media (prefers-reduced-motion: reduce) {
   .ach-bar i, .ach-toast { transition: none; }
 }
+
+/* ===== Полученный значок «выпрыгивает» с бликом =====
+   Только transform и opacity. Блик — тот же стеклянный хайлайт ::after,
+   он один раз проезжает по медали. */
+.ach-badge.is-new { animation: ach-pop 420ms var(--ease-spring) both; }
+.ach-badge.is-new::after { animation: ach-glint 620ms var(--ease-out) 120ms both; }
+@keyframes ach-pop {
+  0%   { opacity: 0; transform: scale(.4); }
+  55%  { opacity: 1; transform: scale(1.14); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ach-glint {
+  0%   { opacity: 0; transform: translateX(-120%) rotate(-12deg); }
+  35%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(120%) rotate(-12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ach-badge.is-new, .ach-badge.is-new::after { animation: none; }
+}
+
