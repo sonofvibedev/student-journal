@@ -1282,6 +1282,13 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
    Поверхности полупрозрачные и размывают то, что под ними. Глубина задаётся
    светлой кромкой сверху и мягкой тенью, а не плотной заливкой.
 
+   Размытие (backdrop-filter) стоит дорого и на длинных списках режет кадры,
+   поэтому слоёв с ним ровно два вида — те, под которыми реально что-то проезжает:
+   плавающий таб-бар, нижние листы и модалки, сжатая шапка. Карточки, плитки,
+   дедлайны, преподаватели и статистика берут полупрозрачную заливку --pane-bg
+   с той же кромкой и тенью: alpha выше, чем у --glass-bg, ровно настолько,
+   чтобы без размытия вид остался прежним.
+
    Три правила, чтобы стекло не превратилось в кашу:
      1. Текст и иконки лежат НЕ на стекле, а на своём фоне — контраст AA держат
         токены --color-text*, они не меняются.
@@ -1290,8 +1297,12 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
         поверхность становится обычной непрозрачной.
    ========================================================================== */
 :root {
+  /* Плавающие слои — с размытием */
   --glass-bg:        rgba(var(--color-surface-rgb), .58);
   --glass-bg-strong: rgba(var(--color-surface-rgb), .74);
+  /* Неподвижные поверхности — без размытия, alpha выше на тот же вид */
+  --pane-bg:         rgba(var(--color-surface-rgb), .80);
+  --pane-bg-strong:  rgba(var(--color-surface-rgb), .90);
   --glass-edge:      rgba(255, 255, 255, .10);
   --glass-blur:      saturate(170%) blur(20px);
   --glass-shadow:    0 8px 32px rgba(0, 0, 0, .22);
@@ -1299,6 +1310,8 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 [data-bs-theme=light] {
   --glass-bg:        rgba(var(--color-surface-rgb), .66);
   --glass-bg-strong: rgba(var(--color-surface-rgb), .82);
+  --pane-bg:         rgba(var(--color-surface-rgb), .86);
+  --pane-bg-strong:  rgba(var(--color-surface-rgb), .94);
   --glass-edge:      rgba(0, 0, 0, .07);
   --glass-shadow:    0 8px 28px rgba(16, 24, 40, .10);
 }
@@ -1316,6 +1329,7 @@ body::before {
     radial-gradient(52% 38% at 92% 28%,  rgba(var(--color-accent-rgb), .10), transparent 72%);
 }
 
+/* Неподвижные поверхности: кромка и тень те же, размытия нет */
 .stat-card,
 .table-container,
 .student-summary-card,
@@ -1323,14 +1337,12 @@ body::before {
 .teacher-card,
 .dl-card,
 .glass {
-  background-color: var(--glass-bg);
+  background-color: var(--pane-bg);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
 }
 
-/* Таб-бар и листы — плотнее: под ними проезжает содержимое страницы */
+/* Таб-бар и листы — плотнее и с размытием: под ними проезжает содержимое страницы */
 .bottom-tabbar,
 .modal-content {
   background-color: var(--glass-bg-strong);
@@ -1339,7 +1351,7 @@ body::before {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-/* Запасной вариант: без размытия поверхности становятся обычными */
+/* Запасной вариант: без размытия плавающие слои становятся обычными */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root { --glass-bg: var(--color-surface); --glass-bg-strong: var(--color-surface-2); }
   body::before { display: none; }
@@ -1356,11 +1368,9 @@ body::before {
   min-height: 108px;
   padding: var(--space-4);
   border-radius: var(--radius-lg);
-  background-color: var(--glass-bg);
+  background-color: var(--pane-bg);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   color: inherit;
   text-align: left;
   text-decoration: none;
