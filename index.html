@@ -2951,7 +2951,7 @@
       const cls = ['wk-cell'];
       if (i >= 5) cls.push('is-weekend');
       if (evs.length) cls.push('is-mark');
-      if (evs.some(e => e.hot)) cls.push('is-hot');
+      if (key >= todayKey && evs.some(e => e.hot)) cls.push('is-hot');
       if (key === todayKey) cls.push('is-today');
       if (key === homeDaySel) cls.push('is-sel');
       const label = d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] +

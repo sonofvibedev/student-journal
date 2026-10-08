@@ -249,7 +249,7 @@ function markDeadlinesSeen() {
 // Не мешаем: полям ввода, ползункам, прокручиваемым строкам чипов и таблицам, календарю,
 // открытым окнам и краям экрана (там системный жест «назад» в iOS).
 function enableTabSwipe(order, current, go) {
-  const IGNORE = 'input, select, textarea, [contenteditable], .modal, .sheet, .bottom-tabbar, .feed-chips, .filter-chip-row, .table-responsive, .cal-grid, .no-swipe';
+  const IGNORE = 'input, select, textarea, [contenteditable], .modal, .sheet, .bottom-tabbar, .feed-chips, .filter-chip-row, .table-responsive, .cal-grid, .wk-strip, .no-swipe';
   let start = null;
   document.addEventListener('touchstart', (e) => {
     start = null;
