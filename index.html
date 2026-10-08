@@ -1099,22 +1099,36 @@
   <div id="examsBody"></div>
 </section>
 
-<!-- Раздел «Достижения» (index.html#achievements) — значки и как это работает.
-     Содержимое рисует achievements.js: разметка здесь только каркасная.
-     Баллов и рейтинга группы нет: коллекция личная, чужую никто не видит. -->
-<section id="viewAchievements" class="app-view d-none" aria-labelledby="achViewTitle">
-  <h3 class="visually-hidden" id="achViewTitle">Достижения</h3>
+<!-- Достижения — отдельное окно: нижний лист на весь экран.
+     Внутри вкладки «Мои» и «Как это работает»; содержимое рисует
+     achievements.js, разметка здесь только каркасная. Открывается
+     плиткой в профиле, плиткой на главной, всплывашкой о новом значке
+     и ссылкой index.html#achievements. -->
+<div class="modal fade swipe-sheet" id="achSheet" tabindex="-1" aria-labelledby="achSheetTitle">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="achSheetTitle">Достижения</div>
+          <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+      </div>
+      <div class="filter-sheet-body pb-4">
+        <div class="ach-sum" id="achSummary"></div>
 
-  <div class="ach-sum" id="achSummary"></div>
+        <div class="seg" id="achSeg" role="tablist" aria-label="Разделы достижений">
+          <button type="button" class="seg-item active" role="tab" id="achTabMine"  aria-selected="true"  onclick="setAchTab('mine')">Мои</button>
+          <button type="button" class="seg-item"        role="tab" id="achTabRules" aria-selected="false" onclick="setAchTab('rules')">Как это работает</button>
+        </div>
 
-  <div class="seg" id="achSeg" role="tablist" aria-label="Разделы достижений">
-    <button type="button" class="seg-item active" role="tab" id="achTabMine"  aria-selected="true"  onclick="setAchTab('mine')">Мои значки</button>
-    <button type="button" class="seg-item"        role="tab" id="achTabRules" aria-selected="false" onclick="setAchTab('rules')">Как это работает</button>
+        <div id="achPaneMine"></div>
+        <div id="achPaneRules" class="d-none"></div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <div id="achPaneMine"></div>
-  <div id="achPaneRules" class="d-none"></div>
-</section>
 
 <!-- Раздел «Админ-панель» (index.html#admin) — всё, чего нет на кнопке «+» -->
 <section id="viewAdmin" class="app-view d-none">
@@ -1249,7 +1263,7 @@
       </button>
 
       <!-- Достижения: содержимое заполняет renderHomeAchievements() из achievements.js -->
-      <button type="button" class="tile" id="homeAchievementsTile" data-view-target="achievements" onclick="goTile('achievements', this)">
+      <button type="button" class="tile" id="homeAchievementsTile" onclick="openAchSheet()">
         <span class="d-flex align-items-center gap-2">
           <span id="homeAchBadge"></span>
           <span class="tile-num" id="homeAchCount">—</span>
@@ -1379,12 +1393,20 @@
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
 
-    <!-- Последние полученные значки. Группу прячет renderProfileBadges(),
-         пока значков нет. -->
-    <div class="group d-none">
+    <!-- Достижения — одна плитка: сколько значков получено и три последних.
+         Плитку заполняет renderProfileBadges() из achievements.js, она же
+         прячет группу, пока входа нет. По нажатию открывается отдельное
+         окно со всеми достижениями. -->
+    <div class="group d-none" id="profileAchGroup">
       <div class="kicker">Достижения</div>
-      <button type="button" class="inset w-100 text-start" onclick="goView('achievements')" aria-label="Все достижения">
-        <div class="ach-strip" id="profileBadges"></div>
+      <button type="button" class="tile wide ach-tile" id="profileAchTile" onclick="openAchSheet()" aria-label="Все достижения">
+        <span class="d-flex align-items-center gap-2 w-100">
+          <span class="tile-num" id="profileAchCount">0</span>
+          <span class="tile-note" id="profileAchTotal">значков</span>
+          <span class="chev ms-auto" aria-hidden="true">&rsaquo;</span>
+        </span>
+        <span class="ach-strip" id="profileBadges"></span>
+        <span class="tile-note" id="profileAchNote"></span>
       </button>
     </div>
 
@@ -2547,7 +2569,6 @@
     exams:     'viewExams',
     zachetka:  'viewZachetka',
     absences:  'viewAbsences',
-    achievements: 'viewAchievements',
     admin:     'viewAdmin'
   };
   const TAB_IDS = APP_TABS.map(t => t.id);
@@ -2562,6 +2583,10 @@
 
   // goView — обычный переход. Вложенный экран добавляется в историю, вкладка — нет.
   function goView(name) {
+    // Достижения живут в отдельном окне, а не в разделе: прежние ссылки
+    // (плитки, всплывашка о значке, уведомления, index.html#achievements)
+    // открывают лист поверх текущего экрана.
+    if (name === 'achievements') { openAchSheet(); return; }
     if (!VIEWS[name]) name = 'home';
     if (location.hash !== '#' + name) {
       if (isNestedView(name)) history.pushState(null, '', '#' + name);
@@ -2590,7 +2615,6 @@
     if (name === 'home')     { renderHome(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
     if (name === 'absences' && typeof renderPersonalStats === 'function') renderPersonalStats();
-    if (name === 'achievements' && typeof renderAchievementsView === 'function') renderAchievementsView();
 
     // Плашка месяца и «Пропуски актуальны на» относятся к пропускам группы:
     // на других экранах они сбивают с толку
@@ -2613,7 +2637,7 @@
   // Вложенный экран берёт имя своей вкладки (tabForScreen в shared.js):
   // «Преподаватели» и «Зачётка» лежат внутри «Учёбы», поэтому там «Журнал».
   const VIEW_TITLES = { home: 'Главная', schedule: 'Расписание', study: 'Журнал', profile: 'Профиль' };
-  const VIEW_TITLES_OWN = { admin: 'Админ-панель', achievements: 'Достижения' };
+  const VIEW_TITLES_OWN = { admin: 'Админ-панель' };
   function renderAppTitle() {
     const el = document.getElementById('appTitle');
     if (!el) return;
@@ -3400,7 +3424,15 @@
   }
 
   // Адрес изменили вручную или нажали «назад» в браузере
-  window.addEventListener('hashchange', () => showView(currentView()));
+  // #achievements — не раздел, а окно: открываем его и остаёмся на своём экране
+  const openAchFromHash = () => {
+    if (location.hash.slice(1) !== 'achievements') return false;
+    history.replaceState(null, '', '#profile');
+    showView('profile');
+    openAchSheet();
+    return true;
+  };
+  window.addEventListener('hashchange', () => { if (!openAchFromHash()) showView(currentView()); });
   window.addEventListener('popstate', () => showView(currentView()));
 
   // Кнопки таб-бара — ссылки #home / #schedule / #study / #profile.
@@ -3468,7 +3500,7 @@
     updateAdminUI();
     await loadData();
     primeNotificationsRead();                // первый запуск: старые записи сразу прочитаны
-    showView(currentView());                 // index.html#teachers / #deadlines — сразу нужный раздел
+    if (!openAchFromHash()) showView(currentView());   // index.html#teachers / #deadlines — сразу нужный раздел
     updateDeadlinesDot();
     refreshCabinetProfile();
     updateAdminUI();
@@ -5920,6 +5952,21 @@
     };
     document.addEventListener('touchend', end, { passive: true });
     document.addEventListener('touchcancel', end, { passive: true });
+  }
+
+
+  // --- Достижения: отдельное окно -----------------------------------------
+  // Раньше это был вложенный экран #achievements. Теперь — нижний лист на весь
+  // экран; раздел в VIEWS больше не нужен, а все прежние ссылки продолжают
+  // работать: goView('achievements') открывает лист (см. goView).
+  const achSheetEl = () => document.getElementById('achSheet');
+  const achSheetOpen = () => !!achSheetEl() && achSheetEl().classList.contains('show');
+
+  function openAchSheet() {
+    const el = achSheetEl();
+    if (!el || typeof bootstrap === 'undefined') return;
+    if (typeof renderAchievementsView === 'function') renderAchievementsView();
+    bootstrap.Modal.getOrCreateInstance(el).show();
   }
 
   // --- Отметка пропусков прямо из расписания (админ) ---------------------

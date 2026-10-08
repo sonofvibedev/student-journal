@@ -130,16 +130,11 @@
 .ach-sum-num { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
 .ach-sum-note { font-size: var(--fs-small); color: var(--color-text-secondary); }
 
-/* ===== Полоска значков в профиле ===== */
-.ach-strip { display: flex; gap: 10px; overflow-x: auto; padding: 2px 0 4px; -webkit-overflow-scrolling: touch; }
+/* ===== Плитка «Достижения» в профиле ===== */
+.ach-tile { gap: 10px; }
+.ach-strip { display: flex; gap: 10px; padding: 2px 0; }
+.ach-strip:empty { display: none; }
 .ach-strip .ach-badge { --ach-size: 44px; }
-.ach-strip-more {
-  display: grid; place-items: center; flex: none;
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--color-surface-3); color: var(--color-text-secondary);
-  font-size: var(--fs-small); font-weight: 700;
-}
-
 /* ===== Всплывашка «Новое достижение» ===== */
 .ach-toast {
   position: fixed; left: 50%; z-index: 1080;

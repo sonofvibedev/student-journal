@@ -362,7 +362,7 @@ async function achCheckEarned() {
   achShowNewBadges();
   renderHomeAchievements();
   renderProfileBadges();
-  if (currentViewName === 'achievements') renderAchievementsView();
+  if (achSheetOpen()) renderAchievementsView();
 }
 
 // Шкала выполнения одной карточки: сколько есть, сколько нужно и подпись
@@ -510,7 +510,7 @@ async function renderAchievementsView() {
     // а когда придёт ответ сервера — перерисовываем ещё раз.
     achLoadMine().then(() => {
       achCheckEarned();
-      if (currentViewName === 'achievements') { renderAchSummary(); renderAchMine(); }
+      if (achSheetOpen()) { renderAchSummary(); renderAchMine(); }
     });
   }
   renderAchSummary();
@@ -622,18 +622,31 @@ function renderAchRules() {
     '</div></div>';
 }
 
-// ===== Полоска значков в профиле =====
+// ===== Плитка «Достижения» в профиле =====
+// Вместо прокручиваемого списка значков — одна плитка: сколько значков
+// получено из общего числа и три последних. Всё остальное — в окне
+// достижений (openAchSheet в index.html).
 function renderProfileBadges() {
   const box = document.getElementById('profileBadges');
-  if (!box) return;
+  const group = document.getElementById('profileAchGroup');
+  if (!box || !group) return;
+  const signed = AppState.auth === 'signed';
+  group.classList.toggle('d-none', !signed);
+  if (!signed) return;
+
   const codes = [...achState.earned.entries()]
     .filter(([code]) => !(ACH_BY_CODE[code] || {}).anti)
     .sort((a, b) => String(b[1].earned_at).localeCompare(String(a[1].earned_at)))
     .map(([code]) => code);
-  box.closest('.group')?.classList.toggle('d-none', codes.length === 0);
-  if (!codes.length) { box.innerHTML = ''; return; }
-  box.innerHTML = codes.slice(0, 8).map((c) => achBadgeHtml(c, false)).join('') +
-    (codes.length > 8 ? '<span class="ach-strip-more">+' + (codes.length - 8) + '</span>' : '');
+
+  document.getElementById('profileAchCount').textContent = codes.length;
+  document.getElementById('profileAchTotal').textContent = achBadgeWord(codes.length) + ' из ' + ACH_TOTAL;
+  box.innerHTML = codes.slice(0, 3).map((c) => achBadgeHtml(c, false)).join('');
+
+  const next = achNextUp(achStats());
+  document.getElementById('profileAchNote').textContent = codes.length
+    ? (next ? next.a.title + ': ' + next.p.text : 'Собраны все значки')
+    : 'Значков пока нет — они появятся за учёбу';
 }
 
 // ===== Всплывашка о новом значке =====
@@ -658,7 +671,7 @@ function achToast(code) {
   el.innerHTML = achBadgeHtml(code, false) +
     '<div><div class="ach-toast-kicker">Новое достижение</div>' +
     '<div class="ach-toast-title">' + escapeHtml(a.title) + '</div></div>';
-  el.addEventListener('click', () => { el.remove(); goView('achievements'); });
+  el.addEventListener('click', () => { el.remove(); openAchSheet(); });
   document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 4200);
@@ -688,7 +701,7 @@ async function achInit() {
   renderHomeAchievements();
   renderProfileBadges();
   achShowNewBadges();
-  if (currentViewName === 'achievements') renderAchievementsView();
+  if (achSheetOpen()) renderAchievementsView();
 }
 
 AppState.onChange(() => {
