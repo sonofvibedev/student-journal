@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=20"></script>
+  <script src="env.js?v=21"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,13 +25,13 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=20" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=21" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=20" rel="stylesheet">
+  <link href="profile.css?v=21" rel="stylesheet">
   <!-- Достижения: значки и карточки со шкалой выполнения -->
-  <link href="achievements.css?v=20" rel="stylesheet">
-  <script src="theme.js?v=20"></script>
+  <link href="achievements.css?v=21" rel="stylesheet">
+  <script src="theme.js?v=21"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -73,7 +73,7 @@
 
     /* --- Шапка: аватарка вошедшего студента → личный кабинет; без входа — иконка профиля --- */
     .hdr-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-    /* --- Колокольчик объявлений и лист снизу --- */
+    /* --- Колокольчик напоминаний и лист снизу --- */
     .va-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 10px; padding: 12px 0 18px; }
     .va-header .app-header-main { display: contents; }
     .va-header .app-title-row { grid-column: 1; grid-row: 1; align-self: center; }
@@ -88,7 +88,7 @@
     .va-bell:focus-visible { outline: none; }
     .va-bell:focus-visible::before { box-shadow: 0 0 0 2px var(--color-accent); }
     .va-bell.has-unread svg { color: var(--color-text); }
-    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: var(--color-danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
+    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: var(--color-danger); color: #fff; font-size: var(--fs-small); font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
     .va-empty { padding: 24px 0; color: var(--color-text-tertiary); text-align: center; }
 
     /* --- Метрики администратора --- */
@@ -471,7 +471,7 @@
     .sch-head { display: flex; align-items: flex-start; gap: 8px; }
     .sch-head .sch-name { flex: 1; min-width: 0; }
     .sch-name { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
-    .sch-kind { flex: none; padding: 2px 7px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 700;
+    .sch-kind { flex: none; padding: 2px 7px; border-radius: var(--radius-xs); font-size: var(--fs-small); font-weight: 700;
       background: var(--color-surface-3); color: var(--color-text-secondary); }
     /* Виды занятий: свои три цвета в каждой гамме, отстоящие от её акцента
        не меньше чем на 45° — ярлык не читается как «активное». Контраст текста
@@ -481,7 +481,7 @@
     .sch-kind.k-lr { background: var(--color-type-3-bg); color: var(--color-type-3-text); }
     .sch-kind.k-zc { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
     /* Пометка «1 пгр.» — тише типа занятия: это уточнение, а не ярлык */
-    .sch-sub { flex: none; padding: 2px 6px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 600;
+    .sch-sub { flex: none; padding: 2px 6px; border-radius: var(--radius-xs); font-size: var(--fs-small); font-weight: 600;
       background: var(--color-surface-3); color: var(--color-text-tertiary); }
     .sch-meta { margin-top: 3px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
     .sch-empty { display: grid; gap: 4px; padding: 26px 12px; border-radius: var(--radius-lg);
@@ -509,7 +509,7 @@
     .hw-up-subj { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
     .hw-up-text { margin-top: 2px; font-size: var(--fs-caption); color: var(--color-text-2); }
     .hw-up-meta { margin-top: 4px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
-    .hw-up-rel { flex: none; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600;
+    .hw-up-rel { flex: none; padding: 2px 8px; border-radius: var(--radius-pill); font-size: var(--fs-small); font-weight: 600;
       background: var(--color-surface-3); color: var(--color-text-secondary); }
     .hw-up.is-soon .hw-up-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
     .hw-up.is-over .hw-up-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
@@ -537,6 +537,186 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
+    /* ===== Главная «Бенто» ===================================================
+       Порядок: текущая пара, лента недели, плитки, ближайшие дедлайны,
+       «Что нового». Движение — только transform и opacity. */
+
+    /* --- Текущая пара --- */
+    .now-card .now-bar { display: block; width: 100%; height: 6px; margin-top: 10px; border-radius: 999px; background: var(--color-surface-3); overflow: hidden; }
+    .now-card .now-bar.d-none { display: none; }
+    .now-card .now-bar i { display: block; height: 100%; border-radius: 999px; background: var(--color-accent);
+      transform-origin: left center; transform: scaleX(var(--p, 0));
+      transition: transform var(--dur-slow) var(--ease-out); }
+    .now-card .now-left { margin-top: 6px; color: var(--color-accent); font-size: var(--fs-caption); font-weight: 600; }
+    .now-card .now-left:empty { display: none; }
+    .now-card .now-next { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-separator);
+      width: 100%; color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .now-card .now-next:empty { display: none; }
+
+    /* --- Лента недели --- */
+    .wk { padding: var(--space-4); border-radius: var(--radius-lg); background-color: var(--pane-bg);
+      border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow); }
+    .wk-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .wk-title { color: var(--color-text); font-size: var(--fs-chip); font-weight: 600; }
+    .wk-nav { display: flex; gap: 6px; margin-left: auto; }
+    .wk-arrow { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%;
+      background: var(--color-surface-3); color: var(--color-text-2); font-size: 17px; line-height: 1; }
+    .wk-arrow:active { transform: scale(.92); }
+    .wk-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .wk-strip::-webkit-scrollbar { display: none; }
+    .wk-cell { flex: none; width: 54px; padding: 8px 0 7px; border: 1px solid transparent; border-radius: var(--radius-md);
+      background: var(--color-surface-3); color: var(--color-text-2); scroll-snap-align: center;
+      transition: transform var(--dur-fast) var(--ease-out); }
+    .wk-cell:active { transform: scale(.94); }
+    .wk-cell .wd { display: block; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .wk-cell .dn { display: block; margin-top: 1px; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .wk-cell.is-weekend .wd { color: var(--color-text-disabled); }
+    /* День, в котором что-то есть, «горит»: заливка и точки по видам */
+    .wk-cell.is-mark { background: rgba(var(--color-accent-rgb), .14); color: var(--color-text); }
+    .wk-cell.is-hot { background: var(--status-hot-fill-strong); }
+    .wk-cell.is-today { border-color: var(--color-accent); }
+    .wk-cell.is-sel { background: var(--color-accent); color: #fff; }
+    .wk-cell.is-sel .wd { color: rgba(255, 255, 255, .8); }
+    .wk-marks { display: flex; justify-content: center; gap: 3px; min-height: 5px; margin-top: 4px; }
+    .wk-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--color-border-strong); }
+    .wk-dot.is-dl { background: var(--color-accent); }
+    .wk-dot.is-hw { background: var(--status-soon-line); }
+    .wk-dot.is-zachet { background: var(--status-zachet-line); }
+    .wk-cell.is-sel .wk-dot { background: rgba(255, 255, 255, .9); }
+    .wk-day { margin-top: 12px; }
+    .wk-day-title { margin-bottom: 8px; font-size: var(--fs-small); font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--color-text-tertiary); }
+    .wk-ev { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--color-separator); }
+    .wk-ev:first-of-type { border-top: 0; }
+    .wk-ev .wk-ev-body { flex: 1 1 auto; min-width: 0; }
+    .wk-ev .wk-ev-sub { font-size: var(--fs-small); color: var(--color-text-secondary); }
+    .wk-ev .wk-ev-text { color: var(--color-text); font-size: var(--fs-caption); overflow-wrap: anywhere; }
+    .wk-ev.is-done .wk-ev-text { text-decoration: line-through; color: var(--color-text-tertiary); }
+    .wk-ev-kind { flex: none; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3);
+      color: var(--color-text-2); font-size: var(--fs-small); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+    .wk-ev.is-hot .wk-ev-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
+    .wk-ev.kind-zachet .wk-ev-kind { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
+    .wk-ev.kind-hw .wk-ev-kind { background: var(--status-soon-pill); color: var(--status-soon-text); }
+    .wk-done { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--color-border-mid);
+      border-radius: 50%; background: none; color: var(--color-text-tertiary);
+      transition: transform var(--dur-fast) var(--ease-out); }
+    .wk-done:active { transform: scale(.9); }
+    .wk-done svg { width: 15px; height: 15px; opacity: 0; transform: scale(.4);
+      transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) var(--ease-out); }
+    .wk-done.on { border-color: var(--status-done-line); background: var(--status-done-fill-strong); color: var(--status-done-line); }
+    .wk-done.on svg { opacity: 1; transform: none; }
+    .wk-empty { padding: 4px 0; color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .wk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+    .wk-legend i { margin-right: 5px; vertical-align: 1px; }
+
+    /* --- Кольцо часов на плитке --- */
+    .ring { position: relative; display: grid; place-items: center; width: 64px; height: 64px; }
+    .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+    .ring .ring-bg { stroke: var(--color-surface-3); }
+    .ring .ring-fg { stroke: var(--color-accent); stroke-dasharray: var(--ring-len) var(--ring-len); stroke-dashoffset: var(--ring-len); }
+    .ring.is-warn .ring-fg { stroke: var(--status-hot-line); }
+    .ring .ring-num { position: absolute; font-size: 20px; font-weight: 700; letter-spacing: -.5px; color: var(--color-text); }
+
+    /* --- Красный кружок «горит» на плитке дедлайнов --- */
+    .tile-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-danger); }
+    .tile-dot.d-none { display: none; }
+
+    /* --- Что нового --- */
+    .news-list { margin: 8px 0 10px; padding-left: 18px; color: var(--color-text-2); font-size: var(--fs-caption); }
+    .news-list li { margin-bottom: 4px; }
+    .news-all { align-self: flex-start; }
+
+    /* Плитка раскрывается в свой раздел: View Transitions. Там, где его нет,
+       остаётся обычный переход. Движение внутри перехода — transform и opacity. */
+    ::view-transition-group(tile-open) { animation-duration: var(--dur-slow); }
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur); }
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+    }
+
+    /* В Telegram главное действие листа живёт в MainButton — кнопку-дубль прячем */
+    .tg-main-hidden [data-tg-main] { display: none; }
+
+    /* --- Сжатая шапка: при прокрутке крупный заголовок уходит, а сверху
+           остаётся тонкая стеклянная полоса с названием раздела.
+           Высота ничего не анимирует — только transform и opacity. --- */
+    .top-bar {
+      position: fixed; left: 0; right: 0; top: 0; z-index: 1032;
+      display: flex; align-items: center; justify-content: center;
+      padding: calc(var(--app-inset-top) + 9px) 16px 9px;
+      background-color: var(--glass-bg-strong);
+      border-bottom: 1px solid var(--glass-edge);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--color-text); font-size: var(--fs-chip); font-weight: 600;
+      letter-spacing: var(--tracking);
+      opacity: 0; transform: translateY(-100%); pointer-events: none;
+      transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out);
+    }
+    body.is-scrolled .top-bar { opacity: 1; transform: none; }
+    /* Плашка «Нет сети» занимает то же место — полосу в это время не показываем */
+    body.is-offline .top-bar { display: none; }
+    .app-title { transform-origin: left center;
+      transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out); }
+    body.is-scrolled .app-title { opacity: 0; transform: scale(.82) translateY(-6px); }
+    @media (prefers-reduced-motion: reduce) {
+      .top-bar, .app-title { transition: none; }
+    }
+
+    /* --- Плашка «Нет сети»: тонкая строка над содержимым --- */
+    .offline-bar {
+      position: sticky; top: 0; z-index: 1030;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 0 -16px 10px;
+      padding: calc(var(--app-inset-top) + 6px) 16px 6px;
+      background-color: var(--glass-bg-strong);
+      border-bottom: 1px solid var(--glass-edge);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--color-text-secondary);
+      font-size: var(--fs-small);
+      text-align: center;
+    }
+    .offline-bar.d-none { display: none; }
+    .offline-bar i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--status-soon-line); }
+    /* --- «Потяни, чтобы обновить»: индикатор над содержимым --- */
+    .ptr {
+      position: fixed; left: 50%; z-index: 1035;
+      top: calc(var(--app-inset-top) + 8px);
+      display: grid; place-items: center;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background-color: var(--glass-bg-strong);
+      border: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--color-text-secondary);
+      opacity: 0;
+      transform: translate(-50%, -14px) scale(.8);
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+    .ptr svg { width: 18px; height: 18px; }
+    .ptr.is-ready { color: var(--color-accent); }
+    .ptr.is-busy { opacity: 1; transform: translate(-50%, 6px) scale(1); transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out); }
+    .ptr.is-busy svg { animation: ptr-spin 900ms linear infinite; }
+    .ptr.is-hiding { opacity: 0; transform: translate(-50%, -14px) scale(.8); transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out); }
+    @keyframes ptr-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .ptr.is-busy svg { animation: none; } }
+    /* --- Лист «Отметить отсутствующих» (админ) --- */
+    .ma-item { border-bottom: 1px solid var(--color-separator); }
+    .ma-item:last-child { border-bottom: 0; }
+    .ma-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0; }
+    .ma-row label { flex: 1 1 auto; min-width: 0; color: var(--color-text); font-size: var(--fs-chip); }
+    .ma-row .form-switch { flex: none; margin: 0; padding-left: 2.6em; }
+    .ma-row .form-check-input { margin-top: 0; }
+    .ma-cert { padding: 0 0 12px 2px; }
+    .ma-cert .form-label { margin-bottom: 4px; }
+    .ma-cert.d-none { display: none; }
+    .ma-empty { padding: 4px 2px; color: var(--color-text-secondary); font-size: var(--fs-small); }
     .ls-when { margin-bottom: 14px; font-size: var(--fs-caption); color: var(--color-text-secondary); }
     .ls-rows { display: grid; gap: 1px; margin-bottom: 16px; border-radius: var(--radius-lg); overflow: hidden;
       background: var(--color-separator); }
@@ -569,7 +749,17 @@
 </head>
 <body>
 
+<!-- Сжатая шапка: появляется при прокрутке, текст ставит renderAppTitle() -->
+<div class="top-bar" id="topBar" aria-hidden="true"><span id="topBarTitle">Главная</span></div>
+
 <div class="container my-3">
+
+  <!-- Нет сети: данные показываются те, что успели загрузиться.
+       Текст ставит renderOfflineBar(). -->
+  <div class="offline-bar d-none" id="offlineBar" role="status" aria-live="polite">
+    <i aria-hidden="true"></i><span id="offlineBarText">Нет сети</span>
+  </div>
+
   
   <!-- Заголовок страницы -->
   <header class="app-header va-header">
@@ -582,24 +772,24 @@
       <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
     <div class="hdr-actions">
-      <button type="button" class="va-bell" id="announcementsBell" onclick="openNotificationsSheet()" aria-label="Уведомления">
+      <button type="button" class="va-bell" id="remindersBell" onclick="openNotificationsSheet()" aria-label="Уведомления">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2v1.3"/><path d="M6.2 16.6V11a5.8 5.8 0 0 1 11.6 0v5.6l1.6 1.7H4.6z"/><path d="M9.9 20.6a2.3 2.3 0 0 0 4.2 0"/></svg>
-        <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
+        <span class="va-bell-count d-none" id="remindersBellCount">0</span>
       </button>
     </div>
   </header>
 
   <!-- Напоминания — лист снизу по колокольчику: что сдавать и когда -->
-  <div class="modal fade swipe-sheet" id="announcementsSheet" tabindex="-1" aria-labelledby="announcementsSheetTitle" aria-hidden="true">
+  <div class="modal fade swipe-sheet" id="remindersSheet" tabindex="-1" aria-labelledby="remindersSheetTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="announcementsSheetTitle">Напоминания</h5>
+          <h5 class="modal-title" id="remindersSheetTitle">Напоминания</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
         </div>
         <div class="modal-body">
           <div id="remindersList"></div>
-          <div class="va-empty d-none" id="announcementsEmpty">Ничего не горит</div>
+          <div class="va-empty d-none" id="remindersEmpty">Ничего не горит</div>
         </div>
       </div>
     </div>
@@ -938,22 +1128,36 @@
   <div id="examsBody"></div>
 </section>
 
-<!-- Раздел «Достижения» (index.html#achievements) — значки и как это работает.
-     Содержимое рисует achievements.js: разметка здесь только каркасная.
-     Баллов и рейтинга группы нет: коллекция личная, чужую никто не видит. -->
-<section id="viewAchievements" class="app-view d-none" aria-labelledby="achViewTitle">
-  <h3 class="visually-hidden" id="achViewTitle">Достижения</h3>
+<!-- Достижения — отдельное окно: нижний лист на весь экран.
+     Внутри вкладки «Мои» и «Как это работает»; содержимое рисует
+     achievements.js, разметка здесь только каркасная. Открывается
+     плиткой в профиле, плиткой на главной, всплывашкой о новом значке
+     и ссылкой index.html#achievements. -->
+<div class="modal fade swipe-sheet" id="achSheet" tabindex="-1" aria-labelledby="achSheetTitle">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="achSheetTitle">Достижения</div>
+          <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+      </div>
+      <div class="filter-sheet-body pb-4">
+        <div class="ach-sum" id="achSummary"></div>
 
-  <div class="ach-sum" id="achSummary"></div>
+        <div class="seg" id="achSeg" role="tablist" aria-label="Разделы достижений">
+          <button type="button" class="seg-item active" role="tab" id="achTabMine"  aria-selected="true"  onclick="setAchTab('mine')">Мои</button>
+          <button type="button" class="seg-item"        role="tab" id="achTabRules" aria-selected="false" onclick="setAchTab('rules')">Как это работает</button>
+        </div>
 
-  <div class="seg" id="achSeg" role="tablist" aria-label="Разделы достижений">
-    <button type="button" class="seg-item active" role="tab" id="achTabMine"  aria-selected="true"  onclick="setAchTab('mine')">Мои значки</button>
-    <button type="button" class="seg-item"        role="tab" id="achTabRules" aria-selected="false" onclick="setAchTab('rules')">Как это работает</button>
+        <div id="achPaneMine"></div>
+        <div id="achPaneRules" class="d-none"></div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <div id="achPaneMine"></div>
-  <div id="achPaneRules" class="d-none"></div>
-</section>
 
 <!-- Раздел «Админ-панель» (index.html#admin) — всё, чего нет на кнопке «+» -->
 <section id="viewAdmin" class="app-view d-none">
@@ -999,7 +1203,8 @@
 </section>
 
 
-<!-- Раздел «Главная» (index.html#home) — сводка дня -->
+<!-- Раздел «Главная» (index.html#home) — «Бенто»: сверху текущая пара,
+     под ней лента недели, плитки, ближайшие дедлайны и «Что нового». -->
 <section id="viewHome" class="app-view d-none">
 
   <!-- Пока неизвестно, вошёл студент или нет (ждём data.json и сессию Supabase),
@@ -1021,39 +1226,85 @@
     </div>
   </div>
 
-  <!-- Текущая или следующая пара -->
-  <button type="button" class="tile wide mb-3 d-none" id="homeLessonCard" onclick="goView('schedule')">
-    <span class="d-flex align-items-center gap-2">
-      <span class="badge" id="homeLessonWhen">—</span>
-      <small class="text-secondary ms-auto" id="homeLessonTime"></small>
-    </span>
-    <span class="tile-name" id="homeLessonSubject">—</span>
-    <span class="tile-note" id="homeLessonMeta"></span>
-    <span class="tile-note" id="homeLessonHw"></span>
-  </button>
+  <div id="homeBody" class="d-none">
 
-  <div class="tile-grid" id="homeTiles">
-    <!-- Часы пропусков за месяц: по нажатию — календарь пропусков -->
-    <button type="button" class="tile" id="homeHoursTile" onclick="goView('absences')">
-      <span class="tile-num" id="homeHoursUnexcused">0</span>
-      <span class="tile-note">неуважительных часов за месяц</span>
-      <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
-    </button>
-
-    <!-- Достижения: собрано значков, последний значок и ближайшая цель.
-         Содержимое заполняет renderHomeAchievements() из achievements.js -->
-    <button type="button" class="tile" id="homeAchievementsTile" onclick="goView('achievements')">
-      <span class="d-flex align-items-center gap-2">
-        <span id="homeAchBadge"></span>
-        <span class="tile-num" id="homeAchCount">—</span>
+    <!-- 1. Текущая пара: полоса прогресса и «ещё N мин», под ней следующая -->
+    <button type="button" class="tile wide now-card mb-3" id="homeNowCard" data-view-target="schedule" onclick="goTile('schedule', this)">
+      <span class="d-flex align-items-center gap-2 w-100">
+        <span class="badge" id="homeNowWhen">—</span>
+        <small class="text-secondary ms-auto" id="homeNowTime"></small>
       </span>
-      <span class="tile-note" id="homeAchTotal">значков за учёбу</span>
-      <span class="ach-bar"><i></i></span>
-      <span class="tile-note" id="homeAchNext"></span>
+      <span class="tile-name" id="homeNowSubject">—</span>
+      <span class="tile-note" id="homeNowMeta"></span>
+      <span class="now-bar d-none" id="homeNowBar" aria-hidden="true"><i></i></span>
+      <span class="now-left" id="homeNowLeft"></span>
+      <span class="now-next" id="homeNowNext"></span>
     </button>
 
-    <!-- Ближайшие дедлайны -->
-    <div class="tile wide">
+    <!-- 2. Лента недели: дни с делами «горят», по нажатию — события дня -->
+    <div class="wk mb-3" id="homeWeek">
+      <div class="wk-head">
+        <b class="wk-title" id="homeWeekTitle">Эта неделя</b>
+        <span class="wk-nav">
+          <button type="button" class="wk-arrow" onclick="shiftHomeWeek(-1)" aria-label="Предыдущая неделя">&lsaquo;</button>
+          <button type="button" class="wk-arrow" onclick="shiftHomeWeek(1)" aria-label="Следующая неделя">&rsaquo;</button>
+        </span>
+      </div>
+      <div class="wk-strip" id="homeWeekStrip"></div>
+      <div class="wk-day" id="homeWeekDay"></div>
+      <div class="wk-legend">
+        <span><i class="wk-dot is-dl"></i>дедлайн</span>
+        <span><i class="wk-dot is-hw"></i>домашка</span>
+        <span><i class="wk-dot is-zachet"></i>зачёт</span>
+      </div>
+    </div>
+
+    <!-- 3. Плитки -->
+    <div class="tile-grid" id="homeTiles">
+
+      <!-- Неуважительные часы за месяц: кольцо до порога предупреждения деканата -->
+      <button type="button" class="tile" id="homeHoursTile" data-view-target="absences" onclick="goTile('absences', this)">
+        <span class="ring" id="homeHoursRing">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <circle class="ring-bg" cx="24" cy="24" r="20"/>
+            <circle class="ring-fg" cx="24" cy="24" r="20"/>
+          </svg>
+          <b class="ring-num" id="homeHoursUnexcused">0</b>
+        </span>
+        <span class="tile-note">неуважительных часов за месяц</span>
+        <span class="tile-note" id="homeHoursLeft"></span>
+        <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
+      </button>
+
+      <!-- Дедлайны: число и красный кружок, если горят -->
+      <button type="button" class="tile" id="homeDeadlinesTile" data-view-target="deadlines" onclick="goTile('deadlines', this)">
+        <span class="tile-dot d-none" id="homeDlHot" aria-hidden="true"></span>
+        <span class="tile-num" id="homeDlCount">0</span>
+        <span class="tile-note">дедлайнов впереди</span>
+        <span class="tile-note" id="homeDlHotNote"></span>
+      </button>
+
+      <!-- Домашка на ближайшие дни -->
+      <button type="button" class="tile" id="homeHomeworkTile" data-view-target="homework" onclick="goTile('homework', this)">
+        <span class="tile-num" id="homeHwCount">0</span>
+        <span class="tile-note">домашек на неделю</span>
+        <span class="tile-note" id="homeHwNote"></span>
+      </button>
+
+      <!-- Достижения: содержимое заполняет renderHomeAchievements() из achievements.js -->
+      <button type="button" class="tile" id="homeAchievementsTile" onclick="openAchSheet()">
+        <span class="d-flex align-items-center gap-2">
+          <span id="homeAchBadge"></span>
+          <span class="tile-num" id="homeAchCount">—</span>
+        </span>
+        <span class="tile-note" id="homeAchTotal">значков за учёбу</span>
+        <span class="ach-bar"><i></i></span>
+        <span class="tile-note" id="homeAchNext"></span>
+      </button>
+    </div>
+
+    <!-- 4. Ближайшие дедлайны -->
+    <div class="tile wide mt-3">
       <span class="d-flex align-items-center gap-2">
         <span class="tile-name">Ближайшие дедлайны</span>
         <button type="button" class="btn btn-sm btn-secondary ms-auto" id="todayDeadlinesMore" onclick="goView('deadlines')">Все</button>
@@ -1061,22 +1312,23 @@
       <div class="inset mt-2" id="todayDeadlines"></div>
     </div>
 
-    <!-- Ближайшие домашки -->
-    <div class="tile wide">
+    <!-- Строку заполняет updateTodayGrades() из profile.js: ближайший срок одной строкой -->
+    <button type="button" class="w wide today-next d-none mt-3" id="todayNext" onclick="goView('deadlines')">
+      <small class="text-secondary" id="todayNextKind"></small>
+      <b class="tile-name" id="todayNextTitle"></b>
+      <span class="tile-note" id="todayNextMeta"></span>
+    </button>
+
+    <!-- 5. Что нового: версия, дата и главные изменения -->
+    <div class="tile wide mt-3" id="homeWhatsNew">
       <span class="d-flex align-items-center gap-2">
-        <span class="tile-name">Ближайшие домашки</span>
-        <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('homework')">Все</button>
+        <span class="tile-name">Что нового</span>
+        <small class="text-secondary ms-auto" id="homeNewsVersion"></small>
       </span>
-      <div class="inset mt-2" id="homeHomework"></div>
+      <ul class="news-list" id="homeNewsList"></ul>
+      <button type="button" class="btn btn-sm btn-secondary news-all" onclick="openChangelogModal()">Все изменения</button>
     </div>
   </div>
-
-  <!-- Строку заполняет updateTodayGrades() из profile.js: ближайший срок одной строкой -->
-  <button type="button" class="w wide today-next d-none" id="todayNext" onclick="goView('deadlines')">
-    <small class="text-secondary" id="todayNextKind"></small>
-    <b class="tile-name" id="todayNextTitle"></b>
-    <span class="tile-note" id="todayNextMeta"></span>
-  </button>
 </section>
 
 
@@ -1170,12 +1422,20 @@
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
 
-    <!-- Последние полученные значки. Группу прячет renderProfileBadges(),
-         пока значков нет. -->
-    <div class="group d-none">
+    <!-- Достижения — одна плитка: сколько значков получено и три последних.
+         Плитку заполняет renderProfileBadges() из achievements.js, она же
+         прячет группу, пока входа нет. По нажатию открывается отдельное
+         окно со всеми достижениями. -->
+    <div class="group d-none" id="profileAchGroup">
       <div class="kicker">Достижения</div>
-      <button type="button" class="inset w-100 text-start" onclick="goView('achievements')" aria-label="Все достижения">
-        <div class="ach-strip" id="profileBadges"></div>
+      <button type="button" class="tile wide ach-tile" id="profileAchTile" onclick="openAchSheet()" aria-label="Все достижения">
+        <span class="d-flex align-items-center gap-2 w-100">
+          <span class="tile-num" id="profileAchCount">0</span>
+          <span class="tile-note" id="profileAchTotal">значков</span>
+          <span class="chev ms-auto" aria-hidden="true">&rsaquo;</span>
+        </span>
+        <span class="ach-strip" id="profileBadges"></span>
+        <span class="tile-note" id="profileAchNote"></span>
       </button>
     </div>
 
@@ -1442,7 +1702,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary fw-bold" onclick="submitAbsence()">Ввести</button>
+        <button type="button" class="btn btn-primary fw-bold" data-tg-main onclick="submitAbsence()">Ввести</button>
       </div>
     </div>
   </div>
@@ -1522,7 +1782,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary fw-bold" onclick="submitGroupAbsence()">Внести всем выбранным</button>
+        <button type="button" class="btn btn-primary fw-bold" data-tg-main onclick="submitGroupAbsence()">Внести всем выбранным</button>
       </div>
     </div>
   </div>
@@ -1583,7 +1843,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-success fw-bold" onclick="saveStudent()">Сохранить</button>
+        <button type="button" class="btn btn-success fw-bold" data-tg-main onclick="saveStudent()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1685,13 +1945,12 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-danger me-auto" id="teacherDeleteBtn" onclick="deleteTeacher()" style="display:none;">Удалить</button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-success fw-bold" onclick="saveTeacher()">Сохранить</button>
+        <button type="button" class="btn btn-success fw-bold" data-tg-main onclick="saveTeacher()">Сохранить</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Модальное окно: Разместить объявление -->
 <!-- Нижний лист занятия: полная карточка пары, «Сделано» и переход к преподавателю.
      Класс swipe-sheet подключает закрытие смахиванием — тот же механизм, что у фильтров. -->
 <div class="modal fade swipe-sheet" id="lessonSheet" tabindex="-1" aria-labelledby="lessonSheetTitle">
@@ -1713,6 +1972,42 @@
           <span class="ls-done-label">Сделано</span>
         </button>
         <button type="button" class="btn btn-outline-light w-100 mt-2" id="lessonSheetTeacher">Карточка преподавателя</button>
+        <button type="button" class="btn btn-primary w-100 fw-bold mt-2 admin-only d-none" id="lessonSheetMarkAbsent" onclick="openMarkAbsentSheet()">Отметить отсутствующих</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- «Потяни, чтобы обновить»: индикатор. Жест — в ptrInit(), только когда
+     страница прокручена в самый верх. -->
+<div class="ptr" id="ptrIndicator" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 4v5h-5"/></svg>
+</div>
+<div class="visually-hidden" id="ptrStatus" role="status" aria-live="polite"></div>
+
+<!-- Нижний лист: отметить отсутствующих на паре (только админ).
+     Предмет, дату и часы (2 ч за пару) подставляет openMarkAbsentSheet() из
+     самой пары в расписании. У каждого отмеченного можно поставить
+     «уважительный» и данные справки. Запись идёт в тот же формат absences,
+     что и обычная форма (absenceRecord), и уходит одним коммитом через
+     saveDataToGitHub. -->
+<div class="modal fade swipe-sheet" id="markAbsentSheet" tabindex="-1" aria-labelledby="markAbsentTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="markAbsentTitle">Отметить отсутствующих</div>
+        </div>
+      </div>
+      <button type="button" class="visually-hidden-focusable sheet-close" data-bs-dismiss="modal">Закрыть</button>
+      <div class="filter-sheet-body">
+        <div class="ls-when" id="markAbsentWhen"></div>
+        <input type="text" id="markAbsentSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО…" oninput="renderMarkAbsentList()">
+        <div id="markAbsentList"></div>
+      </div>
+      <div class="filter-sheet-footer">
+        <button type="button" class="btn btn-primary w-100 fw-bold" id="markAbsentSubmit" data-tg-main onclick="submitMarkAbsent()">Внести отмеченным</button>
       </div>
     </div>
   </div>
@@ -1775,7 +2070,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-danger d-none" id="homeworkDeleteBtn" onclick="deleteHomework(editingHomeworkId)">Удалить</button>
-        <button type="button" class="btn btn-success fw-bold" id="homeworkSaveBtn" onclick="saveHomework()">Сохранить</button>
+        <button type="button" class="btn btn-success fw-bold" id="homeworkSaveBtn" data-tg-main onclick="saveHomework()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1841,7 +2136,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" onclick="closeDeadlineForm()">Отмена</button>
-        <button type="button" class="btn btn-primary fw-bold" id="deadlineSaveBtn" onclick="saveDeadline()">Сохранить</button>
+        <button type="button" class="btn btn-primary fw-bold" id="deadlineSaveBtn" data-tg-main onclick="saveDeadline()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1908,7 +2203,7 @@
         </div>
       </div>
       <div class="filter-sheet-footer">
-        <button type="button" class="filter-sheet-apply" data-bs-dismiss="modal">Поиск</button>
+        <button type="button" class="filter-sheet-apply" data-tg-main data-bs-dismiss="modal">Поиск</button>
       </div>
     </div>
   </div>
@@ -2061,7 +2356,7 @@
         <div id="adminActiveView" class="d-none text-center">
           <div class="admin-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
           <div class="fw-bold text-white fs-5" id="adminActiveTitle" role="status">Админ-режим включён</div>
-          <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, объявления, дедлайны и зачёты.</p>
+          <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, дедлайны и зачёты.</p>
           <button type="button" class="btn btn-primary w-100 fw-bold mb-2" data-bs-dismiss="modal" onclick="goView('admin')">Открыть админ-панель</button>
           <button type="button" class="btn btn-outline-danger w-100" onclick="logoutAdmin()">Выйти из админки</button>
         </div>
@@ -2084,10 +2379,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=20"></script>
-<script src="schedule.js?v=20"></script>
-<script src="notify.js?v=20"></script>
-<script src="shared.js?v=20"></script>
+<script src="changelog.js?v=21"></script>
+<script src="schedule.js?v=21"></script>
+<script src="notify.js?v=21"></script>
+<script src="shared.js?v=21"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -2114,7 +2409,7 @@
     return `${dd}.${mm}.${yy}`;
   }
 
-  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], announcements: [], deadlines: [], homework: [] };
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], deadlines: [], homework: [] };
   let githubToken = lsGet('gh_pat') || '';
   let currentHistoryStudentId = null;
 
@@ -2303,7 +2598,6 @@
     exams:     'viewExams',
     zachetka:  'viewZachetka',
     absences:  'viewAbsences',
-    achievements: 'viewAchievements',
     admin:     'viewAdmin'
   };
   const TAB_IDS = APP_TABS.map(t => t.id);
@@ -2318,6 +2612,10 @@
 
   // goView — обычный переход. Вложенный экран добавляется в историю, вкладка — нет.
   function goView(name) {
+    // Достижения живут в отдельном окне, а не в разделе: прежние ссылки
+    // (плитки, всплывашка о значке, уведомления, index.html#achievements)
+    // открывают лист поверх текущего экрана.
+    if (name === 'achievements') { openAchSheet(); return; }
     if (!VIEWS[name]) name = 'home';
     if (location.hash !== '#' + name) {
       if (isNestedView(name)) history.pushState(null, '', '#' + name);
@@ -2346,7 +2644,6 @@
     if (name === 'home')     { renderHome(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
     if (name === 'absences' && typeof renderPersonalStats === 'function') renderPersonalStats();
-    if (name === 'achievements' && typeof renderAchievementsView === 'function') renderAchievementsView();
 
     // Плашка месяца и «Пропуски актуальны на» относятся к пропускам группы:
     // на других экранах они сбивают с толку
@@ -2369,103 +2666,410 @@
   // Вложенный экран берёт имя своей вкладки (tabForScreen в shared.js):
   // «Преподаватели» и «Зачётка» лежат внутри «Учёбы», поэтому там «Журнал».
   const VIEW_TITLES = { home: 'Главная', schedule: 'Расписание', study: 'Журнал', profile: 'Профиль' };
-  const VIEW_TITLES_OWN = { admin: 'Админ-панель', achievements: 'Достижения' };
+  const VIEW_TITLES_OWN = { admin: 'Админ-панель' };
   function renderAppTitle() {
     const el = document.getElementById('appTitle');
     if (!el) return;
     const view = currentViewName || currentView();
-    el.innerText = VIEW_TITLES_OWN[view] || VIEW_TITLES[tabForScreen(view)] || 'Журнал';
+    const title = VIEW_TITLES_OWN[view] || VIEW_TITLES[tabForScreen(view)] || 'Журнал';
+    el.innerText = title;
+    const bar = document.getElementById('topBarTitle');
+    if (bar) bar.textContent = title;
   }
 
-  // ===== Главная: сводка дня =====
+  // ===== Анимации плиток ====================================================
+  // Всё движение — только transform и opacity, 150–350 мс. При включённом
+  // «Уменьшении движения» анимаций нет: число ставится сразу, кольцо рисуется
+  // в конечном положении, переход между разделами обычный.
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Число на плитке «досчитывается» от 0. Меняем только textContent — ни
+  // раскладки, ни перерисовки соседей, поэтому кадры не теряются.
+  const COUNT_MS = 320;
+  function setTileNumber(el, value) {
+    if (!el) return;
+    const to = Number(value) || 0;
+    if (reduceMotion() || to === 0) { el.textContent = to; return; }
+    if (el.dataset.counted === String(to)) { el.textContent = to; return; }
+    el.dataset.counted = String(to);
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / COUNT_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(to * eased);
+      if (t < 1) requestAnimationFrame(step);
+      else el.textContent = to;
+    };
+    el.textContent = '0';
+    requestAnimationFrame(step);
+  }
+
+  // Кольцо часов наполняется при открытии главной.
+  // Единственное исключение из «только transform и opacity»: длину дуги иначе
+  // не анимировать. stroke-dashoffset не вызывает перерасчёт раскладки, кольцо
+  // одно и маленькое, так что кадры это не роняет.
+  function fillRing(ring, progress, warn) {
+    if (!ring) return;
+    const fg = ring.querySelector('.ring-fg');
+    if (!fg) return;
+    const len = 2 * Math.PI * Number(fg.getAttribute('r') || 20);
+    ring.style.setProperty('--ring-len', len.toFixed(1));
+    ring.classList.toggle('is-warn', !!warn);
+    const target = len * (1 - Math.max(0, Math.min(1, progress)));
+    if (reduceMotion()) {
+      fg.style.transition = 'none';
+      fg.style.strokeDashoffset = target.toFixed(1);
+      return;
+    }
+    fg.style.transition = 'none';
+    fg.style.strokeDashoffset = len.toFixed(1);
+    requestAnimationFrame(() => {
+      fg.style.transition = 'stroke-dashoffset var(--dur-slow) var(--ease-out)';
+      fg.style.strokeDashoffset = target.toFixed(1);
+    });
+  }
+
+  // Плитка раскрывается в свой раздел. Где View Transitions нет (а это все
+  // браузеры, кроме свежих Chromium), остаётся обычный переход — тот же goView.
+  function goTile(view, tileEl) {
+    if (!document.startViewTransition || reduceMotion()) { goView(view); return; }
+    const target = document.getElementById(VIEWS[view]);
+    if (tileEl) tileEl.style.viewTransitionName = 'tile-open';
+    if (target) target.style.viewTransitionName = 'tile-open';
+    const done = () => {
+      if (tileEl) tileEl.style.viewTransitionName = '';
+      if (target) target.style.viewTransitionName = '';
+    };
+    const t = document.startViewTransition(() => { goView(view); });
+    t.finished.then(done, done);
+  }
+
+  // ===== Главная «Бенто» ===================================================
   // Три состояния, одно общее на всё приложение (AppState в shared.js):
   //   loading — ждём data.json и сессию Supabase, показываем скелетон;
   //   guest   — входа точно нет, вместо личных цифр приглашение войти;
   //   signed  — цифры студента.
   // «Войдите в кабинет» появляется только в состоянии guest, поэтому вошедший
   // студент видит свои часы сразу при открытии, без захода в «Профиль».
-  // Дедлайны и ближайшую пару видно всем.
+  // Пара, лента недели, дедлайны и «Что нового» видны всем.
+
+  // Порог деканата: с 14 неуважительных часов за месяц ждут предупреждение.
+  // Сам порог нигде не меняется — это та же цифра, что в «Статистике группы».
+  const DEAN_WARNING_HOURS = 14;
+
   function renderHome() {
     const loading = !AppState.ready;
     const me = AppState.auth === 'signed' ? AppState.studentId : null;
-    const skel = document.getElementById('homeSkeleton');
-    const guest = document.getElementById('homeGuest');
-    const tiles = document.getElementById('homeTiles');
-    if (skel) skel.classList.toggle('d-none', !loading);
-    if (tiles) tiles.classList.toggle('d-none', loading);
-    if (guest) guest.classList.toggle('d-none', loading || !!me);
+    document.getElementById('homeSkeleton').classList.toggle('d-none', !loading);
+    document.getElementById('homeBody').classList.toggle('d-none', loading);
+    document.getElementById('homeGuest').classList.toggle('d-none', loading || !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
-    if (loading) {
-      document.getElementById('homeLessonCard').classList.add('d-none');
-      document.getElementById('todayNext').classList.add('d-none');
-      return;
-    }
+    if (loading) return;
 
-    // Часы за текущий месяц: отдельно неуважительные и уважительные
-    if (me) {
-      const now = new Date();
-      let un = 0, ex = 0;
-      (appData.absences || []).forEach(a => {
-        if (a.studentId !== me) return;
-        const d = new Date(a.date);
-        if (isNaN(d) || d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return;
-        if (a.isExcused) ex += Number(a.totalHours) || 0; else un += Number(a.totalHours) || 0;
-      });
-      document.getElementById('homeHoursUnexcused').textContent = un;
-      document.getElementById('homeHoursExcused').textContent = ex;
-    }
-
-    renderHomeLesson();
-    renderHomeHomework();
+    if (me) renderHomeHours(me);
+    renderHomeNow();
+    renderHomeWeek();
+    renderHomeCounters();
+    renderHomeNews();
     if (typeof renderHomeAchievements === 'function') renderHomeAchievements();
     if (typeof renderToday === 'function') renderToday();
   }
 
-  // Текущая или следующая пара. Расписание — в schedule.js, домашка — в data.json.
-  function renderHomeLesson() {
-    const card = document.getElementById('homeLessonCard');
-    if (!card || typeof lessonsOfDay !== 'function') return;
+  // --- Плитка часов: кольцо до порога предупреждения деканата ---
+  function renderHomeHours(me) {
     const now = new Date();
-    // lessonsOfDay(неделя, день): неделю считает currentSemesterWeek() из schedule.js
+    let un = 0, ex = 0;
+    (appData.absences || []).forEach(a => {
+      if (a.studentId !== me) return;
+      const d = new Date(a.date);
+      if (isNaN(d) || d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return;
+      if (a.isExcused) ex += Number(a.totalHours) || 0; else un += Number(a.totalHours) || 0;
+    });
+    setTileNumber(document.getElementById('homeHoursUnexcused'), un);
+    document.getElementById('homeHoursExcused').textContent = ex;
+
+    const left = Math.max(0, DEAN_WARNING_HOURS - un);
+    document.getElementById('homeHoursLeft').textContent = left
+      ? 'до предупреждения ' + left + ' ч'
+      : 'порог предупреждения пройден';
+    fillRing(document.getElementById('homeHoursRing'), Math.min(1, un / DEAN_WARNING_HOURS), un >= DEAN_WARNING_HOURS);
+  }
+
+  // --- Текущая пара и следующая ---
+  // Расписание — в schedule.js (lessonsOfDay), часы пар — в PAIR_TIMES.
+  function renderHomeNow() {
+    if (typeof lessonsOfDay !== 'function') return;
+    const now = new Date();
     const week = currentSemesterWeek(now);
     const day = now.getDay() === 0 ? 7 : now.getDay();
     const list = (day <= 6 && week ? lessonsOfDay(week, day) : []) || [];
     const mins = now.getHours() * 60 + now.getMinutes();
-    const toMin = (hm) => { const p = String(hm).split(':'); return (+p[0]) * 60 + (+p[1]); };
-    let lesson = null, when = '';
-    for (const l of list) {
-      if (mins >= toMin(l.from) && mins <= toMin(l.to)) { lesson = l; when = 'Идёт сейчас'; break; }
-      if (mins < toMin(l.from)) { lesson = l; when = 'Следующая пара'; break; }
+
+    const when = document.getElementById('homeNowWhen');
+    const bar = document.getElementById('homeNowBar');
+    const current = list.find(l => mins >= toMinutes(l.start) && mins < toMinutes(l.end));
+    const next = list.find(l => mins < toMinutes(l.start));
+
+    if (current) {
+      when.textContent = 'Идёт сейчас';
+      when.className = 'badge bg-success';
+      fillHomeLesson(current);
+      const from = toMinutes(current.start), to = toMinutes(current.end);
+      bar.classList.remove('d-none');
+      bar.querySelector('i').style.setProperty('--p', String(Math.max(0, Math.min(1, (mins - from) / (to - from)))));
+      document.getElementById('homeNowLeft').textContent = 'ещё ' + formatLeft(to - mins);
+      document.getElementById('homeNowNext').textContent = next
+        ? 'Дальше: ' + next.start + ' ' + next.subject
+        : 'Это последняя пара на сегодня';
+      return;
     }
-    card.classList.toggle('d-none', !lesson);
-    if (!lesson) return;
-    document.getElementById('homeLessonWhen').textContent = when;
-    document.getElementById('homeLessonWhen').className = 'badge ' + (when === 'Идёт сейчас' ? 'bg-success' : 'bg-secondary');
-    document.getElementById('homeLessonTime').textContent = lesson.from + '–' + lesson.to;
-    document.getElementById('homeLessonSubject').textContent = lesson.subject;
-    document.getElementById('homeLessonMeta').textContent =
-      [LESSON_KIND_FULL[lesson.kind] || lesson.kind, lesson.teacher, lesson.room && ('ауд. ' + lesson.room)]
-        .filter(Boolean).join(' · ');
-    const hw = (appData.homework || []).filter(h => h.subject === lesson.subject)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
-    document.getElementById('homeLessonHw').textContent = hw ? 'ДЗ: ' + hw.text : '';
+
+    bar.classList.add('d-none');
+    document.getElementById('homeNowLeft').textContent = '';
+
+    if (next) {
+      when.textContent = 'Следующая пара';
+      when.className = 'badge bg-secondary';
+      fillHomeLesson(next);
+      document.getElementById('homeNowNext').textContent = 'начало через ' + formatLeft(toMinutes(next.start) - mins);
+      return;
+    }
+
+    // Пар на сегодня больше нет — показываем первую пару следующего учебного дня
+    when.textContent = 'Пары на сегодня закончились';
+    when.className = 'badge bg-secondary';
+    const first = nextStudyDayFirstLesson(now);
+    if (first) {
+      fillHomeLesson(first.lesson);
+      document.getElementById('homeNowNext').textContent = 'Первая пара ' + first.label;
+    } else {
+      document.getElementById('homeNowSubject').textContent = 'Занятий впереди нет';
+      document.getElementById('homeNowTime').textContent = '';
+      document.getElementById('homeNowMeta').textContent = '';
+      document.getElementById('homeNowNext').textContent = '';
+    }
   }
 
-  // Три ближайших задания по сроку сдачи
-  function renderHomeHomework() {
-    const box = document.getElementById('homeHomework');
-    if (!box) return;
-    const today = dayKey(new Date());
-    const list = (appData.homework || [])
-      .filter(h => !h.dueDate || dayKey(deadlineDate(h.dueDate)) >= today)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))
-      .slice(0, 3);
-    if (!list.length) { box.innerHTML = '<div class="today-empty">Домашки пока нет</div>'; return; }
-    box.innerHTML = list.map(h =>
-      '<div class="row-i"><span class="lbl">' + escapeHtml(h.subject) +
-      '<small class="d-block text-secondary">' + escapeHtml(h.text || '') + '</small></span>' +
-      '<span class="val">' + (h.dueDate ? dlFormatDate(deadlineDate(h.dueDate)) : '—') + '</span></div>').join('');
+  function fillHomeLesson(l) {
+    document.getElementById('homeNowTime').textContent = l.start + '–' + l.end;
+    document.getElementById('homeNowSubject').textContent = l.subject;
+    document.getElementById('homeNowMeta').textContent =
+      [LESSON_KIND_FULL[l.type] || l.type, l.teacher, l.room && ('ауд. ' + l.room)].filter(Boolean).join(' · ');
   }
+
+  // Ближайший день с занятиями после сегодняшнего: ищем вперёд две недели
+  function nextStudyDayFirstLesson(from) {
+    for (let i = 1; i <= 14; i++) {
+      const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
+      const day = d.getDay() === 0 ? 7 : d.getDay();
+      if (day > 6) continue;
+      const list = lessonsOfDay(currentSemesterWeek(d), day) || [];
+      if (!list.length) continue;
+      const label = i === 1 ? 'завтра' : WD_FULL[day] + ', ' + d.getDate() + ' ' + MONTHS_GEN[d.getMonth()];
+      return { lesson: list[0], label };
+    }
+    return null;
+  }
+
+  // --- Лента недели -------------------------------------------------------
+  // Смещение недели: 0 — эта неделя. Свайп по ленте уводит на соседние.
+  let homeWeekShift = 0;
+  let homeDaySel = null;
+
+  function shiftHomeWeek(delta) {
+    homeWeekShift += delta;
+    homeDaySel = null;
+    haptic('selection');
+    renderHomeWeek();
+  }
+
+  const WD_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  // DAY_NAMES в schedule.js заканчивается субботой — в ленте есть и воскресенье
+  const WD_FULL = ['', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+  const EV_NAMES = { dl: 'дедлайн', hw: 'домашка', zachet: 'зачёт' };
+
+  function homeWeekMonday() {
+    const m = mondayOf(new Date());
+    return new Date(m.getFullYear(), m.getMonth(), m.getDate() + homeWeekShift * 7);
+  }
+
+  // Все дела дня: дедлайны, зачёты и экзамены из appData.deadlines, домашка из
+  // appData.homework. Порядок — горит, дедлайн, домашка, зачёт.
+  function homeDayEvents(key) {
+    const out = [];
+    (appData.deadlines || []).forEach(d => {
+      if (d.dueDate !== key) return;
+      const zachet = isZachet(d);
+      const n = deadlineDaysLeft(d.dueDate);
+      out.push({
+        kind: zachet ? 'zachet' : 'dl',
+        hot: n <= 1,
+        label: zachet ? deadlineKindName(d) : 'Дедлайн',
+        subject: d.subject,
+        text: d.text || deadlineKindName(d),
+        rel: deadlineRelative(n)
+      });
+    });
+    (appData.homework || []).forEach(h => {
+      if (h.dueDate !== key) return;
+      const n = deadlineDaysLeft(h.dueDate);
+      const done = homeworkDone(h);
+      out.push({
+        kind: 'hw',
+        hot: n <= 1 && !done,
+        label: 'Домашка',
+        subject: h.subject,
+        text: h.text || 'Без описания',
+        rel: deadlineRelative(n),
+        hw: h,
+        done: done
+      });
+    });
+    const rank = (e) => e.hot ? 0 : e.kind === 'dl' ? 1 : e.kind === 'hw' ? 2 : 3;
+    return out.sort((a, b) => rank(a) - rank(b) || String(a.subject).localeCompare(String(b.subject), 'ru'));
+  }
+
+  function renderHomeWeek() {
+    const strip = document.getElementById('homeWeekStrip');
+    if (!strip) return;
+    const monday = homeWeekMonday();
+    const todayKey = dayKey(new Date());
+    if (!homeDaySel) {
+      // Эта неделя открывается на сегодня, соседние — на своём понедельнике
+      homeDaySel = homeWeekShift === 0 ? todayKey : dayKey(monday);
+    }
+
+    document.getElementById('homeWeekTitle').textContent = homeWeekShift === 0
+      ? 'Эта неделя'
+      : monday.getDate() + ' ' + MONTHS_GEN[monday.getMonth()] + ' · неделя ' + currentSemesterWeek(monday);
+
+    strip.innerHTML = WD_SHORT.map((wd, i) => {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      const key = dayKey(d);
+      const evs = homeDayEvents(key);
+      const kinds = ['dl', 'hw', 'zachet'].filter(k => evs.some(e => e.kind === k));
+      const cls = ['wk-cell'];
+      if (i >= 5) cls.push('is-weekend');
+      if (evs.length) cls.push('is-mark');
+      if (key >= todayKey && evs.some(e => e.hot)) cls.push('is-hot');
+      if (key === todayKey) cls.push('is-today');
+      if (key === homeDaySel) cls.push('is-sel');
+      const label = d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] +
+        (key === todayKey ? ', сегодня' : '') +
+        (evs.length ? ': ' + kinds.map(k => EV_NAMES[k]).join(', ') : ', дел нет');
+      return '<button type="button" class="' + cls.join(' ') + '" data-day="' + key + '" aria-label="' + label + '"' +
+        (key === homeDaySel ? ' aria-current="date"' : '') + '>' +
+        '<span class="wd">' + wd + '</span><span class="dn">' + d.getDate() + '</span>' +
+        '<span class="wk-marks" aria-hidden="true">' +
+        kinds.map(k => '<i class="wk-dot is-' + k + '"></i>').join('') + '</span>' +
+        '</button>';
+    }).join('');
+
+    if (!strip.dataset.bound) {
+      strip.dataset.bound = '1';
+      strip.addEventListener('click', (e) => {
+        const cell = e.target.closest('button[data-day]');
+        if (!cell) return;
+        homeDaySel = cell.dataset.day;
+        haptic('selection');
+        renderHomeWeek();
+      });
+      // Свайпом по ленте — на соседние недели
+      enableHorizontalSwipe(strip, () => shiftHomeWeek(1), () => shiftHomeWeek(-1));
+    }
+
+    const sel = strip.querySelector('.wk-cell.is-sel');
+    if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'center' });
+    renderHomeWeekDay();
+  }
+
+  function renderHomeWeekDay() {
+    const box = document.getElementById('homeWeekDay');
+    if (!box) return;
+    const [y, m, d] = String(homeDaySel || '').split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const title = WD_FULL[date.getDay() === 0 ? 7 : date.getDay()] + ', ' + d + ' ' + MONTHS_GEN[m - 1] +
+      (homeDaySel === dayKey(new Date()) ? ' · сегодня' : '');
+    const evs = homeDayEvents(homeDaySel);
+
+    box.innerHTML = '<div class="wk-day-title">' + escapeHtml(title) + '</div>' + (evs.length
+      ? evs.map(e => {
+        const cls = ['wk-ev', 'kind-' + e.kind];
+        if (e.hot) cls.push('is-hot');
+        if (e.done) cls.push('is-done');
+        return '<div class="' + cls.join(' ') + '">' +
+          '<span class="wk-ev-kind">' + escapeHtml(e.hot ? 'Горит' : e.label) + '</span>' +
+          '<span class="wk-ev-body">' +
+          '<span class="wk-ev-sub d-block">' + escapeHtml(e.subject) + ' · ' + escapeHtml(e.rel) + '</span>' +
+          '<span class="wk-ev-text d-block">' + escapeHtml(e.text) + '</span>' +
+          '</span>' +
+          (e.hw
+            ? '<button type="button" class="wk-done' + (e.done ? ' on' : '') + '" data-hw="' + escapeHtml(e.hw.id) + '"' +
+              ' aria-pressed="' + (e.done ? 'true' : 'false') + '" aria-label="Сделано">' +
+              '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></button>'
+            : '') +
+          '</div>';
+      }).join('')
+      : '<div class="wk-empty">В этот день ничего не горит</div>');
+
+    if (!box.dataset.bound) {
+      box.dataset.bound = '1';
+      box.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-hw]');
+        if (btn) toggleHomeworkDoneById(btn.dataset.hw);
+      });
+    }
+  }
+
+  // Отметка «Сделано» у домашки. Сама отметка хранится по паре (setLessonDone):
+  // разворачиваем задание в пары того дня, где оно задано, и отмечаем их.
+  function toggleHomeworkDoneById(id) {
+    const h = (appData.homework || []).find(x => String(x.id) === String(id));
+    if (!h || !h.dueDate || typeof lessonsOfDay !== 'function') return;
+    const date = deadlineDate(h.dueDate);
+    const day = date.getDay() === 0 ? 7 : date.getDay();
+    if (day > 6) return;
+    const lessons = (lessonsOfDay(currentSemesterWeek(date), day) || [])
+      .filter(l => homeworkForLesson(l, h.dueDate).some(x => x.id === h.id));
+    if (!lessons.length) return;
+    const next = !homeworkDone(h);
+    lessons.forEach(l => setLessonDone(l, h.dueDate, next));
+    haptic(next ? 'success' : 'selection');
+    renderHomeWeek();
+  }
+
+  // --- Плитки «Дедлайны» и «Домашка» ---
+  function renderHomeCounters() {
+    const all = typeof activeDeadlines === 'function' ? activeDeadlines() : [];
+    const hot = all.filter(d => deadlineDaysLeft(d.dueDate) <= 1);
+    setTileNumber(document.getElementById('homeDlCount'), all.length);
+    document.getElementById('homeDlHot').classList.toggle('d-none', hot.length === 0);
+    document.getElementById('homeDlHotNote').textContent = hot.length
+      ? hot.length + (hot.length === 1 ? ' горит' : ' горят')
+      : 'список и календарь';
+
+    const today = dayKey(new Date());
+    const edge = dayKey(new Date(Date.now() + 7 * 24 * 3600 * 1000));
+    const hw = (appData.homework || []).filter(h => {
+      if (!h.dueDate) return false;
+      const k = dayKey(deadlineDate(h.dueDate));
+      return k >= today && k <= edge;
+    });
+    setTileNumber(document.getElementById('homeHwCount'), hw.length);
+    document.getElementById('homeHwNote').textContent = hw.length ? 'ближайшая неделя' : 'на неделю ничего';
+  }
+
+  // --- Что нового: версия, дата и три главных изменения (changelog.js) ---
+  function renderHomeNews() {
+    const list = document.getElementById('homeNewsList');
+    if (!list || typeof changelogEntry !== 'function') return;
+    const entry = changelogEntry(APP_VERSION);
+    document.getElementById('homeNewsVersion').textContent = APP_VERSION + ' · ' + changelogDate(entry);
+    list.innerHTML = (entry.items || []).slice(0, 3).map(t => '<li>' + escapeHtml(t) + '</li>').join('');
+  }
+
+  // Пока главная открыта — раз в минуту обновляем «ещё N мин» и полосу пары
+  setInterval(() => { if (currentViewName === 'home' && AppState.ready) renderHomeNow(); }, 60000);
 
   // ===== «Учёба»: подписи и счётчик на плитках =====
   function renderStudyTiles() {
@@ -2753,7 +3357,7 @@
 
   function openRemindersSheet() {
     const list = document.getElementById('remindersList');
-    const empty = document.getElementById('announcementsEmpty');
+    const empty = document.getElementById('remindersEmpty');
     const items = remindersItems();
     empty.classList.toggle('d-none', items.length > 0);
     list.innerHTML = items.map(it =>
@@ -2762,7 +3366,7 @@
       '<div class="dl-text">' + escapeHtml(it.title) + '</div>' +
       '<div class="dl-meta"><span class="dl-date">' + dlFormatDate(deadlineDate(it.date)) + '</span>' +
       '<span class="dl-rel">' + escapeHtml(deadlineRelative(it.n)) + '</span></div></div>').join('');
-    const el = document.getElementById('announcementsSheet');
+    const el = document.getElementById('remindersSheet');
     enableSheetSwipe(el);
     bootstrap.Modal.getOrCreateInstance(el).show();
     markDeadlinesSeen();
@@ -2776,12 +3380,12 @@
   // (ключ notifications_read). Раньше здесь считались «горящие» сроки,
   // поэтому кружок горел постоянно и не гас после открытия листа.
   function updateBellDot() {
-    const dot = document.getElementById('announcementsBellCount');
+    const dot = document.getElementById('remindersBellCount');
     if (!dot) return;
     const n = unreadNotifications().length;
     dot.textContent = n;
     dot.classList.toggle('d-none', n === 0);
-    document.getElementById('announcementsBell').classList.toggle('has-unread', n > 0);
+    document.getElementById('remindersBell').classList.toggle('has-unread', n > 0);
   }
 
   // Лист «Уведомления»: список непрочитанного с датой. Нажатие ведёт к событию,
@@ -2852,7 +3456,15 @@
   }
 
   // Адрес изменили вручную или нажали «назад» в браузере
-  window.addEventListener('hashchange', () => showView(currentView()));
+  // #achievements — не раздел, а окно: открываем его и остаёмся на своём экране
+  const openAchFromHash = () => {
+    if (location.hash.slice(1) !== 'achievements') return false;
+    history.replaceState(null, '', '#profile');
+    showView('profile');
+    openAchSheet();
+    return true;
+  };
+  window.addEventListener('hashchange', () => { if (!openAchFromHash()) showView(currentView()); });
   window.addEventListener('popstate', () => showView(currentView()));
 
   // Кнопки таб-бара — ссылки #home / #schedule / #study / #profile.
@@ -2920,7 +3532,7 @@
     updateAdminUI();
     await loadData();
     primeNotificationsRead();                // первый запуск: старые записи сразу прочитаны
-    showView(currentView());                 // index.html#teachers / #deadlines — сразу нужный раздел
+    if (!openAchFromHash()) showView(currentView());   // index.html#teachers / #deadlines — сразу нужный раздел
     updateDeadlinesDot();
     refreshCabinetProfile();
     updateAdminUI();
@@ -2937,7 +3549,7 @@
 
   async function loadData() {
     try {
-      const response = await fetch(`./data.json?t=${Date.now()}`);
+      const response = await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
       appData = await response.json();
       if (!appData.subjects || appData.subjects.length === 0) {
         appData.subjects = DEFAULT_SUBJECTS;
@@ -2945,13 +3557,11 @@
       if (!appData.teachers) {
         appData.teachers = [];
       }
-      if (!appData.announcements) {
-        appData.announcements = [];
-      }
       if (!appData.deadlines) {
         appData.deadlines = [];
       }
       AppState.setData('ready');               // данные есть: разделы могут показывать цифры
+      renderOfflineBar();                      // в плашке «Нет сети» — дата этих данных
       populateSubjectFilter();
       updateStats();
       renderTable();
@@ -4446,7 +5056,7 @@
 
     const studentSelect = document.getElementById('absenceStudent');
     studentSelect.innerHTML = ordered
-      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
+      .map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(journalNumbers[s.id] + '. ' + s.lastName + ' ' + s.firstName)}</option>`)
       .join('');
 
     document.getElementById('absenceDate').valueAsDate = new Date();
@@ -4512,9 +5122,9 @@
     } else {
       container.innerHTML = filtered.map(s => `
         <div class="form-check">
-          <input type="checkbox" class="form-check-input group-student-check" id="gs_${s.id}" value="${s.id}"
-                 ${groupSelectedStudentIds.has(s.id) ? 'checked' : ''} onchange="toggleGroupStudent('${s.id}', this.checked)">
-          <label class="form-check-label text-white small" for="gs_${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</label>
+          <input type="checkbox" class="form-check-input group-student-check" id="gs_${escapeHtml(s.id)}" value="${escapeHtml(s.id)}"
+                 ${groupSelectedStudentIds.has(s.id) ? 'checked' : ''} onchange="toggleGroupStudent('${escapeHtml(s.id)}', this.checked)">
+          <label class="form-check-label text-white small" for="gs_${escapeHtml(s.id)}">${escapeHtml(journalNumbers[s.id] + '. ' + s.lastName + ' ' + s.firstName)}</label>
         </div>
       `).join('');
     }
@@ -4541,6 +5151,26 @@
     document.getElementById('groupSelectedCount').innerText = groupSelectedStudentIds.size;
   }
 
+  // Одна запись пропуска. Формат absences общий для всех форм: обычной,
+  // групповой и отметки из расписания — поэтому собирается в одном месте.
+  function absenceRecord(o) {
+    const record = {
+      id: 'abs-' + o.stamp + '-' + o.suffix + '-' + Math.floor(Math.random() * 1000),
+      studentId: o.studentId,
+      date: o.date,
+      totalHours: o.hours,
+      isExcused: !!o.isExcused,
+      subject: o.subject,
+      comment: o.comment || ''
+    };
+    if (record.isExcused) {
+      record.certType = o.certType;
+      record.certDueDate = o.certDueDate || null;
+      record.certSubmitted = !!o.certSubmitted;
+    }
+    return record;
+  }
+
   async function submitGroupAbsence() {
     if (!githubToken) return showAlert('Требуется авторизация администратора');
 
@@ -4561,22 +5191,10 @@
     const stamp = Date.now();
     let i = 0;
     groupSelectedStudentIds.forEach(studentId => {
-      const record = {
-        id: 'abs-' + stamp + '-g' + i + '-' + Math.floor(Math.random() * 1000),
-        studentId,
-        date,
-        totalHours: hours,
-        isExcused,
-        subject,
-        comment
-      };
-      if (isExcused) {
-        record.certType = certType;
-        record.certDueDate = certDueDate;
-        record.certSubmitted = certSubmitted;
-      }
-      appData.absences.push(record);
-      i++;
+      appData.absences.push(absenceRecord({
+        suffix: 'g' + (i++), stamp, studentId, date, hours, subject, isExcused, comment,
+        certType, certDueDate, certSubmitted
+      }));
     });
 
     await saveDataToGitHub(`Внесены пропуски группой (${groupSelectedStudentIds.size} студ.)`);
@@ -5077,6 +5695,12 @@
 
   // --- Сохранение в GitHub ---
   async function saveDataToGitHub(message) {
+  if (isOffline()) {
+    haptic('error');
+    showAlert('Нет сети — сохранить не получится. Изменения записываются прямо в data.json на GitHub, а без интернета до него не дотянуться. Проверьте связь и нажмите «Сохранить» ещё раз: введённое никуда не денется.');
+    return false;
+  }
+  tgMainProgress(true);
   try {
     const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
       headers: { Authorization: `Bearer ${githubToken}` }
@@ -5125,6 +5749,8 @@
     haptic('error');
     showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
     return false;
+  } finally {
+    tgMainProgress(false);
   }
 }
 
@@ -5152,6 +5778,395 @@
     showAlert(FEATURE_IN_DEV_MESSAGE);
   }
 
+
+
+
+
+  // --- Основная кнопка Telegram ------------------------------------------
+  // Внутри Telegram главное действие листа (ввести, сохранить, внести всем)
+  // уезжает в родную кнопку снизу: так до него дотягивается большой палец, а
+  // лист не приходится прокручивать до конца. Кнопка-дубль внутри листа в
+  // Telegram скрыта (класс tg-main-hidden), вне Telegram всё как было.
+  // Главную кнопку листа помечает атрибут data-tg-main.
+  let tgMainBtn = null;      // кнопка-дубль открытого листа
+  let tgMainModal = null;
+  let tgMainClick = null;
+
+  const tgMainAvailable = () => !!(TG && TG.MainButton && tgSupports('6.1'));
+
+  // Текст и доступность берём у самой кнопки: лист сам их меняет
+  // (например «Внести отмеченным (3)»), а здесь только отражаем.
+  function syncSheetMainButton() {
+    if (!tgMainAvailable() || !tgMainBtn) return;
+    TG.MainButton.setParams({
+      text: (tgMainBtn.textContent || 'Готово').trim(),
+      is_active: !tgMainBtn.disabled,
+      is_visible: true
+    });
+  }
+
+  function bindSheetMainButton(modalEl) {
+    if (!tgMainAvailable()) return;
+    const btn = modalEl.querySelector('[data-tg-main]');
+    if (!btn) return;
+    if (tgMainModal) unbindSheetMainButton(tgMainModal);
+    tgMainBtn = btn;
+    tgMainModal = modalEl;
+    tgMainClick = () => { if (!btn.disabled) btn.click(); };
+    TG.MainButton.onClick(tgMainClick);
+    modalEl.classList.add('tg-main-hidden');
+    syncSheetMainButton();
+  }
+
+  function unbindSheetMainButton(modalEl) {
+    if (!tgMainAvailable()) return;
+    if (tgMainModal && modalEl && tgMainModal !== modalEl) return;   // закрылся другой лист
+    if (tgMainClick) TG.MainButton.offClick(tgMainClick);
+    if (tgMainModal) tgMainModal.classList.remove('tg-main-hidden');
+    tgMainBtn = null;
+    tgMainModal = null;
+    tgMainClick = null;
+    TG.MainButton.hideProgress();
+    TG.MainButton.hide();
+  }
+
+  // Пока идёт сохранение — индикатор загрузки на самой кнопке Telegram
+  function tgMainProgress(on) {
+    if (!tgMainAvailable() || !tgMainBtn) return;
+    if (on) TG.MainButton.showProgress(true);
+    else TG.MainButton.hideProgress();
+  }
+
+  document.addEventListener('shown.bs.modal', (e) => bindSheetMainButton(e.target));
+  document.addEventListener('hidden.bs.modal', (e) => unbindSheetMainButton(e.target));
+
+
+  // --- Сжатая шапка ------------------------------------------------------
+  // Прокрутили вниз — крупный заголовок уходит, сверху остаётся тонкая
+  // стеклянная полоса с названием раздела. Порог с запасом, чтобы полоса не
+  // мигала у самого верха (там же работает «потяни, чтобы обновить»).
+  const TOP_BAR_AT = 28;
+  function initTopBar() {
+    let pending = false;
+    const apply = () => {
+      pending = false;
+      document.body.classList.toggle('is-scrolled', window.scrollY > TOP_BAR_AT);
+    };
+    window.addEventListener('scroll', () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(apply);
+    }, { passive: true });
+    apply();
+  }
+
+  // --- Плашка «Нет сети» -------------------------------------------------
+  // Без интернета сверху тонкая строка «Нет сети · данные от …»: видно, что
+  // цифры не свежие. Сохранение у администратора в это время недоступно —
+  // запись ушла бы в пустоту, а data.json на GitHub остался бы прежним.
+  // Когда связь вернулась, плашка пропадает и данные подтягиваются молча.
+  const isOffline = () => navigator.onLine === false;
+
+  function dataAsOfText() {
+    const d = appData.lastUpdated ? new Date(appData.lastUpdated) : null;
+    if (!d || isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}.${mm}, ${hh}:${min}`;
+  }
+
+  function renderOfflineBar() {
+    const bar = document.getElementById('offlineBar');
+    if (!bar) return;
+    const off = isOffline();
+    bar.classList.toggle('d-none', !off);
+    document.body.classList.toggle('is-offline', off);
+    if (off) {
+      const asOf = dataAsOfText();
+      document.getElementById('offlineBarText').textContent = asOf ? `Нет сети · данные от ${asOf}` : 'Нет сети';
+    }
+  }
+
+  function initOfflineWatch() {
+    window.addEventListener('offline', renderOfflineBar);
+    window.addEventListener('online', async () => {
+      renderOfflineBar();
+      // Тихо: ни всплывашек, ни вибрации — просто свежие данные
+      try {
+        await Promise.all([
+          loadData(),
+          refreshCabinetProfile(),
+          typeof achLoadAll === 'function' ? achLoadAll().catch(() => {}) : Promise.resolve()
+        ]);
+        showView(currentViewName);
+      } catch (e) {
+        console.error(e);
+      }
+      renderOfflineBar();
+    });
+    renderOfflineBar();
+  }
+
+  // --- «Потяни, чтобы обновить» ------------------------------------------
+  // Жест свой и живёт внутри страницы: вертикальный свайп Telegram остаётся
+  // выключенным (disableVerticalSwipes в init), иначе вместо обновления
+  // потянулось бы само мини-приложение.
+  // Срабатывает только когда страница прокручена в самый верх и сверху нет
+  // открытого листа. Горизонтальные жесты (переключение вкладок) не трогаем:
+  // тянем, только если палец ушёл вниз заметно сильнее, чем в сторону.
+  const PTR_TRIGGER = 72;     // столько надо протянуть, чтобы обновить
+  const PTR_MAX = 108;        // дальше индикатор не едет
+  let ptrStart = null;
+  let ptrDist = 0;
+  let ptrReady = false;
+  let ptrBusy = false;
+
+  function ptrMove(dist) {
+    const el = document.getElementById('ptrIndicator');
+    const k = Math.min(dist, PTR_MAX);
+    const progress = Math.min(1, k / PTR_TRIGGER);
+    el.style.transform = `translate(-50%, ${k * 0.42}px) scale(${0.8 + progress * 0.2})`;
+    el.style.opacity = String(progress);
+  }
+
+  function ptrReset() {
+    const el = document.getElementById('ptrIndicator');
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.classList.remove('is-ready');
+    ptrStart = null;
+    ptrDist = 0;
+    ptrReady = false;
+  }
+
+  async function ptrRefresh() {
+    const el = document.getElementById('ptrIndicator');
+    ptrBusy = true;
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.classList.remove('is-ready', 'is-hiding');
+    el.classList.add('is-busy');
+    document.getElementById('ptrStatus').textContent = 'Обновляем данные';
+    try {
+      // data.json — мимо кэша; Supabase — профиль и достижения
+      await Promise.all([
+        loadData(),
+        refreshCabinetProfile(),
+        typeof achLoadAll === 'function' ? achLoadAll().catch(() => {}) : Promise.resolve()
+      ]);
+      showView(currentViewName);
+      haptic('success');
+      document.getElementById('ptrStatus').textContent = 'Данные обновлены';
+    } catch (e) {
+      haptic('error');
+      document.getElementById('ptrStatus').textContent = 'Не удалось обновить';
+      console.error(e);
+    } finally {
+      el.classList.remove('is-busy');
+      el.classList.add('is-hiding');
+      setTimeout(() => { el.classList.remove('is-hiding'); ptrBusy = false; }, 260);
+    }
+  }
+
+  function ptrInit() {
+    document.addEventListener('touchstart', (e) => {
+      if (ptrBusy || e.touches.length !== 1) return;
+      if (window.scrollY > 0) return;
+      if (document.querySelector('.modal.show')) return;
+      const t = e.touches[0];
+      ptrStart = { x: t.clientX, y: t.clientY };
+      ptrDist = 0;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!ptrStart || ptrBusy || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dy = t.clientY - ptrStart.y;
+      const dx = Math.abs(t.clientX - ptrStart.x);
+      if (dy <= 0 || dx > dy * 0.6 || window.scrollY > 0) { if (ptrDist) ptrReset(); else ptrStart = null; return; }
+      ptrDist = dy;
+      ptrMove(dy);
+      const ready = dy >= PTR_TRIGGER;
+      if (ready !== ptrReady) {
+        ptrReady = ready;
+        document.getElementById('ptrIndicator').classList.toggle('is-ready', ready);
+        if (ready) haptic('light');
+      }
+      if (e.cancelable) e.preventDefault();   // не даём странице «отпружинить»
+    }, { passive: false });
+
+    const end = () => {
+      if (!ptrStart || ptrBusy) { ptrStart = null; return; }
+      const fire = ptrReady;
+      ptrReset();
+      if (fire) ptrRefresh();
+    };
+    document.addEventListener('touchend', end, { passive: true });
+    document.addEventListener('touchcancel', end, { passive: true });
+  }
+
+
+  // --- Достижения: отдельное окно -----------------------------------------
+  // Раньше это был вложенный экран #achievements. Теперь — нижний лист на весь
+  // экран; раздел в VIEWS больше не нужен, а все прежние ссылки продолжают
+  // работать: goView('achievements') открывает лист (см. goView).
+  const achSheetEl = () => document.getElementById('achSheet');
+  const achSheetOpen = () => !!achSheetEl() && achSheetEl().classList.contains('show');
+
+  function openAchSheet() {
+    const el = achSheetEl();
+    if (!el || typeof bootstrap === 'undefined') return;
+    if (typeof renderAchievementsView === 'function') renderAchievementsView();
+    bootstrap.Modal.getOrCreateInstance(el).show();
+  }
+
+  // --- Отметка пропусков прямо из расписания (админ) ---------------------
+  // Открывается по кнопке в листе занятия. Предмет, дата и часы берутся из
+  // самой пары: одна пара — 2 ч. Состояние по каждому студенту (отмечен,
+  // уважительный, справка) живёт в markAbsentPicked до сохранения.
+  const PAIR_HOURS = 2;
+  let markAbsentLesson = null;
+  const markAbsentPicked = new Map();
+
+  function openMarkAbsentSheet() {
+    if (!githubToken || !openLesson) return;
+    markAbsentLesson = openLesson;
+    markAbsentPicked.clear();
+    document.getElementById('markAbsentSearch').value = '';
+
+    const date = deadlineDate(markAbsentLesson.iso);
+    document.getElementById('markAbsentWhen').textContent =
+      `${markAbsentLesson.lesson.subject} · ${date.getDate()} ${MONTHS_GEN[date.getMonth()]} · ${PAIR_HOURS} ч за пару`;
+
+    renderMarkAbsentList();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('lessonSheet')).hide();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('markAbsentSheet')).show();
+  }
+
+  function renderMarkAbsentList() {
+    const search = document.getElementById('markAbsentSearch').value.trim().toLowerCase();
+    const journalNumbers = getJournalNumbers();
+    const list = [...(appData.students || [])]
+      .sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id])
+      .filter(s => `${s.lastName} ${s.firstName}`.toLowerCase().includes(search));
+
+    const box = document.getElementById('markAbsentList');
+    if (!list.length) {
+      box.innerHTML = '<div class="ma-empty">Никого не найдено</div>';
+      updateMarkAbsentCount();
+      return;
+    }
+
+    box.innerHTML = list.map(s => {
+      const p = markAbsentPicked.get(s.id);
+      // id студента приходит из data.json и попадает в атрибуты и обработчики —
+      // экранируем его так же, как остальные данные, иначе запись в data.json
+      // превращается в выполнение чужого кода у всех, кто откроет лист.
+      const esc = escapeHtml(s.id);
+      const name = escapeHtml(`${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}`);
+      return `<div class="ma-item">
+        <div class="ma-row">
+          <label for="ma_${esc}">${name}</label>
+          <div class="form-check form-switch">
+            <input type="checkbox" role="switch" class="form-check-input" id="ma_${esc}"
+                   ${p ? 'checked' : ''} onchange="toggleMarkAbsent('${esc}', this.checked)"
+                   aria-label="Отсутствовал: ${name}">
+          </div>
+        </div>
+        <div class="ma-cert${p ? '' : ' d-none'}">
+          <div class="form-check mb-2">
+            <input type="checkbox" class="form-check-input" id="maExc_${esc}"
+                   ${p && p.isExcused ? 'checked' : ''} onchange="setMarkAbsentExcused('${esc}', this.checked)">
+            <label class="form-check-label text-secondary small" for="maExc_${esc}">Уважительный</label>
+          </div>
+          <div class="${p && p.isExcused ? '' : 'd-none'}" id="maCert_${esc}">
+            <select class="form-select form-select-sm mb-2" aria-label="Вид справки"
+                    onchange="setMarkAbsentCert('${esc}', 'certType', this.value)">
+              ${['Больничный', 'Заявление', 'Освобождение']
+                .map(t => `<option value="${t}"${p && p.certType === t ? ' selected' : ''}>${t}</option>`).join('')}
+            </select>
+            <label class="form-label text-secondary small">Срок сдачи справки</label>
+            <input type="date" class="form-control form-control-sm mb-2" value="${(p && p.certDueDate) || ''}"
+                   onchange="setMarkAbsentCert('${esc}', 'certDueDate', this.value)">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="maSub_${esc}"
+                     ${p && p.certSubmitted ? 'checked' : ''}
+                     onchange="setMarkAbsentCert('${esc}', 'certSubmitted', this.checked)">
+              <label class="form-check-label text-secondary small" for="maSub_${esc}">Справка уже сдана</label>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    updateMarkAbsentCount();
+  }
+
+  // Перерисовывать весь список не нужно: от этого прыгает прокрутка.
+  // Меняется только блок справки у этого студента.
+  function toggleMarkAbsent(id, checked) {
+    if (checked) markAbsentPicked.set(id, { isExcused: false, certType: 'Больничный', certDueDate: '', certSubmitted: false });
+    else markAbsentPicked.delete(id);
+    const item = document.getElementById('ma_' + id).closest('.ma-item');
+    item.querySelector('.ma-cert').classList.toggle('d-none', !checked);
+    if (!checked) {
+      item.querySelector('#maExc_' + id).checked = false;
+      document.getElementById('maCert_' + id).classList.add('d-none');
+    }
+    haptic('selection');
+    updateMarkAbsentCount();
+  }
+
+  function setMarkAbsentExcused(id, checked) {
+    const p = markAbsentPicked.get(id);
+    if (!p) return;
+    p.isExcused = checked;
+    document.getElementById('maCert_' + id).classList.toggle('d-none', !checked);
+  }
+
+  function setMarkAbsentCert(id, field, value) {
+    const p = markAbsentPicked.get(id);
+    if (p) p[field] = value;
+  }
+
+  function updateMarkAbsentCount() {
+    const btn = document.getElementById('markAbsentSubmit');
+    const n = markAbsentPicked.size;
+    btn.disabled = n === 0;
+    btn.textContent = n ? `Внести отмеченным (${n})` : 'Внести отмеченным';
+    if (typeof syncSheetMainButton === 'function') syncSheetMainButton();
+  }
+
+  async function submitMarkAbsent() {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!markAbsentLesson) return;
+    if (markAbsentPicked.size === 0) return showAlert('Отметьте хотя бы одного студента');
+
+    const lesson = markAbsentLesson.lesson;
+    const date = markAbsentLesson.iso;
+    const stamp = Date.now();
+    let i = 0;
+    markAbsentPicked.forEach((p, studentId) => {
+      appData.absences.push(absenceRecord({
+        suffix: 'l' + (i++),
+        stamp,
+        studentId,
+        date,
+        hours: PAIR_HOURS,
+        subject: lesson.subject,
+        isExcused: p.isExcused,
+        comment: '',
+        certType: p.certType,
+        certDueDate: p.certDueDate || null,
+        certSubmitted: p.certSubmitted
+      }));
+    });
+
+    const ok = await saveDataToGitHub(`Отмечены отсутствующие: ${lesson.subject}, ${date} (${markAbsentPicked.size} студ.)`);
+    if (ok) bootstrap.Modal.getOrCreateInstance(document.getElementById('markAbsentSheet')).hide();
+  }
+
   // --- Авторизация ---
   // Вход и выход администратора — в личном кабинете (строка «Админ-панель», cabinet.html).
   // Здесь только читаем токен из localStorage gh_pat и показываем инструменты администратора.
@@ -5171,6 +6186,9 @@
     if (currentViewName === 'study') renderStudyTiles();
   });
 
+  ptrInit();
+  initTopBar();
+  initOfflineWatch();
   init();
 
   // Дорисовать после штатной функции страницы (сами функции не меняются)
@@ -5190,9 +6208,9 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="achievements.js?v=20"></script>
-<script src="studak.js?v=20"></script>
-<script src="profile.js?v=20"></script>
+<script src="achievements.js?v=21"></script>
+<script src="studak.js?v=21"></script>
+<script src="profile.js?v=21"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
