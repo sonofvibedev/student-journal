@@ -43,13 +43,21 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0));
   pointer-events: none;
 }
-.ach-badge svg { position: relative; width: 54%; height: 54%; stroke-width: var(--ach-sw, 1.8); }
+.ach-badge svg { position: relative; width: 50%; height: 50%; stroke-width: var(--ach-sw, 1.8); }
 
 .ach-badge.tier-bronze   { --rim: #c87f44; --rim-2: #f6c79a; }
 .ach-badge.tier-silver   { --rim: #8e97a2; --rim-2: #eef3f8; }
 .ach-badge.tier-gold     { --rim: #c9960f; --rim-2: #ffe8a3; }
 .ach-badge.tier-platinum { --rim: #5bbfbd; --rim-2: #e6fbff; }
-.ach-badge.tier-anti     { --rim: #c0392b; --rim-2: #ff8a7a; --ach-disc-1: #3a2322; --ach-disc-2: #1a1012; }
+.ach-badge[class*="tier-anti"] { --ach-disc-1: #3a2322; --ach-disc-2: #1a1012; }
+/* Семь ступеней антидостижений: красный обод насыщается с каждым уровнем */
+.ach-badge.tier-anti-1 { --rim: #b4675e; --rim-2: #e3a79f; }
+.ach-badge.tier-anti-2 { --rim: #bd5e51; --rim-2: #e89d92; }
+.ach-badge.tier-anti-3 { --rim: #c45444; --rim-2: #ee9385; }
+.ach-badge.tier-anti-4 { --rim: #ca4836; --rim-2: #f48877; }
+.ach-badge.tier-anti-5 { --rim: #d03a26; --rim-2: #fa7c68; }
+.ach-badge.tier-anti-6 { --rim: #d62a14; --rim-2: #ff6f58; }
+.ach-badge.tier-anti-7 { --rim: #dc1600; --rim-2: #ff5f45; }
 
 /* Неполученный — серый, полупрозрачный, с замочком */
 .ach-badge.is-locked {
@@ -72,6 +80,23 @@
   color: var(--color-text-secondary);
 }
 .ach-lock svg { width: 58%; height: 58%; }
+
+/* Ярлык ступени: маленькая ленточка у нижнего края, поверх обода.
+   На мелком значке не помещается — прячется, номер остаётся в подписи. */
+.ach-rank {
+  position: absolute; left: 50%; bottom: -3%;
+  transform: translateX(-50%);
+  min-width: 34%; padding: 0 12%;
+  border-radius: var(--radius-pill);
+  background: var(--rim);
+  color: #15171c;
+  font-size: calc(var(--ach-size, 56px) * .23);
+  font-weight: 700; line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+.ach-badge.is-small .ach-rank { display: none; }
 
 /* ===== Карточка достижения ===== */
 .ach-card {

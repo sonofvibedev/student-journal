@@ -73,18 +73,42 @@ const ACHIEVEMENTS = [
   { code: 'hw_50', cat: 'homework', icon: 'book', tier: 'platinum', group: 'homework', need: 50,
     title: 'Машина знаний', about: 'Пятьдесят домашек отмечены сделанными' },
 
-  { code: 'anti_2',  cat: 'anti', icon: 'shoe',  tier: 'anti', group: 'anti', need: 2,  anti: true,
-    title: 'Прогулял — бывает', about: '2 неуважительных часа за семестр' },
-  { code: 'anti_6',  cat: 'anti', icon: 'desk',  tier: 'anti', group: 'anti', need: 6,  anti: true,
-    title: 'Ярый прогульщик', about: '6 неуважительных часов за семестр' },
-  { code: 'anti_9',  cat: 'anti', icon: 'warn',  tier: 'anti', group: 'anti', need: 9,  anti: true,
-    title: 'Красная зона', about: '9 неуважительных часов за семестр' },
-  { code: 'anti_18', cat: 'anti', icon: 'ghost', tier: 'anti', group: 'anti', need: 18, anti: true,
-    title: 'Призрак аудитории', about: '18 неуважительных часов за семестр' }
+  // Антидостижения считаются за календарный месяц: с 1-го числа счёт заново,
+  // в новом месяце значок можно получить снова (period = YYYY-MM).
+  { code: 'anti_m2',  cat: 'anti', icon: 'shoe',     tier: 'anti-1', group: 'anti', need: 2,  anti: true, repeatable: true,
+    title: 'Мимо пары', about: '2 неуважительных часа за месяц' },
+  { code: 'anti_m4',  cat: 'anti', icon: 'bench',    tier: 'anti-2', group: 'anti', need: 4,  anti: true, repeatable: true,
+    title: 'Коридорный житель', about: '4 неуважительных часа за месяц' },
+  { code: 'anti_m6',  cat: 'anti', icon: 'coffee',   tier: 'anti-3', group: 'anti', need: 6,  anti: true, repeatable: true,
+    title: 'Завсегдатай буфета', about: '6 неуважительных часов за месяц' },
+  { code: 'anti_m8',  cat: 'anti', icon: 'desk',     tier: 'anti-4', group: 'anti', need: 8,  anti: true, repeatable: true,
+    title: 'Слышал о расписании', about: '8 неуважительных часов за месяц' },
+  { code: 'anti_m10', cat: 'anti', icon: 'ghost',    tier: 'anti-5', group: 'anti', need: 10, anti: true, repeatable: true,
+    title: 'Дальний родственник группы', about: '10 неуважительных часов за месяц' },
+  { code: 'anti_m12', cat: 'anti', icon: 'warn',     tier: 'anti-6', group: 'anti', need: 12, anti: true, repeatable: true,
+    title: 'Красная зона', about: '12 неуважительных часов за месяц' },
+  { code: 'anti_m14', cat: 'anti', icon: 'envelope', tier: 'anti-7', group: 'anti', need: 14, anti: true, repeatable: true,
+    title: 'Вызов в деканат', about: '14 и больше неуважительных часов за месяц' }
 ];
 
 const ACH_BY_CODE = {};
 ACHIEVEMENTS.forEach((a) => { ACH_BY_CODE[a.code] = a; });
+// Повторяемый значок выдаётся раз в период: '' у разовых, '2026-10' у месячных
+const achHasPeriod = (code, period) => {
+  const set = achState.periods.get(code);
+  return !!set && set.has(period || '');
+};
+
+// Месяцы, в которых значок уже получен: «сентябрь, октябрь»
+const ACH_MONTH_NAMES = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+                         'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+function achEarnedMonths(code) {
+  const set = achState.periods.get(code);
+  if (!set) return [];
+  return [...set].filter(Boolean).sort()
+    .map((p) => ACH_MONTH_NAMES[Number(p.split('-')[1]) - 1] || p);
+}
+
 const achLadder = (group) => ACHIEVEMENTS.filter((a) => a.group === group).sort((a, b) => a.need - b.need);
 const ACH_TOTAL = ACHIEVEMENTS.filter((a) => !a.anti).length;
 
@@ -93,7 +117,8 @@ const ACH_TOTAL = ACHIEVEMENTS.filter((a) => !a.anti).length;
 // ===== Состояние =====
 const achState = {
   studyDays: null,        // { semester, days: [] }
-  earned: new Map(),      // code -> { earned_at, period }
+  earned: new Map(),      // code -> { earned_at, period } — первая выдача
+  periods: new Map(),     // code -> Set периодов ('' у разовых, '2026-10' у месячных)
   kinds: new Set(),       // first_login, avatar_set, …
   homeworkDone: new Set(),
   loaded: false
@@ -118,6 +143,7 @@ async function achLoadStudyDays() {
 async function achLoadMine() {
   if (!sb || AppState.auth !== 'signed') {
     achState.earned = new Map();
+    achState.periods = new Map();
     achState.kinds = new Set();
     achState.homeworkDone = new Set();
     return;
@@ -127,16 +153,19 @@ async function achLoadMine() {
       sb.from('student_achievements').select('code, period, earned_at'),
       sb.from('app_events').select('kind, ref')
     ]);
-    const earned = new Map(), kinds = new Set(), homeworkDone = new Set();
+    const earned = new Map(), periods = new Map(), kinds = new Set(), homeworkDone = new Set();
     (badges || []).forEach((b) => {
       const prev = earned.get(b.code);
       if (!prev || String(b.earned_at) < String(prev.earned_at)) earned.set(b.code, b);
+      if (!periods.has(b.code)) periods.set(b.code, new Set());
+      periods.get(b.code).add(b.period || '');
     });
     (events || []).forEach((e) => {
       if (e.kind === 'homework_done') homeworkDone.add(e.ref);
       else kinds.add(e.kind);
     });
     achState.earned = earned;
+    achState.periods = periods;
     achState.kinds = kinds;
     achState.homeworkDone = homeworkDone;
   } catch (e) { console.error('Достижения не загрузились:', e); }
@@ -253,8 +282,18 @@ function achStats() {
     return days.length > 0 && days[days.length - 1] <= asOf;
   });
 
+  // Неуважительные часы по месяцам: с 1-го числа счёт начинается заново
+  const monthHours = {};
+  mine.forEach((a) => {
+    if (a.isExcused || !a.date) return;
+    const m = achMonthOf(a.date);
+    monthHours[m] = (monthHours[m] || 0) + (Number(a.totalHours) || 0);
+  });
+
   return {
     asOf, all, studyDays, mine, closedMonths,
+    monthHours,
+    monthUnexcusedHours: monthHours[month] || 0,
     semester: (achState.studyDays && achState.studyDays.semester) || '',
     unexcusedHours,
     studyDaysPassed: studyDays.length,
@@ -303,7 +342,10 @@ function achDeserved(stats) {
   const nonAnti = [...collected].filter((c) => !(ACH_BY_CODE[c] || {}).anti).length;
   if (nonAnti >= 10) add('collector');
 
-  achLadder('anti').forEach((s) => { if (stats.unexcusedHours >= s.need) add(s.code); });
+  // Антидостижения: отдельный счёт в каждом месяце, период в записи
+  Object.keys(stats.monthHours).sort().forEach((m) => {
+    achLadder('anti').forEach((s) => { if (stats.monthHours[m] >= s.need) add(s.code, m); });
+  });
   return out;
 }
 
@@ -311,7 +353,7 @@ function achDeserved(stats) {
 async function achCheckEarned() {
   if (!sb || AppState.auth !== 'signed' || !achState.studyDays) return;
   const stats = achStats();
-  const fresh = achDeserved(stats).filter((d) => !achState.earned.has(d.code));
+  const fresh = achDeserved(stats).filter((d) => !achHasPeriod(d.code, d.period));
   if (!fresh.length) return;
 
   const now = new Date().toISOString();
@@ -324,7 +366,11 @@ async function achCheckEarned() {
     if (error && error.code !== '23505') throw error;
   } catch (e) { console.error('Значок не записался:', e); }
 
-  fresh.forEach((d) => achState.earned.set(d.code, { code: d.code, period: d.period, earned_at: now }));
+  fresh.forEach((d) => {
+    if (!achState.earned.has(d.code)) achState.earned.set(d.code, { code: d.code, period: d.period, earned_at: now });
+    if (!achState.periods.has(d.code)) achState.periods.set(d.code, new Set());
+    achState.periods.get(d.code).add(d.period || '');
+  });
   achShowNewBadges();
   renderHomeAchievements();
   renderProfileBadges();
@@ -356,8 +402,15 @@ function achProgressOf(code, stats) {
   if (a.group === 'streak')   return { have: Math.min(stats.streak, a.need), need: a.need, earned, text: `Серия ${stats.streak} из ${a.need} дней` };
   if (a.group === 'cert')     return { have: Math.min(stats.certsOnTime, a.need), need: a.need, earned, text: `${stats.certsOnTime} из ${a.need} справок вовремя` };
   if (a.group === 'homework') return { have: Math.min(stats.homeworkDone, a.need), need: a.need, earned, text: `${stats.homeworkDone} из ${a.need} домашек` };
-  if (a.group === 'anti')     return { have: Math.min(stats.unexcusedHours, a.need), need: a.need, earned, anti: true,
-    text: `${stats.unexcusedHours} ч неуважительных за семестр` };
+  if (a.group === 'anti') {
+    const have = stats.monthUnexcusedHours;
+    // Хвост «ещё N ч» нужен только там, где ступень пока не взята
+    const next = achLadder('anti').find((s) => have < s.need);
+    const tail = next && have < a.need ? ` · ещё ${next.need - have} ч — и следующее` : '';
+    return { have: Math.min(have, a.need), need: a.need, earned: achHasPeriod(a.code, stats.month), anti: true,
+      months: achEarnedMonths(a.code),
+      text: `${have} ч неуважительных в этом месяце${tail}` };
+  }
 
   if (a.code === 'first_steps') {
     const done = (achState.kinds.has('avatar_set') ? 1 : 0) + (achState.kinds.has('pass_opened') ? 1 : 0);
@@ -505,7 +558,7 @@ function achCardHtml(a, stats) {
   const row = achState.earned.get(a.code);
   const fill = p.need ? Math.max(0, Math.min(1, p.have / p.need)) : 0;
   const cls = ['ach-card'];
-  if (p.earned) cls.push('is-earned');
+  if (p.earned || (p.months && p.months.length)) cls.push('is-earned');
   if (a.anti) cls.push('is-anti');
   if (p.blocked) cls.push('is-blocked');
 
@@ -516,14 +569,16 @@ function achCardHtml(a, stats) {
   }
 
   return '<div class="' + cls.join(' ') + '">' +
-    achBadgeHtml(a.code, !p.earned) +
+    achBadgeHtml(a.code, !(p.earned || (p.months && p.months.length))) +
     '<div class="ach-card-body">' +
       '<div class="ach-card-title"><b>' + escapeHtml(a.title) + '</b></div>' +
       '<div class="ach-about">' + escapeHtml(a.about) + '</div>' +
       extra +
       '<div class="ach-bar"><i style="--ach-fill:' + fill + '"></i></div>' +
       '<div class="ach-bar-text">' + escapeHtml(p.text) + '</div>' +
-      (row ? '<div class="ach-when">Получено ' + escapeHtml(achFormatDate(row.earned_at)) + '</div>' : '') +
+      (p.months && p.months.length
+        ? '<div class="ach-when">Получено: ' + escapeHtml(p.months.join(', ')) + '</div>'
+        : (row ? '<div class="ach-when">Получено ' + escapeHtml(achFormatDate(row.earned_at)) + '</div>' : '')) +
     '</div></div>';
 }
 
@@ -566,10 +621,11 @@ function renderAchMine() {
 
 // Предупреждение под антидостижениями: сколько часов до следующего
 function achAntiWarning(stats) {
-  const next = achLadder('anti').find((a) => stats.unexcusedHours < a.need);
-  if (!next) return '';
-  const left = next.need - stats.unexcusedHours;
-  return '<div class="ach-bar-text mb-2">Ещё ' + left + ' ч — и следующее антидостижение</div>';
+  const have = stats.monthUnexcusedHours;
+  const next = achLadder('anti').find((a) => have < a.need);
+  const head = '<div class="ach-bar-text mb-2">' + have + ' ч неуважительных в этом месяце';
+  if (!next) return head + ' · дальше ступеней нет</div>';
+  return head + ' · ещё ' + (next.need - have) + ' ч — и следующее антидостижение</div>';
 }
 
 // ===== Как это работает =====
@@ -583,7 +639,8 @@ function renderAchRules() {
     '<p class="mb-2">Уважительные часы серию не прерывают.</p>' +
     '<p class="mb-2">Серия считается только по учебным дням — тем, когда по расписанию были пары, — и до даты «Пропуски актуальны на».</p>' +
     '<p class="mb-2">Домашку можно отметить сделанной только у заданий, которые внёс староста, и только один раз за задание.</p>' +
-    '<p class="mb-0">Антидостижения видны только вам.</p>' +
+    '<p class="mb-2">Антидостижения считаются за календарный месяц: 1-го числа счётчик обнуляется, и в новом месяце значок можно получить снова. В карточке видно, в каких месяцах он уже был.</p>' +
+    '<p class="mb-0">Антидостижения видны только вам, в общий счёт значков не идут и «Коллекционера» не приближают.</p>' +
     '</div></div>';
 }
 
