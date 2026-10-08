@@ -537,6 +537,17 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
+    /* --- Лист «Отметить отсутствующих» (админ) --- */
+    .ma-item { border-bottom: 1px solid var(--color-separator); }
+    .ma-item:last-child { border-bottom: 0; }
+    .ma-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0; }
+    .ma-row label { flex: 1 1 auto; min-width: 0; color: var(--color-text); font-size: var(--fs-chip); }
+    .ma-row .form-switch { flex: none; margin: 0; padding-left: 2.6em; }
+    .ma-row .form-check-input { margin-top: 0; }
+    .ma-cert { padding: 0 0 12px 2px; }
+    .ma-cert .form-label { margin-bottom: 4px; }
+    .ma-cert.d-none { display: none; }
+    .ma-empty { padding: 4px 2px; color: var(--color-text-secondary); font-size: var(--fs-small); }
     .ls-when { margin-bottom: 14px; font-size: var(--fs-caption); color: var(--color-text-secondary); }
     .ls-rows { display: grid; gap: 1px; margin-bottom: 16px; border-radius: var(--radius-lg); overflow: hidden;
       background: var(--color-separator); }
@@ -1712,6 +1723,35 @@
           <span class="ls-done-label">Сделано</span>
         </button>
         <button type="button" class="btn btn-outline-light w-100 mt-2" id="lessonSheetTeacher">Карточка преподавателя</button>
+        <button type="button" class="btn btn-primary w-100 fw-bold mt-2 admin-only d-none" id="lessonSheetMarkAbsent" onclick="openMarkAbsentSheet()">Отметить отсутствующих</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Нижний лист: отметить отсутствующих на паре (только админ).
+     Предмет, дату и часы (2 ч за пару) подставляет openMarkAbsentSheet() из
+     самой пары в расписании. У каждого отмеченного можно поставить
+     «уважительный» и данные справки. Запись идёт в тот же формат absences,
+     что и обычная форма (absenceRecord), и уходит одним коммитом через
+     saveDataToGitHub. -->
+<div class="modal fade swipe-sheet" id="markAbsentSheet" tabindex="-1" aria-labelledby="markAbsentTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="markAbsentTitle">Отметить отсутствующих</div>
+        </div>
+      </div>
+      <button type="button" class="visually-hidden-focusable sheet-close" data-bs-dismiss="modal">Закрыть</button>
+      <div class="filter-sheet-body">
+        <div class="ls-when" id="markAbsentWhen"></div>
+        <input type="text" id="markAbsentSearch" class="form-control form-control-sm mb-2" placeholder="Поиск по ФИО…" oninput="renderMarkAbsentList()">
+        <div id="markAbsentList"></div>
+      </div>
+      <div class="filter-sheet-footer">
+        <button type="button" class="btn btn-primary w-100 fw-bold" id="markAbsentSubmit" onclick="submitMarkAbsent()">Внести отмеченным</button>
       </div>
     </div>
   </div>
@@ -4537,6 +4577,26 @@
     document.getElementById('groupSelectedCount').innerText = groupSelectedStudentIds.size;
   }
 
+  // Одна запись пропуска. Формат absences общий для всех форм: обычной,
+  // групповой и отметки из расписания — поэтому собирается в одном месте.
+  function absenceRecord(o) {
+    const record = {
+      id: 'abs-' + o.stamp + '-' + o.suffix + '-' + Math.floor(Math.random() * 1000),
+      studentId: o.studentId,
+      date: o.date,
+      totalHours: o.hours,
+      isExcused: !!o.isExcused,
+      subject: o.subject,
+      comment: o.comment || ''
+    };
+    if (record.isExcused) {
+      record.certType = o.certType;
+      record.certDueDate = o.certDueDate || null;
+      record.certSubmitted = !!o.certSubmitted;
+    }
+    return record;
+  }
+
   async function submitGroupAbsence() {
     if (!githubToken) return showAlert('Требуется авторизация администратора');
 
@@ -4557,22 +4617,10 @@
     const stamp = Date.now();
     let i = 0;
     groupSelectedStudentIds.forEach(studentId => {
-      const record = {
-        id: 'abs-' + stamp + '-g' + i + '-' + Math.floor(Math.random() * 1000),
-        studentId,
-        date,
-        totalHours: hours,
-        isExcused,
-        subject,
-        comment
-      };
-      if (isExcused) {
-        record.certType = certType;
-        record.certDueDate = certDueDate;
-        record.certSubmitted = certSubmitted;
-      }
-      appData.absences.push(record);
-      i++;
+      appData.absences.push(absenceRecord({
+        suffix: 'g' + (i++), stamp, studentId, date, hours, subject, isExcused, comment,
+        certType, certDueDate, certSubmitted
+      }));
     });
 
     await saveDataToGitHub(`Внесены пропуски группой (${groupSelectedStudentIds.size} студ.)`);
@@ -5146,6 +5194,148 @@
       }
     }
     showAlert(FEATURE_IN_DEV_MESSAGE);
+  }
+
+
+  // --- Отметка пропусков прямо из расписания (админ) ---------------------
+  // Открывается по кнопке в листе занятия. Предмет, дата и часы берутся из
+  // самой пары: одна пара — 2 ч. Состояние по каждому студенту (отмечен,
+  // уважительный, справка) живёт в markAbsentPicked до сохранения.
+  const PAIR_HOURS = 2;
+  let markAbsentLesson = null;
+  const markAbsentPicked = new Map();
+
+  function openMarkAbsentSheet() {
+    if (!githubToken || !openLesson) return;
+    markAbsentLesson = openLesson;
+    markAbsentPicked.clear();
+    document.getElementById('markAbsentSearch').value = '';
+
+    const date = deadlineDate(markAbsentLesson.iso);
+    document.getElementById('markAbsentWhen').textContent =
+      `${markAbsentLesson.lesson.subject} · ${date.getDate()} ${MONTHS_GEN[date.getMonth()]} · ${PAIR_HOURS} ч за пару`;
+
+    renderMarkAbsentList();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('lessonSheet')).hide();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('markAbsentSheet')).show();
+  }
+
+  function renderMarkAbsentList() {
+    const search = document.getElementById('markAbsentSearch').value.trim().toLowerCase();
+    const journalNumbers = getJournalNumbers();
+    const list = [...(appData.students || [])]
+      .sort((a, b) => journalNumbers[a.id] - journalNumbers[b.id])
+      .filter(s => `${s.lastName} ${s.firstName}`.toLowerCase().includes(search));
+
+    const box = document.getElementById('markAbsentList');
+    if (!list.length) {
+      box.innerHTML = '<div class="ma-empty">Никого не найдено</div>';
+      updateMarkAbsentCount();
+      return;
+    }
+
+    box.innerHTML = list.map(s => {
+      const p = markAbsentPicked.get(s.id);
+      const name = escapeHtml(`${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}`);
+      return `<div class="ma-item">
+        <div class="ma-row">
+          <label for="ma_${s.id}">${name}</label>
+          <div class="form-check form-switch">
+            <input type="checkbox" role="switch" class="form-check-input" id="ma_${s.id}"
+                   ${p ? 'checked' : ''} onchange="toggleMarkAbsent('${s.id}', this.checked)"
+                   aria-label="Отсутствовал: ${name}">
+          </div>
+        </div>
+        <div class="ma-cert${p ? '' : ' d-none'}">
+          <div class="form-check mb-2">
+            <input type="checkbox" class="form-check-input" id="maExc_${s.id}"
+                   ${p && p.isExcused ? 'checked' : ''} onchange="setMarkAbsentExcused('${s.id}', this.checked)">
+            <label class="form-check-label text-secondary small" for="maExc_${s.id}">Уважительный</label>
+          </div>
+          <div class="${p && p.isExcused ? '' : 'd-none'}" id="maCert_${s.id}">
+            <select class="form-select form-select-sm mb-2" aria-label="Вид справки"
+                    onchange="setMarkAbsentCert('${s.id}', 'certType', this.value)">
+              ${['Больничный', 'Заявление', 'Освобождение']
+                .map(t => `<option value="${t}"${p && p.certType === t ? ' selected' : ''}>${t}</option>`).join('')}
+            </select>
+            <label class="form-label text-secondary small">Срок сдачи справки</label>
+            <input type="date" class="form-control form-control-sm mb-2" value="${(p && p.certDueDate) || ''}"
+                   onchange="setMarkAbsentCert('${s.id}', 'certDueDate', this.value)">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="maSub_${s.id}"
+                     ${p && p.certSubmitted ? 'checked' : ''}
+                     onchange="setMarkAbsentCert('${s.id}', 'certSubmitted', this.checked)">
+              <label class="form-check-label text-secondary small" for="maSub_${s.id}">Справка уже сдана</label>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    updateMarkAbsentCount();
+  }
+
+  // Перерисовывать весь список не нужно: от этого прыгает прокрутка.
+  // Меняется только блок справки у этого студента.
+  function toggleMarkAbsent(id, checked) {
+    if (checked) markAbsentPicked.set(id, { isExcused: false, certType: 'Больничный', certDueDate: '', certSubmitted: false });
+    else markAbsentPicked.delete(id);
+    const item = document.getElementById('ma_' + id).closest('.ma-item');
+    item.querySelector('.ma-cert').classList.toggle('d-none', !checked);
+    if (!checked) {
+      item.querySelector('#maExc_' + id).checked = false;
+      document.getElementById('maCert_' + id).classList.add('d-none');
+    }
+    haptic('selection');
+    updateMarkAbsentCount();
+  }
+
+  function setMarkAbsentExcused(id, checked) {
+    const p = markAbsentPicked.get(id);
+    if (!p) return;
+    p.isExcused = checked;
+    document.getElementById('maCert_' + id).classList.toggle('d-none', !checked);
+  }
+
+  function setMarkAbsentCert(id, field, value) {
+    const p = markAbsentPicked.get(id);
+    if (p) p[field] = value;
+  }
+
+  function updateMarkAbsentCount() {
+    const btn = document.getElementById('markAbsentSubmit');
+    const n = markAbsentPicked.size;
+    btn.disabled = n === 0;
+    btn.textContent = n ? `Внести отмеченным (${n})` : 'Внести отмеченным';
+    if (typeof syncSheetMainButton === 'function') syncSheetMainButton();
+  }
+
+  async function submitMarkAbsent() {
+    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!markAbsentLesson) return;
+    if (markAbsentPicked.size === 0) return showAlert('Отметьте хотя бы одного студента');
+
+    const lesson = markAbsentLesson.lesson;
+    const date = markAbsentLesson.iso;
+    const stamp = Date.now();
+    let i = 0;
+    markAbsentPicked.forEach((p, studentId) => {
+      appData.absences.push(absenceRecord({
+        suffix: 'l' + (i++),
+        stamp,
+        studentId,
+        date,
+        hours: PAIR_HOURS,
+        subject: lesson.subject,
+        isExcused: p.isExcused,
+        comment: '',
+        certType: p.certType,
+        certDueDate: p.certDueDate || null,
+        certSubmitted: p.certSubmitted
+      }));
+    });
+
+    const ok = await saveDataToGitHub(`Отмечены отсутствующие: ${lesson.subject}, ${date} (${markAbsentPicked.size} студ.)`);
+    if (ok) bootstrap.Modal.getOrCreateInstance(document.getElementById('markAbsentSheet')).hide();
   }
 
   // --- Авторизация ---
