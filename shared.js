@@ -112,7 +112,10 @@ function deadlineCard(d) {
   card.className = 'dl-card' + (zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
   card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
   card.querySelector('.dl-subject').textContent = d.subject;
-  if (zachet) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">' + deadlineKindName(d) + '</span>');
+  // Статус продублирован словом: в гаммах с красным или зелёным акцентом
+  // цвет карточки один в один с акцентом, и по цвету статус не прочитать.
+  const kind = zachet ? deadlineKindName(d) : n < 0 ? 'Просрочено' : n <= 3 ? 'Горит' : '';
+  if (kind) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">' + kind + '</span>');
   const text = card.querySelector('.dl-text');
   if (d.text) text.textContent = d.text; else text.remove();
   card.querySelector('.dl-date').textContent = zachet ? dlFormatDate(deadlineDate(d.dueDate)) : `до ${dlFormatDate(deadlineDate(d.dueDate))}`;
