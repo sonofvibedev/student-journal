@@ -1119,21 +1119,21 @@ body::after {
 .dl-group:first-child { margin-top: 0; }
 .dl-card { position: relative; margin-bottom: 8px; padding: 12px 14px 12px 16px; border-radius: 16px; background: var(--color-surface-2); overflow: hidden; }
 .dl-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--color-border-mid); }
-.dl-card.is-over { background: rgba(255, 98, 143, .12); }
-.dl-card.is-over::before { background: var(--color-danger-line); }
-.dl-card.is-soon { background: rgba(255, 214, 10, .10); }
-.dl-card.is-soon::before { background: var(--color-warning); }
+.dl-card.is-over { background: var(--status-hot-fill); }
+.dl-card.is-over::before { background: var(--status-hot-line); }
+.dl-card.is-soon { background: var(--status-soon-fill); }
+.dl-card.is-soon::before { background: var(--status-soon-line); }
 .dl-subject { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
 .dl-text { margin: 3px 0 8px; font-size: 16px; line-height: 1.35; color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
 .dl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 .dl-rel { padding: 2px 9px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-weight: 600; }
 .dl-card.is-over .dl-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
 .dl-card.is-soon .dl-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
-.dl-card.is-zachet { background: rgba(191, 90, 242, .12); }
-.dl-card.is-zachet::before { background: var(--color-purple); }
+.dl-card.is-zachet { background: var(--status-zachet-fill); }
+.dl-card.is-zachet::before { background: var(--status-zachet-line); }
 .dl-card.is-zachet .dl-rel { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
-.dl-card.is-cert::before { background: var(--color-orange); }
-.dl-card.is-cert.is-over::before { background: var(--color-danger-line); }
+.dl-card.is-cert::before { background: var(--status-cert-line); }
+.dl-card.is-cert.is-over::before { background: var(--status-hot-line); }
 .dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
 .dl-card.is-zachet .dl-kind { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
 .dl-card.is-cert .dl-kind { background: var(--color-orange-soft-bg); color: var(--color-orange-soft-text); }
@@ -1142,7 +1142,7 @@ body::after {
 .dl-cal .cal-day.today::after { content: none; }
 .dl-cal .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: var(--color-text); font-weight: 600; }
 .dl-cal .cal-day.has { color: var(--color-text); font-weight: 600; }
-.dl-cal .cal-day.cert-over { background: rgba(255, 98, 143, .22); }
+.dl-cal .cal-day.cert-over { background: var(--status-hot-fill-strong); }
 .cal-marks { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
 .cal-marks i, .dl-cal .cal-legend i { width: 5px; height: 5px; border-radius: 50%; }
 .dl-cal .cal-legend { flex-wrap: wrap; gap: 6px 14px; }
@@ -1175,7 +1175,7 @@ body::after {
 .cal-day.today::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--color-accent); }
 .cal-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary); }
 .cal-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
-.cal-legend .u { background: rgba(255, 98, 143, .5); } .cal-legend .e { background: rgba(52, 199, 89, .5); }
+.cal-legend .u { background: var(--status-hot-line); } .cal-legend .e { background: var(--status-done-line); }
 
 /* Переключение разделов свайпом: раздел въезжает с той стороны, куда листали (shared.js: swipeIn) */
 @keyframes swipe-in-left { from { opacity: .35; transform: translateX(32px); } to { opacity: 1; transform: none; } }
@@ -1275,6 +1275,41 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 /* статичная версия */
 @media (prefers-reduced-motion: reduce) {
   .sk-tilt, .sk-pass, .sk-face::before, .sk-aurora i, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
+}
+
+/* ===== Смысловые цвета статусов =====
+   «Горит/просрочено», «скоро», «сделано», «зачёт», «справка». Раньше эти цвета
+   стояли прямо в правилах через rgba(...) и были одни и те же в обеих схемах.
+   Теперь каждый статус — тройка --status-*-rgb (заливка) и цвет полосы
+   --status-*-line, отдельно для тёмной и светлой схемы. Заливки считаются из
+   тройки, поэтому гамме достаточно переопределить тройку и полосу. */
+:root {
+  --status-hot-rgb:    255, 98, 143;    --status-hot-line:    #ff7a9c;
+  --status-soon-rgb:   255, 200, 61;    --status-soon-line:   #ffc83d;
+  --status-done-rgb:    58, 209, 106;   --status-done-line:   #3ad16a;
+  --status-zachet-rgb: 191, 90, 242;    --status-zachet-line: #c77cf5;
+  --status-cert-rgb:   255, 171, 82;    --status-cert-line:   #ffab52;
+  --status-fill-a:        .12;
+  --status-fill-a-strong: .22;
+}
+[data-bs-theme=light] {
+  --status-hot-rgb:    196, 22, 47;     --status-hot-line:    #c4162f;
+  --status-soon-rgb:   138, 100, 0;     --status-soon-line:   #8a6400;
+  --status-done-rgb:    21, 128, 61;    --status-done-line:   #15803d;
+  --status-zachet-rgb: 123, 44, 191;    --status-zachet-line: #7b2cbf;
+  --status-cert-rgb:   163, 90, 0;      --status-cert-line:   #a35a00;
+  --status-fill-a:        .10;
+  --status-fill-a-strong: .18;
+}
+/* Производные заливки: считаются из тройки, поэтому объявлены один раз */
+:root {
+  --status-hot-fill:    rgba(var(--status-hot-rgb),    var(--status-fill-a));
+  --status-soon-fill:   rgba(var(--status-soon-rgb),   var(--status-fill-a));
+  --status-done-fill:   rgba(var(--status-done-rgb),   var(--status-fill-a));
+  --status-zachet-fill: rgba(var(--status-zachet-rgb), var(--status-fill-a));
+  --status-cert-fill:   rgba(var(--status-cert-rgb),   var(--status-fill-a));
+  --status-hot-fill-strong:  rgba(var(--status-hot-rgb),  var(--status-fill-a-strong));
+  --status-done-fill-strong: rgba(var(--status-done-rgb), var(--status-fill-a-strong));
 }
 
 /* ============================================================================
