@@ -80,7 +80,7 @@ if (Test-Path (Join-Path $RepoPath "tools\build-study-days.js")) {
 
 # Добавляем изменённые файлы (каждый — только если реально есть в папке)
 git add index.html
-foreach ($name in @("data.json", "study-days.json", "cabinet.html", "pass.html", "app.css", "profile.css", "env.js", "theme.js", "changelog.js", "shared.js", "profile.js", "studak.js", "schedule.js", "notify.js", "achievements.js", "achievements.css", "manifest.json", "sw.js", "icons", "fonts")) {    $p = Join-Path $RepoPath $name
+foreach ($name in @("data.json", "study-days.json", "cabinet.html", "pass.html", "app.css", "profile.css", "env.js", "theme.js", "changelog.js", "shared.js", "badges.js", "profile.js", "studak.js", "schedule.js", "notify.js", "achievements.js", "achievements.css", "manifest.json", "sw.js", "icons", "fonts")) {    $p = Join-Path $RepoPath $name
     if (Test-Path $p) {
         git add $name
     }
