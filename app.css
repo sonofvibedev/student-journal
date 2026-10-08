@@ -859,7 +859,7 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
 }
 .table th {
   padding: 12px;
-  font-size: 11px;
+  font-size: var(--fs-small);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -911,7 +911,7 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
   border-radius: var(--radius-xs);
   background-color: var(--color-warn-bg);
   color: var(--color-yellow-line);
-  font-size: 10px;
+  font-size: var(--fs-small);
   font-weight: 600;
   line-height: 1.4;
   letter-spacing: 0;
@@ -975,10 +975,12 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
 .tabbar-item:hover { color: var(--color-text-secondary); }
 .tabbar-item.active { color: var(--color-accent); font-weight: 500; }
 /* Четыре кнопки: подпись не вылезает за кнопку и не выходит за низ панели.
-   На узких экранах шрифт подписей чуть мельче у всех четырёх сразу — слова не сокращаем. */
+   Минимум 12px даже на узких экранах — мельче плохо читается; на 360px
+   самое длинное слово («Расписание») укладывается, если убрать отступы
+   и чуть поджать межбуквенное. Слова не сокращаем. */
 .tabbar-item > span:not(.tab-selection):not(.tabbar-badge-dot) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 380px) {
-  .tabbar-item { padding: 0; font-size: 10px; letter-spacing: -0.45px; }
+  .tabbar-item { padding: 0; font-size: var(--fs-small); letter-spacing: -0.5px; }
 }
 .tabbar-item .tab-ico { flex: none; width: var(--tab-icon); height: var(--tab-icon); }
 .tabbar-item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -6px; border-radius: 100px; }
@@ -995,7 +997,7 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
   transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-spring);
 }
 .tabbar-item.active .tab-selection { opacity: 1; transform: none; }
-/* Красная точка непрочитанных объявлений */
+/* Красная точка непросмотренных напоминаний */
 .tabbar-badge-dot {
   position: absolute;
   top: 12px;
@@ -1136,7 +1138,7 @@ body::after {
 .dl-card.is-cert.is-over::before { background: var(--status-hot-line); }
 .dl-card.is-over .dl-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
 .dl-card.is-soon .dl-kind { background: var(--status-soon-pill); color: var(--status-soon-text); }
-.dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: var(--fs-small); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
 .dl-card.is-zachet .dl-kind { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
 .dl-card.is-cert .dl-kind { background: var(--status-cert-pill); color: var(--status-cert-text); }
 .dl-card.is-cert.is-over .dl-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
@@ -1168,7 +1170,7 @@ body::after {
 .cal-nav { width: 36px; height: 32px; border: 0; border-radius: 10px; background: none; color: var(--color-accent); font-size: 22px; line-height: 1; }
 .cal-nav:disabled { color: var(--color-text-disabled); }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-variant-numeric: tabular-nums; }
-.cal-grid .wd { padding-bottom: 2px; font-size: 11px; color: var(--color-text-tertiary); }
+.cal-grid .wd { padding-bottom: 2px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
 .cal-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 10px; background: none; color: var(--color-text-2); font-size: 14px; }
 .cal-day.weekend { color: var(--color-text-tertiary); }
 .cal-day.u { background: var(--color-pink-soft-bg); color: var(--color-text); font-weight: 600; }
@@ -1656,7 +1658,7 @@ body::before {
   margin-left: 6px; padding: 1px 7px;
   border-radius: 6px;
   background: var(--color-green-soft-bg); color: var(--color-success-text);
-  font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  font-size: var(--fs-small); font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
 }
 
 /* ===== Дедлайн в расписании: стоит на своём дне под парами ===== */
