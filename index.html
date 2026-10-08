@@ -537,6 +537,31 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
+    /* --- «Потяни, чтобы обновить»: индикатор над содержимым --- */
+    .ptr {
+      position: fixed; left: 50%; z-index: 1035;
+      top: calc(var(--app-inset-top) + 8px);
+      display: grid; place-items: center;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background-color: var(--glass-bg-strong);
+      border: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--color-text-secondary);
+      opacity: 0;
+      transform: translate(-50%, -14px) scale(.8);
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+    .ptr svg { width: 18px; height: 18px; }
+    .ptr.is-ready { color: var(--color-accent); }
+    .ptr.is-busy { opacity: 1; transform: translate(-50%, 6px) scale(1); transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out); }
+    .ptr.is-busy svg { animation: ptr-spin 900ms linear infinite; }
+    .ptr.is-hiding { opacity: 0; transform: translate(-50%, -14px) scale(.8); transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out); }
+    @keyframes ptr-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .ptr.is-busy svg { animation: none; } }
     /* --- Лист «Отметить отсутствующих» (админ) --- */
     .ma-item { border-bottom: 1px solid var(--color-separator); }
     .ma-item:last-child { border-bottom: 0; }
@@ -1728,6 +1753,13 @@
     </div>
   </div>
 </div>
+
+<!-- «Потяни, чтобы обновить»: индикатор. Жест — в ptrInit(), только когда
+     страница прокручена в самый верх. -->
+<div class="ptr" id="ptrIndicator" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 4v5h-5"/></svg>
+</div>
+<div class="visually-hidden" id="ptrStatus" role="status" aria-live="polite"></div>
 
 <!-- Нижний лист: отметить отсутствующих на паре (только админ).
      Предмет, дату и часы (2 ч за пару) подставляет openMarkAbsentSheet() из
@@ -2976,7 +3008,7 @@
 
   async function loadData() {
     try {
-      const response = await fetch(`./data.json?t=${Date.now()}`);
+      const response = await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
       appData = await response.json();
       if (!appData.subjects || appData.subjects.length === 0) {
         appData.subjects = DEFAULT_SUBJECTS;
@@ -5197,6 +5229,105 @@
   }
 
 
+
+  // --- «Потяни, чтобы обновить» ------------------------------------------
+  // Жест свой и живёт внутри страницы: вертикальный свайп Telegram остаётся
+  // выключенным (disableVerticalSwipes в init), иначе вместо обновления
+  // потянулось бы само мини-приложение.
+  // Срабатывает только когда страница прокручена в самый верх и сверху нет
+  // открытого листа. Горизонтальные жесты (переключение вкладок) не трогаем:
+  // тянем, только если палец ушёл вниз заметно сильнее, чем в сторону.
+  const PTR_TRIGGER = 72;     // столько надо протянуть, чтобы обновить
+  const PTR_MAX = 108;        // дальше индикатор не едет
+  let ptrStart = null;
+  let ptrDist = 0;
+  let ptrReady = false;
+  let ptrBusy = false;
+
+  function ptrMove(dist) {
+    const el = document.getElementById('ptrIndicator');
+    const k = Math.min(dist, PTR_MAX);
+    const progress = Math.min(1, k / PTR_TRIGGER);
+    el.style.transform = `translate(-50%, ${k * 0.42}px) scale(${0.8 + progress * 0.2})`;
+    el.style.opacity = String(progress);
+  }
+
+  function ptrReset() {
+    const el = document.getElementById('ptrIndicator');
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.classList.remove('is-ready');
+    ptrStart = null;
+    ptrDist = 0;
+    ptrReady = false;
+  }
+
+  async function ptrRefresh() {
+    const el = document.getElementById('ptrIndicator');
+    ptrBusy = true;
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.classList.remove('is-ready', 'is-hiding');
+    el.classList.add('is-busy');
+    document.getElementById('ptrStatus').textContent = 'Обновляем данные';
+    try {
+      // data.json — мимо кэша; Supabase — профиль и достижения
+      await Promise.all([
+        loadData(),
+        refreshCabinetProfile(),
+        typeof achLoadAll === 'function' ? achLoadAll().catch(() => {}) : Promise.resolve()
+      ]);
+      showView(currentViewName);
+      haptic('success');
+      document.getElementById('ptrStatus').textContent = 'Данные обновлены';
+    } catch (e) {
+      haptic('error');
+      document.getElementById('ptrStatus').textContent = 'Не удалось обновить';
+      console.error(e);
+    } finally {
+      el.classList.remove('is-busy');
+      el.classList.add('is-hiding');
+      setTimeout(() => { el.classList.remove('is-hiding'); ptrBusy = false; }, 260);
+    }
+  }
+
+  function ptrInit() {
+    document.addEventListener('touchstart', (e) => {
+      if (ptrBusy || e.touches.length !== 1) return;
+      if (window.scrollY > 0) return;
+      if (document.querySelector('.modal.show')) return;
+      const t = e.touches[0];
+      ptrStart = { x: t.clientX, y: t.clientY };
+      ptrDist = 0;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!ptrStart || ptrBusy || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dy = t.clientY - ptrStart.y;
+      const dx = Math.abs(t.clientX - ptrStart.x);
+      if (dy <= 0 || dx > dy * 0.6 || window.scrollY > 0) { if (ptrDist) ptrReset(); else ptrStart = null; return; }
+      ptrDist = dy;
+      ptrMove(dy);
+      const ready = dy >= PTR_TRIGGER;
+      if (ready !== ptrReady) {
+        ptrReady = ready;
+        document.getElementById('ptrIndicator').classList.toggle('is-ready', ready);
+        if (ready) haptic('light');
+      }
+      if (e.cancelable) e.preventDefault();   // не даём странице «отпружинить»
+    }, { passive: false });
+
+    const end = () => {
+      if (!ptrStart || ptrBusy) { ptrStart = null; return; }
+      const fire = ptrReady;
+      ptrReset();
+      if (fire) ptrRefresh();
+    };
+    document.addEventListener('touchend', end, { passive: true });
+    document.addEventListener('touchcancel', end, { passive: true });
+  }
+
   // --- Отметка пропусков прямо из расписания (админ) ---------------------
   // Открывается по кнопке в листе занятия. Предмет, дата и часы берутся из
   // самой пары: одна пара — 2 ч. Состояние по каждому студенту (отмечен,
@@ -5357,6 +5488,7 @@
     if (currentViewName === 'study') renderStudyTiles();
   });
 
+  ptrInit();
   init();
 
   // Дорисовать после штатной функции страницы (сами функции не меняются)
