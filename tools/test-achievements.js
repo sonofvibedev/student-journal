@@ -141,21 +141,72 @@ function setup({ days, absences, asOf, homeworkDone = 0, earned = [] }) {
   check('«Чистый семестр»: тоже недоступен', ach.achProgressOf('clean_term', stats).blocked, true);
 }
 
-// --- 6. Пороги антидостижений ---
+// --- 6. Антидостижения: пороги считаются за календарный месяц ---
 {
   const days = ['2026-10-01', '2026-10-02'];
   const cases = [
-    [1, []],
-    [2, ['anti_2']],
-    [6, ['anti_2', 'anti_6']],
-    [9, ['anti_2', 'anti_6', 'anti_9']],
-    [18, ['anti_2', 'anti_6', 'anti_9', 'anti_18']]
+    [1,  []],
+    [2,  ['anti_m2']],
+    [5,  ['anti_m2', 'anti_m4']],
+    [8,  ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8']],
+    [13, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12']],
+    [14, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12', 'anti_m14']],
+    [20, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12', 'anti_m14']]
   ];
   cases.forEach(([hours, expected]) => {
     const stats = setup({ days, asOf: '2026-10-02', absences: [{ date: '2026-10-01', totalHours: hours, isExcused: false }] });
-    const reached = ach.achLadder('anti').filter((a) => stats.unexcusedHours >= a.need).map((a) => a.code);
-    check(`антидостижения: ${hours} ч`, reached, expected);
+    const reached = ach.achLadder('anti').filter((a) => stats.monthUnexcusedHours >= a.need).map((a) => a.code);
+    check(`антидостижения: ${hours} ч за месяц`, reached, expected);
   });
+}
+
+// --- 6a. Счётчик обнуляется 1-го числа ---
+{
+  const days = ['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02'];
+  const stats = setup({
+    days, asOf: '2026-10-02',
+    absences: [{ date: '2026-09-29', totalHours: 8, isExcused: false }]
+  });
+  check('антидостижения: сентябрьские часы не идут в октябрь', stats.monthUnexcusedHours, 0);
+  check('антидостижения: за семестр часы по-прежнему видны', stats.unexcusedHours, 8);
+}
+
+// --- 6b. В новом месяце значок выдаётся снова, со своим периодом ---
+{
+  const days = ['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02'];
+  const stats = setup({
+    days, asOf: '2026-10-02',
+    absences: [
+      { date: '2026-09-29', totalHours: 4, isExcused: false },
+      { date: '2026-10-01', totalHours: 2, isExcused: false }
+    ]
+  });
+  const got = ach.achDeserved(stats).filter((d) => d.code.startsWith('anti_'));
+  check('антидостижения: сентябрь и октябрь отдельно', got, [
+    { code: 'anti_m2', period: '2026-09' },
+    { code: 'anti_m4', period: '2026-09' },
+    { code: 'anti_m2', period: '2026-10' }
+  ]);
+}
+
+// --- 6в. Уважительные часы антидостижений не дают ---
+{
+  const days = ['2026-10-01', '2026-10-02'];
+  const stats = setup({
+    days, asOf: '2026-10-02',
+    absences: [{ date: '2026-10-01', totalHours: 10, isExcused: true }]
+  });
+  check('антидостижения: уважительные часы не считаются', stats.monthUnexcusedHours, 0);
+  check('антидостижения: при уважительных ничего не выдано',
+    ach.achDeserved(stats).filter((d) => d.code.startsWith('anti_')), []);
+}
+
+// --- 6г. Шкала карточки: сколько часов и сколько до следующей ступени ---
+{
+  const days = ['2026-10-01', '2026-10-02'];
+  const stats = setup({ days, asOf: '2026-10-02', absences: [{ date: '2026-10-01', totalHours: 5, isExcused: false }] });
+  const p = ach.achProgressOf('anti_m6', stats);
+  check('антидостижения: шкала следующей ступени', [p.have, p.need], [5, 6]);
 }
 
 // --- 7. Счёт собранных значков: антидостижения в него не входят ---
@@ -164,7 +215,7 @@ function setup({ days, absences, asOf, homeworkDone = 0, earned = [] }) {
   const stats = setup({
     days, asOf: '2026-10-02',
     absences: [{ date: '2026-10-01', totalHours: 3, isExcused: false }],
-    earned: ['clean_sheet', 'anti_2']
+    earned: ['clean_sheet', 'anti_m2']
   });
   check('значки: антидостижение не считается собранным', stats.badgesCount, 1);
 }
