@@ -404,8 +404,9 @@ function achProgressOf(code, stats) {
   if (a.group === 'homework') return { have: Math.min(stats.homeworkDone, a.need), need: a.need, earned, text: `${stats.homeworkDone} из ${a.need} домашек` };
   if (a.group === 'anti') {
     const have = stats.monthUnexcusedHours;
+    // Хвост «ещё N ч» нужен только там, где ступень пока не взята
     const next = achLadder('anti').find((s) => have < s.need);
-    const tail = next ? ` · ещё ${next.need - have} ч — и следующее` : '';
+    const tail = next && have < a.need ? ` · ещё ${next.need - have} ч — и следующее` : '';
     return { have: Math.min(have, a.need), need: a.need, earned: achHasPeriod(a.code, stats.month), anti: true,
       months: achEarnedMonths(a.code),
       text: `${have} ч неуважительных в этом месяце${tail}` };
@@ -568,7 +569,7 @@ function achCardHtml(a, stats) {
   }
 
   return '<div class="' + cls.join(' ') + '">' +
-    achBadgeHtml(a.code, !p.earned) +
+    achBadgeHtml(a.code, !(p.earned || (p.months && p.months.length))) +
     '<div class="ach-card-body">' +
       '<div class="ach-card-title"><b>' + escapeHtml(a.title) + '</b></div>' +
       '<div class="ach-about">' + escapeHtml(a.about) + '</div>' +
