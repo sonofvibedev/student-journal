@@ -537,6 +537,22 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
+    /* --- Плашка «Нет сети»: тонкая строка над содержимым --- */
+    .offline-bar {
+      position: sticky; top: 0; z-index: 1030;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 0 -16px 10px;
+      padding: calc(var(--app-inset-top) + 6px) 16px 6px;
+      background-color: var(--glass-bg-strong);
+      border-bottom: 1px solid var(--glass-edge);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--color-text-secondary);
+      font-size: var(--fs-small);
+      text-align: center;
+    }
+    .offline-bar.d-none { display: none; }
+    .offline-bar i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--status-soon-line); }
     /* --- «Потяни, чтобы обновить»: индикатор над содержимым --- */
     .ptr {
       position: fixed; left: 50%; z-index: 1035;
@@ -606,6 +622,13 @@
 <body>
 
 <div class="container my-3">
+
+  <!-- Нет сети: данные показываются те, что успели загрузиться.
+       Текст ставит renderOfflineBar(). -->
+  <div class="offline-bar d-none" id="offlineBar" role="status" aria-live="polite">
+    <i aria-hidden="true"></i><span id="offlineBarText">Нет сети</span>
+  </div>
+
   
   <!-- Заголовок страницы -->
   <header class="app-header va-header">
@@ -3020,6 +3043,7 @@
         appData.deadlines = [];
       }
       AppState.setData('ready');               // данные есть: разделы могут показывать цифры
+      renderOfflineBar();                      // в плашке «Нет сети» — дата этих данных
       populateSubjectFilter();
       updateStats();
       renderTable();
@@ -5153,6 +5177,11 @@
 
   // --- Сохранение в GitHub ---
   async function saveDataToGitHub(message) {
+  if (isOffline()) {
+    haptic('error');
+    showAlert('Нет сети — сохранить не получится. Изменения записываются прямо в data.json на GitHub, а без интернета до него не дотянуться. Проверьте связь и нажмите «Сохранить» ещё раз: введённое никуда не денется.');
+    return false;
+  }
   try {
     const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
       headers: { Authorization: `Bearer ${githubToken}` }
@@ -5229,6 +5258,55 @@
   }
 
 
+
+
+  // --- Плашка «Нет сети» -------------------------------------------------
+  // Без интернета сверху тонкая строка «Нет сети · данные от …»: видно, что
+  // цифры не свежие. Сохранение у администратора в это время недоступно —
+  // запись ушла бы в пустоту, а data.json на GitHub остался бы прежним.
+  // Когда связь вернулась, плашка пропадает и данные подтягиваются молча.
+  const isOffline = () => navigator.onLine === false;
+
+  function dataAsOfText() {
+    const d = appData.lastUpdated ? new Date(appData.lastUpdated) : null;
+    if (!d || isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}.${mm}, ${hh}:${min}`;
+  }
+
+  function renderOfflineBar() {
+    const bar = document.getElementById('offlineBar');
+    if (!bar) return;
+    const off = isOffline();
+    bar.classList.toggle('d-none', !off);
+    if (off) {
+      const asOf = dataAsOfText();
+      document.getElementById('offlineBarText').textContent = asOf ? `Нет сети · данные от ${asOf}` : 'Нет сети';
+    }
+  }
+
+  function initOfflineWatch() {
+    window.addEventListener('offline', renderOfflineBar);
+    window.addEventListener('online', async () => {
+      renderOfflineBar();
+      // Тихо: ни всплывашек, ни вибрации — просто свежие данные
+      try {
+        await Promise.all([
+          loadData(),
+          refreshCabinetProfile(),
+          typeof achLoadAll === 'function' ? achLoadAll().catch(() => {}) : Promise.resolve()
+        ]);
+        showView(currentViewName);
+      } catch (e) {
+        console.error(e);
+      }
+      renderOfflineBar();
+    });
+    renderOfflineBar();
+  }
 
   // --- «Потяни, чтобы обновить» ------------------------------------------
   // Жест свой и живёт внутри страницы: вертикальный свайп Telegram остаётся
@@ -5489,6 +5567,7 @@
   });
 
   ptrInit();
+  initOfflineWatch();
   init();
 
   // Дорисовать после штатной функции страницы (сами функции не меняются)
