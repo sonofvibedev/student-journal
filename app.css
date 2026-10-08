@@ -1127,17 +1127,19 @@ body::after {
 .dl-text { margin: 3px 0 8px; font-size: 16px; line-height: 1.35; color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
 .dl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 .dl-rel { padding: 2px 9px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-weight: 600; }
-.dl-card.is-over .dl-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
-.dl-card.is-soon .dl-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
+.dl-card.is-over .dl-rel { background: var(--status-hot-pill); color: var(--status-hot-text); }
+.dl-card.is-soon .dl-rel { background: var(--status-soon-pill); color: var(--status-soon-text); }
 .dl-card.is-zachet { background: var(--status-zachet-fill); }
 .dl-card.is-zachet::before { background: var(--status-zachet-line); }
-.dl-card.is-zachet .dl-rel { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
+.dl-card.is-zachet .dl-rel { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
 .dl-card.is-cert::before { background: var(--status-cert-line); }
 .dl-card.is-cert.is-over::before { background: var(--status-hot-line); }
+.dl-card.is-over .dl-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
+.dl-card.is-soon .dl-kind { background: var(--status-soon-pill); color: var(--status-soon-text); }
 .dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
-.dl-card.is-zachet .dl-kind { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
-.dl-card.is-cert .dl-kind { background: var(--color-orange-soft-bg); color: var(--color-orange-soft-text); }
-.dl-card.is-cert.is-over .dl-kind { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+.dl-card.is-zachet .dl-kind { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
+.dl-card.is-cert .dl-kind { background: var(--status-cert-pill); color: var(--status-cert-text); }
+.dl-card.is-cert.is-over .dl-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
 /* Календарь дедлайнов: цветные метки под числом, сегодня — обводка */
 .dl-cal .cal-day.today::after { content: none; }
 .dl-cal .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: var(--color-text); font-weight: 600; }
@@ -1171,7 +1173,7 @@ body::after {
 .cal-day.weekend { color: var(--color-text-tertiary); }
 .cal-day.u { background: var(--color-pink-soft-bg); color: var(--color-text); font-weight: 600; }
 .cal-day.e { background: var(--color-green-soft-bg); color: var(--color-text); font-weight: 600; }
-.cal-day.sel { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+.cal-day.sel { outline: 2px solid var(--color-accent); outline-offset: -2px; font-weight: 700; }
 .cal-day.today::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--color-accent); }
 .cal-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary); }
 .cal-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
@@ -1284,20 +1286,22 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
    --status-*-line, отдельно для тёмной и светлой схемы. Заливки считаются из
    тройки, поэтому гамме достаточно переопределить тройку и полосу. */
 :root {
-  --status-hot-rgb:    255, 98, 143;    --status-hot-line:    #ff7a9c;
-  --status-soon-rgb:   255, 200, 61;    --status-soon-line:   #ffc83d;
-  --status-done-rgb:    58, 209, 106;   --status-done-line:   #3ad16a;
-  --status-zachet-rgb: 191, 90, 242;    --status-zachet-line: #c77cf5;
-  --status-cert-rgb:   255, 171, 82;    --status-cert-line:   #ffab52;
+  --status-hot-rgb:    255, 98, 143;    --status-hot-line:    #ff7a9c;    --status-hot-text:    #ff7a9c;
+  --status-soon-rgb:   255, 200, 61;    --status-soon-line:   #ffc83d;    --status-soon-text:   #ffc83d;
+  --status-done-rgb:    58, 209, 106;   --status-done-line:   #3ad16a;    --status-done-text:   #3ad16a;
+  --status-zachet-rgb: 191, 90, 242;    --status-zachet-line: #c77cf5;    --status-zachet-text: #c77cf5;
+  --status-cert-rgb:   255, 171, 82;    --status-cert-line:   #ffab52;    --status-cert-text:   #ffab52;
   --status-fill-a:        .12;
   --status-fill-a-strong: .22;
 }
+/* В светлой схеме цвет текста темнее цвета полосы: на заливке таблетки полоса
+   не дотягивает до AA, а полосе контраст и не нужен — она не текст. */
 [data-bs-theme=light] {
-  --status-hot-rgb:    196, 22, 47;     --status-hot-line:    #c4162f;
-  --status-soon-rgb:   138, 100, 0;     --status-soon-line:   #8a6400;
-  --status-done-rgb:    21, 128, 61;    --status-done-line:   #15803d;
-  --status-zachet-rgb: 123, 44, 191;    --status-zachet-line: #7b2cbf;
-  --status-cert-rgb:   163, 90, 0;      --status-cert-line:   #a35a00;
+  --status-hot-rgb:    196, 22, 47;     --status-hot-line:    #c4162f;    --status-hot-text:    #8e0f26;
+  --status-soon-rgb:   138, 100, 0;     --status-soon-line:   #8a6400;    --status-soon-text:   #5c4300;
+  --status-done-rgb:    21, 128, 61;    --status-done-line:   #15803d;    --status-done-text:   #0d5c2b;
+  --status-zachet-rgb: 123, 44, 191;    --status-zachet-line: #7b2cbf;    --status-zachet-text: #561a86;
+  --status-cert-rgb:   163, 90, 0;      --status-cert-line:   #a35a00;    --status-cert-text:   #6b3a00;
   --status-fill-a:        .10;
   --status-fill-a-strong: .18;
 }
@@ -1310,6 +1314,98 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
   --status-cert-fill:   rgba(var(--status-cert-rgb),   var(--status-fill-a));
   --status-hot-fill-strong:  rgba(var(--status-hot-rgb),  var(--status-fill-a-strong));
   --status-done-fill-strong: rgba(var(--status-done-rgb), var(--status-fill-a-strong));
+  /* Таблетки «просрочено / через N дней» и пометки «зачёт», «справка»:
+     заливка из той же тройки, текст — цветом полосы. */
+  --status-hot-pill:    rgba(var(--status-hot-rgb),    .20);
+  --status-soon-pill:   rgba(var(--status-soon-rgb),   .20);
+  --status-zachet-pill: rgba(var(--status-zachet-rgb), .20);
+  --status-cert-pill:   rgba(var(--status-cert-rgb),   .20);
+}
+
+/* ===== Статусы и акцент =====
+   В гаммах, где акцент по смыслу совпадает со статусом, статус сдвинут по
+   оттенку: иначе «сделано» не отличить от акцентной кнопки, а «горит» — от
+   обычного выделения. Цель сдвига — не меньше 45 градусов по тону и от акцента,
+   и от соседних статусов; контраст и сдвиг проверены расчётом.
+   Светлая схема идёт отдельным правилом с двумя атрибутами: у него
+   специфичность выше, иначе значения светлой темы перебила бы гамма.
+
+   Цвет нигде не остаётся единственным признаком: «Горит», «Просрочено»,
+   «Зачёт», «Экзамен» и «Справка» подписаны словом в карточке, у сделанного
+   текст зачёркнут, выбранный день календаря — обводка и жирное число. */
+
+/* Акцент бирюзово-зелёный: «сделано / уважительный» уводим в траву */
+[data-gamma="emerald"] {
+  --status-done-rgb: 134, 222, 79;    --status-done-line: #86de4f;   --status-done-text: #86de4f;
+}
+[data-gamma="emerald"][data-bs-theme=light] {
+  --status-done-rgb:  63, 122, 20;    --status-done-line: #3f7a14;   --status-done-text: #2c5a0e;
+}
+
+/* Акцент травяной: «сделано / уважительный» уводим в бирюзу */
+[data-gamma="moss"] {
+  --status-done-rgb:  47, 211, 176;   --status-done-line: #2fd3b0;   --status-done-text: #2fd3b0;
+}
+[data-gamma="moss"][data-bs-theme=light] {
+  --status-done-rgb:  15, 122, 104;   --status-done-line: #0f7a68;   --status-done-text: #0a5447;
+}
+
+/* Мягкий бордо: «горит» в фуксию, «зачёт» и «справку» — в синий и бирюзу,
+   иначе все три сливаются с красным акцентом */
+[data-gamma="wine"] {
+  --status-hot-rgb:   239, 110, 255;  --status-hot-line:    #ef6eff;  --status-hot-text:    #ef6eff;
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+  --status-cert-rgb:   78, 201, 224;  --status-cert-line:   #4ec9e0;  --status-cert-text:   #4ec9e0;
+}
+[data-gamma="wine"][data-bs-theme=light] {
+  --status-hot-rgb:   138, 0, 143;    --status-hot-line:    #8a008f;  --status-hot-text:    #6b006e;
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
+  --status-cert-rgb:   13, 107, 125;  --status-cert-line:   #0d6b7d;  --status-cert-text:   #084f5c;
+}
+
+/* Терракота: «горит» в малиновый, «скоро» в лимонный, «справка» в бирюзу */
+[data-gamma="terracotta"] {
+  --status-hot-rgb:  255, 110, 196;   --status-hot-line:  #ff6ec4;    --status-hot-text:  #ff6ec4;
+  --status-soon-rgb: 168, 224, 63;    --status-soon-line: #a8e03f;    --status-soon-text: #a8e03f;
+  --status-cert-rgb:  78, 201, 224;   --status-cert-line: #4ec9e0;    --status-cert-text: #4ec9e0;
+}
+[data-gamma="terracotta"][data-bs-theme=light] {
+  --status-hot-rgb:  150, 0, 90;      --status-hot-line:  #96005a;    --status-hot-text:  #70004a;
+  --status-soon-rgb:  74, 110, 0;     --status-soon-line: #4a6e00;    --status-soon-text: #374f00;
+  --status-cert-rgb:  13, 107, 125;   --status-cert-line: #0d6b7d;    --status-cert-text: #084f5c;
+}
+
+/* Янтарь: акцент сам янтарный, поэтому «скоро» в жёлто-зелёный,
+   «справку» в бирюзу, «горит» в малиновый */
+[data-gamma="amber"] {
+  --status-soon-rgb: 168, 224, 63;    --status-soon-line: #a8e03f;    --status-soon-text: #a8e03f;
+  --status-cert-rgb:  78, 201, 224;   --status-cert-line: #4ec9e0;    --status-cert-text: #4ec9e0;
+  --status-hot-rgb:  255, 110, 196;   --status-hot-line:  #ff6ec4;    --status-hot-text:  #ff6ec4;
+}
+[data-gamma="amber"][data-bs-theme=light] {
+  --status-soon-rgb:  74, 110, 0;     --status-soon-line: #4a6e00;    --status-soon-text: #374f00;
+  --status-cert-rgb:  13, 107, 125;   --status-cert-line: #0d6b7d;    --status-cert-text: #084f5c;
+  --status-hot-rgb:  150, 0, 90;      --status-hot-line:  #96005a;    --status-hot-text:  #70004a;
+}
+
+/* Сиреневые и фиолетовые акценты: «зачёт» уводим в синий */
+[data-gamma="indigo"] {
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+}
+[data-gamma="indigo"][data-bs-theme=light] {
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
+}
+[data-gamma="lavender"] {
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+}
+[data-gamma="lavender"][data-bs-theme=light] {
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
+}
+[data-gamma="plum"] {
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+}
+[data-gamma="plum"][data-bs-theme=light] {
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
 }
 
 /* ============================================================================
