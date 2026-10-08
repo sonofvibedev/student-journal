@@ -10,7 +10,7 @@
    подключается после него.
    ========================================================================== */
     /* ===== Личный кабинет: стили страницы (токены и общие компоненты — в app.css).
-       Шапка и статистика — вариант «Как в Telegram», хронология и объявления — «Лента», зачётка — «Списки» ===== */
+       Шапка и статистика — вариант «Как в Telegram», хронология — «Лента», зачётка — «Списки» ===== */
     .cabinet-skeleton .skel-card { height: 56px; margin-bottom: 16px; border-radius: var(--radius-lg); }
     .cabinet-skeleton .skel-line { width: 45%; height: 18px; margin-bottom: 12px; }
     .cabinet-skeleton .skel-stats { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -144,7 +144,7 @@
     .today-next.is-over { border-color: rgba(var(--status-hot-rgb), .4); background: linear-gradient(160deg, rgba(var(--status-hot-rgb), .22), rgba(var(--status-hot-rgb), .04) 70%); }
     .today-next.is-dl { border-color: rgba(0, 136, 255, .35); background: linear-gradient(160deg, rgba(0, 136, 255, .2), rgba(0, 136, 255, .04) 70%); }
     .today-next.is-zachet { border-color: rgba(var(--status-zachet-rgb), .35); background: linear-gradient(160deg, rgba(var(--status-zachet-rgb), .2), rgba(var(--status-zachet-rgb), .04) 70%); }
-    .today-next small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--color-orange-soft-text); }
+    .today-next small { display: block; font-size: var(--fs-small); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--color-orange-soft-text); }
     .today-next.is-over small { color: var(--color-pink-soft-text); } .today-next.is-dl small { color: var(--color-blue-soft-text); } .today-next.is-zachet small { color: var(--color-purple-soft-text); }
     .today-next b { display: block; margin: 4px 0 2px; font-size: 17px; line-height: 1.3; color: var(--color-text); overflow-wrap: anywhere; }
     .today-next span { font-size: 13px; color: var(--color-text-secondary); }
@@ -181,7 +181,7 @@
     .ev-body .badge { font-weight: 500; }
     .ev.ev-msg { padding: 0; background: none; }
     .ev-bubble { max-width: 90%; padding: 10px 13px; border-radius: 18px 18px 18px 6px; background: var(--color-surface-3); color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
-    .ev-bubble small { display: block; margin-top: 4px; font-size: 11px; color: var(--color-text-tertiary); }
+    .ev-bubble small { display: block; margin-top: 4px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
     #calendarDayList .ev, #dlCalendarDayList .ev { display: flex; gap: 12px; margin-bottom: 6px; padding: 11px 12px; border-radius: 14px; background: var(--color-surface-2); }
     .ev-link { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--color-accent); font-size: 13px; }
     /* --- Аватарка: фото из Telegram или инициалы на цветном фоне (палитра Telegram) --- */

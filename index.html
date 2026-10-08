@@ -73,7 +73,7 @@
 
     /* --- Шапка: аватарка вошедшего студента → личный кабинет; без входа — иконка профиля --- */
     .hdr-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-    /* --- Колокольчик объявлений и лист снизу --- */
+    /* --- Колокольчик напоминаний и лист снизу --- */
     .va-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 10px; padding: 12px 0 18px; }
     .va-header .app-header-main { display: contents; }
     .va-header .app-title-row { grid-column: 1; grid-row: 1; align-self: center; }
@@ -88,7 +88,7 @@
     .va-bell:focus-visible { outline: none; }
     .va-bell:focus-visible::before { box-shadow: 0 0 0 2px var(--color-accent); }
     .va-bell.has-unread svg { color: var(--color-text); }
-    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: var(--color-danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
+    .va-bell-count { position: absolute; top: 2px; left: 22px; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--color-bg); border-radius: 999px; background: var(--color-danger); color: #fff; font-size: var(--fs-small); font-weight: 700; line-height: 15px; letter-spacing: -.2px; text-align: center; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
     .va-empty { padding: 24px 0; color: var(--color-text-tertiary); text-align: center; }
 
     /* --- Метрики администратора --- */
@@ -471,7 +471,7 @@
     .sch-head { display: flex; align-items: flex-start; gap: 8px; }
     .sch-head .sch-name { flex: 1; min-width: 0; }
     .sch-name { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
-    .sch-kind { flex: none; padding: 2px 7px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 700;
+    .sch-kind { flex: none; padding: 2px 7px; border-radius: var(--radius-xs); font-size: var(--fs-small); font-weight: 700;
       background: var(--color-surface-3); color: var(--color-text-secondary); }
     /* Виды занятий: свои три цвета в каждой гамме, отстоящие от её акцента
        не меньше чем на 45° — ярлык не читается как «активное». Контраст текста
@@ -481,7 +481,7 @@
     .sch-kind.k-lr { background: var(--color-type-3-bg); color: var(--color-type-3-text); }
     .sch-kind.k-zc { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
     /* Пометка «1 пгр.» — тише типа занятия: это уточнение, а не ярлык */
-    .sch-sub { flex: none; padding: 2px 6px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 600;
+    .sch-sub { flex: none; padding: 2px 6px; border-radius: var(--radius-xs); font-size: var(--fs-small); font-weight: 600;
       background: var(--color-surface-3); color: var(--color-text-tertiary); }
     .sch-meta { margin-top: 3px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
     .sch-empty { display: grid; gap: 4px; padding: 26px 12px; border-radius: var(--radius-lg);
@@ -509,7 +509,7 @@
     .hw-up-subj { font-size: var(--fs-caption); font-weight: 600; color: var(--color-text); }
     .hw-up-text { margin-top: 2px; font-size: var(--fs-caption); color: var(--color-text-2); }
     .hw-up-meta { margin-top: 4px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
-    .hw-up-rel { flex: none; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600;
+    .hw-up-rel { flex: none; padding: 2px 8px; border-radius: var(--radius-pill); font-size: var(--fs-small); font-weight: 600;
       background: var(--color-surface-3); color: var(--color-text-secondary); }
     .hw-up.is-soon .hw-up-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
     .hw-up.is-over .hw-up-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
@@ -582,24 +582,24 @@
       <div class="app-subtitle" id="dataLastUpdated"></div>
     </div>
     <div class="hdr-actions">
-      <button type="button" class="va-bell" id="announcementsBell" onclick="openNotificationsSheet()" aria-label="Уведомления">
+      <button type="button" class="va-bell" id="remindersBell" onclick="openNotificationsSheet()" aria-label="Уведомления">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2v1.3"/><path d="M6.2 16.6V11a5.8 5.8 0 0 1 11.6 0v5.6l1.6 1.7H4.6z"/><path d="M9.9 20.6a2.3 2.3 0 0 0 4.2 0"/></svg>
-        <span class="va-bell-count d-none" id="announcementsBellCount">0</span>
+        <span class="va-bell-count d-none" id="remindersBellCount">0</span>
       </button>
     </div>
   </header>
 
   <!-- Напоминания — лист снизу по колокольчику: что сдавать и когда -->
-  <div class="modal fade swipe-sheet" id="announcementsSheet" tabindex="-1" aria-labelledby="announcementsSheetTitle" aria-hidden="true">
+  <div class="modal fade swipe-sheet" id="remindersSheet" tabindex="-1" aria-labelledby="remindersSheetTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="announcementsSheetTitle">Напоминания</h5>
+          <h5 class="modal-title" id="remindersSheetTitle">Напоминания</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
         </div>
         <div class="modal-body">
           <div id="remindersList"></div>
-          <div class="va-empty d-none" id="announcementsEmpty">Ничего не горит</div>
+          <div class="va-empty d-none" id="remindersEmpty">Ничего не горит</div>
         </div>
       </div>
     </div>
@@ -1691,7 +1691,6 @@
   </div>
 </div>
 
-<!-- Модальное окно: Разместить объявление -->
 <!-- Нижний лист занятия: полная карточка пары, «Сделано» и переход к преподавателю.
      Класс swipe-sheet подключает закрытие смахиванием — тот же механизм, что у фильтров. -->
 <div class="modal fade swipe-sheet" id="lessonSheet" tabindex="-1" aria-labelledby="lessonSheetTitle">
@@ -2061,7 +2060,7 @@
         <div id="adminActiveView" class="d-none text-center">
           <div class="admin-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
           <div class="fw-bold text-white fs-5" id="adminActiveTitle" role="status">Админ-режим включён</div>
-          <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, объявления, дедлайны и зачёты.</p>
+          <p class="small text-secondary mt-1 mb-3">Инструменты администратора — в журнале: отметки пропусков, дедлайны и зачёты.</p>
           <button type="button" class="btn btn-primary w-100 fw-bold mb-2" data-bs-dismiss="modal" onclick="goView('admin')">Открыть админ-панель</button>
           <button type="button" class="btn btn-outline-danger w-100" onclick="logoutAdmin()">Выйти из админки</button>
         </div>
@@ -2114,7 +2113,7 @@
     return `${dd}.${mm}.${yy}`;
   }
 
-  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], announcements: [], deadlines: [], homework: [] };
+  let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], deadlines: [], homework: [] };
   let githubToken = lsGet('gh_pat') || '';
   let currentHistoryStudentId = null;
 
@@ -2753,7 +2752,7 @@
 
   function openRemindersSheet() {
     const list = document.getElementById('remindersList');
-    const empty = document.getElementById('announcementsEmpty');
+    const empty = document.getElementById('remindersEmpty');
     const items = remindersItems();
     empty.classList.toggle('d-none', items.length > 0);
     list.innerHTML = items.map(it =>
@@ -2762,7 +2761,7 @@
       '<div class="dl-text">' + escapeHtml(it.title) + '</div>' +
       '<div class="dl-meta"><span class="dl-date">' + dlFormatDate(deadlineDate(it.date)) + '</span>' +
       '<span class="dl-rel">' + escapeHtml(deadlineRelative(it.n)) + '</span></div></div>').join('');
-    const el = document.getElementById('announcementsSheet');
+    const el = document.getElementById('remindersSheet');
     enableSheetSwipe(el);
     bootstrap.Modal.getOrCreateInstance(el).show();
     markDeadlinesSeen();
@@ -2776,12 +2775,12 @@
   // (ключ notifications_read). Раньше здесь считались «горящие» сроки,
   // поэтому кружок горел постоянно и не гас после открытия листа.
   function updateBellDot() {
-    const dot = document.getElementById('announcementsBellCount');
+    const dot = document.getElementById('remindersBellCount');
     if (!dot) return;
     const n = unreadNotifications().length;
     dot.textContent = n;
     dot.classList.toggle('d-none', n === 0);
-    document.getElementById('announcementsBell').classList.toggle('has-unread', n > 0);
+    document.getElementById('remindersBell').classList.toggle('has-unread', n > 0);
   }
 
   // Лист «Уведомления»: список непрочитанного с датой. Нажатие ведёт к событию,
@@ -2944,9 +2943,6 @@
       }
       if (!appData.teachers) {
         appData.teachers = [];
-      }
-      if (!appData.announcements) {
-        appData.announcements = [];
       }
       if (!appData.deadlines) {
         appData.deadlines = [];
