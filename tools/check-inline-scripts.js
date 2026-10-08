@@ -1,4 +1,4 @@
-// Проверка синтаксиса: все .js проекта и каждый inline <script> в .html.
+﻿// Проверка синтаксиса: все .js проекта и каждый inline <script> в .html.
 // Запуск: node tools/check-inline-scripts.js
 'use strict';
 const fs = require('fs');
