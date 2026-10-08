@@ -5056,7 +5056,7 @@
 
     const studentSelect = document.getElementById('absenceStudent');
     studentSelect.innerHTML = ordered
-      .map(s => `<option value="${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</option>`)
+      .map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(journalNumbers[s.id] + '. ' + s.lastName + ' ' + s.firstName)}</option>`)
       .join('');
 
     document.getElementById('absenceDate').valueAsDate = new Date();
@@ -5122,9 +5122,9 @@
     } else {
       container.innerHTML = filtered.map(s => `
         <div class="form-check">
-          <input type="checkbox" class="form-check-input group-student-check" id="gs_${s.id}" value="${s.id}"
-                 ${groupSelectedStudentIds.has(s.id) ? 'checked' : ''} onchange="toggleGroupStudent('${s.id}', this.checked)">
-          <label class="form-check-label text-white small" for="gs_${s.id}">${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}</label>
+          <input type="checkbox" class="form-check-input group-student-check" id="gs_${escapeHtml(s.id)}" value="${escapeHtml(s.id)}"
+                 ${groupSelectedStudentIds.has(s.id) ? 'checked' : ''} onchange="toggleGroupStudent('${escapeHtml(s.id)}', this.checked)">
+          <label class="form-check-label text-white small" for="gs_${escapeHtml(s.id)}">${escapeHtml(journalNumbers[s.id] + '. ' + s.lastName + ' ' + s.firstName)}</label>
         </div>
       `).join('');
     }
@@ -6061,36 +6061,40 @@
 
     box.innerHTML = list.map(s => {
       const p = markAbsentPicked.get(s.id);
+      // id студента приходит из data.json и попадает в атрибуты и обработчики —
+      // экранируем его так же, как остальные данные, иначе запись в data.json
+      // превращается в выполнение чужого кода у всех, кто откроет лист.
+      const esc = escapeHtml(s.id);
       const name = escapeHtml(`${journalNumbers[s.id]}. ${s.lastName} ${s.firstName}`);
       return `<div class="ma-item">
         <div class="ma-row">
-          <label for="ma_${s.id}">${name}</label>
+          <label for="ma_${esc}">${name}</label>
           <div class="form-check form-switch">
-            <input type="checkbox" role="switch" class="form-check-input" id="ma_${s.id}"
-                   ${p ? 'checked' : ''} onchange="toggleMarkAbsent('${s.id}', this.checked)"
+            <input type="checkbox" role="switch" class="form-check-input" id="ma_${esc}"
+                   ${p ? 'checked' : ''} onchange="toggleMarkAbsent('${esc}', this.checked)"
                    aria-label="Отсутствовал: ${name}">
           </div>
         </div>
         <div class="ma-cert${p ? '' : ' d-none'}">
           <div class="form-check mb-2">
-            <input type="checkbox" class="form-check-input" id="maExc_${s.id}"
-                   ${p && p.isExcused ? 'checked' : ''} onchange="setMarkAbsentExcused('${s.id}', this.checked)">
-            <label class="form-check-label text-secondary small" for="maExc_${s.id}">Уважительный</label>
+            <input type="checkbox" class="form-check-input" id="maExc_${esc}"
+                   ${p && p.isExcused ? 'checked' : ''} onchange="setMarkAbsentExcused('${esc}', this.checked)">
+            <label class="form-check-label text-secondary small" for="maExc_${esc}">Уважительный</label>
           </div>
-          <div class="${p && p.isExcused ? '' : 'd-none'}" id="maCert_${s.id}">
+          <div class="${p && p.isExcused ? '' : 'd-none'}" id="maCert_${esc}">
             <select class="form-select form-select-sm mb-2" aria-label="Вид справки"
-                    onchange="setMarkAbsentCert('${s.id}', 'certType', this.value)">
+                    onchange="setMarkAbsentCert('${esc}', 'certType', this.value)">
               ${['Больничный', 'Заявление', 'Освобождение']
                 .map(t => `<option value="${t}"${p && p.certType === t ? ' selected' : ''}>${t}</option>`).join('')}
             </select>
             <label class="form-label text-secondary small">Срок сдачи справки</label>
             <input type="date" class="form-control form-control-sm mb-2" value="${(p && p.certDueDate) || ''}"
-                   onchange="setMarkAbsentCert('${s.id}', 'certDueDate', this.value)">
+                   onchange="setMarkAbsentCert('${esc}', 'certDueDate', this.value)">
             <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="maSub_${s.id}"
+              <input type="checkbox" class="form-check-input" id="maSub_${esc}"
                      ${p && p.certSubmitted ? 'checked' : ''}
-                     onchange="setMarkAbsentCert('${s.id}', 'certSubmitted', this.checked)">
-              <label class="form-check-label text-secondary small" for="maSub_${s.id}">Справка уже сдана</label>
+                     onchange="setMarkAbsentCert('${esc}', 'certSubmitted', this.checked)">
+              <label class="form-check-label text-secondary small" for="maSub_${esc}">Справка уже сдана</label>
             </div>
           </div>
         </div>
