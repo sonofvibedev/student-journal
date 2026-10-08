@@ -668,7 +668,7 @@ function achToast(code) {
   const el = document.createElement('div');
   el.className = 'ach-toast';
   el.setAttribute('role', 'status');
-  el.innerHTML = achBadgeHtml(code, false) +
+  el.innerHTML = achBadgeHtml(code, false).replace('class="ach-badge', 'class="ach-badge is-new') +
     '<div><div class="ach-toast-kicker">Новое достижение</div>' +
     '<div class="ach-toast-title">' + escapeHtml(a.title) + '</div></div>';
   el.addEventListener('click', () => { el.remove(); openAchSheet(); });

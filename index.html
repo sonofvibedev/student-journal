@@ -639,6 +639,32 @@
     /* В Telegram главное действие листа живёт в MainButton — кнопку-дубль прячем */
     .tg-main-hidden [data-tg-main] { display: none; }
 
+    /* --- Сжатая шапка: при прокрутке крупный заголовок уходит, а сверху
+           остаётся тонкая стеклянная полоса с названием раздела.
+           Высота ничего не анимирует — только transform и opacity. --- */
+    .top-bar {
+      position: fixed; left: 0; right: 0; top: 0; z-index: 1032;
+      display: flex; align-items: center; justify-content: center;
+      padding: calc(var(--app-inset-top) + 9px) 16px 9px;
+      background-color: var(--glass-bg-strong);
+      border-bottom: 1px solid var(--glass-edge);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--color-text); font-size: var(--fs-chip); font-weight: 600;
+      letter-spacing: var(--tracking);
+      opacity: 0; transform: translateY(-100%); pointer-events: none;
+      transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out);
+    }
+    body.is-scrolled .top-bar { opacity: 1; transform: none; }
+    /* Плашка «Нет сети» занимает то же место — полосу в это время не показываем */
+    body.is-offline .top-bar { display: none; }
+    .app-title { transform-origin: left center;
+      transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out); }
+    body.is-scrolled .app-title { opacity: 0; transform: scale(.82) translateY(-6px); }
+    @media (prefers-reduced-motion: reduce) {
+      .top-bar, .app-title { transition: none; }
+    }
+
     /* --- Плашка «Нет сети»: тонкая строка над содержимым --- */
     .offline-bar {
       position: sticky; top: 0; z-index: 1030;
@@ -722,6 +748,9 @@
   </style>
 </head>
 <body>
+
+<!-- Сжатая шапка: появляется при прокрутке, текст ставит renderAppTitle() -->
+<div class="top-bar" id="topBar" aria-hidden="true"><span id="topBarTitle">Главная</span></div>
 
 <div class="container my-3">
 
@@ -2642,7 +2671,10 @@
     const el = document.getElementById('appTitle');
     if (!el) return;
     const view = currentViewName || currentView();
-    el.innerText = VIEW_TITLES_OWN[view] || VIEW_TITLES[tabForScreen(view)] || 'Журнал';
+    const title = VIEW_TITLES_OWN[view] || VIEW_TITLES[tabForScreen(view)] || 'Журнал';
+    el.innerText = title;
+    const bar = document.getElementById('topBarTitle');
+    if (bar) bar.textContent = title;
   }
 
   // ===== Анимации плиток ====================================================
@@ -5808,6 +5840,26 @@
   document.addEventListener('shown.bs.modal', (e) => bindSheetMainButton(e.target));
   document.addEventListener('hidden.bs.modal', (e) => unbindSheetMainButton(e.target));
 
+
+  // --- Сжатая шапка ------------------------------------------------------
+  // Прокрутили вниз — крупный заголовок уходит, сверху остаётся тонкая
+  // стеклянная полоса с названием раздела. Порог с запасом, чтобы полоса не
+  // мигала у самого верха (там же работает «потяни, чтобы обновить»).
+  const TOP_BAR_AT = 28;
+  function initTopBar() {
+    let pending = false;
+    const apply = () => {
+      pending = false;
+      document.body.classList.toggle('is-scrolled', window.scrollY > TOP_BAR_AT);
+    };
+    window.addEventListener('scroll', () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(apply);
+    }, { passive: true });
+    apply();
+  }
+
   // --- Плашка «Нет сети» -------------------------------------------------
   // Без интернета сверху тонкая строка «Нет сети · данные от …»: видно, что
   // цифры не свежие. Сохранение у администратора в это время недоступно —
@@ -5830,6 +5882,7 @@
     if (!bar) return;
     const off = isOffline();
     bar.classList.toggle('d-none', !off);
+    document.body.classList.toggle('is-offline', off);
     if (off) {
       const asOf = dataAsOfText();
       document.getElementById('offlineBarText').textContent = asOf ? `Нет сети · данные от ${asOf}` : 'Нет сети';
@@ -6130,6 +6183,7 @@
   });
 
   ptrInit();
+  initTopBar();
   initOfflineWatch();
   init();
 

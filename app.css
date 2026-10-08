@@ -1205,11 +1205,12 @@ body::after {
 @keyframes sk-spin { to { transform: rotate(360deg); } }
 .sk-aurora { position: absolute; inset: 3px; z-index: 1; overflow: hidden; border-radius: calc(5.5cqw - 3px); }
 .sk-aurora i { position: absolute; width: 60%; aspect-ratio: 1; border-radius: 50%; filter: blur(9cqw); opacity: .55; }
-.sk-aurora i:nth-child(1) { background: #34c759; left: -15%; top: -35%; animation: sk-au1 10s ease-in-out infinite; }
-.sk-aurora i:nth-child(2) { background: #0a84ff; left: 25%; top: 20%; animation: sk-au2 12s ease-in-out infinite; }
-.sk-aurora i:nth-child(3) { background: #ff4fa3; right: -20%; bottom: -45%; animation: sk-au1 14s ease-in-out infinite reverse; }
-@keyframes sk-au1 { 50% { transform: translate(20%, 15%); } }
-@keyframes sk-au2 { 50% { transform: translate(-18%, -12%); } }
+/* Пятна неподвижны: три размытых слоя по 60% ширины, которые ездят без
+   остановки, заставляют телефон греться, а разницы почти не видно.
+   Движение на пропуске осталось там, где оно и читается — перелив по краю. */
+.sk-aurora i:nth-child(1) { background: #34c759; left: -15%; top: -35%; }
+.sk-aurora i:nth-child(2) { background: #0a84ff; left: 25%; top: 20%; }
+.sk-aurora i:nth-child(3) { background: #ff4fa3; right: -20%; bottom: -45%; }
 .sk-aurora::after { content: ''; position: absolute; inset: 0; background: rgba(7, 7, 11, .55); }
 /* лицевая сторона */
 .sk-in { position: absolute; inset: 3px; z-index: 2; display: flex; flex-direction: column; padding: 4cqw 5cqw 7cqw; }
@@ -1278,7 +1279,7 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 .sk-open-btn:active { transform: scale(.96); }
 /* статичная версия */
 @media (prefers-reduced-motion: reduce) {
-  .sk-tilt, .sk-pass, .sk-face::before, .sk-aurora i, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
+  .sk-tilt, .sk-pass, .sk-face::before, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
 }
 
 /* ===== Смысловые цвета статусов =====
