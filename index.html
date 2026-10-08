@@ -537,6 +537,9 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
+    /* В Telegram главное действие листа живёт в MainButton — кнопку-дубль прячем */
+    .tg-main-hidden [data-tg-main] { display: none; }
+
     /* --- Плашка «Нет сети»: тонкая строка над содержимым --- */
     .offline-bar {
       position: sticky; top: 0; z-index: 1030;
@@ -1501,7 +1504,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary fw-bold" onclick="submitAbsence()">Ввести</button>
+        <button type="button" class="btn btn-primary fw-bold" data-tg-main onclick="submitAbsence()">Ввести</button>
       </div>
     </div>
   </div>
@@ -1581,7 +1584,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-primary fw-bold" onclick="submitGroupAbsence()">Внести всем выбранным</button>
+        <button type="button" class="btn btn-primary fw-bold" data-tg-main onclick="submitGroupAbsence()">Внести всем выбранным</button>
       </div>
     </div>
   </div>
@@ -1642,7 +1645,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-success fw-bold" onclick="saveStudent()">Сохранить</button>
+        <button type="button" class="btn btn-success fw-bold" data-tg-main onclick="saveStudent()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1744,7 +1747,7 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-danger me-auto" id="teacherDeleteBtn" onclick="deleteTeacher()" style="display:none;">Удалить</button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-success fw-bold" onclick="saveTeacher()">Сохранить</button>
+        <button type="button" class="btn btn-success fw-bold" data-tg-main onclick="saveTeacher()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1806,7 +1809,7 @@
         <div id="markAbsentList"></div>
       </div>
       <div class="filter-sheet-footer">
-        <button type="button" class="btn btn-primary w-100 fw-bold" id="markAbsentSubmit" onclick="submitMarkAbsent()">Внести отмеченным</button>
+        <button type="button" class="btn btn-primary w-100 fw-bold" id="markAbsentSubmit" data-tg-main onclick="submitMarkAbsent()">Внести отмеченным</button>
       </div>
     </div>
   </div>
@@ -1869,7 +1872,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-danger d-none" id="homeworkDeleteBtn" onclick="deleteHomework(editingHomeworkId)">Удалить</button>
-        <button type="button" class="btn btn-success fw-bold" id="homeworkSaveBtn" onclick="saveHomework()">Сохранить</button>
+        <button type="button" class="btn btn-success fw-bold" id="homeworkSaveBtn" data-tg-main onclick="saveHomework()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -1935,7 +1938,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" onclick="closeDeadlineForm()">Отмена</button>
-        <button type="button" class="btn btn-primary fw-bold" id="deadlineSaveBtn" onclick="saveDeadline()">Сохранить</button>
+        <button type="button" class="btn btn-primary fw-bold" id="deadlineSaveBtn" data-tg-main onclick="saveDeadline()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -2002,7 +2005,7 @@
         </div>
       </div>
       <div class="filter-sheet-footer">
-        <button type="button" class="filter-sheet-apply" data-bs-dismiss="modal">Поиск</button>
+        <button type="button" class="filter-sheet-apply" data-tg-main data-bs-dismiss="modal">Поиск</button>
       </div>
     </div>
   </div>
@@ -5182,6 +5185,7 @@
     showAlert('Нет сети — сохранить не получится. Изменения записываются прямо в data.json на GitHub, а без интернета до него не дотянуться. Проверьте связь и нажмите «Сохранить» ещё раз: введённое никуда не денется.');
     return false;
   }
+  tgMainProgress(true);
   try {
     const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
       headers: { Authorization: `Bearer ${githubToken}` }
@@ -5230,6 +5234,8 @@
     haptic('error');
     showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
     return false;
+  } finally {
+    tgMainProgress(false);
   }
 }
 
@@ -5259,6 +5265,65 @@
 
 
 
+
+
+  // --- Основная кнопка Telegram ------------------------------------------
+  // Внутри Telegram главное действие листа (ввести, сохранить, внести всем)
+  // уезжает в родную кнопку снизу: так до него дотягивается большой палец, а
+  // лист не приходится прокручивать до конца. Кнопка-дубль внутри листа в
+  // Telegram скрыта (класс tg-main-hidden), вне Telegram всё как было.
+  // Главную кнопку листа помечает атрибут data-tg-main.
+  let tgMainBtn = null;      // кнопка-дубль открытого листа
+  let tgMainModal = null;
+  let tgMainClick = null;
+
+  const tgMainAvailable = () => !!(TG && TG.MainButton && tgSupports('6.1'));
+
+  // Текст и доступность берём у самой кнопки: лист сам их меняет
+  // (например «Внести отмеченным (3)»), а здесь только отражаем.
+  function syncSheetMainButton() {
+    if (!tgMainAvailable() || !tgMainBtn) return;
+    TG.MainButton.setParams({
+      text: (tgMainBtn.textContent || 'Готово').trim(),
+      is_active: !tgMainBtn.disabled,
+      is_visible: true
+    });
+  }
+
+  function bindSheetMainButton(modalEl) {
+    if (!tgMainAvailable()) return;
+    const btn = modalEl.querySelector('[data-tg-main]');
+    if (!btn) return;
+    if (tgMainModal) unbindSheetMainButton(tgMainModal);
+    tgMainBtn = btn;
+    tgMainModal = modalEl;
+    tgMainClick = () => { if (!btn.disabled) btn.click(); };
+    TG.MainButton.onClick(tgMainClick);
+    modalEl.classList.add('tg-main-hidden');
+    syncSheetMainButton();
+  }
+
+  function unbindSheetMainButton(modalEl) {
+    if (!tgMainAvailable()) return;
+    if (tgMainModal && modalEl && tgMainModal !== modalEl) return;   // закрылся другой лист
+    if (tgMainClick) TG.MainButton.offClick(tgMainClick);
+    if (tgMainModal) tgMainModal.classList.remove('tg-main-hidden');
+    tgMainBtn = null;
+    tgMainModal = null;
+    tgMainClick = null;
+    TG.MainButton.hideProgress();
+    TG.MainButton.hide();
+  }
+
+  // Пока идёт сохранение — индикатор загрузки на самой кнопке Telegram
+  function tgMainProgress(on) {
+    if (!tgMainAvailable() || !tgMainBtn) return;
+    if (on) TG.MainButton.showProgress(true);
+    else TG.MainButton.hideProgress();
+  }
+
+  document.addEventListener('shown.bs.modal', (e) => bindSheetMainButton(e.target));
+  document.addEventListener('hidden.bs.modal', (e) => unbindSheetMainButton(e.target));
 
   // --- Плашка «Нет сети» -------------------------------------------------
   // Без интернета сверху тонкая строка «Нет сети · данные от …»: видно, что
