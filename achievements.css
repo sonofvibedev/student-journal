@@ -60,6 +60,8 @@
   box-shadow: none;
 }
 .ach-badge.is-locked::after { opacity: .25; }
+/* На светлом фоне полупрозрачный значок почти пропадает */
+[data-bs-theme=light] .ach-badge.is-locked { opacity: .62; }
 .ach-lock {
   position: absolute; right: -1px; bottom: -1px;
   display: grid; place-items: center;
