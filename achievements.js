@@ -88,41 +88,7 @@ ACHIEVEMENTS.forEach((a) => { ACH_BY_CODE[a.code] = a; });
 const achLadder = (group) => ACHIEVEMENTS.filter((a) => a.group === group).sort((a, b) => a.need - b.need);
 const ACH_TOTAL = ACHIEVEMENTS.filter((a) => !a.anti).length;
 
-// ===== Значки =====
-// Контурные иконки в стиле приложения: viewBox 24, stroke 1.8, круглые концы.
-// {n} подставляется числом (дни серии, количество домашек).
-const ACH_ICONS = {
-  clean: '<path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M9 14.2l2.1 2.1L15.4 12"/>',
-  streak: '<path d="M12.4 2.6c.5 2.5-.6 4-1.9 5.2-1.6 1.5-3.2 3-3.2 5.8a4.7 4.7 0 0 0 9.4 0c0-2.2-.9-3.8-2.1-5-.4.9-1 1.5-1.8 1.8.6-2.6 0-5.1-.4-7.8z"/><text x="12" y="17.6" text-anchor="middle" font-size="6.4" font-weight="700" stroke="none" fill="currentColor">{n}</text>',
-  cup: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5.5H5.5V7a3 3 0 0 0 2.9 3M16 5.5h2.5V7a3 3 0 0 1-2.9 3"/><path d="M12 13v3.5M9 20.5h6l-.6-3.5h-4.8z"/>',
-  up: '<path d="M12 20.5V5.6"/><path d="M6.5 11.1L12 5.6l5.5 5.5"/><path d="M5 3h14"/>',
-  cert: '<path d="M12.6 20.5H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1h6.5L17 7v4.3"/><path d="M13.5 3.5V7H17"/><circle cx="16.6" cy="16.6" r="4.4"/><path d="M16.6 14.3v2.4l1.6 1"/>',
-  door: '<path d="M3.4 20.8h17.2"/><path d="M14.6 4.4h4.2v16.4h-4.2"/><path d="M14.6 2.4L7.2 4.8v14l7.4 2.4z"/><path d="M13 12.1v1.8"/>',
-  // Единственная заливная иконка набора: контурный след на 36 px читается как клякса
-  steps: '<g fill="currentColor" stroke="none"><path d="M8.7 4.4c1.3 0 2.1 1.3 2.1 3.1 0 1.5-.5 2.8-.5 3.9 0 1-.5 1.5-1.8 1.5-1.8 0-3-1.3-3-3.3 0-2.9 1.4-5.2 3.2-5.2z"/><ellipse cx="8.4" cy="15.2" rx="1.8" ry="1.6"/><path d="M15.3 9.1c1.3 0 2.1 1.3 2.1 3.1 0 1.5-.5 2.8-.5 3.9 0 1-.5 1.5-1.8 1.5-1.8 0-3-1.3-3-3.3 0-2.9 1.4-5.2 3.2-5.2z"/><ellipse cx="15" cy="19.9" rx="1.8" ry="1.6"/></g>',
-  tech: '<circle cx="10.4" cy="10.4" r="3.1"/><path d="M10.4 4.1v1.7M10.4 15v1.7M4.1 10.4h1.7M15 10.4h1.7M5.9 5.9l1.2 1.2M13.7 13.7l1.2 1.2M14.9 5.9l-1.2 1.2M5.9 14.9l1.2-1.2"/><circle cx="16.1" cy="16.1" r="3.4"/><path d="M18.5 18.5l2.3 2.3"/>',
-  bell: '<path d="M12 3v1.4"/><path d="M6.4 16.6V11a5.6 5.6 0 0 1 11.2 0v5.6l1.5 1.7H4.9z"/><path d="M10 20.4a2.2 2.2 0 0 0 4 0"/>',
-  collector: '<rect x="3.4" y="4.4" width="17.2" height="15.2" rx="2.2"/><path d="M3.4 8.2h17.2"/><path d="M7.4 8.2l1.1 2.6M9.6 8.2l-1.1 2.6"/><circle cx="8.5" cy="15" r="2.4"/><path d="M14.4 8.2l1.1 2.6M16.6 8.2l-1.1 2.6"/><circle cx="15.5" cy="15" r="2.4"/>',
-  book: '<rect x="6.2" y="3.8" width="12.4" height="16.4" rx="1.8"/><path d="M9.4 3.8v16.4"/><path d="M6.8 6.8h2M6.8 9.8h2M6.8 12.8h2M6.8 15.8h2"/><text x="14" y="14.6" text-anchor="middle" font-size="6.4" font-weight="700" stroke="none" fill="currentColor">{n}</text>',
-  shoe: '<path d="M3.4 16.8v-5.4h3.3l2.6 1.9 3.6.6 4.4 1.9a3.1 3.1 0 0 1 1.8 2.8v.5H3.4z"/><path d="M3.4 19.1h17.2"/><path d="M6.8 11.4l1.3 2.3M10 13l1.1 2M13.3 13.9l1.1 2"/>',
-  desk: '<path d="M3.2 10.6h17.6"/><path d="M5.8 10.6V20.4M18.2 10.6V20.4"/><path d="M6.9 15h10.2"/><path d="M8.6 10.6V7.4a1.2 1.2 0 0 1 1.2-1.2h4.4a1.2 1.2 0 0 1 1.2 1.2v3.2"/>',
-  warn: '<path d="M12 3.8L21 19.8H3z"/><path d="M12 9.8v4.3"/><circle cx="12" cy="16.9" r=".95" fill="currentColor" stroke="none"/>',
-  ghost: '<path d="M5.6 20.6V10a6.4 6.4 0 0 1 12.8 0v10.6l-2.1-1.8-2.2 1.8-2.1-1.8-2.2 1.8z"/><circle cx="9.9" cy="10.3" r=".95" fill="currentColor" stroke="none"/><circle cx="14.1" cy="10.3" r=".95" fill="currentColor" stroke="none"/>'
-};
-
-const ACH_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/></svg>';
-
-// Значок: круглая медаль. locked — серый, полупрозрачный, с замочком.
-function achBadgeHtml(code, locked) {
-  const a = ACH_BY_CODE[code];
-  if (!a) return '';
-  const body = (ACH_ICONS[a.icon] || '').replace('{n}', a.need == null || a.group === 'cert' ? '' : a.need);
-  return '<span class="ach-badge tier-' + a.tier + (locked ? ' is-locked' : '') + '">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    body + '</svg>' +
-    (locked ? '<span class="ach-lock">' + ACH_LOCK + '</span>' : '') +
-    '</span>';
-}
+// Рисунки значков и сборка медали — в badges.js (общий модуль).
 
 // ===== Состояние =====
 const achState = {
@@ -470,8 +436,7 @@ function renderHomeAchievements() {
 
   // Пока значков нет — кубок «Чистого семестра» серым, как цель
   const badgeBox = document.getElementById('homeAchBadge');
-  badgeBox.innerHTML = achBadgeHtml(latest ? latest.code : 'clean_term', !latest);
-  if (badgeBox.firstElementChild) badgeBox.firstElementChild.style.setProperty('--ach-size', '34px');
+  badgeBox.innerHTML = achBadgeHtml(latest ? latest.code : 'clean_term', !latest, 28);
   document.getElementById('homeAchCount').textContent = stats.badgesCount;
   document.getElementById('homeAchTotal').textContent = achBadgeWord(stats.badgesCount) + ' из ' + ACH_TOTAL;
 
