@@ -3,11 +3,31 @@
    главная 0-76, фильтры 0-665, сортировка 0-654, таб-бар 0-382).
    Подключается после Bootstrap 5.3.2, стили конкретной страницы — в её <style>. */
 
-/* ===== Шрифт SF Pro Text (в интерфейсе используются 400/500/600/700) ===== */
-@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Semibold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
-@font-face { font-family: 'SF Pro Text'; src: url('fonts/SFProText-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+/* ===== Шрифт =====
+   На iPhone и Mac системный шрифт (-apple-system / BlinkMacSystemFont) — это и есть
+   SF, поэтому отдельные файлы SF Pro не нужны: лицензия Apple раздавать их с сайта
+   запрещает. Для остальных платформ — Inter (лицензия OFL, fonts/OFL.txt), локально
+   и в формате woff2, чтобы шрифт работал офлайн в PWA.
+   Файлы — переменные (вес 400–700 в одном файле), разбиты по алфавитам:
+   браузер скачает только нужные (кириллица + латиница ≈ 93 КБ). */
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-cyrillic.woff2') format('woff2');
+  font-weight: 400 700; font-style: normal; font-display: swap;
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-cyrillic-ext.woff2') format('woff2');
+  font-weight: 400 700; font-style: normal; font-display: swap;
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-latin.woff2') format('woff2');
+  font-weight: 400 700; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 /* ===== Токены ===== */
 /* Размеры, радиусы, шрифты и тайминги от темы не зависят */
@@ -40,7 +60,7 @@
   --tab-icon: 28px;
 
   /* Типографика */
-  --font-sans: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
   --fs-title: 34px;
   --fs-h2: 22px;
   --fs-body: 17px;
@@ -839,7 +859,7 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
 }
 .table th {
   padding: 12px;
-  font-size: 11px;
+  font-size: var(--fs-small);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -891,7 +911,7 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
   border-radius: var(--radius-xs);
   background-color: var(--color-warn-bg);
   color: var(--color-yellow-line);
-  font-size: 10px;
+  font-size: var(--fs-small);
   font-weight: 600;
   line-height: 1.4;
   letter-spacing: 0;
@@ -955,10 +975,12 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
 .tabbar-item:hover { color: var(--color-text-secondary); }
 .tabbar-item.active { color: var(--color-accent); font-weight: 500; }
 /* Четыре кнопки: подпись не вылезает за кнопку и не выходит за низ панели.
-   На узких экранах шрифт подписей чуть мельче у всех четырёх сразу — слова не сокращаем. */
+   Минимум 12px даже на узких экранах — мельче плохо читается; на 360px
+   самое длинное слово («Расписание») укладывается, если убрать отступы
+   и чуть поджать межбуквенное. Слова не сокращаем. */
 .tabbar-item > span:not(.tab-selection):not(.tabbar-badge-dot) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 380px) {
-  .tabbar-item { padding: 0; font-size: 10px; letter-spacing: -0.45px; }
+  .tabbar-item { padding: 0; font-size: var(--fs-small); letter-spacing: -0.5px; }
 }
 .tabbar-item .tab-ico { flex: none; width: var(--tab-icon); height: var(--tab-icon); }
 .tabbar-item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -6px; border-radius: 100px; }
@@ -975,7 +997,7 @@ h6, .h6 { font-size: var(--fs-body); font-weight: 600; letter-spacing: var(--tra
   transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-spring);
 }
 .tabbar-item.active .tab-selection { opacity: 1; transform: none; }
-/* Красная точка непрочитанных объявлений */
+/* Красная точка непросмотренных напоминаний */
 .tabbar-badge-dot {
   position: absolute;
   top: 12px;
@@ -1099,30 +1121,32 @@ body::after {
 .dl-group:first-child { margin-top: 0; }
 .dl-card { position: relative; margin-bottom: 8px; padding: 12px 14px 12px 16px; border-radius: 16px; background: var(--color-surface-2); overflow: hidden; }
 .dl-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--color-border-mid); }
-.dl-card.is-over { background: rgba(255, 98, 143, .12); }
-.dl-card.is-over::before { background: var(--color-danger-line); }
-.dl-card.is-soon { background: rgba(255, 214, 10, .10); }
-.dl-card.is-soon::before { background: var(--color-warning); }
+.dl-card.is-over { background: var(--status-hot-fill); }
+.dl-card.is-over::before { background: var(--status-hot-line); }
+.dl-card.is-soon { background: var(--status-soon-fill); }
+.dl-card.is-soon::before { background: var(--status-soon-line); }
 .dl-subject { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
 .dl-text { margin: 3px 0 8px; font-size: 16px; line-height: 1.35; color: var(--color-text); white-space: pre-line; overflow-wrap: anywhere; }
 .dl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 .dl-rel { padding: 2px 9px; border-radius: 999px; background: var(--color-surface-3); color: var(--color-text-2); font-weight: 600; }
-.dl-card.is-over .dl-rel { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
-.dl-card.is-soon .dl-rel { background: var(--color-yellow-soft-bg); color: var(--color-yellow-soft-text); }
-.dl-card.is-zachet { background: rgba(191, 90, 242, .12); }
-.dl-card.is-zachet::before { background: var(--color-purple); }
-.dl-card.is-zachet .dl-rel { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
-.dl-card.is-cert::before { background: var(--color-orange); }
-.dl-card.is-cert.is-over::before { background: var(--color-danger-line); }
-.dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
-.dl-card.is-zachet .dl-kind { background: var(--color-purple-soft-bg); color: var(--color-purple-soft-text); }
-.dl-card.is-cert .dl-kind { background: var(--color-orange-soft-bg); color: var(--color-orange-soft-text); }
-.dl-card.is-cert.is-over .dl-kind { background: var(--color-pink-soft-bg); color: var(--color-pink-soft-text); }
+.dl-card.is-over .dl-rel { background: var(--status-hot-pill); color: var(--status-hot-text); }
+.dl-card.is-soon .dl-rel { background: var(--status-soon-pill); color: var(--status-soon-text); }
+.dl-card.is-zachet { background: var(--status-zachet-fill); }
+.dl-card.is-zachet::before { background: var(--status-zachet-line); }
+.dl-card.is-zachet .dl-rel { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
+.dl-card.is-cert::before { background: var(--status-cert-line); }
+.dl-card.is-cert.is-over::before { background: var(--status-hot-line); }
+.dl-card.is-over .dl-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
+.dl-card.is-soon .dl-kind { background: var(--status-soon-pill); color: var(--status-soon-text); }
+.dl-kind { margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--color-surface-3); font-size: var(--fs-small); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.dl-card.is-zachet .dl-kind { background: var(--status-zachet-pill); color: var(--status-zachet-text); }
+.dl-card.is-cert .dl-kind { background: var(--status-cert-pill); color: var(--status-cert-text); }
+.dl-card.is-cert.is-over .dl-kind { background: var(--status-hot-pill); color: var(--status-hot-text); }
 /* Календарь дедлайнов: цветные метки под числом, сегодня — обводка */
 .dl-cal .cal-day.today::after { content: none; }
 .dl-cal .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: var(--color-text); font-weight: 600; }
 .dl-cal .cal-day.has { color: var(--color-text); font-weight: 600; }
-.dl-cal .cal-day.cert-over { background: rgba(255, 98, 143, .22); }
+.dl-cal .cal-day.cert-over { background: var(--status-hot-fill-strong); }
 .cal-marks { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
 .cal-marks i, .dl-cal .cal-legend i { width: 5px; height: 5px; border-radius: 50%; }
 .dl-cal .cal-legend { flex-wrap: wrap; gap: 6px 14px; }
@@ -1146,16 +1170,16 @@ body::after {
 .cal-nav { width: 36px; height: 32px; border: 0; border-radius: 10px; background: none; color: var(--color-accent); font-size: 22px; line-height: 1; }
 .cal-nav:disabled { color: var(--color-text-disabled); }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-variant-numeric: tabular-nums; }
-.cal-grid .wd { padding-bottom: 2px; font-size: 11px; color: var(--color-text-tertiary); }
+.cal-grid .wd { padding-bottom: 2px; font-size: var(--fs-small); color: var(--color-text-tertiary); }
 .cal-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 10px; background: none; color: var(--color-text-2); font-size: 14px; }
 .cal-day.weekend { color: var(--color-text-tertiary); }
 .cal-day.u { background: var(--color-pink-soft-bg); color: var(--color-text); font-weight: 600; }
 .cal-day.e { background: var(--color-green-soft-bg); color: var(--color-text); font-weight: 600; }
-.cal-day.sel { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+.cal-day.sel { outline: 2px solid var(--color-accent); outline-offset: -2px; font-weight: 700; }
 .cal-day.today::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--color-accent); }
 .cal-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--color-text-tertiary); }
 .cal-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
-.cal-legend .u { background: rgba(255, 98, 143, .5); } .cal-legend .e { background: rgba(52, 199, 89, .5); }
+.cal-legend .u { background: var(--status-hot-line); } .cal-legend .e { background: var(--status-done-line); }
 
 /* Переключение разделов свайпом: раздел въезжает с той стороны, куда листали (shared.js: swipeIn) */
 @keyframes swipe-in-left { from { opacity: .35; transform: translateX(32px); } to { opacity: 1; transform: none; } }
@@ -1181,11 +1205,12 @@ body::after {
 @keyframes sk-spin { to { transform: rotate(360deg); } }
 .sk-aurora { position: absolute; inset: 3px; z-index: 1; overflow: hidden; border-radius: calc(5.5cqw - 3px); }
 .sk-aurora i { position: absolute; width: 60%; aspect-ratio: 1; border-radius: 50%; filter: blur(9cqw); opacity: .55; }
-.sk-aurora i:nth-child(1) { background: #34c759; left: -15%; top: -35%; animation: sk-au1 10s ease-in-out infinite; }
-.sk-aurora i:nth-child(2) { background: #0a84ff; left: 25%; top: 20%; animation: sk-au2 12s ease-in-out infinite; }
-.sk-aurora i:nth-child(3) { background: #ff4fa3; right: -20%; bottom: -45%; animation: sk-au1 14s ease-in-out infinite reverse; }
-@keyframes sk-au1 { 50% { transform: translate(20%, 15%); } }
-@keyframes sk-au2 { 50% { transform: translate(-18%, -12%); } }
+/* Пятна неподвижны: три размытых слоя по 60% ширины, которые ездят без
+   остановки, заставляют телефон греться, а разницы почти не видно.
+   Движение на пропуске осталось там, где оно и читается — перелив по краю. */
+.sk-aurora i:nth-child(1) { background: #34c759; left: -15%; top: -35%; }
+.sk-aurora i:nth-child(2) { background: #0a84ff; left: 25%; top: 20%; }
+.sk-aurora i:nth-child(3) { background: #ff4fa3; right: -20%; bottom: -45%; }
 .sk-aurora::after { content: ''; position: absolute; inset: 0; background: rgba(7, 7, 11, .55); }
 /* лицевая сторона */
 .sk-in { position: absolute; inset: 3px; z-index: 2; display: flex; flex-direction: column; padding: 4cqw 5cqw 7cqw; }
@@ -1254,13 +1279,149 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 .sk-open-btn:active { transform: scale(.96); }
 /* статичная версия */
 @media (prefers-reduced-motion: reduce) {
-  .sk-tilt, .sk-pass, .sk-face::before, .sk-aurora i, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
+  .sk-tilt, .sk-pass, .sk-face::before, .sk-ok i::after, .sk-bar i, .sk-appear, .sk-overlay, .sk-drag { animation: none !important; transition: none !important; }
+}
+
+/* ===== Смысловые цвета статусов =====
+   «Горит/просрочено», «скоро», «сделано», «зачёт», «справка». Раньше эти цвета
+   стояли прямо в правилах через rgba(...) и были одни и те же в обеих схемах.
+   Теперь каждый статус — тройка --status-*-rgb (заливка) и цвет полосы
+   --status-*-line, отдельно для тёмной и светлой схемы. Заливки считаются из
+   тройки, поэтому гамме достаточно переопределить тройку и полосу. */
+:root {
+  --status-hot-rgb:    255, 98, 143;    --status-hot-line:    #ff7a9c;    --status-hot-text:    #ff7a9c;
+  --status-soon-rgb:   255, 200, 61;    --status-soon-line:   #ffc83d;    --status-soon-text:   #ffc83d;
+  --status-done-rgb:    58, 209, 106;   --status-done-line:   #3ad16a;    --status-done-text:   #3ad16a;
+  --status-zachet-rgb: 191, 90, 242;    --status-zachet-line: #c77cf5;    --status-zachet-text: #c77cf5;
+  --status-cert-rgb:   255, 171, 82;    --status-cert-line:   #ffab52;    --status-cert-text:   #ffab52;
+  --status-fill-a:        .12;
+  --status-fill-a-strong: .22;
+}
+/* В светлой схеме цвет текста темнее цвета полосы: на заливке таблетки полоса
+   не дотягивает до AA, а полосе контраст и не нужен — она не текст. */
+[data-bs-theme=light] {
+  --status-hot-rgb:    196, 22, 47;     --status-hot-line:    #c4162f;    --status-hot-text:    #8e0f26;
+  --status-soon-rgb:   138, 100, 0;     --status-soon-line:   #8a6400;    --status-soon-text:   #5c4300;
+  --status-done-rgb:    21, 128, 61;    --status-done-line:   #15803d;    --status-done-text:   #0d5c2b;
+  --status-zachet-rgb: 123, 44, 191;    --status-zachet-line: #7b2cbf;    --status-zachet-text: #561a86;
+  --status-cert-rgb:   163, 90, 0;      --status-cert-line:   #a35a00;    --status-cert-text:   #6b3a00;
+  --status-fill-a:        .10;
+  --status-fill-a-strong: .18;
+}
+/* Производные заливки: считаются из тройки, поэтому объявлены один раз */
+:root {
+  --status-hot-fill:    rgba(var(--status-hot-rgb),    var(--status-fill-a));
+  --status-soon-fill:   rgba(var(--status-soon-rgb),   var(--status-fill-a));
+  --status-done-fill:   rgba(var(--status-done-rgb),   var(--status-fill-a));
+  --status-zachet-fill: rgba(var(--status-zachet-rgb), var(--status-fill-a));
+  --status-cert-fill:   rgba(var(--status-cert-rgb),   var(--status-fill-a));
+  --status-hot-fill-strong:  rgba(var(--status-hot-rgb),  var(--status-fill-a-strong));
+  --status-done-fill-strong: rgba(var(--status-done-rgb), var(--status-fill-a-strong));
+  /* Таблетки «просрочено / через N дней» и пометки «зачёт», «справка»:
+     заливка из той же тройки, текст — цветом полосы. */
+  --status-hot-pill:    rgba(var(--status-hot-rgb),    .20);
+  --status-soon-pill:   rgba(var(--status-soon-rgb),   .20);
+  --status-zachet-pill: rgba(var(--status-zachet-rgb), .20);
+  --status-cert-pill:   rgba(var(--status-cert-rgb),   .20);
+}
+
+/* ===== Статусы и акцент =====
+   В гаммах, где акцент по смыслу совпадает со статусом, статус сдвинут по
+   оттенку: иначе «сделано» не отличить от акцентной кнопки, а «горит» — от
+   обычного выделения. Цель сдвига — не меньше 45 градусов по тону и от акцента,
+   и от соседних статусов; контраст и сдвиг проверены расчётом.
+   Светлая схема идёт отдельным правилом с двумя атрибутами: у него
+   специфичность выше, иначе значения светлой темы перебила бы гамма.
+
+   Цвет нигде не остаётся единственным признаком: «Горит», «Просрочено»,
+   «Зачёт», «Экзамен» и «Справка» подписаны словом в карточке, у сделанного
+   текст зачёркнут, выбранный день календаря — обводка и жирное число. */
+
+/* Акцент бирюзово-зелёный: «сделано / уважительный» уводим в траву */
+[data-gamma="emerald"] {
+  --status-done-rgb: 134, 222, 79;    --status-done-line: #86de4f;   --status-done-text: #86de4f;
+}
+[data-gamma="emerald"][data-bs-theme=light] {
+  --status-done-rgb:  63, 122, 20;    --status-done-line: #3f7a14;   --status-done-text: #2c5a0e;
+}
+
+/* Акцент травяной: «сделано / уважительный» уводим в бирюзу */
+[data-gamma="moss"] {
+  --status-done-rgb:  47, 211, 176;   --status-done-line: #2fd3b0;   --status-done-text: #2fd3b0;
+}
+[data-gamma="moss"][data-bs-theme=light] {
+  --status-done-rgb:  15, 122, 104;   --status-done-line: #0f7a68;   --status-done-text: #0a5447;
+}
+
+/* Мягкий бордо: «горит» в фуксию, «зачёт» и «справку» — в синий и бирюзу,
+   иначе все три сливаются с красным акцентом */
+[data-gamma="wine"] {
+  --status-hot-rgb:   239, 110, 255;  --status-hot-line:    #ef6eff;  --status-hot-text:    #ef6eff;
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+  --status-cert-rgb:   78, 201, 224;  --status-cert-line:   #4ec9e0;  --status-cert-text:   #4ec9e0;
+}
+[data-gamma="wine"][data-bs-theme=light] {
+  --status-hot-rgb:   138, 0, 143;    --status-hot-line:    #8a008f;  --status-hot-text:    #6b006e;
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
+  --status-cert-rgb:   13, 107, 125;  --status-cert-line:   #0d6b7d;  --status-cert-text:   #084f5c;
+}
+
+/* Терракота: «горит» в малиновый, «скоро» в лимонный, «справка» в бирюзу */
+[data-gamma="terracotta"] {
+  --status-hot-rgb:  255, 110, 196;   --status-hot-line:  #ff6ec4;    --status-hot-text:  #ff6ec4;
+  --status-soon-rgb: 168, 224, 63;    --status-soon-line: #a8e03f;    --status-soon-text: #a8e03f;
+  --status-cert-rgb:  78, 201, 224;   --status-cert-line: #4ec9e0;    --status-cert-text: #4ec9e0;
+}
+[data-gamma="terracotta"][data-bs-theme=light] {
+  --status-hot-rgb:  150, 0, 90;      --status-hot-line:  #96005a;    --status-hot-text:  #70004a;
+  --status-soon-rgb:  74, 110, 0;     --status-soon-line: #4a6e00;    --status-soon-text: #374f00;
+  --status-cert-rgb:  13, 107, 125;   --status-cert-line: #0d6b7d;    --status-cert-text: #084f5c;
+}
+
+/* Янтарь: акцент сам янтарный, поэтому «скоро» в жёлто-зелёный,
+   «справку» в бирюзу, «горит» в малиновый */
+[data-gamma="amber"] {
+  --status-soon-rgb: 168, 224, 63;    --status-soon-line: #a8e03f;    --status-soon-text: #a8e03f;
+  --status-cert-rgb:  78, 201, 224;   --status-cert-line: #4ec9e0;    --status-cert-text: #4ec9e0;
+  --status-hot-rgb:  255, 110, 196;   --status-hot-line:  #ff6ec4;    --status-hot-text:  #ff6ec4;
+}
+[data-gamma="amber"][data-bs-theme=light] {
+  --status-soon-rgb:  74, 110, 0;     --status-soon-line: #4a6e00;    --status-soon-text: #374f00;
+  --status-cert-rgb:  13, 107, 125;   --status-cert-line: #0d6b7d;    --status-cert-text: #084f5c;
+  --status-hot-rgb:  150, 0, 90;      --status-hot-line:  #96005a;    --status-hot-text:  #70004a;
+}
+
+/* Сиреневые и фиолетовые акценты: «зачёт» уводим в синий */
+[data-gamma="indigo"] {
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+}
+[data-gamma="indigo"][data-bs-theme=light] {
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
+}
+[data-gamma="lavender"] {
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+}
+[data-gamma="lavender"][data-bs-theme=light] {
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
+}
+[data-gamma="plum"] {
+  --status-zachet-rgb: 79, 184, 232;  --status-zachet-line: #4fb8e8;  --status-zachet-text: #4fb8e8;
+}
+[data-gamma="plum"][data-bs-theme=light] {
+  --status-zachet-rgb: 11, 92, 128;   --status-zachet-line: #0b5c80;  --status-zachet-text: #084056;
 }
 
 /* ============================================================================
    СТИЛЬ «СТЕКЛО»
    Поверхности полупрозрачные и размывают то, что под ними. Глубина задаётся
    светлой кромкой сверху и мягкой тенью, а не плотной заливкой.
+
+   Размытие (backdrop-filter) стоит дорого и на длинных списках режет кадры,
+   поэтому слоёв с ним ровно два вида — те, под которыми реально что-то проезжает:
+   плавающий таб-бар, нижние листы и модалки, сжатая шапка. Карточки, плитки,
+   дедлайны, преподаватели и статистика берут полупрозрачную заливку --pane-bg
+   с той же кромкой и тенью: alpha выше, чем у --glass-bg, ровно настолько,
+   чтобы без размытия вид остался прежним.
 
    Три правила, чтобы стекло не превратилось в кашу:
      1. Текст и иконки лежат НЕ на стекле, а на своём фоне — контраст AA держат
@@ -1270,8 +1431,12 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
         поверхность становится обычной непрозрачной.
    ========================================================================== */
 :root {
+  /* Плавающие слои — с размытием */
   --glass-bg:        rgba(var(--color-surface-rgb), .58);
   --glass-bg-strong: rgba(var(--color-surface-rgb), .74);
+  /* Неподвижные поверхности — без размытия, alpha выше на тот же вид */
+  --pane-bg:         rgba(var(--color-surface-rgb), .80);
+  --pane-bg-strong:  rgba(var(--color-surface-rgb), .90);
   --glass-edge:      rgba(255, 255, 255, .10);
   --glass-blur:      saturate(170%) blur(20px);
   --glass-shadow:    0 8px 32px rgba(0, 0, 0, .22);
@@ -1279,6 +1444,8 @@ html.sk-lock, html.sk-lock body { overflow: hidden; }
 [data-bs-theme=light] {
   --glass-bg:        rgba(var(--color-surface-rgb), .66);
   --glass-bg-strong: rgba(var(--color-surface-rgb), .82);
+  --pane-bg:         rgba(var(--color-surface-rgb), .86);
+  --pane-bg-strong:  rgba(var(--color-surface-rgb), .94);
   --glass-edge:      rgba(0, 0, 0, .07);
   --glass-shadow:    0 8px 28px rgba(16, 24, 40, .10);
 }
@@ -1296,6 +1463,7 @@ body::before {
     radial-gradient(52% 38% at 92% 28%,  rgba(var(--color-accent-rgb), .10), transparent 72%);
 }
 
+/* Неподвижные поверхности: кромка и тень те же, размытия нет */
 .stat-card,
 .table-container,
 .student-summary-card,
@@ -1303,14 +1471,12 @@ body::before {
 .teacher-card,
 .dl-card,
 .glass {
-  background-color: var(--glass-bg);
+  background-color: var(--pane-bg);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
 }
 
-/* Таб-бар и листы — плотнее: под ними проезжает содержимое страницы */
+/* Таб-бар и листы — плотнее и с размытием: под ними проезжает содержимое страницы */
 .bottom-tabbar,
 .modal-content {
   background-color: var(--glass-bg-strong);
@@ -1319,7 +1485,7 @@ body::before {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-/* Запасной вариант: без размытия поверхности становятся обычными */
+/* Запасной вариант: без размытия плавающие слои становятся обычными */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root { --glass-bg: var(--color-surface); --glass-bg-strong: var(--color-surface-2); }
   body::before { display: none; }
@@ -1328,6 +1494,7 @@ body::before {
 /* ===== Плитки раздела «Учёба» и сводки ===== */
 .tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .tile-grid .wide { grid-column: 1 / -1; }
+.tile.wide { width: 100%; }
 .tile {
   position: relative;
   display: flex;
@@ -1336,11 +1503,9 @@ body::before {
   min-height: 108px;
   padding: var(--space-4);
   border-radius: var(--radius-lg);
-  background-color: var(--glass-bg);
+  background-color: var(--pane-bg);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   color: inherit;
   text-align: left;
   text-decoration: none;
@@ -1495,7 +1660,7 @@ body::before {
   margin-left: 6px; padding: 1px 7px;
   border-radius: 6px;
   background: var(--color-green-soft-bg); color: var(--color-success-text);
-  font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  font-size: var(--fs-small); font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
 }
 
 /* ===== Дедлайн в расписании: стоит на своём дне под парами ===== */
