@@ -1,3 +1,5 @@
 design-previews/
 invite-codes.local.txt
 vapid-*.local.txt
+shots/
+.playwright-mcp/
