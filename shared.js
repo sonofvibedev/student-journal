@@ -364,3 +364,40 @@ function enableSheetSwipe(modalEl) {
     }
   });
 }
+
+// ===== Переключатель разделов (.seg) =====
+// Таблетка активной вкладки — псевдоэлемент дорожки; её ширину и сдвиг
+// считаем по самой кнопке, поэтому неважно, сколько вкладок и какой они
+// ширины. Стили — в app.css.
+function segSync(seg) {
+  if (!seg) return;
+  const on = seg.querySelector('[aria-selected="true"]') || seg.querySelector('.seg-item.active');
+  if (!on) { seg.classList.remove('is-ready'); return; }
+  seg.style.setProperty('--seg-w', on.offsetWidth + 'px');
+  seg.style.setProperty('--seg-x', on.offsetLeft - seg.clientLeft + 'px');
+  // Ширина нулевая, пока дорожка скрыта (d-none) — тогда таблетку не показываем
+  if (on.offsetWidth) seg.classList.add('is-ready');
+}
+
+// Дорожка в скрытой вкладке меряется нулём: следим за её размером и
+// пересчитываем, как только она появилась (смена экрана, поворот, шрифты)
+const segRO = typeof ResizeObserver === 'function'
+  ? new ResizeObserver((rows) => rows.forEach((r) => segSync(r.target)))
+  : null;
+
+function segSyncAll() {
+  document.querySelectorAll('.seg').forEach((seg) => {
+    if (segRO && !seg.dataset.segWatched) { seg.dataset.segWatched = '1'; segRO.observe(seg); }
+    segSync(seg);
+  });
+}
+
+// Клик по вкладке: обработчик вкладки отрабатывает первым, после него меряем
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg button, .seg .seg-item');
+  if (btn) requestAnimationFrame(() => segSync(btn.closest('.seg')));
+});
+window.addEventListener('resize', segSyncAll);
+window.addEventListener('pageshow', segSyncAll);
+document.addEventListener('DOMContentLoaded', segSyncAll);
+if (document.readyState !== 'loading') segSyncAll();

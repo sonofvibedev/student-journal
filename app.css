@@ -1557,22 +1557,58 @@ body::before {
 .fab[aria-expanded="true"] svg { transform: rotate(45deg); }
 .fab:active { transform: scale(.93); }
 
-/* ===== Переключатель разделов внутри экрана (Зачётка / Калькулятор и т.п.) ===== */
+/* ===== Переключатель разделов внутри экрана (Зачётка / Калькулятор и т.п.) =====
+   Одна таблетка на дорожку: она переезжает к активной вкладке через
+   transform, ширину и сдвиг считает segSync() в shared.js по реальной
+   кнопке — поэтому работает и на трёх вкладках, и при прокрутке.
+   У неактивной вкладки фона нет вообще. */
 .seg {
+  --seg-pill: var(--color-bg);
+  --seg-pill-shadow: none;
+  position: relative;
   display: flex; gap: 2px; padding: 3px; margin-bottom: var(--space-4);
   background-color: var(--color-surface-3);
   border-radius: var(--radius-pill);
   overflow-x: auto; scrollbar-width: none;
 }
 .seg::-webkit-scrollbar { display: none; }
-.seg-item {
-  flex: 1 0 auto; padding: 8px 16px;
+.seg::before {
+  content: ''; position: absolute; z-index: 0;
+  top: 3px; bottom: 3px; left: 0;
+  width: var(--seg-w, 0px);
+  transform: translateX(var(--seg-x, 0px));
+  border-radius: var(--radius-pill);
+  background: var(--seg-pill);
+  box-shadow: var(--seg-pill-shadow);
+  opacity: 0;
+}
+/* Класс ставит segSync() после первого замера: до него таблетка не видна
+   и не едет из левого угла */
+.seg.is-ready::before {
+  opacity: 1;
+  transition: transform 220ms var(--ease-out), width 220ms var(--ease-out);
+}
+[data-bs-theme=light] .seg {
+  --seg-pill: var(--color-surface);
+  --seg-pill-shadow: 0 1px 3px rgba(16, 24, 40, .16);
+}
+.seg-item, .seg > button {
+  position: relative; z-index: 1;
+  flex: 1 0 auto; min-height: 36px; padding: 8px 16px;
   border: 0; background: none; border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
-  font: inherit; font-size: var(--fs-chip); white-space: nowrap;
+  font: inherit; font-size: var(--fs-chip); font-weight: 500; white-space: nowrap;
   transition: color var(--dur-fast) var(--ease-out);
 }
-.seg-item.active { background-color: var(--color-surface); color: var(--color-text); font-weight: 600; }
+.seg-item.active,
+.seg [aria-selected="true"] { background: none; color: var(--color-text-2); font-weight: 600; }
+/* Наведение — только там, где курсор есть: на телефоне :hover залипает */
+@media (hover: hover) {
+  .seg-item:hover, .seg > button:hover { color: var(--color-text); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seg.is-ready::before { transition: none; }
+}
 
 /* ===== Сворачиваемая таблица пропусков по предметам ===== */
 .subj-row {
