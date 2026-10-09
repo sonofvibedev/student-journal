@@ -46,6 +46,14 @@
       "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
       "dueDate": "2026-10-21",
       "createdAt": "2026-10-09T04:43:41.433Z"
+    },
+    {
+      "id": "dl-1791576833435",
+      "type": "deadline",
+      "subject": "Функционально-стоимостный анализ",
+      "text": "ФСА ТЕСТ МУДЛ: https://elearning.bseu.by/mod/quiz/view.php?id=17680",
+      "dueDate": "2026-10-10",
+      "createdAt": "2026-10-09T20:13:53.435Z"
     }
   ],
   "subjects": [
@@ -1749,7 +1757,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-09T14:57:45.902Z",
+  "lastUpdated": "2026-10-09T20:13:54.301Z",
   "homework": [
     {
       "id": "hw-1790937732472",
