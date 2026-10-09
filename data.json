@@ -38,6 +38,14 @@
       "text": "Выставки по подгруппам",
       "dueDate": "2026-10-22",
       "createdAt": "2026-10-08T11:46:12.131Z"
+    },
+    {
+      "id": "dl-1791521021433",
+      "type": "deadline",
+      "subject": "Маркетинг инноваций",
+      "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
+      "dueDate": "2026-10-21",
+      "createdAt": "2026-10-09T04:43:41.433Z"
     }
   ],
   "subjects": [
@@ -1669,7 +1677,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-09T04:41:41.533Z",
+  "lastUpdated": "2026-10-09T04:43:42.015Z",
   "homework": [
     {
       "id": "hw-1790937732472",
