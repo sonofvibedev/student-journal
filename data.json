@@ -1616,6 +1616,78 @@
       "isExcused": false,
       "subject": "Маркетинговые исследования и аналитика",
       "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g0-286",
+      "studentId": "st-1758300000002",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g1-254",
+      "studentId": "st-1758300000003",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g2-155",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g3-718",
+      "studentId": "st-1758300000011",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g4-324",
+      "studentId": "st-1758300000015",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g5-970",
+      "studentId": "st-1758300000019",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g6-199",
+      "studentId": "st-1758300000022",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791555753375-g7-574",
+      "studentId": "st-1758300000025",
+      "date": "2026-10-09",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Логистика",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -1677,7 +1749,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-09T04:45:31.078Z",
+  "lastUpdated": "2026-10-09T14:22:34.597Z",
   "homework": [
     {
       "id": "hw-1790937732472",
