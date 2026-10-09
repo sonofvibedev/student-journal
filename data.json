@@ -1677,7 +1677,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-09T04:43:42.015Z",
+  "lastUpdated": "2026-10-09T04:44:11.957Z",
   "homework": [
     {
       "id": "hw-1790937732472",
@@ -1732,6 +1732,15 @@
       "dueDate": "2026-10-15",
       "subgroup": 0,
       "createdAt": "2026-10-09T04:41:40.462Z"
+    },
+    {
+      "id": "hw-1791521051483",
+      "subject": "Маркетинг инноваций",
+      "type": "ПЗ",
+      "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
+      "dueDate": "2026-10-21",
+      "subgroup": 0,
+      "createdAt": "2026-10-09T04:44:11.483Z"
     }
   ]
 }
