@@ -1696,6 +1696,132 @@
       "isExcused": false,
       "subject": "Логистика",
       "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g0-686",
+      "studentId": "st-1758300000001",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g1-561",
+      "studentId": "st-1758300000002",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g2-717",
+      "studentId": "st-1758300000003",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g3-849",
+      "studentId": "st-1789848068933",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g4-299",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g5-155",
+      "studentId": "st-1758300000006",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g6-746",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g7-89",
+      "studentId": "st-1758300000014",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g8-155",
+      "studentId": "st-1758300000015",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g9-62",
+      "studentId": "st-1758300000016",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g10-192",
+      "studentId": "st-1789913607045",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g11-622",
+      "studentId": "st-1789848096573",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g12-743",
+      "studentId": "st-1758300000021",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791632998437-g13-89",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -1757,7 +1883,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-09T20:13:54.301Z",
+  "lastUpdated": "2026-10-10T11:49:59.172Z",
   "homework": [
     {
       "id": "hw-1790937732472",
