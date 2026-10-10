@@ -1846,6 +1846,18 @@
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1791633445240-0-202",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-10",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-24",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -1907,7 +1919,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-10T11:57:02.551Z",
+  "lastUpdated": "2026-10-10T11:57:25.633Z",
   "homework": [
     {
       "id": "hw-1790937732472",
