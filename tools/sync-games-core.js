@@ -15,6 +15,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const src = join(root, 'games-core.js');
 const dst = join(root, 'supabase', 'functions', '_shared', 'games-core.js');
 
-const code = readFileSync(src, 'utf8');
+// BOM снимаем: функции Supabase лежат без него, а с ним воркер не стартует
+const code = readFileSync(src, 'utf8').replace(/^﻿/, '');
 writeFileSync(dst, code);
 console.log('games-core.js скопирован в supabase/functions/_shared');

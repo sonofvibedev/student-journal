@@ -184,14 +184,17 @@ function renderGamesList() {
 
 let gameRatingOpen = { game: 'sudoku', diff: 'easy' };
 
+// ФИО и инициалы берём из data.json: на сервере в рейтинге лежит только id
 function studentName(id) {
   const s = (appData.students || []).find((x) => x.id === id);
-  return s ? (s.fio || s.name || 'Студент') : 'Студент';
+  if (!s) return 'Студент';
+  return [s.lastName, s.firstName].filter(Boolean).join(' ') || 'Студент';
 }
 
 function studentInitials(id) {
-  const parts = String(studentName(id)).split(/\s+/).filter(Boolean);
-  return ((parts[0] || '?')[0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  const s = (appData.students || []).find((x) => x.id === id);
+  if (!s) return '?';
+  return ((s.lastName || '?')[0] + (s.firstName ? s.firstName[0] : '')).toUpperCase();
 }
 
 function openGameRating(game) {
