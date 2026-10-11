@@ -475,6 +475,17 @@ function achBadgeWord(n) {
   return 'значков';
 }
 
+// Коды последних полученных значков, новые первыми (без антидостижений)
+function achLatestCodes(limit) {
+  const rows = [];
+  achState.earned.forEach((row, code) => {
+    if ((ACH_BY_CODE[code] || {}).anti) return;
+    rows.push({ code, at: String(row.earned_at || '') });
+  });
+  rows.sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0));
+  return rows.slice(0, limit).map((r) => r.code);
+}
+
 // ===== Плитка на главной =====
 function renderHomeAchievements() {
   const tile = document.getElementById('homeAchievementsTile');
@@ -487,9 +498,13 @@ function renderHomeAchievements() {
   const latest = achLatest();
   const next = achNextUp(stats);
 
-  // Пока значков нет — кубок «Чистого семестра» серым, как цель
+  // Последние значки: до трёх штук. Пока значков нет — кубок «Чистого
+  // семестра» серым, как цель.
   const badgeBox = document.getElementById('homeAchBadge');
-  badgeBox.innerHTML = achBadgeHtml(latest ? latest.code : 'clean_term', !latest, 28);
+  const lastCodes = achLatestCodes(3);
+  badgeBox.innerHTML = lastCodes.length
+    ? lastCodes.map((code) => achBadgeHtml(code, false, 28)).join('')
+    : achBadgeHtml('clean_term', true, 28);
   document.getElementById('homeAchCount').textContent = stats.badgesCount;
   document.getElementById('homeAchTotal').textContent = achBadgeWord(stats.badgesCount) + ' из ' + ACH_TOTAL;
 

@@ -552,6 +552,21 @@
     .now-card .now-next { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-separator);
       width: 100%; color: var(--color-text-secondary); font-size: var(--fs-small); }
     .now-card .now-next:empty { display: none; }
+    /* Половина ширины: длинные названия обрезаем многоточием, а не ломаем сетку */
+    .now-card .now-head { flex-wrap: wrap; row-gap: 2px; }
+    .now-card .now-head .badge { white-space: nowrap; }
+    .now-card .now-subject { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+      line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+    .now-card .now-meta, .now-card .now-next { display: -webkit-box; -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; overflow-wrap: anywhere; }
+    .now-card.wide .now-subject { -webkit-line-clamp: 2; line-clamp: 2; }
+
+    /* --- Достижения во всю ширину --- */
+    .ach-tile .ach-rank { color: var(--color-text-secondary); font-size: var(--fs-small); white-space: nowrap; }
+    .ach-tile .ach-tile-stats { display: flex; align-items: center; gap: var(--space-4); width: 100%; min-width: 0; }
+    .ach-tile .ach-stat { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .ach-tile .ach-stat .tile-note { white-space: nowrap; }
+    .ach-tile .ach-last { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 
     /* --- Лента недели --- */
     .wk { padding: var(--space-4); border-radius: var(--radius-lg); background-color: var(--pane-bg);
@@ -1228,18 +1243,39 @@
 
   <div id="homeBody" class="d-none">
 
-    <!-- 1. Текущая пара: полоса прогресса и «ещё N мин», под ней следующая -->
-    <button type="button" class="tile wide now-card mb-3" id="homeNowCard" data-view-target="schedule" onclick="goTile('schedule', this)">
-      <span class="d-flex align-items-center gap-2 w-100">
-        <span class="badge" id="homeNowWhen">—</span>
-        <small class="text-secondary ms-auto" id="homeNowTime"></small>
-      </span>
-      <span class="tile-name" id="homeNowSubject">—</span>
-      <span class="tile-note" id="homeNowMeta"></span>
-      <span class="now-bar d-none" id="homeNowBar" aria-hidden="true"><i></i></span>
-      <span class="now-left" id="homeNowLeft"></span>
-      <span class="now-next" id="homeNowNext"></span>
-    </button>
+    <!-- 1. Первый ряд: текущая пара (половина ширины) и неуважительные часы.
+         Гостю плитка часов не показывается — тогда карточка пары занимает
+         весь ряд (класс wide вешает renderHome). -->
+    <div class="tile-grid mb-3">
+
+      <!-- Текущая пара: статус, предмет, время, аудитория, прогресс и следующая пара.
+           По нажатию — нижний лист с полной информацией (openHomeNowSheet). -->
+      <button type="button" class="tile now-card" id="homeNowCard" data-view-target="schedule" onclick="openHomeNowSheet(this)">
+        <span class="d-flex align-items-center gap-2 w-100 now-head">
+          <span class="badge" id="homeNowWhen">—</span>
+          <small class="text-secondary ms-auto" id="homeNowTime"></small>
+        </span>
+        <span class="tile-name now-subject" id="homeNowSubject">—</span>
+        <span class="tile-note now-meta" id="homeNowMeta"></span>
+        <span class="now-bar d-none" id="homeNowBar" aria-hidden="true"><i></i></span>
+        <span class="now-left" id="homeNowLeft"></span>
+        <span class="now-next" id="homeNowNext"></span>
+      </button>
+
+      <!-- Неуважительные часы за месяц: кольцо до порога предупреждения деканата -->
+      <button type="button" class="tile" id="homeHoursTile" data-view-target="absences" onclick="goTile('absences', this)">
+        <span class="ring" id="homeHoursRing">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <circle class="ring-bg" cx="24" cy="24" r="20"/>
+            <circle class="ring-fg" cx="24" cy="24" r="20"/>
+          </svg>
+          <b class="ring-num" id="homeHoursUnexcused">0</b>
+        </span>
+        <span class="tile-note">неуважительных часов за месяц</span>
+        <span class="tile-note" id="homeHoursLeft"></span>
+        <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
+      </button>
+    </div>
 
     <!-- 2. Лента недели: дни с делами «горят», по нажатию — события дня -->
     <div class="wk mb-3" id="homeWeek">
@@ -1259,22 +1295,8 @@
       </div>
     </div>
 
-    <!-- 3. Плитки -->
+    <!-- 3. Второй ряд плиток: дедлайны и домашка -->
     <div class="tile-grid" id="homeTiles">
-
-      <!-- Неуважительные часы за месяц: кольцо до порога предупреждения деканата -->
-      <button type="button" class="tile" id="homeHoursTile" data-view-target="absences" onclick="goTile('absences', this)">
-        <span class="ring" id="homeHoursRing">
-          <svg viewBox="0 0 48 48" aria-hidden="true">
-            <circle class="ring-bg" cx="24" cy="24" r="20"/>
-            <circle class="ring-fg" cx="24" cy="24" r="20"/>
-          </svg>
-          <b class="ring-num" id="homeHoursUnexcused">0</b>
-        </span>
-        <span class="tile-note">неуважительных часов за месяц</span>
-        <span class="tile-note" id="homeHoursLeft"></span>
-        <span class="tile-note">уважительных <b id="homeHoursExcused">0</b></span>
-      </button>
 
       <!-- Дедлайны: число и красный кружок, если горят -->
       <button type="button" class="tile" id="homeDeadlinesTile" data-view-target="deadlines" onclick="goTile('deadlines', this)">
@@ -1291,17 +1313,22 @@
         <span class="tile-note" id="homeHwNote"></span>
       </button>
 
-      <!-- Достижения: содержимое заполняет renderHomeAchievements() из achievements.js -->
-      <button type="button" class="tile" id="homeAchievementsTile" onclick="openAchSheet()">
-        <span class="d-flex align-items-center gap-2">
-          <span id="homeAchBadge"></span>
-          <span class="tile-num" id="homeAchCount">—</span>
-        </span>
-        <span class="tile-note" id="homeAchTotal">значков за учёбу</span>
-        <span class="ach-bar"><i></i></span>
-        <span class="tile-note" id="homeAchNext"></span>
-      </button>
     </div>
+
+    <!-- 4. Достижения во всю ширину: баллы, место в рейтинге, значки.
+         Содержимое заполняет renderHomeAchievements() из achievements.js -->
+    <button type="button" class="tile wide ach-tile mt-3" id="homeAchievementsTile" onclick="openAchSheet()">
+      <span class="d-flex align-items-center gap-2 w-100">
+        <span class="tile-name">Достижения</span>
+        <span class="ach-rank ms-auto" id="homeAchRank"></span>
+      </span>
+      <span class="ach-tile-stats">
+        <span class="ach-stat"><b class="tile-num" id="homeAchCount">—</b><small class="tile-note" id="homeAchTotal">значков за учёбу</small></span>
+        <span class="ach-last" id="homeAchBadge"></span>
+      </span>
+      <span class="ach-bar"><i></i></span>
+      <span class="tile-note" id="homeAchNext"></span>
+    </button>
 
     <!-- 4. Ближайшие дедлайны -->
     <div class="tile wide mt-3">
@@ -2764,6 +2791,8 @@
     document.getElementById('homeBody').classList.toggle('d-none', loading);
     document.getElementById('homeGuest').classList.toggle('d-none', loading || !!me);
     document.getElementById('homeHoursTile').classList.toggle('d-none', !me);
+    // Гостю плитки часов нет — карточка пары занимает весь ряд
+    document.getElementById('homeNowCard').classList.toggle('wide', !me);
     if (loading) return;
 
     if (me) renderHomeHours(me);
@@ -2797,6 +2826,10 @@
 
   // --- Текущая пара и следующая ---
   // Расписание — в schedule.js (lessonsOfDay), часы пар — в PAIR_TIMES.
+  // Пара, которую сейчас показывает карточка: её открывает нижний лист.
+  // null — пар впереди нет, тогда карточка просто ведёт в расписание.
+  let homeNowOpen = null;
+
   function renderHomeNow() {
     if (typeof lessonsOfDay !== 'function') return;
     const now = new Date();
@@ -2811,9 +2844,9 @@
     const next = list.find(l => mins < toMinutes(l.start));
 
     if (current) {
-      when.textContent = 'Идёт сейчас';
+      when.textContent = 'Идёт';
       when.className = 'badge bg-success';
-      fillHomeLesson(current);
+      fillHomeLesson(current, dayKey(now));
       const from = toMinutes(current.start), to = toMinutes(current.end);
       bar.classList.remove('d-none');
       bar.querySelector('i').style.setProperty('--p', String(Math.max(0, Math.min(1, (mins - from) / (to - from)))));
@@ -2828,21 +2861,22 @@
     document.getElementById('homeNowLeft').textContent = '';
 
     if (next) {
-      when.textContent = 'Следующая пара';
+      when.textContent = 'Далее';
       when.className = 'badge bg-secondary';
-      fillHomeLesson(next);
+      fillHomeLesson(next, dayKey(now));
       document.getElementById('homeNowNext').textContent = 'начало через ' + formatLeft(toMinutes(next.start) - mins);
       return;
     }
 
     // Пар на сегодня больше нет — показываем первую пару следующего учебного дня
-    when.textContent = 'Пары на сегодня закончились';
+    when.textContent = 'Далее';
     when.className = 'badge bg-secondary';
     const first = nextStudyDayFirstLesson(now);
     if (first) {
-      fillHomeLesson(first.lesson);
+      fillHomeLesson(first.lesson, first.iso);
       document.getElementById('homeNowNext').textContent = 'Первая пара ' + first.label;
     } else {
+      homeNowOpen = null;
       document.getElementById('homeNowSubject').textContent = 'Занятий впереди нет';
       document.getElementById('homeNowTime').textContent = '';
       document.getElementById('homeNowMeta').textContent = '';
@@ -2850,7 +2884,19 @@
     }
   }
 
-  function fillHomeLesson(l) {
+  // Нажатие по карточке текущей пары: нижний лист с полной информацией.
+  // Пар впереди нет — просто открываем расписание, как раньше.
+  function openHomeNowSheet(tileEl) {
+    if (homeNowOpen && typeof openLessonSheet === 'function') {
+      haptic('selection');
+      openLessonSheet(homeNowOpen.lesson, homeNowOpen.iso);
+      return;
+    }
+    goTile('schedule', tileEl);
+  }
+
+  function fillHomeLesson(l, iso) {
+    homeNowOpen = { lesson: l, iso };
     document.getElementById('homeNowTime').textContent = l.start + '–' + l.end;
     document.getElementById('homeNowSubject').textContent = l.subject;
     document.getElementById('homeNowMeta').textContent =
@@ -2866,7 +2912,7 @@
       const list = lessonsOfDay(currentSemesterWeek(d), day) || [];
       if (!list.length) continue;
       const label = i === 1 ? 'завтра' : WD_FULL[day] + ', ' + d.getDate() + ' ' + MONTHS_GEN[d.getMonth()];
-      return { lesson: list[0], label };
+      return { lesson: list[0], label, iso: dayKey(d) };
     }
     return null;
   }
