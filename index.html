@@ -1108,8 +1108,73 @@
       <span class="tile-name">Зачёты и экзамены</span>
       <span class="tile-note" id="studyExamsNote">формы контроля и даты</span>
     </button>
+
+    <!-- Игры: во всю ширину последнего ряда. Играть может и гость,
+         рекорды сохраняются только у вошедшего студента. -->
+    <button type="button" class="tile wide" onclick="goView('games')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4M15.5 11h.01M18 13.5h.01"/></svg></span>
+      <span class="tile-name">Игры</span>
+      <span class="tile-note" id="studyGamesNote">судоку, сапёр, flappy</span>
+    </button>
   </div>
 </section>
+
+<!-- ======================= ИГРЫ =======================
+     Экран со списком игр (index.html#games) и три экрана самих игр.
+     Играть может и гость; рекорд сохраняется только у вошедшего студента
+     и только через Edge Function, которая переигрывает партию и проверяет
+     результат. Вся логика — в games.js, правила игр — в games-core.js.
+     ==================================================== -->
+<section id="viewGames" class="app-view d-none" aria-labelledby="gamesViewTitle">
+  <div class="view-head">
+    <h3 class="view-title" id="gamesViewTitle">Игры</h3>
+  </div>
+  <p class="games-note d-none" id="gamesGuestNote">Войдите, чтобы попасть в рейтинг</p>
+  <div class="games-list" id="gamesList"></div>
+</section>
+
+<section id="viewSudoku" class="app-view d-none" aria-labelledby="sudokuViewTitle">
+  <div class="view-head">
+    <h3 class="view-title" id="sudokuViewTitle">Судоку</h3>
+    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('games')">К играм</button>
+  </div>
+  <div id="sudokuHost"></div>
+</section>
+
+<section id="viewMinesweeper" class="app-view d-none" aria-labelledby="minesweeperViewTitle">
+  <div class="view-head">
+    <h3 class="view-title" id="minesweeperViewTitle">Сапёр</h3>
+    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('games')">К играм</button>
+  </div>
+  <div id="minesweeperHost"></div>
+</section>
+
+<section id="viewFlappy" class="app-view d-none" aria-labelledby="flappyViewTitle">
+  <div class="view-head">
+    <h3 class="view-title" id="flappyViewTitle">Flappy</h3>
+    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('games')">К играм</button>
+  </div>
+  <div id="flappyHost"></div>
+</section>
+
+<!-- Нижний лист рейтинга: топ-5 и своя строка, если места в пятёрке нет -->
+<div class="modal fade swipe-sheet" id="gameRatingSheet" tabindex="-1" aria-labelledby="gameRatingTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="gameRatingTitle">Рейтинг</div>
+        </div>
+      </div>
+      <button type="button" class="visually-hidden-focusable sheet-close" data-bs-dismiss="modal">Закрыть</button>
+      <div class="filter-sheet-body">
+        <div class="games-diffs" id="gameRatingDiffs" role="tablist"></div>
+        <div id="gameRatingBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Раздел «Домашка» (index.html#homework) — все задания по датам и календарь -->
 <section id="viewHomeworkList" class="app-view d-none">
@@ -2625,7 +2690,11 @@
     exams:     'viewExams',
     zachetka:  'viewZachetka',
     absences:  'viewAbsences',
-    admin:     'viewAdmin'
+    admin:     'viewAdmin',
+    games:       'viewGames',        // список игр
+    sudoku:      'viewSudoku',
+    minesweeper: 'viewMinesweeper',
+    flappy:      'viewFlappy'
   };
   const TAB_IDS = APP_TABS.map(t => t.id);
   let swipeDrivenView = false;   // раздел меняют свайпом: анимацию покажет swipeIn
