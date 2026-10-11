@@ -305,6 +305,7 @@ const SCREEN_HOST = {
   absences: 'home',
   deadlines: 'study', homework: 'study', teachers: 'study',
   stats: 'study', exams: 'study', zachetka: 'study',
+  games: 'study', sudoku: 'study', minesweeper: 'study', flappy: 'study',
   settings: 'profile', admin: 'profile'
 };
 

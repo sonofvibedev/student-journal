@@ -13,6 +13,12 @@ const errors = [];
 function check(code, where) {
   checked++;
   try {
+    // Модуль (import/export) обычным Script не разобрать — зовём node --check
+    if (/^\s*(export|import)\s/m.test(code)) {
+      const res = require('child_process').spawnSync(process.execPath, ['--check', path.join(root, where)], { encoding: 'utf8' });
+      if (res.status !== 0) errors.push(where + ': ' + String(res.stderr).split(/\r?\n/).slice(0, 3).join(' ').trim());
+      return;
+    }
     new vm.Script(code, { filename: where });
   } catch (e) {
     errors.push(where + ': ' + e.message);
