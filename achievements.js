@@ -1,6 +1,7 @@
 ﻿// Достижения: значки за учёбу, домашку и приложение.
 //
-// Баллов и рейтинга группы здесь нет — только личная коллекция значков.
+// Баллов здесь нет: рейтинг группы считает только число значков, сами значки
+// остаются личной коллекцией (чужие коды не видны никому).
 // Раз соревнования нет, то и подделывать нечего, поэтому всё считает сам
 // клиент: так значок появляется сразу, без ожидания сервера и без cron.
 // Supabase нужен только чтобы коллекция не терялась при смене устройства:
@@ -498,6 +499,17 @@ function renderHomeAchievements() {
   const latest = achLatest();
   const next = achNextUp(stats);
 
+  // Место в рейтинге группы: подгружаем в фоне и дописываем, когда придёт
+  const rankEl = document.getElementById('homeAchRank');
+  if (rankEl) {
+    const place = achMyPlace(achBoardState.rows);
+    rankEl.textContent = place ? place + '-е место в группе' : '';
+    if (!achBoardState.rows) achLoadBoard().then(() => {
+      const p = achMyPlace(achBoardState.rows);
+      rankEl.textContent = p ? p + '-е место в группе' : '';
+    });
+  }
+
   // Последние значки: до трёх штук. Пока значков нет — кубок «Чистого
   // семестра» серым, как цель.
   const badgeBox = document.getElementById('homeAchBadge');
@@ -523,9 +535,9 @@ function renderHomeAchievements() {
 let achTab = 'mine';
 
 function setAchTab(tab) {
-  achTab = tab === 'rules' ? 'rules' : 'mine';
+  achTab = ['mine', 'board', 'rules'].includes(tab) ? tab : 'mine';
   haptic('selection');
-  [['mine', 'achTabMine', 'achPaneMine'], ['rules', 'achTabRules', 'achPaneRules']]
+  [['mine', 'achTabMine', 'achPaneMine'], ['board', 'achTabBoard', 'achPaneBoard'], ['rules', 'achTabRules', 'achPaneRules']]
     .forEach(([id, tabId, paneId]) => {
       const on = id === achTab;
       const btn = document.getElementById(tabId);
@@ -533,6 +545,55 @@ function setAchTab(tab) {
       btn.setAttribute('aria-selected', String(on));
       document.getElementById(paneId).classList.toggle('d-none', !on);
     });
+  if (achTab === 'board') renderAchBoard();
+}
+
+// ===== Рейтинг по значкам =====
+// Общий счёт отдаёт функция rpc_ach_board: наружу уходит только число значков,
+// какие именно значки у человека — по-прежнему видит лишь он сам.
+// Антидостижения в счёт не идут, их коды шлём отдельным списком.
+const achAntiCodes = () => ACHIEVEMENTS.filter((a) => a.anti).map((a) => a.code);
+
+const achBoardState = { rows: null, loading: null };
+
+async function achLoadBoard(force) {
+  if (typeof sb !== 'object' || !sb || AppState.auth !== 'signed') return [];
+  if (achBoardState.rows && !force) return achBoardState.rows;
+  if (achBoardState.loading) return achBoardState.loading;
+  achBoardState.loading = (async () => {
+    try {
+      const { data } = await sb.rpc('rpc_ach_board', { exclude_codes: achAntiCodes() });
+      achBoardState.rows = (data || []).map((r) => ({ id: r.student_id, badges: r.badges }));
+    } catch (e) {
+      console.error('Рейтинг достижений не загрузился:', e);
+      achBoardState.rows = [];
+    }
+    achBoardState.loading = null;
+    return achBoardState.rows;
+  })();
+  return achBoardState.loading;
+}
+
+// Место студента в рейтинге (1 — первое) или null, если значков нет
+function achMyPlace(rows) {
+  const i = (rows || []).findIndex((r) => r.id === AppState.studentId);
+  return i === -1 ? null : i + 1;
+}
+
+async function renderAchBoard() {
+  const pane = document.getElementById('achPaneBoard');
+  if (!pane) return;
+  if (AppState.auth !== 'signed') {
+    pane.innerHTML = '<div class="games-empty">Войдите, чтобы видеть рейтинг</div>';
+    return;
+  }
+  pane.innerHTML = '<div class="games-empty">Загружаем…</div>';
+  const rows = await achLoadBoard(true);
+  if (typeof renderBoardRows !== 'function') { pane.innerHTML = '<div class="games-empty">Рейтинг недоступен</div>'; return; }
+  renderBoardRows(pane, rows.map((r) => ({
+    id: r.id,
+    value: r.badges + ' ' + achBadgeWord(r.badges)
+  })));
 }
 
 async function renderAchievementsView() {
@@ -649,7 +710,7 @@ function renderAchRules() {
   if (!box) return;
   box.innerHTML =
     '<div class="group"><div class="inset p-3">' +
-    '<p class="mb-2"><b>Баллов и рейтинга группы здесь нет.</b> Значки — личная коллекция: чужих вы не видите, и никто не видит ваших.</p>' +
+    '<p class="mb-2"><b>Баллов здесь нет.</b> В рейтинге группы видно только число значков у каждого: какие именно значки собраны, видит лишь их владелец. Антидостижения в счёт не идут и остаются личными.</p>' +
     '<p class="mb-2">Коллекция остаётся с вами и в новом семестре. Серия, чистый месяц и чистый семестр считаются заново.</p>' +
     '<p class="mb-2">Уважительные часы серию не прерывают.</p>' +
     '<p class="mb-2">Серия считается только по учебным дням — тем, когда по расписанию были пары, — и до даты «Пропуски актуальны на».</p>' +
