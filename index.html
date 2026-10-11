@@ -1230,10 +1230,12 @@
 
         <div class="seg" id="achSeg" role="tablist" aria-label="Разделы достижений">
           <button type="button" class="seg-item active" role="tab" id="achTabMine"  aria-selected="true"  onclick="setAchTab('mine')">Мои</button>
+          <button type="button" class="seg-item"        role="tab" id="achTabBoard" aria-selected="false" onclick="setAchTab('board')">Рейтинг</button>
           <button type="button" class="seg-item"        role="tab" id="achTabRules" aria-selected="false" onclick="setAchTab('rules')">Как это работает</button>
         </div>
 
         <div id="achPaneMine"></div>
+        <div id="achPaneBoard" class="d-none"></div>
         <div id="achPaneRules" class="d-none"></div>
       </div>
     </div>
