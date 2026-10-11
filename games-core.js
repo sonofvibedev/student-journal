@@ -284,9 +284,9 @@ export const FLAPPY = {
   height: 480,
   birdX: 80,
   birdR: 11,
-  gravity: 0.0016,        // единиц на мс^2
-  flapV: -0.42,           // мгновенная скорость взмаха, единиц на мс
-  maxV: 0.9,
+  gravity: 0.0009,        // единиц на мс^2
+  flapV: -0.30,           // мгновенная скорость взмаха, единиц на мс
+  maxV: 0.6,
   pipeW: 52,
   gap: 132,
   pipeEveryMs: 1500,
@@ -359,4 +359,9 @@ export const GamesCore = {
   FLAPPY, flappyGame, flappySimulate
 };
 
-if (typeof window !== 'undefined') window.GamesCore = GamesCore;
+// Страница может дойти до экрана игры раньше, чем загрузится этот модуль
+// (он грузится как module, то есть отложенно). Сообщаем о готовности событием.
+if (typeof window !== 'undefined') {
+  window.GamesCore = GamesCore;
+  document.dispatchEvent(new Event('games-core-ready'));
+}
