@@ -361,7 +361,9 @@ export const GamesCore = {
 
 // Страница может дойти до экрана игры раньше, чем загрузится этот модуль
 // (он грузится как module, то есть отложенно). Сообщаем о готовности событием.
-if (typeof window !== 'undefined') {
-  window.GamesCore = GamesCore;
+// Проверяем именно document: в Edge Runtime (Deno) глобальный window есть,
+// а document нет — без этой проверки модуль падал бы при загрузке на сервере.
+if (typeof document !== 'undefined') {
+  globalThis.GamesCore = GamesCore;
   document.dispatchEvent(new Event('games-core-ready'));
 }
