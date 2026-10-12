@@ -39,6 +39,14 @@
       "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
       "dueDate": "2026-10-21",
       "createdAt": "2026-10-09T04:43:41.433Z"
+    },
+    {
+      "id": "dl-1791809292787",
+      "type": "deadline",
+      "subject": "Маркетинг услуг",
+      "text": "доклады до 8 темы",
+      "dueDate": "2026-10-15",
+      "createdAt": "2026-10-12T12:48:12.787Z"
     }
   ],
   "subjects": [
@@ -1916,7 +1924,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-12T12:39:44.778Z",
+  "lastUpdated": "2026-10-12T12:48:46.547Z",
   "homework": [
     {
       "id": "hw-1790937732472",
