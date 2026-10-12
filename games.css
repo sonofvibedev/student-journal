@@ -27,6 +27,63 @@
   .game-actions .btn { flex: 1 1 0; }
 }
 
+/* ===== Полноэкранный экран игры =====
+   Высота считается в games.js от реально доступной: 100dvh минус безопасные
+   зоны, а в Telegram — viewportStableHeight. Переменную --game-h ставит он же,
+   поэтому игра влезает в экран и без прокрутки. */
+.game-screen {
+  position: fixed;
+  z-index: 1040;
+  inset: 0;
+  height: var(--game-h, 100dvh);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: calc(var(--app-inset-top) + 6px) calc(var(--app-inset-right) + 10px)
+           calc(var(--app-inset-bottom) + 8px) calc(var(--app-inset-left) + 10px);
+  background-color: var(--color-bg);
+  overflow: hidden;
+}
+
+/* Пока открыта игра, таб-бар и кнопка админа не нужны: место под поле.
+   Страница под игрой не прокручивается — иначе жест по фону её уводит. */
+body.game-fs { overflow: hidden; }
+body.game-fs .bottom-tabbar,
+body.game-fs .fab { display: none; }
+
+/* Переключатель размера поля в рейтинге сапёра */
+.games-diff.is-size { margin-left: auto; }
+
+.game-top { display: flex; align-items: center; gap: 8px; flex: none; min-height: 40px; }
+.game-back {
+  flex: none; width: 40px; height: 40px; display: grid; place-items: center;
+  border: 0; border-radius: 50%; background-color: var(--color-surface-2);
+  color: var(--color-text);
+}
+.game-back svg { width: 22px; height: 22px; }
+.game-name {
+  flex: 1 1 auto; min-width: 0; margin: 0;
+  color: var(--color-text); font-size: var(--fs-body); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.game-stat {
+  flex: none; min-width: 56px; padding: 0 12px; min-height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-pill); background-color: var(--color-surface-2);
+  color: var(--color-text); font-size: var(--fs-caption); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Содержимое игры: панель сверху, поле занимает остаток и не прокручивается */
+.game-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.game-body .games-diffs,
+.game-body .game-bar { margin-bottom: 0; flex: none; }
+.game-body .game-msg { margin-top: 0; flex: none; padding: 8px 12px; }
+
+/* Поле любой игры: центрируется в остатке места */
+.game-field { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; }
+
 /* ===== Общая шапка игры ===== */
 .games-diffs { display: flex; gap: 6px; margin-bottom: var(--space-3); flex-wrap: wrap; }
 .games-diff {
@@ -54,14 +111,14 @@
 
 /* ===== Судоку ===== */
 .sudoku {
+  width: var(--sudoku-size, 100%); height: var(--sudoku-size, auto);
   display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px;
   background-color: var(--color-separator); border: 2px solid var(--color-text-tertiary);
   border-radius: var(--radius-sm); overflow: hidden; touch-action: manipulation;
 }
-.sudoku .sq {
-  aspect-ratio: 1; display: grid; place-items: center; border: 0; padding: 0;
+.sudoku .sq { display: grid; place-items: center; border: 0; padding: 0;
   background-color: var(--color-surface); color: var(--color-accent);
-  font-size: clamp(14px, 4.4vw, 22px); font-weight: 600; line-height: 1;
+  font-size: calc(var(--sudoku-size, 320px) / 16); font-weight: 600; line-height: 1;
 }
 /* Границы блоков 3×3 */
 .sudoku .sq:nth-child(9n + 4), .sudoku .sq:nth-child(9n + 7) { box-shadow: inset 2px 0 0 var(--color-text-tertiary); }
@@ -78,9 +135,9 @@
   font-size: 9px; color: var(--color-text-tertiary);
 }
 
-.pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: var(--space-3); }
+.pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 0; flex: none; }
 .pad-key {
-  min-height: 46px; border-radius: var(--radius-md); border: 1px solid var(--color-separator);
+  min-height: var(--pad-h, 46px); border-radius: var(--radius-md); border: 1px solid var(--color-separator);
   background-color: var(--color-surface); color: var(--color-text);
   font-size: var(--fs-body); font-weight: 600;
 }
@@ -89,15 +146,15 @@
 .pad-key:active { transform: scale(.96); }
 
 /* ===== Сапёр ===== */
-.mines-wrap { overflow-x: auto; }
+.mines-wrap { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; overflow: auto; }
 .mines {
-  display: grid; grid-template-columns: repeat(var(--cols, 9), minmax(32px, 1fr));
+  display: grid; grid-template-columns: repeat(var(--cols, 9), var(--cell, 32px));
   gap: 2px; touch-action: manipulation; user-select: none;
 }
 .mine-cell {
-  aspect-ratio: 1; min-width: 32px; border: 0; padding: 0;
+  width: var(--cell, 32px); height: var(--cell, 32px); border: 0; padding: 0;
   border-radius: 4px; background-color: var(--color-surface-3);
-  color: var(--color-text); font-size: 15px; font-weight: 700; line-height: 1;
+  color: var(--color-text); font-size: calc(var(--cell, 32px) / 2.1); font-weight: 700; line-height: 1;
 }
 .mine-cell.is-open { background-color: var(--color-surface); }
 .mine-cell.is-flag { color: var(--color-danger); }
@@ -112,7 +169,8 @@
 
 /* ===== Flappy ===== */
 .flappy-wrap {
-  position: relative; display: grid; place-items: center;
+  position: relative; flex: 1 1 auto; min-height: 0;
+  display: grid; place-items: center;
   border-radius: var(--radius-lg); overflow: hidden; background-color: var(--color-surface);
 }
 .flappy-wrap canvas { display: block; touch-action: none; }
