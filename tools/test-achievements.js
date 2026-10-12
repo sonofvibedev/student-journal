@@ -253,5 +253,25 @@ function setup({ days, absences, asOf, homeworkDone = 0, earned = [] }) {
   check('справки: засчитана только сданная до срока', stats.certsOnTime, 1);
 }
 
+// --- 11. Значки за рекорды в играх выдаёт только сервер ---
+{
+  // Даже при самых щедрых данных клиент не должен присуждать игровой значок:
+  // его выдаёт Edge Function после того, как переиграет партию по зерну.
+  const days = ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06', '2026-10-07'];
+  const stats = setup({
+    days, asOf: '2026-10-07',
+    absences: [],
+    homework: Array.from({ length: 60 }, (_, i) => ({ id: 'hw' + i }))
+  });
+  const codes = ach.achDeserved(stats).map((d) => d.code);
+  check('игровые значки клиент себе не выдаёт', codes.filter((c) => c.startsWith('game_')), []);
+
+  // Но каталог их знает: экран достижений показывает их как невыданные
+  const catalog = Object.keys(ach.ACH_BY_CODE).filter((c) => c.startsWith('game_'));
+  check('каталог знает восемь игровых значков', catalog.length, 8);
+  check('у каждого игрового значка есть очки',
+    catalog.every((c) => ach.ACH_BY_CODE[c].points > 0), true);
+}
+
 console.log(failed === 0 ? '\nВсе проверки прошли' : `\nПровалено проверок: ${failed}`);
 process.exit(failed === 0 ? 0 : 1);

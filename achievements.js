@@ -22,6 +22,7 @@ const ACH_CATEGORIES = [
   { id: 'attendance', title: 'Посещаемость' },
   { id: 'app',        title: 'Приложение' },
   { id: 'homework',   title: 'Домашка' },
+  { id: 'games',      title: 'Игры' },
   { id: 'anti',       title: 'Антидостижения' }
 ];
 
@@ -89,8 +90,33 @@ const ACHIEVEMENTS = [
   { code: 'anti_m12', cat: 'anti', icon: 'warn',     tier: 'anti-6', group: 'anti', need: 12, anti: true, repeatable: true,
     title: 'Красная зона', about: '12 неуважительных часов за месяц' },
   { code: 'anti_m14', cat: 'anti', icon: 'envelope', tier: 'anti-7', group: 'anti', need: 14, anti: true, repeatable: true,
-    title: 'Вызов в деканат', about: '14 и больше неуважительных часов за месяц' }
+    title: 'Вызов в деканат', about: '14 и больше неуважительных часов за месяц' },
+
+  // Игры: значки за проверенные рекорды. points — игровые очки, они идут
+  // только в рейтинг игр и на учебные баллы не влияют. Пороги и очки
+  // дублируют GAME_BADGES в games-core.js: там по ним значок выдаёт сервер,
+  // здесь — показываются название и условие.
+  { code: 'game_sudoku_fast', cat: 'games', icon: 'sudokuFast', tier: 'bronze', points: 15,
+    title: 'Быстрый ум', about: 'Судоку на лёгкой сложности быстрее 5 минут' },
+  { code: 'game_sudoku_speed', cat: 'games', icon: 'sudokuSpeed', tier: 'silver', points: 25,
+    title: 'Скоростной решатель', about: 'Судоку на средней сложности быстрее 8 минут' },
+  { code: 'game_sudoku_master', cat: 'games', icon: 'sudokuMaster', tier: 'gold', points: 40,
+    title: 'Гроссмейстер клеток', about: 'Судоку на трудной сложности быстрее 12 минут' },
+  { code: 'game_mines_steady', cat: 'games', icon: 'minesSteady', tier: 'bronze', points: 15,
+    title: 'Твёрдая рука', about: 'Сапёр на лёгком уровне быстрее 45 секунд' },
+  { code: 'game_mines_pro', cat: 'games', icon: 'minesPro', tier: 'silver', points: 25,
+    title: 'Сапёр-профи', about: 'Сапёр на среднем уровне быстрее 3 минут' },
+  { code: 'game_mines_perfect', cat: 'games', icon: 'minesPerfect', tier: 'gold', points: 40,
+    title: 'Без права на ошибку', about: 'Сапёр на трудном уровне быстрее 6 минут' },
+  { code: 'game_flappy_25', cat: 'games', icon: 'flappyUp', tier: 'bronze', points: 15,
+    title: 'Набрал высоту', about: '25 труб во Flappy Bird' },
+  { code: 'game_flappy_75', cat: 'games', icon: 'flappyKing', tier: 'gold', points: 40,
+    title: 'Покоритель небес', about: '75 труб во Flappy Bird' }
 ];
+
+// Значки за рекорды выдаёт сервер после проверенной партии, поэтому сам
+// клиент их не присуждает — он только показывает то, что уже выдано.
+const ACH_SERVER_GRANTED = (code) => String(code).startsWith('game_');
 
 const ACH_BY_CODE = {};
 ACHIEVEMENTS.forEach((a) => { ACH_BY_CODE[a.code] = a; });
@@ -776,6 +802,23 @@ function achToast(code) {
 }
 
 // Новые значки с прошлого раза: показываем всплывашку по очереди
+// Значки, выданные сервером (рекорды в играх): страница их не присуждает,
+// а только показывает. Вызывает games.js после ответа submit-game-score.
+function achNoteServerBadges(codes) {
+  if (!Array.isArray(codes) || !codes.length) return;
+  const now = new Date().toISOString();
+  codes.forEach((code) => {
+    if (!ACH_BY_CODE[code] || achState.earned.has(code)) return;
+    achState.earned.set(code, { code, period: '', earned_at: now });
+    if (!achState.periods.has(code)) achState.periods.set(code, new Set());
+    achState.periods.get(code).add('');
+  });
+  achShowNewBadges();
+  renderHomeAchievements();
+  renderProfileBadges();
+  if (achSheetOpen()) renderAchievementsView();
+}
+
 function achShowNewBadges() {
   const shown = achShownSet();
   const fresh = [...achState.earned.keys()].filter((c) => !shown.has(c));

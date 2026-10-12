@@ -11,7 +11,8 @@ import {
   SUDOKU_LEVELS, sudokuGenerate, sudokuSolutionCount, sudokuVerify,
   sudokuPlaceNotes, sudokuRestoreNotes,
   MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen, minesPickLevel,
-  FLAPPY, flappyGame, flappySimulate, makeRng
+  FLAPPY, flappyGame, flappySimulate, makeRng,
+  GAME_BADGES, gameBadgesFor
 } from '../games-core.js';
 
 let passed = 0;
@@ -237,6 +238,55 @@ test('у каждого телефонного уровня есть свой к
   ['easy_s', 'medium_s', 'hard_s'].forEach((key) => {
     assert.ok(MINES_LEVELS[key], `нет уровня ${key}`);
     assert.ok(MINES_LEVELS[key].minSeconds > 0, `${key}: нет минимального времени`);
+  });
+});
+
+console.log('Значки за рекорды');
+
+test('значок даётся ровно на пороге и не даётся чуть хуже', () => {
+  // Судоку: лёгкая быстрее 5 минут
+  assert.deepEqual(gameBadgesFor('sudoku', 'easy', 299), ['game_sudoku_fast']);
+  assert.deepEqual(gameBadgesFor('sudoku', 'easy', 300), []);
+  // Сапёр: лёгкий быстрее 45 секунд
+  assert.deepEqual(gameBadgesFor('minesweeper', 'easy', 44), ['game_mines_steady']);
+  assert.deepEqual(gameBadgesFor('minesweeper', 'easy', 45), []);
+  // Flappy: 25 труб
+  assert.deepEqual(gameBadgesFor('flappy', 'none', 25), ['game_flappy_25']);
+  assert.deepEqual(gameBadgesFor('flappy', 'none', 24), []);
+});
+
+test('высокий результат во flappy даёт оба значка сразу', () => {
+  assert.deepEqual(gameBadgesFor('flappy', 'none', 75).sort(), ['game_flappy_25', 'game_flappy_75']);
+  assert.deepEqual(gameBadgesFor('flappy', 'none', 74), ['game_flappy_25']);
+});
+
+test('у судоку и сапёра значок только за свою сложность', () => {
+  // Время лёгкой сложности не даёт значок средней
+  assert.deepEqual(gameBadgesFor('sudoku', 'medium', 299), ['game_sudoku_speed']);
+  assert.deepEqual(gameBadgesFor('sudoku', 'hard', 299), ['game_sudoku_master']);
+  assert.deepEqual(gameBadgesFor('minesweeper', 'hard', 200), ['game_mines_perfect']);
+});
+
+test('телефонное поле сапёра значков не даёт', () => {
+  ['easy_s', 'medium_s', 'hard_s'].forEach((d) => {
+    assert.deepEqual(gameBadgesFor('minesweeper', d, 1), [], d + ': значок выдан на уменьшенном поле');
+  });
+});
+
+test('мусор вместо результата значка не даёт', () => {
+  assert.deepEqual(gameBadgesFor('sudoku', 'easy', 0), []);
+  assert.deepEqual(gameBadgesFor('sudoku', 'easy', -5), []);
+  assert.deepEqual(gameBadgesFor('sudoku', 'easy', NaN), []);
+  assert.deepEqual(gameBadgesFor('нет такой игры', 'easy', 10), []);
+  assert.deepEqual(gameBadgesFor('flappy', 'none', -1), []);
+});
+
+test('у каждого значка есть игровые очки и они не учебные', () => {
+  const codes = Object.keys(GAME_BADGES);
+  assert.equal(codes.length, 8, 'значков должно быть восемь');
+  codes.forEach((code) => {
+    assert.ok(code.startsWith('game_'), code + ': код без приставки game_');
+    assert.ok(GAME_BADGES[code].points > 0, code + ': нет игровых очков');
   });
 });
 

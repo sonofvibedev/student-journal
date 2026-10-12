@@ -158,6 +158,11 @@ async function gamesSubmit(payload) {
       const diff = payload.difficulty || 'none';
       gamesState.records.set(gameKey(payload.game, diff), out.record);
       renderGamesList();
+      // Значки за рекорд выдал сервер — показываем их тем же всплывающим
+      // окном, что и остальные достижения
+      if (out.badges && out.badges.length && typeof achNoteServerBadges === 'function') {
+        achNoteServerBadges(out.badges);
+      }
       return out;
     }
     return { error: (out && out.error) || 'server_error' };
@@ -258,8 +263,9 @@ function studentInitials(id) {
 function openGameRating(game) {
   // Сапёр открываем на том размере поля, на котором студент играл последним
   const small = game === 'minesweeper' && /_s$/.test(minesState.diff);
-  gameRatingOpen = { game, diff: GAME_DIFFS[game][0], small };
-  document.getElementById('gameRatingTitle').textContent = 'Рейтинг · ' + GAMES_META[game].title;
+  gameRatingOpen = { game, diff: game === 'points' ? 'none' : GAME_DIFFS[game][0], small };
+  document.getElementById('gameRatingTitle').textContent =
+    game === 'points' ? 'Рейтинг · игровые очки' : 'Рейтинг · ' + GAMES_META[game].title;
   renderGameRatingDiffs();
   renderGameRating();
   bootstrap.Modal.getOrCreateInstance(document.getElementById('gameRatingSheet')).show();
@@ -268,6 +274,7 @@ function openGameRating(game) {
 function renderGameRatingDiffs() {
   const box = document.getElementById('gameRatingDiffs');
   const game = gameRatingOpen.game;
+  if (game === 'points') { box.classList.add('d-none'); box.innerHTML = ''; return; }
   const diffs = GAME_DIFFS[game];
   box.classList.toggle('d-none', diffs.length < 2);
   box.innerHTML = '';
@@ -304,6 +311,8 @@ async function renderGameRating() {
   body.innerHTML = '<div class="games-empty">Загружаем…</div>';
   if (!gamesSigned() || !sb) { body.innerHTML = '<div class="games-empty">Войдите, чтобы видеть рейтинг</div>'; return; }
 
+  if (game === 'points') { await renderGamePointsBoard(body); return; }
+
   const asc = GAMES_META[game].unit === 'time';   // время: меньше лучше
   let rows = [];
   try {
@@ -318,6 +327,38 @@ async function renderGameRating() {
     return;
   }
   renderBoardRows(body, rows.map((r) => ({ id: r.student_id, value: gameScoreText(game, r.score) })));
+}
+
+// Рейтинг по игровым очкам: очки дают значки за рекорды, и сколько стоит
+// каждый — знает каталог в games-core.js. Он же передаётся в rpc_game_points,
+// поэтому наружу уходит только сумма, а не список значков человека.
+// К учебным баллам эти очки отношения не имеют.
+async function renderGamePointsBoard(body) {
+  const core = window.GamesCore;
+  if (!core) { body.innerHTML = '<div class="games-empty">Правила игр ещё грузятся</div>'; return; }
+  const codes = Object.keys(core.GAME_BADGES);
+  const points = codes.map((c) => core.GAME_BADGES[c].points);
+  let rows = [];
+  try {
+    const { data } = await sb.rpc('rpc_game_points', { codes, points });
+    rows = data || [];
+  } catch (e) {
+    body.innerHTML = '<div class="games-empty">Рейтинг не загрузился</div>';
+    return;
+  }
+  renderBoardRows(body, rows.map((r) => ({
+    id: r.student_id,
+    value: r.points + ' ' + gamePointsWord(r.points)
+  })));
+}
+
+// 1 очко, 2 очка, 5 очков
+function gamePointsWord(n) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return 'очков';
+  if (b === 1) return 'очко';
+  if (b >= 2 && b <= 4) return 'очка';
+  return 'очков';
 }
 
 // Общая отрисовка таблицы: место, аватарка или инициалы, ФИО, результат.
