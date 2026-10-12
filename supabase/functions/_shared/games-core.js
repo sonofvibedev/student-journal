@@ -412,12 +412,51 @@ export function flappySimulate(seed, flapSteps, limitSteps) {
   return { score: game.score, steps: game.step, alive: game.alive };
 }
 
+// ============================================================================
+// ЗНАЧКИ ЗА РЕКОРДЫ
+//
+// Очки здесь игровые: они идут только в рейтинг игр и на учебные баллы не
+// влияют. Пороги проверены пробными партиями: у судоку и сапёра значок даётся
+// за время меньше порога, у flappy — за число труб не меньше порога.
+//
+// Правила лежат рядом с правилами игр, потому что значок выдаёт сервер в
+// submit-game-score сразу после того, как партия переиграна и признана
+// честной. Выдать его себе из консоли нельзя.
+//
+// Телефонные поля сапёра (easy_s и прочие) значков не дают: клеток меньше,
+// время там естественно ниже, и один и тот же значок стоил бы разного труда.
+// ============================================================================
+export const GAME_BADGES = {
+  game_sudoku_fast:    { game: 'sudoku', difficulty: 'easy',   under: 300, points: 15 },
+  game_sudoku_speed:   { game: 'sudoku', difficulty: 'medium', under: 480, points: 25 },
+  game_sudoku_master:  { game: 'sudoku', difficulty: 'hard',   under: 720, points: 40 },
+  game_mines_steady:   { game: 'minesweeper', difficulty: 'easy',   under: 45,  points: 15 },
+  game_mines_pro:      { game: 'minesweeper', difficulty: 'medium', under: 180, points: 25 },
+  game_mines_perfect:  { game: 'minesweeper', difficulty: 'hard',   under: 360, points: 40 },
+  game_flappy_25:      { game: 'flappy', difficulty: 'none', atLeast: 25, points: 15 },
+  game_flappy_75:      { game: 'flappy', difficulty: 'none', atLeast: 75, points: 40 }
+};
+
+// Какие значки заслужены этим результатом. score — секунды или трубы.
+export function gameBadgesFor(game, difficulty, score) {
+  if (!Number.isFinite(score) || score < 0) return [];
+  const out = [];
+  for (const code of Object.keys(GAME_BADGES)) {
+    const b = GAME_BADGES[code];
+    if (b.game !== game || b.difficulty !== difficulty) continue;
+    if (b.under != null && score > 0 && score < b.under) out.push(code);
+    if (b.atLeast != null && score >= b.atLeast) out.push(code);
+  }
+  return out;
+}
+
 export const GamesCore = {
   makeRng, seedFromString,
   SUDOKU_LEVELS, sudokuGenerate, sudokuSolutionCount, sudokuVerify, sudokuAllowed,
   sudokuPlaceNotes, sudokuRestoreNotes,
   MINES_LEVELS, MINES_MIN_CELL, minesPickLevel, mineField, mineNeighbors, mineOpen, minesReplay,
-  FLAPPY, flappyGame, flappySimulate
+  FLAPPY, flappyGame, flappySimulate,
+  GAME_BADGES, gameBadgesFor
 };
 
 // Страница может дойти до экрана игры раньше, чем загрузится этот модуль

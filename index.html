@@ -1133,6 +1133,11 @@
   </div>
   <p class="games-note d-none" id="gamesGuestNote">Войдите, чтобы попасть в рейтинг</p>
   <div class="games-list" id="gamesList"></div>
+  <!-- Очки дают значки за рекорды. Они игровые: в учебный рейтинг не идут. -->
+  <button type="button" class="games-points-btn" id="gamesPointsBtn" onclick="openGameRating('points')">
+    <span>Рейтинг по игровым очкам</span>
+    <small>очки дают значки за рекорды и не влияют на учебные баллы</small>
+  </button>
 </section>
 
 <!-- Экраны игр занимают весь экран: таб-бар и шапка приложения под ними,
