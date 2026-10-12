@@ -9,6 +9,7 @@
 import assert from 'node:assert/strict';
 import {
   SUDOKU_LEVELS, sudokuGenerate, sudokuSolutionCount, sudokuVerify,
+  sudokuPlaceNotes, sudokuRestoreNotes,
   MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen,
   FLAPPY, flappyGame, flappySimulate, makeRng
 } from '../games-core.js';
@@ -67,6 +68,49 @@ test('подделанное решение не принимается', () => 
   assert.equal(sudokuVerify(10, 'easy', solution), false);
 });
 
+test('цифра убирает заметки своей клетки, строки, столбца и блока', () => {
+  const notes = Array.from({ length: 81 }, () => new Set());
+  // Клетка 40 — середина поля: строка 4, столбец 4, центральный блок
+  notes[40] = new Set([3, 7]);
+  notes[36] = new Set([7, 9]);        // та же строка
+  notes[4]  = new Set([7]);           // тот же столбец
+  notes[30] = new Set([7, 1]);        // тот же блок
+  notes[0]  = new Set([7]);           // ни строка, ни столбец, ни блок — не трогаем
+
+  sudokuPlaceNotes(notes, 40, 7);
+
+  assert.equal(notes[40].size, 0, 'заметки своей клетки не очищены');
+  assert.deepEqual([...notes[36]], [9], 'цифра осталась в заметках строки');
+  assert.equal(notes[4].has(7), false, 'цифра осталась в заметках столбца');
+  assert.deepEqual([...notes[30]], [1], 'цифра осталась в заметках блока');
+  assert.deepEqual([...notes[0]], [7], 'тронуты заметки чужой клетки');
+});
+
+test('отмена возвращает заметки всех затронутых клеток', () => {
+  const notes = Array.from({ length: 81 }, () => new Set());
+  notes[40] = new Set([3, 7]);
+  notes[36] = new Set([7, 9]);
+  notes[4]  = new Set([7]);
+  notes[30] = new Set([7, 1]);
+
+  const removed = sudokuPlaceNotes(notes, 40, 7);
+  sudokuRestoreNotes(notes, removed);
+
+  assert.deepEqual([...notes[40]].sort(), [3, 7], 'заметки своей клетки не вернулись');
+  assert.deepEqual([...notes[36]].sort(), [7, 9], 'заметки строки не вернулись');
+  assert.deepEqual([...notes[4]], [7], 'заметки столбца не вернулись');
+  assert.deepEqual([...notes[30]].sort(), [1, 7], 'заметки блока не вернулись');
+});
+
+test('заметки без этой цифры отмена не раздувает', () => {
+  const notes = Array.from({ length: 81 }, () => new Set());
+  notes[36] = new Set([9]);
+  const removed = sudokuPlaceNotes(notes, 40, 7);
+  sudokuRestoreNotes(notes, removed);
+  assert.deepEqual([...notes[36]], [9]);
+  assert.equal(notes[40].size, 0);
+});
+
 console.log('Сапёр');
 Object.keys(MINES_LEVELS).forEach((diff) => {
   test(`первый ход безопасен и его соседи пусты (${diff})`, () => {
@@ -97,6 +141,49 @@ Object.keys(MINES_LEVELS).forEach((diff) => {
     const res = minesReplay(7, diff, moves);
     assert.equal(res.won, true);
     assert.equal(res.opened, total - level.mines);
+  });
+
+  test(`победа аккордом проходит проверку (${diff})`, () => {
+    const level = MINES_LEVELS[diff];
+    const total = level.cols * level.rows;
+    const first = Math.floor(total / 2);
+    const field = mineField(1, diff, first);
+    const opened = new Set();
+    const flags = new Set();
+    const moves = [{ t: 'open', i: first }];
+    mineOpen(field, opened, first);
+
+    // Числовая клетка, рядом с которой ещё есть что открывать: ею и добьём
+    let chord = -1;
+    for (let i = 0; i < total && chord < 0; i++) {
+      if (!opened.has(i) || field.counts[i] <= 0) continue;
+      if (mineNeighbors(level, i).some((n) => !opened.has(n) && !field.mines.has(n))) chord = i;
+    }
+    assert.ok(chord >= 0, 'не нашлось клетки для аккорда');
+    const around = mineNeighbors(level, chord);
+    const keep = new Set(around.filter((n) => !field.mines.has(n)));
+
+    for (let i = 0; i < total; i++) {
+      if (field.mines.has(i) || opened.has(i) || keep.has(i)) continue;
+      moves.push({ t: 'open', i });
+      mineOpen(field, opened, i);
+    }
+    // Флажки на мины вокруг числа — только так страница разрешает аккорд
+    around.forEach((n) => { if (field.mines.has(n)) flags.add(n); });
+    assert.equal(around.filter((n) => flags.has(n)).length, field.counts[chord]);
+
+    // Аккорд уходит в доказательство отдельными ходами «открыть»: клетки под
+    // флажками в него не попадают, иначе сервер подорвался бы на них
+    around.forEach((n) => {
+      if (opened.has(n) || flags.has(n)) return;
+      moves.push({ t: 'open', i: n });
+      mineOpen(field, opened, n);
+    });
+    assert.equal(opened.size, total - level.mines, 'на странице это победа');
+
+    const res = minesReplay(1, diff, moves);
+    assert.equal(res.won, true, 'сервер не признал победу аккордом');
+    assert.ok(moves.length <= level.cols * level.rows * 4, 'ходов больше, чем принимает функция');
   });
 });
 
