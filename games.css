@@ -27,6 +27,16 @@
   .game-actions .btn { flex: 1 1 0; }
 }
 
+/* Кнопка рейтинга по игровым очкам под списком игр */
+.games-points-btn {
+  width: 100%; margin-top: var(--space-3); padding: var(--space-4);
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+  border-radius: var(--radius-lg); border: 1px solid var(--glass-edge);
+  background-color: var(--pane-bg); box-shadow: var(--glass-shadow);
+  color: var(--color-text); font-size: var(--fs-body); font-weight: 600;
+}
+.games-points-btn small { color: var(--color-text-secondary); font-size: var(--fs-small); font-weight: 400; }
+
 /* ===== Полноэкранный экран игры =====
    Высота считается в games.js от реально доступной: 100dvh минус безопасные
    зоны, а в Telegram — viewportStableHeight. Переменную --game-h ставит он же,
