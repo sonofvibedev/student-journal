@@ -86,6 +86,34 @@ export function sudokuAllowed(grid, i, v) {
   return true;
 }
 
+// Цифра поставлена в клетку: заметки этой клетки больше не нужны, и та же
+// цифра уходит из заметок строки, столбца и блока — подсказка там неверна.
+// Возвращает, что именно убрано, чтобы отмена вернула всё одним шагом.
+export function sudokuPlaceNotes(notes, i, v) {
+  const removed = [];
+  if (notes[i] && notes[i].size) {
+    removed.push([i, [...notes[i]]]);
+    notes[i].clear();
+  }
+  if (!v) return removed;
+  const peers = SUDOKU_PEERS[i];
+  for (let k = 0; k < peers.length; k++) {
+    const p = peers[k];
+    if (notes[p] && notes[p].delete(v)) removed.push([p, [v]]);
+  }
+  return removed;
+}
+
+// Отмена: вернуть заметки ровно те, что убрал sudokuPlaceNotes
+export function sudokuRestoreNotes(notes, removed) {
+  if (!Array.isArray(removed)) return;
+  for (let k = 0; k < removed.length; k++) {
+    const [p, digits] = removed[k];
+    if (!notes[p]) notes[p] = new Set();
+    for (let d = 0; d < digits.length; d++) notes[p].add(digits[d]);
+  }
+}
+
 // Полностью заполненное решение по зерну
 function sudokuFullSolution(rng) {
   const grid = new Array(81).fill(0);
@@ -355,6 +383,7 @@ export function flappySimulate(seed, flapSteps, limitSteps) {
 export const GamesCore = {
   makeRng, seedFromString,
   SUDOKU_LEVELS, sudokuGenerate, sudokuSolutionCount, sudokuVerify, sudokuAllowed,
+  sudokuPlaceNotes, sudokuRestoreNotes,
   MINES_LEVELS, mineField, mineNeighbors, mineOpen, minesReplay,
   FLAPPY, flappyGame, flappySimulate
 };

@@ -102,7 +102,9 @@ async function gamesSubmit(payload) {
   if (!gamesSigned() || !sb) return { skipped: true };
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) return { skipped: true };
+    // Вход был, а сессии уже нет: рекорд не уйдёт, и об этом надо сказать,
+    // иначе экран молча останется на «Проверяем рекорд…»
+    if (!session) return { error: 'signed_out' };
     const res = await fetch(SUPABASE_URL + '/functions/v1/' + GAMES_FN, {
       method: 'POST',
       headers: {
@@ -392,15 +394,20 @@ function sudokuPut(v) {
   const s = sudokuState;
   if (s.done || s.sel < 0 || s.puzzle[s.sel]) return;
   const i = s.sel;
-  s.undo.push({ i, value: s.grid[i], notes: new Set(s.notes[i]) });
+  const core = window.GamesCore;
 
   if (s.pencil && v) {
+    s.undo.push({ i, value: s.grid[i], notes: new Set(s.notes[i]), removed: [] });
     if (s.notes[i].has(v)) s.notes[i].delete(v); else s.notes[i].add(v);
     sudokuRenderAll();
     return;
   }
 
-  s.notes[i].clear();
+  // Настоящая цифра: заметки этой клетки уходят, и та же цифра уходит из
+  // заметок строки, столбца и блока. Что убрано — в шаг отмены, чтобы
+  // «Отменить» вернуло и цифру, и заметки сразу.
+  const removed = core.sudokuPlaceNotes(s.notes, i, v);
+  s.undo.push({ i, value: s.grid[i], removed });
   s.grid[i] = v;
   if (v && v !== s.solution[i]) {
     s.mistakes++;
@@ -422,7 +429,8 @@ function sudokuUndo() {
   const step = s.undo.pop();
   if (!step) return;
   s.grid[step.i] = step.value;
-  s.notes[step.i] = step.notes;
+  if (step.notes) s.notes[step.i] = step.notes;        // шаг карандашом
+  window.GamesCore.sudokuRestoreNotes(s.notes, step.removed);
   sudokuRenderAll();
 }
 
@@ -618,10 +626,13 @@ function minesTap(i) {
     const around = core.mineNeighbors(s.field.level, i);
     const flags = around.filter((n) => s.flags.has(n)).length;
     if (s.field.counts[i] <= 0 || flags !== s.field.counts[i]) return;
-    s.moves.push({ t: 'chord', i });
+    // В доказательство партии аккорд уходит отдельными ходами «открыть»:
+    // флажки на сервер не передаются, и аккордом он открыл бы в том числе
+    // заминированную клетку под флажком — победа не прошла бы проверку.
     let boom = false;
     around.forEach((n) => {
       if (s.opened.has(n) || s.flags.has(n)) return;
+      s.moves.push({ t: 'open', i: n });
       if (s.field.mines.has(n)) boom = true;
       else core.mineOpen(s.field, s.opened, n);
     });
