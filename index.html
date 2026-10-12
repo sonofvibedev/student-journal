@@ -1699,6 +1699,9 @@
 
 <!-- Календарь пропусков (index.html#absences) — открывается с плитки «Часы за месяц» -->
 <section id="viewAbsences" class="app-view d-none">
+  <!-- На какое число данные: их обновляет админ, и по старым цифрам легко
+       сделать неверный вывод. Текст ставит renderAbsencesFreshness(). -->
+  <p class="data-fresh d-none" id="absencesFresh"></p>
   <div class="pill-row">
     <select id="cabinetPeriod" class="pill-select" onchange="renderPersonalStats()" aria-label="Период">
       <option value="WEEK">За неделю</option>
@@ -2765,7 +2768,10 @@
       if (typeof flappyMount === 'function') flappyMount();
     } else if (typeof flappyPause === 'function') { flappyPause(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
-    if (name === 'absences' && typeof renderPersonalStats === 'function') renderPersonalStats();
+    if (name === 'absences' && typeof renderPersonalStats === 'function') {
+      renderPersonalStats();
+      renderAbsencesFreshness();
+    }
 
     // Плашка месяца и «Пропуски актуальны на» относятся к пропускам группы:
     // на других экранах они сбивают с толку
@@ -5058,6 +5064,18 @@
   // Заглушка для разделов, которые ещё не реализованы (нижняя панель навигации)
   function showComingSoon() {
     showAlert('Данная функция ещё в разработке. Ожидайте, пожалуйста, дальнейших изменений.');
+  }
+
+  // Дата актуальности над календарём пропусков: по старым данным студент
+  // может решить, что часов меньше, чем на самом деле. Формат общий для всего
+  // приложения — dataFreshness() из shared.js.
+  function renderAbsencesFreshness() {
+    const el = document.getElementById('absencesFresh');
+    if (!el) return;
+    const f = dataFreshness(appData.lastUpdated);
+    el.classList.toggle('d-none', !f.text);
+    el.classList.toggle('is-stale', f.stale);
+    el.textContent = f.stale ? `${f.text} — ${f.note}` : f.text;
   }
 
   // Показывает "Пропуски актуальны на: ..." над таблицей — appData.lastUpdated
