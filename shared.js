@@ -77,6 +77,28 @@ const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель'
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const dlFormatDate = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 
+// Насколько свежи данные журнала (appData.lastUpdated). Одна функция на всё
+// приложение, чтобы дата всюду выглядела одинаково.
+//   text  — «Данные актуальны на ДД.ММ.ГГГГ, ЧЧ:ММ» («» если даты нет)
+//   stale — данным больше трёх суток
+//   note  — пометка для таких данных
+const DATA_STALE_DAYS = 3;
+function dataFreshness(iso, now) {
+  const empty = { text: '', stale: false, note: '' };
+  if (!iso) return empty;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return empty;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ageDays = ((now || new Date()) - d) / 86400000;
+  const stale = ageDays > DATA_STALE_DAYS;
+  return {
+    text: `Данные актуальны на ${dlFormatDate(d)}, ${hh}:${mm}`,
+    stale,
+    note: stale ? 'давно не обновлялись' : ''
+  };
+}
+
 function deadlineDate(iso) {
   const [y, m, d] = String(iso).split('-').map(Number);
   return new Date(y, m - 1, d);
