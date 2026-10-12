@@ -248,3 +248,16 @@
     .notify-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
     .notify-lbl { min-width: 0; font-size: 17px; color: var(--color-text); }
     .notify-val { display: block; font-size: var(--fs-small); color: var(--color-text-tertiary); }
+
+/* Калькулятор: предметы, по которым расчёт уже есть */
+.rc-done-wrap { margin-bottom: var(--space-3); }
+.rc-done { display: grid; gap: 6px; }
+.rc-done-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radius-md);
+  border: 1px solid var(--color-separator); background-color: var(--color-surface);
+  color: var(--color-text); font-size: var(--fs-small); text-align: left;
+}
+.rc-done-item.is-now { border-color: var(--color-accent); }
+.rc-done-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-done-item b { flex: none; font-weight: 700; }

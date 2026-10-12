@@ -1176,6 +1176,25 @@
   <div class="game-body" id="flappyHost"></div>
 </section>
 
+<!-- Перенос расчёта старого общего калькулятора: к какому предмету его отнести.
+     Пока студент не выбрал, старый расчёт лежит на месте и не теряется. -->
+<div class="modal fade swipe-sheet" id="ratingMigrateSheet" tabindex="-1" aria-labelledby="ratingMigrateTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content filter-sheet">
+      <div class="sheet-drag">
+        <div class="filter-sheet-handle" aria-hidden="true"></div>
+        <div class="filter-sheet-header">
+          <div class="filter-sheet-title" id="ratingMigrateTitle">Перенести расчёт</div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p class="text-secondary" id="ratingMigrateText"></p>
+        <div class="rows" id="ratingMigrateList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Нижний лист рейтинга: топ-5 и своя строка, если места в пятёрке нет -->
 <div class="modal fade swipe-sheet" id="gameRatingSheet" tabindex="-1" aria-labelledby="gameRatingTitle">
   <div class="modal-dialog modal-dialog-scrollable">
@@ -1657,7 +1676,18 @@
           </div>
 
       <div id="gradesPaneCalc" class="d-none">
-        <!-- Калькулятор рейтинга (вариант «Слайдеры»): итог сверху, оценки — ползунком и «+» -->
+        <!-- Калькулятор рейтинга (вариант «Слайдеры»): итог сверху, оценки — ползунком и «+».
+             Расчёт свой у каждого предмета: сверху список уже посчитанных и выбор предмета. -->
+        <div class="rc-done-wrap d-none" id="ratingDoneWrap">
+          <div class="group-title">Уже посчитано</div>
+          <div class="rc-done" id="ratingDoneList"></div>
+        </div>
+        <div class="group">
+          <div class="group-title">Предмет</div>
+          <div class="inset">
+            <select id="ratingSubject" class="pill-select w-100" onchange="switchRatingSubject(this.value)" aria-label="Предмет для расчёта"></select>
+          </div>
+        </div>
         <div class="rc-hero">
           <small>Итоговый рейтинг</small>
           <span class="rc-big num" id="finalRatingResult">—</span>
@@ -1687,7 +1717,7 @@
             <div class="rc-slot"><div class="rc-lab"><label for="finalCoefSelect">Семестр / экзамен</label><b class="num" id="finalCoefLabel">0.4 / 0.6</b></div><input type="range" id="finalCoefSelect" min="0.4" max="0.5" step="0.1" value="0.4" oninput="recalcRating()"><div class="rc-ticks"><span>0.4</span><span>0.5</span></div></div>
           </div>
         </div>
-        <div class="group">
+        <div class="group" id="ratingExamGroup">
           <div class="group-title">Экзамен</div>
           <div class="inset">
             <div class="rc-lab"><label for="examGradeRange">Оценка на экзамене</label><b class="num" id="examGradeLabel">—</b></div>

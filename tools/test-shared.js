@@ -32,11 +32,12 @@ function loadShared() {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   const source = fs.readFileSync(path.join(root, 'shared.js'), 'utf8').replace(/^﻿/, '');
-  vm.runInContext(source + '\n;globalThis.__shared = { dataFreshness };\n', sandbox, { filename: 'shared.js' });
+  vm.runInContext(source + '\n;globalThis.__shared = { dataFreshness, ratingStoreRead, ratingStoreFor, ratingStoreWrite, ratingLegacyRead, ratingSubjectsDone };\n', sandbox, { filename: 'shared.js' });
   return sandbox.__shared;
 }
 
-const { dataFreshness } = loadShared();
+const { dataFreshness, ratingStoreRead, ratingStoreFor, ratingStoreWrite,
+        ratingLegacyRead, ratingSubjectsDone } = loadShared();
 
 let passed = 0;
 function test(name, fn) {
@@ -74,6 +75,72 @@ test('без даты и с мусором ничего не показывае�
   assert.equal(dataFreshness(null, now).text, '');
   assert.equal(dataFreshness('не дата', now).text, '');
   assert.equal(dataFreshness(undefined, now).stale, false);
+});
+
+console.log('Калькулятор по предметам');
+
+const EMPTY = { control: [], oral: [], exam: '', k1: 0.5, w1: 0.6 };
+
+test('у каждого предмета свой расчёт', () => {
+  let store = ratingStoreRead(null);
+  store = ratingStoreWrite(store, 'Математика', { ...EMPTY, control: [9, 8], exam: '7' });
+  store = ratingStoreWrite(store, 'Физика', { ...EMPTY, oral: [5], exam: '10' });
+
+  assert.deepEqual(ratingStoreFor(store, 'Математика').control, [9, 8]);
+  assert.deepEqual(ratingStoreFor(store, 'Математика').oral, []);
+  assert.equal(ratingStoreFor(store, 'Математика').exam, '7');
+  assert.deepEqual(ratingStoreFor(store, 'Физика').oral, [5]);
+  assert.equal(ratingStoreFor(store, 'Физика').exam, '10');
+});
+
+test('расчёт восстанавливается из строки хранилища', () => {
+  let store = ratingStoreWrite(ratingStoreRead(null), 'Химия', { ...EMPTY, control: [6], k1: 0.7, w1: 0.4 });
+  const again = ratingStoreRead(JSON.stringify(store));
+  const calc = ratingStoreFor(again, 'Химия');
+  assert.deepEqual(calc.control, [6]);
+  assert.equal(calc.k1, 0.7);
+  assert.equal(calc.w1, 0.4);
+});
+
+test('незнакомый предмет даёт пустой расчёт, а не чужой', () => {
+  const store = ratingStoreWrite(ratingStoreRead(null), 'Химия', { ...EMPTY, control: [6] });
+  assert.deepEqual(ratingStoreFor(store, 'Биология').control, []);
+  assert.deepEqual(ratingStoreFor(store, 'Биология').oral, []);
+});
+
+test('мусор в хранилище не роняет калькулятор', () => {
+  assert.deepEqual(ratingStoreFor(ratingStoreRead('не json'), 'Химия'), EMPTY);
+  assert.deepEqual(ratingStoreFor(ratingStoreRead('{"Химия": 5}'), 'Химия'), EMPTY);
+  assert.deepEqual(ratingStoreFor(ratingStoreRead('[]'), 'Химия'), EMPTY);
+});
+
+test('старый общий расчёт читается целиком', () => {
+  const legacy = ratingLegacyRead('{"control":[9,8],"oral":[7]}', '8', '0.7', '0.4');
+  assert.deepEqual(legacy.control, [9, 8]);
+  assert.deepEqual(legacy.oral, [7]);
+  assert.equal(legacy.exam, '8', 'потеряна оценка за экзамен');
+  assert.equal(legacy.k1, 0.7, 'потерян коэффициент семинаров');
+  assert.equal(legacy.w1, 0.4, 'потерян коэффициент экзамена');
+});
+
+test('переносить нечего, когда старых оценок нет', () => {
+  assert.equal(ratingLegacyRead(null, '', '', ''), null);
+  assert.equal(ratingLegacyRead('{"control":[],"oral":[]}', '', '', ''), null);
+  assert.equal(ratingLegacyRead('мусор', '', '', ''), null);
+});
+
+test('перенос старого расчёта ничего не теряет', () => {
+  const legacy = ratingLegacyRead('{"control":[9,8],"oral":[7]}', '8', '0.7', '0.4');
+  const store = ratingStoreWrite(ratingStoreRead(null), 'Математика', legacy);
+  assert.deepEqual(ratingStoreFor(store, 'Математика'), legacy);
+});
+
+test('список предметов с расчётом — только те, где есть оценки', () => {
+  let store = ratingStoreRead(null);
+  store = ratingStoreWrite(store, 'Математика', { ...EMPTY, control: [9] });
+  store = ratingStoreWrite(store, 'Физика', { ...EMPTY });
+  store = ratingStoreWrite(store, 'Химия', { ...EMPTY, oral: [5] });
+  assert.equal([...ratingSubjectsDone(store)].sort().join(','), 'Математика,Химия');
 });
 
 console.log(`\nПроверок пройдено: ${passed}`);

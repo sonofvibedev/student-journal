@@ -1143,42 +1143,184 @@
   // Рейтинг за семинарские = средний балл(контрольные) * K1 + средний балл(устные) * (1 - K1)
   // Итоговый рейтинг = рейтинг за семинарские * W1 + оценка на экзамене * (1 - W1)
   // Оценки хранятся только локально в браузере студента (localStorage), в data.json не пишутся
-  let ratingCalc = { control: [], oral: [] };
-
-  function loadRatingCalcState() {
-    try {
-      const saved = JSON.parse(lsGet('rating_calc_state') || 'null');
-      if (saved && Array.isArray(saved.control) && Array.isArray(saved.oral)) {
-        ratingCalc = saved;
-      } else {
-        ratingCalc = { control: [], oral: [] };
-      }
-    } catch (e) {
-      ratingCalc = { control: [], oral: [] };
-    }
-  }
+  // У каждого предмета свой расчёт. Хранилище — rating_calc_subjects, разбор и
+  // запись в shared.js (ratingStore*). Старый общий ключ rating_calc_state
+  // остаётся на месте, пока студент не решит, к какому предмету его отнести.
+  const RATING_STORE_KEY = 'rating_calc_subjects';
+  const RATING_SUBJECT_KEY = 'rating_calc_subject';
+  let ratingStore = {};
+  let ratingSubject = '';
+  let ratingCalc = { control: [], oral: [], exam: '', k1: 0.5, w1: 0.6 };
 
   function saveRatingCalcState() {
-    lsSet('rating_calc_state', JSON.stringify(ratingCalc));
+    if (!ratingSubject) return;
+    ratingStore = ratingStoreWrite(ratingStore, ratingSubject, ratingCalc);
+    lsSet(RATING_STORE_KEY, JSON.stringify(ratingStore));
+    renderRatingDone();
   }
 
-  function openRatingCalculator() {
-    loadRatingCalcState();
+  // Предметы группы: по ним и считаем. Плюс те, по которым расчёт уже начат —
+  // чтобы ничего не пропало, если предмет убрали из списка группы.
+  function ratingSubjects() {
+    const fromData = (appData.subjects || []).filter(Boolean);
+    const started = ratingSubjectsDone(ratingStore);
+    return [...new Set([...fromData, ...started])];
+  }
+
+  // Предмет с экзаменом или с зачётом: у зачётных экзаменационной части нет.
+  // Смотрим дедлайны группы — там у записи есть тип 'exam' или 'zachet'.
+  function ratingSubjectHasExam(subject) {
+    const rows = (appData.deadlines || []).filter((d) => d.subject === subject && isZachet(d));
+    if (!rows.length) return true;             // ничего не известно — считаем как с экзаменом
+    return rows.some((d) => isExam(d));
+  }
+
+  function renderRatingSubjects() {
+    const sel = document.getElementById('ratingSubject');
+    if (!sel) return;
+    const list = ratingSubjects();
+    sel.innerHTML = '';
+    if (!list.length) {
+      const o = document.createElement('option');
+      o.value = '';
+      o.textContent = 'Предметов пока нет';
+      sel.appendChild(o);
+      return;
+    }
+    list.forEach((name) => {
+      const o = document.createElement('option');
+      o.value = name;
+      o.textContent = name;
+      sel.appendChild(o);
+    });
+    sel.value = ratingSubject || list[0];
+  }
+
+  // Короткий список предметов, по которым расчёт уже есть, с итогом рейтинга
+  function renderRatingDone() {
+    const box = document.getElementById('ratingDoneList');
+    if (!box) return;
+    const done = ratingSubjectsDone(ratingStore);
+    const wrap = document.getElementById('ratingDoneWrap');
+    if (wrap) wrap.classList.toggle('d-none', !done.length);
+    box.innerHTML = '';
+    done.forEach((name) => {
+      const calc = ratingStoreFor(ratingStore, name);
+      const final = ratingFinalOf(calc, ratingSubjectHasExam(name));
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rc-done-item' + (name === ratingSubject ? ' is-now' : '');
+      const label = document.createElement('span');
+      label.textContent = name;
+      const value = document.createElement('b');
+      value.className = 'num ' + ratingBand(final);
+      value.textContent = final == null ? '—' : final.toFixed(2);
+      b.append(label, value);
+      b.addEventListener('click', () => switchRatingSubject(name));
+      box.appendChild(b);
+    });
+  }
+
+  // Итог по сохранённому расчёту — теми же формулами, что и на экране
+  function ratingFinalOf(calc, hasExam) {
+    if (!calc.control.length && !calc.oral.length) return null;
+    const seminar = avgOf(calc.control) * calc.k1 + avgOf(calc.oral) * (1 - calc.k1);
+    if (!hasExam) return seminar;
+    const exam = parseFloat(calc.exam);
+    if (isNaN(exam)) return null;
+    return seminar * calc.w1 + exam * (1 - calc.w1);
+  }
+
+  // Переключение предмета: текущий расчёт уже сохранён, подставляем выбранный
+  function switchRatingSubject(subject) {
+    if (!subject) return;
+    ratingSubject = subject;
+    lsSet(RATING_SUBJECT_KEY, subject);
+    ratingCalc = ratingStoreFor(ratingStore, subject);
+    fillRatingControls();
+    haptic('selection');
+  }
+
+  // Ставит на экран значения текущего расчёта
+  function fillRatingControls() {
+    renderRatingSubjects();
     renderGradesList('control');
     renderGradesList('oral');
-
-    const savedSeminarCoef = lsGet('rating_seminar_coef');
-    if (savedSeminarCoef) document.getElementById('seminarCoefSelect').value = savedSeminarCoef;
-
-    const savedFinalCoef = lsGet('rating_final_coef');
-    if (savedFinalCoef) document.getElementById('finalCoefSelect').value = savedFinalCoef;
-
-    const savedExam = lsGet('rating_exam_grade');
-    document.getElementById('examGradeInput').value = savedExam || '';
-    document.getElementById('examNotYet').checked = !savedExam;
-    if (savedExam) document.getElementById('examGradeRange').value = savedExam;
-
+    document.getElementById('seminarCoefSelect').value = ratingCalc.k1;
+    document.getElementById('finalCoefSelect').value = ratingCalc.w1;
+    document.getElementById('examGradeInput').value = ratingCalc.exam || '';
+    document.getElementById('examNotYet').checked = !ratingCalc.exam;
+    if (ratingCalc.exam) document.getElementById('examGradeRange').value = ratingCalc.exam;
+    // Зачёт без экзамена: экзаменационную часть прячем, считается только семестр
+    document.getElementById('ratingExamGroup')
+      .classList.toggle('d-none', !ratingSubjectHasExam(ratingSubject));
     recalcRating();
+    renderRatingDone();
+  }
+
+  async function openRatingCalculator() {
+    ratingStore = ratingStoreRead(lsGet(RATING_STORE_KEY));
+    const list = ratingSubjects();
+    ratingSubject = lsGet(RATING_SUBJECT_KEY) || '';
+    if (!ratingSubject || list.indexOf(ratingSubject) < 0) ratingSubject = list[0] || '';
+    ratingCalc = ratingStoreFor(ratingStore, ratingSubject);
+    fillRatingControls();
+    await migrateLegacyRatingCalc();
+  }
+
+  // Расчёт старого общего калькулятора: спрашиваем, к какому предмету его
+  // отнести, и переносим целиком — вместе с экзаменом и коэффициентами.
+  // Старые ключи удаляем только после переноса, поэтому отказ ничего не теряет.
+  async function migrateLegacyRatingCalc() {
+    const legacy = ratingLegacyRead(
+      lsGet('rating_calc_state'), lsGet('rating_exam_grade'),
+      lsGet('rating_seminar_coef'), lsGet('rating_final_coef')
+    );
+    if (!legacy) return;
+    if (!ratingSubjects().length) return;
+
+    const target = await askRatingSubject(legacy.control.length + legacy.oral.length);
+    if (!target) return;                       // отказ: старый расчёт остаётся
+
+    ratingStore = ratingStoreWrite(ratingStore, target, legacy);
+    lsSet(RATING_STORE_KEY, JSON.stringify(ratingStore));
+    lsRemove('rating_calc_state');
+    lsRemove('rating_exam_grade');
+    switchRatingSubject(target);
+  }
+
+  // Выбор предмета для переноса — нижний лист со списком предметов
+  function askRatingSubject(count) {
+    return new Promise((resolve) => {
+      const sheet = document.getElementById('ratingMigrateSheet');
+      const box = document.getElementById('ratingMigrateList');
+      const word = count === 1 ? 'оценка' : count < 5 ? 'оценки' : 'оценок';
+      document.getElementById('ratingMigrateText').textContent =
+        'Раньше калькулятор был общий. Сохранённый расчёт (' + count + ' ' + word +
+        ') можно перенести в один из предметов.';
+
+      let picked = null;
+      box.innerHTML = '';
+      ratingSubjects().forEach((name) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'row-i';
+        const label = document.createElement('span');
+        label.className = 'lbl';
+        label.textContent = name;
+        const chev = document.createElement('span');
+        chev.className = 'chev';
+        chev.setAttribute('aria-hidden', 'true');
+        chev.textContent = '\u203a';
+        b.append(label, chev);
+        b.addEventListener('click', () => { picked = name; modal.hide(); });
+        box.appendChild(b);
+      });
+
+      const modal = bootstrap.Modal.getOrCreateInstance(sheet);
+      sheet.addEventListener('hidden.bs.modal', () => resolve(picked), { once: true });
+      modal.show();
+    });
   }
 
   // Добавленные оценки — «таблетки»: нажатие убирает оценку
@@ -1243,7 +1385,7 @@
 
     const k1 = Math.round(parseFloat(document.getElementById('seminarCoefSelect').value) * 10) / 10;
     const k2 = 1 - k1;
-    lsSet('rating_seminar_coef', k1);
+    ratingCalc.k1 = k1;
     document.getElementById('seminarCoefLabel').innerText = coefPair(k1);
 
     const seminarRating = controlAvg * k1 + oralAvg * k2;
@@ -1251,7 +1393,7 @@
     document.getElementById('seminarRatingResult').innerText = hasSeminarGrades ? seminarRating.toFixed(2) : '—';
 
     const examGradeRaw = document.getElementById('examGradeInput').value;
-    lsSet('rating_exam_grade', examGradeRaw || '');
+    ratingCalc.exam = examGradeRaw || '';
     const examGrade = parseFloat(examGradeRaw);
     document.getElementById('examGradeLabel').innerText = isNaN(examGrade) ? '—' : examGrade.toFixed(1);
     document.getElementById('examGradeValue').innerText = isNaN(examGrade) ? '—' : String(examGrade);
@@ -1259,12 +1401,19 @@
 
     const w1 = Math.round(parseFloat(document.getElementById('finalCoefSelect').value) * 10) / 10;
     const w2 = 1 - w1;
-    lsSet('rating_final_coef', w1);
+    ratingCalc.w1 = w1;
     document.getElementById('finalCoefLabel').innerText = coefPair(w1);
 
     const finalResultEl = document.getElementById('finalRatingResult');
     const formula = document.getElementById('ratingFormula');
-    if (hasSeminarGrades && !isNaN(examGrade)) {
+    // Зачёт без экзамена: итог — это семестровая часть, экзаменационной нет
+    const hasExam = ratingSubjectHasExam(ratingSubject);
+
+    if (hasSeminarGrades && !hasExam) {
+      finalResultEl.innerText = seminarRating.toFixed(2);
+      finalResultEl.className = 'rc-big num ' + ratingBand(seminarRating);
+      formula.innerText = 'Зачёт без экзамена: итог — рейтинг за семестр';
+    } else if (hasSeminarGrades && !isNaN(examGrade)) {
       const final = seminarRating * w1 + examGrade * w2;
       finalResultEl.innerText = final.toFixed(2);
       finalResultEl.className = 'rc-big num ' + ratingBand(final);
@@ -1274,18 +1423,18 @@
       finalResultEl.className = 'rc-big num';
       formula.innerText = hasSeminarGrades ? 'Укажите оценку на экзамене' : 'Добавьте оценки за семинары';
     }
+    saveRatingCalcState();
   }
 
+  // Чистим расчёт только текущего предмета: расчёты остальных остаются
   async function clearRatingCalc() {
-    if (!(await showConfirm('Очистить все введённые оценки калькулятора?'))) return;
-    ratingCalc = { control: [], oral: [] };
-    lsRemove('rating_calc_state');
-    lsRemove('rating_exam_grade');
+    const what = ratingSubject ? `по предмету «${ratingSubject}»` : 'калькулятора';
+    if (!(await showConfirm(`Очистить введённые оценки ${what}?`))) return;
+    ratingCalc = { control: [], oral: [], exam: '', k1: ratingCalc.k1, w1: ratingCalc.w1 };
     document.getElementById('examGradeInput').value = '';
     document.getElementById('examNotYet').checked = true;
-    renderGradesList('control');
-    renderGradesList('oral');
-    recalcRating();
+    saveRatingCalcState();
+    fillRatingControls();
   }
 
   // Вкладки внутри «Зачётки»: Зачётка / Калькулятор; последняя выбранная запоминается
@@ -1296,7 +1445,7 @@
     document.getElementById('gradesSegCalc').setAttribute('aria-selected', String(tab === 'calc'));
     document.getElementById('gradesPaneZachetka').classList.toggle('d-none', tab !== 'zachetka');
     document.getElementById('gradesPaneCalc').classList.toggle('d-none', tab !== 'calc');
-    if (tab === 'calc') openRatingCalculator();
+    if (tab === 'calc') openRatingCalculator().catch((e) => console.error('Калькулятор:', e));
     try { lsSet('grades_tab', tab); } catch (e) {}
   }
 
