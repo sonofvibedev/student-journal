@@ -866,8 +866,14 @@ function minesRenderAll(reveal) {
 
 const flappyState = {
   seed: 0, game: null, flaps: [], raf: 0, last: 0, acc: 0,
-  running: false, sound: false, best: 0, ctx: null, canvas: null, audio: null
+  running: false, sound: false, best: 0, ctx: null, canvas: null, audio: null,
+  wingAt: 0,      // когда был последний взмах — по нему считается фаза крыла
+  hurtAt: 0       // когда врезались — столько же держится облачко «ой»
 };
+
+// «Уменьшение движения»: взмах, качание и облачко «ой» не анимируются
+const flappyCalm = () => window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function flappyMount() {
   const host = document.getElementById('flappyHost');
@@ -936,6 +942,8 @@ function flappyReset() {
   flappyState.flaps = [];
   flappyState.acc = 0;
   flappyState.last = 0;
+  flappyState.wingAt = 0;
+  flappyState.hurtAt = 0;
   document.getElementById('flappyScore').textContent = '0';
   const msg = document.getElementById('flappyMsg');
   msg.classList.add('d-none');
@@ -950,6 +958,7 @@ function flappyFlap() {
   if (!s.game.alive) { flappyReset(); return; }
   if (!s.running) { flappyStart(); }
   s.pendingFlap = true;
+  s.wingAt = performance.now();
   flappyBeep();
 }
 
@@ -991,9 +1000,12 @@ function flappyLoop(now) {
   document.getElementById('flappyScore').textContent = String(s.game.score);
   flappyDraw();
 
-  if (!s.game.alive) { flappyPause(); flappyOver(); return; }
+  if (!s.game.alive) { s.hurtAt = performance.now(); flappyDraw(); flappyPause(); flappyOver(); return; }
   s.raf = requestAnimationFrame(flappyLoop);
 }
+
+// Цвета закладок — те же три, что у цифр сапёра: не зависят от выбранной темы
+const FLAPPY_TAGS = ['#ff5a4f', '#35b37e', '#4c8dff'];
 
 function flappyDraw() {
   const s = flappyState;
@@ -1003,13 +1015,13 @@ function flappyDraw() {
   const ctx = s.ctx;
   const view = s.view || { w: F.width, h: F.height, dpr: 1, scale: 1, dx: 0, dy: 0 };
   const css = getComputedStyle(document.documentElement);
-  const bg = css.getPropertyValue('--color-surface') || '#101014';
-  const accent = css.getPropertyValue('--color-accent') || '#0a84ff';
-  const text = css.getPropertyValue('--color-text') || '#fff';
+  const bg = (css.getPropertyValue('--color-surface') || '#101014').trim();
+  const bg2 = (css.getPropertyValue('--color-surface-2') || bg).trim();
+  const accent = (css.getPropertyValue('--color-accent') || '#0a84ff').trim();
 
   // Поля по краям — тем же фоном, чтобы не было пустых полос
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-  ctx.fillStyle = bg.trim();
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, view.w, view.h);
 
   // Дальше рисуем в логических единицах поля: 0..F.width и 0..F.height
@@ -1018,31 +1030,165 @@ function flappyDraw() {
 
   // Небо: мягкий переход от фона к поверхности приложения
   const sky = ctx.createLinearGradient(0, 0, 0, F.height);
-  sky.addColorStop(0, bg.trim());
-  sky.addColorStop(1, (css.getPropertyValue('--color-surface-2') || bg).trim());
+  sky.addColorStop(0, bg);
+  sky.addColorStop(1, bg2);
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, F.width, F.height);
+  flappyDrawPaper(ctx, F, (css.getPropertyValue('--color-separator') || bg2).trim());
 
-  // Трубы: столбики со «шляпками», цвет акцента приложения
-  ctx.fillStyle = accent.trim();
-  s.game.pipes.forEach((p) => {
-    const bottom = p.top + F.gap;
-    ctx.fillRect(p.x + 4, 0, F.pipeW - 8, p.top - 10);
-    ctx.fillRect(p.x, p.top - 10, F.pipeW, 10);
-    ctx.fillRect(p.x, bottom, F.pipeW, 10);
-    ctx.fillRect(p.x + 4, bottom + 10, F.pipeW - 8, F.height - bottom - 10);
-  });
+  s.game.pipes.forEach((p) => flappyDrawStack(ctx, F, p, accent));
+  flappyDrawBird(ctx, F, s);
+}
 
-  // Птица — кружок с клювом, своя графика, без чужих спрайтов
-  ctx.fillStyle = text.trim();
+// Фон — лист в линейку: игра живёт в журнале, и поле выглядит как страница
+function flappyDrawPaper(ctx, F, line) {
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = line;
+  ctx.lineWidth = 1;
+  for (let y = 40; y < F.height; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(F.width, y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = FLAPPY_TAGS[0];
+  ctx.globalAlpha = 0.5;
   ctx.beginPath();
-  ctx.arc(F.birdX, s.game.y, F.birdR, 0, Math.PI * 2);
+  ctx.moveTo(26, 0);
+  ctx.lineTo(26, F.height);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Трубы — стопки учебников: корешки в цветах закладок, сверху и снизу обложка
+function flappyDrawStack(ctx, F, pipe, accent) {
+  const bottom = pipe.top + F.gap;
+  const books = (x, y, h, downward) => {
+    if (h <= 0) return;
+    ctx.fillStyle = accent;
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(x + 4, y, F.pipeW - 8, h);
+    ctx.globalAlpha = 1;
+    // Корешки: полоски поперёк стопки, цвета по кругу
+    let i = 0;
+    for (let b = 0; b < h - 10; b += 22) {
+      const by = downward ? y + b : y + h - b - 22;
+      ctx.fillStyle = FLAPPY_TAGS[i % FLAPPY_TAGS.length];
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x + 4, by + 16, F.pipeW - 8, 4);
+      ctx.globalAlpha = 1;
+      i++;
+    }
+    // Обложка у просвета — шире стопки, как край книги
+    ctx.fillStyle = accent;
+    ctx.fillRect(x, downward ? y + h - 10 : y, F.pipeW, 10);
+  };
+  books(pipe.x, 0, pipe.top, true);
+  books(pipe.x, bottom, F.height - bottom, false);
+}
+
+// Воробей с рюкзаком: рисуется кодом, без чужих картинок.
+// Наклон — от скорости падения, крыло машет после касания, при ударе
+// рядом вспыхивает короткое «ой».
+function flappyDrawBird(ctx, F, s) {
+  const calm = flappyCalm();
+  const now = performance.now();
+  const y = s.game.y;
+  const r = F.birdR;
+
+  // Наклон: вверх на взмахе, вниз на падении. При «уменьшении движения» нет
+  const tilt = calm ? 0 : Math.max(-0.4, Math.min(0.9, s.game.v * 1.6));
+  // Фаза взмаха: 0 сразу после касания, 1 через 220 мс
+  const wing = calm ? 0.5 : Math.min(1, (now - s.wingAt) / 220);
+  const wingUp = Math.sin(wing * Math.PI);          // 0 → вверх → 0
+
+  ctx.save();
+  ctx.translate(F.birdX, y);
+  ctx.rotate(tilt);
+
+  // Рюкзак за спиной: корпус и три закладки
+  ctx.fillStyle = '#6b4b2f';
+  flappyRound(ctx, -r - 5, -r + 3, 11, r * 1.7, 4);
+  for (let i = 0; i < FLAPPY_TAGS.length; i++) {
+    ctx.fillStyle = FLAPPY_TAGS[i];
+    ctx.fillRect(-r - 4, -r + 6 + i * 5, 9, 3);
+  }
+
+  // Тело — тёплая охра
+  ctx.fillStyle = '#c88a4a';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r + 1, r, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = accent.trim();
+  // Светлая грудка
+  ctx.fillStyle = '#e8c89a';
   ctx.beginPath();
-  ctx.moveTo(F.birdX + F.birdR - 2, s.game.y - 2);
-  ctx.lineTo(F.birdX + F.birdR + 7, s.game.y + 1);
-  ctx.lineTo(F.birdX + F.birdR - 2, s.game.y + 4);
+  ctx.ellipse(2, 3, r - 3, r - 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Тёмная шапочка воробья
+  ctx.fillStyle = '#7a4a24';
+  ctx.beginPath();
+  ctx.ellipse(-1, -r + 3, r - 2, r - 6, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Крыло: поднимается на взмахе
+  ctx.save();
+  ctx.translate(-2, 1);
+  ctx.rotate(-wingUp * 0.9);
+  ctx.fillStyle = '#9c6632';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r - 1, r - 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Глаз и клюв
+  ctx.fillStyle = '#1c1c20';
+  ctx.beginPath();
+  ctx.arc(r - 5, -3, 2.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffc83d';
+  ctx.beginPath();
+  ctx.moveTo(r - 1, -1);
+  ctx.lineTo(r + 7, 2);
+  ctx.lineTo(r - 1, 5);
+  ctx.closePath();
+  ctx.fill();
+  // Хвост
+  ctx.fillStyle = '#9c6632';
+  ctx.beginPath();
+  ctx.moveTo(-r, -2);
+  ctx.lineTo(-r - 9, -6);
+  ctx.lineTo(-r - 7, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // «Ой» при столкновении: держится 700 мс и тает
+  const hurt = s.hurtAt ? (now - s.hurtAt) / 700 : 2;
+  if (hurt < 1) {
+    ctx.save();
+    ctx.globalAlpha = calm ? 1 : 1 - hurt;
+    ctx.translate(F.birdX + r + 6, y - r - (calm ? 8 : 8 + hurt * 10));
+    ctx.fillStyle = '#ffffff';
+    flappyRound(ctx, 0, -11, 30, 18, 9);
+    ctx.fillStyle = '#1c1c20';
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ой!', 15, -2);
+    ctx.restore();
+  }
+}
+
+// Прямоугольник со скруглением: roundRect есть не везде, считаем дугами
+function flappyRound(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
   ctx.fill();
 }
