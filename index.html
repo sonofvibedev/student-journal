@@ -1135,28 +1135,40 @@
   <div class="games-list" id="gamesList"></div>
 </section>
 
-<section id="viewSudoku" class="app-view d-none" aria-labelledby="sudokuViewTitle">
-  <div class="view-head">
-    <h3 class="view-title" id="sudokuViewTitle">Судоку</h3>
-    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('games')">К играм</button>
+<!-- Экраны игр занимают весь экран: таб-бар и шапка приложения под ними,
+     высоту задаёт games.js от реально доступной (в Telegram — viewportStableHeight).
+     Таймер и счёт стоят в шапке игры, чтобы под поле осталось больше места. -->
+<section id="viewSudoku" class="app-view game-screen d-none" aria-labelledby="sudokuViewTitle">
+  <div class="game-top">
+    <button type="button" class="game-back" onclick="goView('games')" aria-label="К играм">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h3 class="game-name" id="sudokuViewTitle">Судоку</h3>
+    <span class="game-stat" id="sudokuTime">0:00</span>
   </div>
-  <div id="sudokuHost"></div>
+  <div class="game-body" id="sudokuHost"></div>
 </section>
 
-<section id="viewMinesweeper" class="app-view d-none" aria-labelledby="minesweeperViewTitle">
-  <div class="view-head">
-    <h3 class="view-title" id="minesweeperViewTitle">Сапёр</h3>
-    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('games')">К играм</button>
+<section id="viewMinesweeper" class="app-view game-screen d-none" aria-labelledby="minesweeperViewTitle">
+  <div class="game-top">
+    <button type="button" class="game-back" onclick="goView('games')" aria-label="К играм">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h3 class="game-name" id="minesweeperViewTitle">Сапёр</h3>
+    <span class="game-stat" id="minesTime">0:00</span>
   </div>
-  <div id="minesweeperHost"></div>
+  <div class="game-body" id="minesweeperHost"></div>
 </section>
 
-<section id="viewFlappy" class="app-view d-none" aria-labelledby="flappyViewTitle">
-  <div class="view-head">
-    <h3 class="view-title" id="flappyViewTitle">Flappy</h3>
-    <button type="button" class="btn btn-sm btn-secondary ms-auto" onclick="goView('games')">К играм</button>
+<section id="viewFlappy" class="app-view game-screen d-none" aria-labelledby="flappyViewTitle">
+  <div class="game-top">
+    <button type="button" class="game-back" onclick="goView('games')" aria-label="К играм">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h3 class="game-name" id="flappyViewTitle">Flappy</h3>
+    <span class="game-stat" id="flappyScore">0</span>
   </div>
-  <div id="flappyHost"></div>
+  <div class="game-body" id="flappyHost"></div>
 </section>
 
 <!-- Нижний лист рейтинга: топ-5 и своя строка, если места в пятёрке нет -->
@@ -2743,6 +2755,9 @@
     if (name === 'exams')    { renderExams(); }
     if (name === 'home')     { renderHome(); }
     // games.js подключён после этого скрипта, поэтому проверяем наличие функций
+    // Экран игры разворачивается на всё окно: таб-бар прячется, высоту
+    // и размеры поля считает games.js
+    if (typeof gamesFullscreen === 'function') gamesFullscreen(name);
     if (name === 'games'       && typeof openGamesView === 'function') { openGamesView(); }
     if (name === 'sudoku'      && typeof sudokuMount === 'function')   { sudokuMount(); }
     if (name === 'minesweeper' && typeof minesMount === 'function')    { minesMount(); }

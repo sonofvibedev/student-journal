@@ -211,8 +211,40 @@ export function sudokuVerify(seed, difficulty, filled) {
 export const MINES_LEVELS = {
   easy:   { cols: 9,  rows: 9,  mines: 10, minSeconds: 5,  title: 'Лёгкий' },
   medium: { cols: 10, rows: 14, mines: 25, minSeconds: 15, title: 'Средний' },
-  hard:   { cols: 10, rows: 18, mines: 40, minSeconds: 30, title: 'Трудный' }
+  hard:   { cols: 10, rows: 18, mines: 40, minSeconds: 30, title: 'Трудный' },
+  // Телефонные поля: столько же мин на клетку, но поле влезает в экран целиком.
+  // Рекорды считаются отдельно — время на меньшем поле с большим не сравнить.
+  easy_s:   { cols: 8,  rows: 8,  mines: 8,  minSeconds: 5,  title: 'Лёгкий', small: 'easy' },
+  medium_s: { cols: 9,  rows: 12, mines: 19, minSeconds: 12, title: 'Средний', small: 'medium' },
+  hard_s:   { cols: 10, rows: 14, mines: 31, minSeconds: 24, title: 'Трудный', small: 'hard' }
 };
+
+// Клетка не мельче MINES_MIN_CELL: иначе по ней не попасть пальцем
+export const MINES_MIN_CELL = 28;
+const MINES_GAP = 2;              // столько же, сколько gap у .mines в games.css
+
+// Сколько пикселей на клетку даёт место availW × availH
+function minesCellSize(level, availW, availH) {
+  const w = (availW - MINES_GAP * (level.cols - 1)) / level.cols;
+  const h = (availH - MINES_GAP * (level.rows - 1)) / level.rows;
+  return Math.floor(Math.min(w, h));
+}
+
+// Какой уровень показать на этом экране: обычный, если влезает целиком,
+// иначе телефонный — поле меньше, доля мин та же, рекорды отдельные.
+export function minesPickLevel(difficulty, availW, availH) {
+  const order = [difficulty, difficulty + '_s'];
+  for (let k = 0; k < order.length; k++) {
+    const level = MINES_LEVELS[order[k]];
+    if (!level) continue;
+    const cell = minesCellSize(level, availW, availH);
+    if (cell >= MINES_MIN_CELL) return { difficulty: order[k], level, cell };
+  }
+  // Совсем тесный экран: берём телефонный уровень и минимальную клетку —
+  // поле придётся прокручивать, но играть можно
+  const key = MINES_LEVELS[difficulty + '_s'] ? difficulty + '_s' : difficulty;
+  return { difficulty: key, level: MINES_LEVELS[key], cell: MINES_MIN_CELL };
+}
 
 // Соседи клетки
 export function mineNeighbors(level, index) {
@@ -384,7 +416,7 @@ export const GamesCore = {
   makeRng, seedFromString,
   SUDOKU_LEVELS, sudokuGenerate, sudokuSolutionCount, sudokuVerify, sudokuAllowed,
   sudokuPlaceNotes, sudokuRestoreNotes,
-  MINES_LEVELS, mineField, mineNeighbors, mineOpen, minesReplay,
+  MINES_LEVELS, MINES_MIN_CELL, minesPickLevel, mineField, mineNeighbors, mineOpen, minesReplay,
   FLAPPY, flappyGame, flappySimulate
 };
 

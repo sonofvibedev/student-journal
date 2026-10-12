@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import {
   SUDOKU_LEVELS, sudokuGenerate, sudokuSolutionCount, sudokuVerify,
   sudokuPlaceNotes, sudokuRestoreNotes,
-  MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen,
+  MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen, minesPickLevel,
   FLAPPY, flappyGame, flappySimulate, makeRng
 } from '../games-core.js';
 
@@ -200,6 +200,44 @@ test('выдуманная последовательность ходов по�
   assert.equal(minesReplay(7, 'easy', []).won, false);
   assert.equal(minesReplay(7, 'easy', [{ t: 'chord', i: 0 }]).won, false);
   assert.equal(minesReplay(7, 'easy', [{ t: 'open', i: 999 }]).won, false);
+});
+
+console.log('Размеры под экран телефона');
+
+test('клетка сапёра не меньше 28 px и поле влезает целиком', () => {
+  // 360x640 за вычетом шапки, панели и отступов — узкое место из задания
+  for (const diff of ['easy', 'medium', 'hard']) {
+    const pick = minesPickLevel(diff, 328, 520);
+    const level = MINES_LEVELS[pick.difficulty];
+    assert.ok(pick.cell >= 28, `${diff}: клетка ${pick.cell} меньше 28`);
+    assert.ok(pick.cell * level.cols <= 328, `${diff}: поле шире экрана`);
+    assert.ok(pick.cell * level.rows <= 520, `${diff}: поле выше экрана`);
+  }
+});
+
+test('на тесном экране берётся телефонный уровень с тем же процентом мин', () => {
+  const pick = minesPickLevel('hard', 320, 420);
+  assert.notEqual(pick.difficulty, 'hard', 'остался полный уровень, он не влезает');
+  const full = MINES_LEVELS.hard;
+  const small = MINES_LEVELS[pick.difficulty];
+  const fullShare = full.mines / (full.cols * full.rows);
+  const smallShare = small.mines / (small.cols * small.rows);
+  assert.ok(Math.abs(fullShare - smallShare) < 0.02,
+    `процент мин разошёлся: ${fullShare.toFixed(3)} и ${smallShare.toFixed(3)}`);
+  assert.ok(pick.cell >= 28, 'клетка телефонного уровня меньше 28');
+});
+
+test('на просторном экране телефонный уровень не подменяет полный', () => {
+  for (const diff of ['easy', 'medium', 'hard']) {
+    assert.equal(minesPickLevel(diff, 430, 900).difficulty, diff);
+  }
+});
+
+test('у каждого телефонного уровня есть свой ключ рекорда', () => {
+  ['easy_s', 'medium_s', 'hard_s'].forEach((key) => {
+    assert.ok(MINES_LEVELS[key], `нет уровня ${key}`);
+    assert.ok(MINES_LEVELS[key].minSeconds > 0, `${key}: нет минимального времени`);
+  });
 });
 
 console.log('Flappy');

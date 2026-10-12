@@ -53,6 +53,45 @@ const gamesState = {
   loading: null
 };
 
+// ===== Экран игры на весь экран =====
+// Игра должна влезать без прокрутки, поэтому высоту берём не из 100vh (он в
+// мобильных браузерах считает строку адреса по-своему), а из того, что реально
+// доступно: в Telegram это viewportStableHeight, иначе — innerHeight.
+// Остальное (безопасные зоны) добирает CSS переменными --app-inset-*.
+const GAME_VIEWS = { sudoku: 'sudoku', minesweeper: 'mines', flappy: 'flappy' };
+let gameViewNow = '';
+
+function gameAvailHeight() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const tgH = tg && tg.initData ? (tg.viewportStableHeight || tg.viewportHeight || 0) : 0;
+  return Math.max(320, Math.round(tgH || window.innerHeight || 640));
+}
+
+// Пересчитать раскладку открытой игры: высоту экрана и размеры поля
+function gameLayout() {
+  if (!gameViewNow) return;
+  document.documentElement.style.setProperty('--game-h', gameAvailHeight() + 'px');
+  if (gameViewNow === 'sudoku') sudokuLayout();
+  else if (gameViewNow === 'minesweeper') minesLayout();
+  else if (gameViewNow === 'flappy' && typeof flappyResize === 'function') flappyResize();
+}
+
+// Вызывает showView при каждом переходе: включает полный экран на играх
+function gamesFullscreen(view) {
+  const isGame = Object.prototype.hasOwnProperty.call(GAME_VIEWS, view);
+  gameViewNow = isGame ? view : '';
+  document.body.classList.toggle('game-fs', isGame);
+  if (isGame) gameLayout();
+  else document.documentElement.style.removeProperty('--game-h');
+}
+
+window.addEventListener('resize', gameLayout);
+window.addEventListener('orientationchange', () => setTimeout(gameLayout, 120));
+(function () {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.onEvent) tg.onEvent('viewportChanged', gameLayout);
+})();
+
 const gameKey = (game, diff) => game + ':' + diff;
 const gamesSigned = () => AppState.auth === 'signed' && !!AppState.studentId;
 
@@ -169,11 +208,20 @@ function renderGamesList() {
       // Гостю про вход сказано один раз сверху экрана — в карточке не повторяем
       rec.remove();
     } else {
-      rec.textContent = 'Рекорд: ' + GAME_DIFFS[game].map((d) => {
-        const v = gamesState.records.get(gameKey(game, d));
+      const line = (suffix) => GAME_DIFFS[game].map((d) => {
+        const v = gamesState.records.get(gameKey(game, d + suffix));
         const name = game === 'minesweeper' ? DIFF_TITLES_M[d] : DIFF_TITLES[d];
         return (d === 'none' ? '' : name + ' ') + gameScoreText(game, v == null ? null : v);
       }).join(' · ');
+      rec.textContent = 'Рекорд: ' + line('');
+      // У сапёра на телефонном поле свой рейтинг: показываем, если там играли
+      if (game === 'minesweeper' &&
+          GAME_DIFFS[game].some((d) => gamesState.records.get(gameKey(game, d + '_s')) != null)) {
+        const small = document.createElement('small');
+        small.className = 'game-rec';
+        small.textContent = 'Телефонное поле: ' + line('_s');
+        rec.after(small);
+      }
     }
 
     card.querySelector('.game-play').addEventListener('click', () => { haptic('selection'); goView(meta.view); });
@@ -184,7 +232,15 @@ function renderGamesList() {
 
 // ===== Рейтинг =====
 
-let gameRatingOpen = { game: 'sudoku', diff: 'easy' };
+// small — телефонное поле сапёра: у него меньше клеток, поэтому рекорды
+// считаются отдельно и рядом с полным полем не показываются
+let gameRatingOpen = { game: 'sudoku', diff: 'easy', small: false };
+
+// Ключ сложности в базе: у телефонного поля сапёра к нему добавлен _s
+function ratingDiffKey() {
+  const { game, diff, small } = gameRatingOpen;
+  return game === 'minesweeper' && small ? diff + '_s' : diff;
+}
 
 // ФИО и инициалы берём из data.json: на сервере в рейтинге лежит только id
 function studentName(id) {
@@ -200,7 +256,9 @@ function studentInitials(id) {
 }
 
 function openGameRating(game) {
-  gameRatingOpen = { game, diff: GAME_DIFFS[game][0] };
+  // Сапёр открываем на том размере поля, на котором студент играл последним
+  const small = game === 'minesweeper' && /_s$/.test(minesState.diff);
+  gameRatingOpen = { game, diff: GAME_DIFFS[game][0], small };
   document.getElementById('gameRatingTitle').textContent = 'Рейтинг · ' + GAMES_META[game].title;
   renderGameRatingDiffs();
   renderGameRating();
@@ -221,12 +279,28 @@ function renderGameRatingDiffs() {
     b.addEventListener('click', () => { gameRatingOpen.diff = d; renderGameRatingDiffs(); renderGameRating(); });
     box.appendChild(b);
   });
+
+  // Сапёр: переключатель размера поля. На маленьком поле клеток меньше,
+  // поэтому время с полным полем не сравнивается — и рейтинг у них свой.
+  if (game === 'minesweeper') {
+    const sw = document.createElement('button');
+    sw.type = 'button';
+    sw.className = 'games-diff is-size' + (gameRatingOpen.small ? ' active' : '');
+    sw.textContent = gameRatingOpen.small ? 'Телефонное поле' : 'Полное поле';
+    sw.addEventListener('click', () => {
+      gameRatingOpen.small = !gameRatingOpen.small;
+      renderGameRatingDiffs();
+      renderGameRating();
+    });
+    box.appendChild(sw);
+  }
 }
 
 // Топ-5 и отдельная строка со своим местом, если его в пятёрке нет
 async function renderGameRating() {
   const body = document.getElementById('gameRatingBody');
-  const { game, diff } = gameRatingOpen;
+  const game = gameRatingOpen.game;
+  const diff = ratingDiffKey();
   body.innerHTML = '<div class="games-empty">Загружаем…</div>';
   if (!gamesSigned() || !sb) { body.innerHTML = '<div class="games-empty">Войдите, чтобы видеть рейтинг</div>'; return; }
 
@@ -302,7 +376,6 @@ function sudokuMount() {
   host.innerHTML =
     '<div class="games-diffs" id="sudokuDiffs"></div>' +
     '<div class="game-bar">' +
-      '<span class="game-chip" id="sudokuTime">0:00</span>' +
       '<span class="game-chip" id="sudokuMistakes">Ошибки 0/3</span>' +
       '<button type="button" class="btn btn-sm btn-secondary ms-auto" id="sudokuNew">Новая</button>' +
     '</div>' +
@@ -377,6 +450,48 @@ function sudokuStart(diff) {
   msg.classList.add('d-none');
   msg.textContent = '';
   sudokuRenderAll();
+  sudokuLayout();
+}
+
+// Квадратное поле по меньшей стороне свободного места: панель цифр и кнопки
+// остаются на том же экране, прокрутки нет.
+function sudokuLayout() {
+  const host = document.getElementById('sudokuHost');
+  if (!host || !host.dataset.ready) return;
+  const grid = document.getElementById('sudokuGrid');
+  const pad = document.getElementById('sudokuPad');
+  const free = gameFreeSpace(host, [grid, pad]);
+  if (free.h <= 0) return;
+
+  // Панель цифр — две строки; на тесном экране клавиши ниже, но не меньше 34 px
+  let padH = 46;
+  let size = Math.min(free.w, free.h - (padH * 2 + 6));
+  if (size < 280) {
+    padH = Math.max(34, Math.min(46, Math.floor((free.h - 280 - 6) / 2)));
+    size = Math.min(free.w, free.h - (padH * 2 + 6));
+  }
+  size = Math.max(180, Math.floor(size));
+  pad.style.setProperty('--pad-h', padH + 'px');
+  grid.style.setProperty('--sudoku-size', size + 'px');
+}
+
+// Сколько места осталось под поле: высота тела игры минус всё, что в нём
+// лежит сверху и снизу (сложности, панель, сообщение), кроме самого поля.
+function gameFreeSpace(host, skip) {
+  const style = getComputedStyle(host);
+  const gap = parseFloat(style.rowGap || style.gap) || 0;
+  let used = 0;
+  let rows = 0;
+  Array.prototype.forEach.call(host.children, (el) => {
+    if (el.classList.contains('d-none')) return;
+    rows++;
+    if (skip.indexOf(el) >= 0) return;
+    used += el.offsetHeight;
+  });
+  return {
+    w: Math.floor(host.clientWidth),
+    h: Math.floor(host.clientHeight - used - gap * Math.max(0, rows - 1))
+  };
 }
 
 function sudokuTogglePencil() {
@@ -498,7 +613,10 @@ function sudokuRenderAll() {
 // ===== САПЁР =====
 
 const minesState = {
-  diff: 'easy', seed: 0, field: null, opened: new Set(), flags: new Set(),
+  // base — что выбрал игрок (easy/medium/hard), diff — уровень, который влез
+  // в экран: на тесном экране это телефонный easy_s/medium_s/hard_s со своим
+  // рейтингом. Рекорды разных размеров поля не сравниваются.
+  base: 'easy', diff: 'easy', seed: 0, field: null, opened: new Set(), flags: new Set(),
   moves: [], flagMode: false, startedAt: 0, done: false, started: false
 };
 
@@ -509,7 +627,6 @@ function minesMount() {
   host.innerHTML =
     '<div class="games-diffs" id="minesDiffs"></div>' +
     '<div class="game-bar">' +
-      '<span class="game-chip" id="minesTime">0:00</span>' +
       '<span class="game-chip" id="minesLeft">Мины 0</span>' +
       '<button type="button" class="game-chip is-toggle" id="minesFlagMode" aria-pressed="false">Флажок</button>' +
       '<button type="button" class="btn btn-sm btn-secondary ms-auto" id="minesNew">Новая</button>' +
@@ -527,7 +644,7 @@ function minesMount() {
     b.addEventListener('click', () => minesStart(d));
     diffs.appendChild(b);
   });
-  document.getElementById('minesNew').addEventListener('click', () => minesStart(minesState.diff));
+  document.getElementById('minesNew').addEventListener('click', () => minesStart(minesState.base));
   document.getElementById('minesFlagMode').addEventListener('click', () => {
     minesState.flagMode = !minesState.flagMode;
     const btn = document.getElementById('minesFlagMode');
@@ -535,13 +652,20 @@ function minesMount() {
     btn.setAttribute('aria-pressed', String(minesState.flagMode));
     haptic('selection');
   });
-  minesStart(minesState.diff);
+  minesStart(minesState.base);
 }
 
-function minesStart(diff) {
-  if (!withCore(() => minesStart(diff))) return;
+function minesStart(base) {
+  if (!withCore(() => minesStart(base))) return;
+  const core = window.GamesCore;
   const s = minesState;
-  s.diff = diff;
+  s.base = base.replace(/_s$/, '');
+  // Уровень подбираем под экран: сначала полное поле, не влезло — телефонное
+  const host = document.getElementById('minesweeperHost');
+  const free = host && host.dataset.ready
+    ? gameFreeSpace(host, [host.querySelector('.mines-wrap')])
+    : { w: 320, h: 480 };
+  s.diff = core.minesPickLevel(s.base, free.w, free.h).difficulty;
   s.seed = (Math.random() * 0xFFFFFFFF) >>> 0;
   s.field = null;
   s.opened = new Set();
@@ -557,6 +681,35 @@ function minesStart(diff) {
   msg.textContent = '';
   minesBuildGrid();
   minesRenderAll();
+  minesLayout();
+}
+
+// Размер клетки — от свободного места; мельче MINES_MIN_CELL не делаем, в
+// такой экран поле не влезает и его можно прокрутить.
+function minesLayout() {
+  const host = document.getElementById('minesweeperHost');
+  if (!host || !host.dataset.ready) return;
+  const core = window.GamesCore;
+  const s = minesState;
+  const wrap = host.querySelector('.mines-wrap');
+  const free = gameFreeSpace(host, [wrap]);
+  if (free.h <= 0) return;
+
+  // Партия ещё не начата — можно переложить её на уровень, который влезает
+  if (!s.started) {
+    const pick = core.minesPickLevel(s.base, free.w, free.h);
+    if (pick.difficulty !== s.diff) {
+      s.diff = pick.difficulty;
+      minesBuildGrid();
+      minesRenderAll();
+    }
+  }
+  const level = minesLevel();
+  const cell = Math.max(core.MINES_MIN_CELL, Math.floor(Math.min(
+    (free.w - 2 * (level.cols - 1)) / level.cols,
+    (free.h - 2 * (level.rows - 1)) / level.rows
+  )));
+  document.getElementById('minesGrid').style.setProperty('--cell', cell + 'px');
 }
 
 function minesLevel() {
@@ -690,7 +843,7 @@ function minesRenderAll(reveal) {
   const s = minesState;
   const level = minesLevel();
   document.querySelectorAll('#minesDiffs .games-diff').forEach((b) => {
-    b.classList.toggle('active', b.dataset.diff === s.diff);
+    b.classList.toggle('active', b.dataset.diff === s.base);
   });
   document.getElementById('minesLeft').textContent = 'Мины ' + Math.max(0, level.mines - s.flags.size);
 
@@ -722,7 +875,6 @@ function flappyMount() {
   host.dataset.ready = '1';
   host.innerHTML =
     '<div class="game-bar">' +
-      '<span class="game-chip" id="flappyScore">0</span>' +
       '<button type="button" class="game-chip is-toggle" id="flappySound" aria-pressed="false">Звук выкл.</button>' +
       '<button type="button" class="btn btn-sm btn-secondary ms-auto" id="flappyNew">Заново</button>' +
     '</div>' +
@@ -749,19 +901,29 @@ function flappyMount() {
   flappyReset();
 }
 
+// Canvas занимает всё свободное место. Логическая ширина поля постоянна
+// (FLAPPY.width), поэтому партия на любом экране идёт одинаково; лишнее место
+// по краям закрашивается фоном, а не растягивает игру.
 function flappyResize() {
   const c = flappyState.canvas;
   if (!c) return;
   const core = window.GamesCore;
+  if (!core) return;
   const box = c.parentElement.getBoundingClientRect();
-  const ratio = core.FLAPPY.height / core.FLAPPY.width;
-  const w = Math.max(200, box.width);
-  const h = Math.min(w * ratio, Math.round(window.innerHeight * 0.62));
+  const w = Math.max(200, Math.floor(box.width));
+  const h = Math.max(200, Math.floor(box.height));
   const dpr = Math.min(3, window.devicePixelRatio || 1);
-  c.style.width = Math.round(h / ratio) + 'px';
-  c.style.height = Math.round(h) + 'px';
-  c.width = Math.round((h / ratio) * dpr);
+  c.style.width = w + 'px';
+  c.style.height = h + 'px';
+  c.width = Math.round(w * dpr);
   c.height = Math.round(h * dpr);
+  // Масштаб один по обеим осям: поле не растягивается, остаток уходит в поля
+  const scale = Math.min(w / core.FLAPPY.width, h / core.FLAPPY.height);
+  flappyState.view = {
+    w, h, dpr, scale,
+    dx: (w - core.FLAPPY.width * scale) / 2,
+    dy: (h - core.FLAPPY.height * scale) / 2
+  };
   flappyDraw();
 }
 
@@ -839,13 +1001,20 @@ function flappyDraw() {
   if (!s.ctx || !s.game || !core) return;
   const F = core.FLAPPY;
   const ctx = s.ctx;
-  const k = s.canvas.width / F.width;
-
-  ctx.setTransform(k, 0, 0, k, 0, 0);
+  const view = s.view || { w: F.width, h: F.height, dpr: 1, scale: 1, dx: 0, dy: 0 };
   const css = getComputedStyle(document.documentElement);
   const bg = css.getPropertyValue('--color-surface') || '#101014';
   const accent = css.getPropertyValue('--color-accent') || '#0a84ff';
   const text = css.getPropertyValue('--color-text') || '#fff';
+
+  // Поля по краям — тем же фоном, чтобы не было пустых полос
+  ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  ctx.fillStyle = bg.trim();
+  ctx.fillRect(0, 0, view.w, view.h);
+
+  // Дальше рисуем в логических единицах поля: 0..F.width и 0..F.height
+  const k = view.scale * view.dpr;
+  ctx.setTransform(k, 0, 0, k, view.dx * view.dpr, view.dy * view.dpr);
 
   // Небо: мягкий переход от фона к поверхности приложения
   const sky = ctx.createLinearGradient(0, 0, 0, F.height);

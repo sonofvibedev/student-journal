@@ -3,6 +3,8 @@
 //
 //   судоку      { game: 'sudoku', difficulty, seed, seconds, solution: number[81] }
 //   сапёр       { game: 'minesweeper', difficulty, seed, seconds, moves: [{t,i}] }
+//               difficulty у сапёра может быть телефонным (easy_s, medium_s,
+//               hard_s): поле меньше, доля мин та же, рекорды отдельные
 //   flappy      { game: 'flappy', seed, flaps: number[] , score }
 //
 // Заголовок Authorization: Bearer <access_token> обязателен — рекорд пишется

@@ -4,3 +4,5 @@ vapid-*.local.txt
 shots/
 .playwright-mcp/
 supabase/.temp/
+node_modules/
+package-lock.json
