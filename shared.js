@@ -99,6 +99,87 @@ function dataFreshness(iso, now) {
   };
 }
 
+// ============================================================================
+// ХРАНЕНИЕ РАСЧЁТОВ КАЛЬКУЛЯТОРА РЕЙТИНГА
+//
+// У каждого предмета свои оценки, коэффициенты и экзамен, поэтому расчёты
+// лежат по предметам: { 'Матанализ': { control, oral, exam, k1, w1 }, … }.
+// Всё в localStorage этого браузера, в data.json не пишется.
+//
+// Формулы расчёта не меняются, здесь только чтение и запись.
+// ============================================================================
+const RATING_EMPTY = { control: [], oral: [], exam: '', k1: 0.5, w1: 0.6 };
+
+// Массив оценок из чего угодно: мусор отбрасываем, а не роняем калькулятор
+function ratingGrades(v) {
+  if (!Array.isArray(v)) return [];
+  return v.map(Number).filter((n) => Number.isFinite(n));
+}
+
+function ratingNum(v, fallback) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+// Один расчёт в правильном виде, чем бы он ни был на входе
+function ratingCalcShape(raw) {
+  if (!raw || typeof raw !== 'object') return { ...RATING_EMPTY };
+  return {
+    control: ratingGrades(raw.control),
+    oral: ratingGrades(raw.oral),
+    exam: raw.exam == null || raw.exam === '' ? '' : String(raw.exam),
+    k1: ratingNum(raw.k1, RATING_EMPTY.k1),
+    w1: ratingNum(raw.w1, RATING_EMPTY.w1)
+  };
+}
+
+// Разбор хранилища целиком. Любая порча — пустое хранилище, а не ошибка
+function ratingStoreRead(text) {
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed;
+  } catch (e) { return {}; }
+}
+
+// Расчёт по предмету; у незнакомого предмета — пустой, а не чужой
+function ratingStoreFor(store, subject) {
+  return ratingCalcShape(store && store[subject]);
+}
+
+function ratingStoreWrite(store, subject, calc) {
+  const next = { ...(store || {}) };
+  next[subject] = ratingCalcShape(calc);
+  return next;
+}
+
+// Предметы, по которым расчёт уже начат: показываем их списком над выбором
+function ratingSubjectsDone(store) {
+  return Object.keys(store || {}).filter((subject) => {
+    const c = ratingStoreFor(store, subject);
+    return c.control.length > 0 || c.oral.length > 0;
+  });
+}
+
+// Расчёт старого калькулятора — он был общий, без предметов. Читаем его
+// целиком, вместе с экзаменом и коэффициентами, чтобы перенос ничего не
+// потерял. Возвращает null, когда переносить нечего.
+function ratingLegacyRead(stateText, examText, k1Text, w1Text) {
+  let saved = null;
+  try { saved = JSON.parse(stateText || 'null'); } catch (e) { return null; }
+  if (!saved || typeof saved !== 'object') return null;
+  const control = ratingGrades(saved.control);
+  const oral = ratingGrades(saved.oral);
+  if (!control.length && !oral.length) return null;
+  return {
+    control, oral,
+    exam: examText ? String(examText) : '',
+    k1: ratingNum(k1Text, RATING_EMPTY.k1),
+    w1: ratingNum(w1Text, RATING_EMPTY.w1)
+  };
+}
+
 function deadlineDate(iso) {
   const [y, m, d] = String(iso).split('-').map(Number);
   return new Date(y, m - 1, d);
