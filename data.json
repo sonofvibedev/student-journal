@@ -1863,6 +1863,33 @@
       "certType": "Заявление",
       "certDueDate": "2026-10-17",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1791891935475-g0-840",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-12",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791891935475-g1-69",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-12",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791891935475-g2-513",
+      "studentId": "st-1789848096573",
+      "date": "2026-10-12",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -1924,7 +1951,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-13T11:45:15.640Z",
+  "lastUpdated": "2026-10-13T11:45:35.863Z",
   "homework": [
     {
       "id": "hw-1790937732472",
