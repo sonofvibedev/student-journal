@@ -1890,6 +1890,18 @@
       "isExcused": false,
       "subject": "Маркетинговые исследования и аналитика",
       "comment": ""
+    },
+    {
+      "id": "abs-1791891979120-0-434",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-12",
+      "totalHours": 4,
+      "isExcused": true,
+      "subject": "Эконометрика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-25",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -1951,7 +1963,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-13T11:45:35.863Z",
+  "lastUpdated": "2026-10-13T11:46:19.616Z",
   "homework": [
     {
       "id": "hw-1790937732472",
