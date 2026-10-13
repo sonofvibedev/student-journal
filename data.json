@@ -1902,6 +1902,30 @@
       "certType": "Больничный",
       "certDueDate": "2026-10-25",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1791892005795-0-356",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-13",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Интегрированные маркетинговые коммуникации",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-25",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1791892005795-1-970",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-13",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-25",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -1963,7 +1987,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-13T11:46:19.616Z",
+  "lastUpdated": "2026-10-13T11:46:46.481Z",
   "homework": [
     {
       "id": "hw-1790937732472",
