@@ -1826,7 +1826,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791633421918-1-242",
@@ -1838,7 +1838,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791633445240-0-202",
@@ -1850,7 +1850,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791633470666-0-957",
@@ -1901,7 +1901,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-25",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791892005795-0-356",
@@ -1913,7 +1913,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-25",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791892005795-1-970",
@@ -1925,7 +1925,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-25",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791902423155-g0-592",
@@ -1996,7 +1996,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-13T14:40:24.177Z",
+  "lastUpdated": "2026-10-14T10:48:28.769Z",
   "homework": [
     {
       "id": "hw-1790937732472",
