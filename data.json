@@ -1935,6 +1935,30 @@
       "isExcused": false,
       "subject": "Функционально-стоимостный анализ",
       "comment": ""
+    },
+    {
+      "id": "abs-1792156540174-0-994",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-16",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Логистика",
+      "comment": "",
+      "certType": "Освобождение",
+      "certDueDate": "2026-10-23",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792156540174-1-223",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-16",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Освобождение",
+      "certDueDate": "2026-10-23",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -1996,7 +2020,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-14T10:48:28.769Z",
+  "lastUpdated": "2026-10-16T13:15:41.297Z",
   "homework": [
     {
       "id": "hw-1790937732472",
