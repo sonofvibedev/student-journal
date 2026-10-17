@@ -1951,6 +1951,33 @@
       "certType": "Освобождение",
       "certDueDate": "2026-10-23",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1792238175213-g0-328",
+      "studentId": "st-1789850159847",
+      "date": "2026-10-17",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792238175213-g1-638",
+      "studentId": "st-1789848068933",
+      "date": "2026-10-17",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792238175213-g2-352",
+      "studentId": "st-1758300000021",
+      "date": "2026-10-17",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -2012,7 +2039,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-16T13:16:36.058Z",
+  "lastUpdated": "2026-10-17T11:56:16.235Z",
   "homework": [
     {
       "id": "hw-1791460174322",
