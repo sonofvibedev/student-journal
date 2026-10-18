@@ -1072,73 +1072,87 @@
 </button>
 
 <!-- Раздел «Учёба» (index.html#study) — шесть плиток -->
+<!-- Раздел «Учёба» (index.html#study) — «Бенто»: плитки разного размера.
+     Сверху во всю ширину дедлайны с ближайшим сроком и счётчиком горящих,
+     под ними две пары, затем статистика группы и игры.
+     Числа досчитываются при появлении (staggerTiles в shared.js). -->
 <section id="viewStudy" class="app-view d-none">
-  <div class="tile-grid">
+  <div class="tile-grid" id="studyTiles">
+
+    <!-- Дедлайны: ближайший срок целиком и красный счётчик горящих -->
+    <button type="button" class="tile wide" onclick="goView('deadlines')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span>
+      <span class="tile-name">Дедлайны</span>
+      <span class="tile-note" id="studyDeadlinesNext">список и календарь</span>
+      <span class="tile-note" id="studyDeadlinesNote"></span>
+      <span class="tile-count d-none" id="studyDeadlinesCount">0</span>
+    </button>
+
+    <!-- Пара: зачётка и домашка -->
     <button type="button" class="tile" onclick="goView('zachetka')">
       <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h11a3 3 0 013 3V21H8a3 3 0 01-3-3z"/><path d="M5 18a3 3 0 013-3h11"/></svg></span>
       <span class="tile-name">Зачётка и калькулятор</span>
       <span class="tile-note" id="studyZachetkaNote">оценки и рейтинг</span>
     </button>
 
-    <button type="button" class="tile" onclick="goView('deadlines')">
-      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span>
-      <span class="tile-name">Дедлайны</span>
-      <span class="tile-note" id="studyDeadlinesNote">список и календарь</span>
-      <span class="tile-count d-none" id="studyDeadlinesCount">0</span>
-    </button>
-
     <button type="button" class="tile" onclick="goView('homework')">
       <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h8M8 17h5"/></svg></span>
       <span class="tile-name">Домашка</span>
-      <span class="tile-note" id="studyHomeworkNote">все задания по датам</span>
+      <span class="tile-num" id="studyHomeworkNum" data-count="0">0</span>
+      <span class="tile-note" id="studyHomeworkNote">заданий на неделю</span>
     </button>
 
-    <button type="button" class="tile" onclick="goView('teachers')">
-      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4L2.5 9 12 14l9.5-5L12 4z"/><path d="M6.5 11.8V16c0 1.5 2.5 2.8 5.5 2.8s5.5-1.3 5.5-2.8v-4.2"/></svg></span>
-      <span class="tile-name">Преподаватели</span>
-      <span class="tile-note" id="studyTeachersNote">кто что ведёт</span>
-    </button>
-
-    <button type="button" class="tile" onclick="goView('stats')">
-      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
-      <span class="tile-name">Статистика группы</span>
-      <span class="tile-note" id="studyStatsNote">пропуски всей группы</span>
-    </button>
-
+    <!-- Пара: зачёты с экзаменами и преподаватели -->
     <button type="button" class="tile" onclick="goView('exams')">
       <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 13l1.6 1.6L15 11"/></svg></span>
       <span class="tile-name">Зачёты и экзамены</span>
       <span class="tile-note" id="studyExamsNote">формы контроля и даты</span>
     </button>
 
-    <!-- Игры: во всю ширину последнего ряда. Играть может и гость,
+    <button type="button" class="tile" onclick="goView('teachers')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4L2.5 9 12 14l9.5-5L12 4z"/><path d="M6.5 11.8V16c0 1.5 2.5 2.8 5.5 2.8s5.5-1.3 5.5-2.8v-4.2"/></svg></span>
+      <span class="tile-name">Преподаватели</span>
+      <span class="tile-num" id="studyTeachersNum" data-count="0">0</span>
+      <span class="tile-note" id="studyTeachersNote">предметов</span>
+    </button>
+
+    <button type="button" class="tile wide" onclick="goView('stats')">
+      <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+      <span class="tile-name">Статистика группы</span>
+      <span class="tile-note" id="studyStatsNote">пропуски всей группы</span>
+    </button>
+
+    <!-- Игры: во всю ширину, мягким градиентом акцента. Играть может и гость,
          рекорды сохраняются только у вошедшего студента. -->
-    <button type="button" class="tile wide" onclick="goView('games')">
+    <button type="button" class="tile wide is-games" onclick="goView('games')">
       <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5"/><path d="M7 10v4M5 12h4M15.5 11h.01M18 13.5h.01"/></svg></span>
+      <span class="tile-flag d-none" id="studyGamesFlag">Слово дня ждёт</span>
       <span class="tile-name">Игры</span>
-      <span class="tile-note" id="studyGamesNote">судоку, сапёр, flappy</span>
+      <span class="tile-note" id="studyGamesNote">судоку, сапёр, flappy, змейка и «Ассоциации»</span>
     </button>
   </div>
 </section>
 
+
 <!-- ======================= ИГРЫ =======================
-     Экран со списком игр (index.html#games) и три экрана самих игр.
-     Играть может и гость; рекорд сохраняется только у вошедшего студента
-     и только через Edge Function, которая переигрывает партию и проверяет
-     результат. Вся логика — в games.js, правила игр — в games-core.js.
+     Экран со списком игр (index.html#games) и экраны самих игр.
+     Аркада — сетка 2×2 с рекордами, под ней «Ассоциации» и таблица
+     лидеров во всю ширину. Играть может и гость; рекорд сохраняется
+     только у вошедшего студента и только через Edge Function, которая
+     переигрывает партию и проверяет результат.
      ==================================================== -->
 <section id="viewGames" class="app-view d-none" aria-labelledby="gamesViewTitle">
   <div class="view-head">
     <h3 class="view-title" id="gamesViewTitle">Игры</h3>
   </div>
   <p class="games-note d-none" id="gamesGuestNote">Войдите, чтобы попасть в рейтинг</p>
-  <div class="games-list" id="gamesList"></div>
-  <!-- Очки дают значки за рекорды. Они игровые: в учебный рейтинг не идут. -->
-  <button type="button" class="games-points-btn" id="gamesPointsBtn" onclick="openGameRating('points')">
-    <span>Рейтинг по игровым очкам</span>
-    <small>очки дают значки за рекорды и не влияют на учебные баллы</small>
-  </button>
+
+  <div class="kicker">Аркада</div>
+  <div class="tile-grid" id="gamesArcade"></div>
+
+  <div class="tile-grid mt-3" id="gamesExtra"></div>
 </section>
+
 
 <!-- Экраны игр занимают весь экран: таб-бар и шапка приложения под ними,
      высоту задаёт games.js от реально доступной (в Telegram — viewportStableHeight).
@@ -2858,7 +2872,13 @@
 
     if (name === 'teachers') { renderTeachersList(); updateAdminUI(); }
     if (name === 'schedule') { renderHomeworkView(); updateAdminUI(); }
-    if (name === 'study')    { renderStudyTiles(); }
+    if (name === 'study')    {
+      renderStudyTiles();
+      // «Слово дня ждёт» на плитке игр: состояние подтягивается один раз
+      if (typeof gamesLoadBento === 'function' && typeof gamesState === 'object' && gamesState && !gamesState.assoc) {
+        gamesLoadBento().then(renderStudyTiles);
+      }
+    }
     if (name === 'homework') { renderHomeworkList(); updateAdminUI(); }
     if (name === 'exams')    { renderExams(); }
     if (name === 'home')     { renderHome(); }
@@ -3328,21 +3348,62 @@
   setInterval(() => { if (currentViewName === 'home' && AppState.ready) renderHomeNow(); }, 60000);
 
   // ===== «Учёба»: подписи и счётчик на плитках =====
+  // Плитки «Учёбы». Числа ставятся в data-count и досчитываются при
+  // появлении (staggerTiles в shared.js); при «уменьшении движения»
+  // они просто стоят на месте.
   function renderStudyTiles() {
-    const hot = (typeof activeDeadlines === 'function' ? activeDeadlines() : []).filter(d => deadlineDaysLeft(d) <= 1);
+    const all = typeof activeDeadlines === 'function' ? activeDeadlines() : [];
+    // Дедлайны: только они, без зачётов и экзаменов — у тех своя плитка
+    const plain = all.filter(d => !isZachet(d)).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    const hot = plain.filter(d => deadlineDaysLeft(d.dueDate) <= 1);
+
     const cnt = document.getElementById('studyDeadlinesCount');
     cnt.textContent = hot.length;
     cnt.classList.toggle('d-none', hot.length === 0);
 
-    const dls = (typeof activeDeadlines === 'function' ? activeDeadlines() : []).length;
-    document.getElementById('studyDeadlinesNote').textContent = dls ? dls + ' впереди' : 'список и календарь';
-    const hw = (appData.homework || []).length;
-    document.getElementById('studyHomeworkNote').textContent = hw ? hw + ' заданий' : 'все задания по датам';
-    document.getElementById('studyTeachersNote').textContent = (appData.teachers || []).length + ' предметов';
+    const next = plain.find(d => deadlineDaysLeft(d.dueDate) >= 0);
+    document.getElementById('studyDeadlinesNext').textContent = next
+      ? [next.subject, next.text].filter(Boolean).join(' — ') +
+        ', ' + deadlineRelative(deadlineDaysLeft(next.dueDate)).toLowerCase()
+      : 'ближайших сроков нет';
+    document.getElementById('studyDeadlinesNote').textContent = plain.length
+      ? plain.length + ' впереди' + (hot.length ? ', горит ' + hot.length : '')
+      : 'список и календарь';
+
+    // Домашка на ближайшую неделю
+    const week = (appData.homework || []).filter(h => {
+      const n = deadlineDaysLeft(h.dueDate || '');
+      return Number.isFinite(n) && n >= 0 && n <= 7;
+    }).length;
+    const hwNum = document.getElementById('studyHomeworkNum');
+    hwNum.dataset.count = week;
+    hwNum.textContent = week;
+    document.getElementById('studyHomeworkNote').textContent = week ? 'заданий на неделю' : 'заданий на неделю нет';
+
+    const teachers = (appData.teachers || []).length;
+    const tNum = document.getElementById('studyTeachersNum');
+    tNum.dataset.count = teachers;
+    tNum.textContent = teachers;
+
+    // Зачёты и экзамены: ближайшая дата и предмет
+    const dated = all.filter(isZachet)
+      .filter(d => deadlineDaysLeft(d.dueDate) >= 0)
+      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    document.getElementById('studyExamsNote').textContent = dated.length
+      ? dlFormatDate(deadlineDate(dated[0].dueDate)) + ' — ' + dated[0].subject
+      : 'формы контроля и даты';
+
     // Средний балл берём прямо из зачётки: своей плитки на главной у него больше нет
     const avg = document.getElementById('zachetkaAverage');
     document.getElementById('studyZachetkaNote').textContent =
       avg && avg.textContent && avg.textContent !== '—' ? 'средний балл ' + avg.textContent : 'оценки и рейтинг';
+
+    // «Слово дня ждёт» — пока сегодняшнее слово не сыграно
+    const flag = document.getElementById('studyGamesFlag');
+    const assoc = typeof gamesState === 'object' && gamesState ? gamesState.assoc : null;
+    flag.classList.toggle('d-none', !(assoc && assoc.loaded && assoc.pending));
+
+    if (typeof staggerTiles === 'function') staggerTiles(document.getElementById('studyTiles'));
   }
 
   // Экранирование для строк, которые собираются в HTML

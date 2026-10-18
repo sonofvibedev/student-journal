@@ -505,3 +505,56 @@ window.addEventListener('resize', segSyncAll);
 window.addEventListener('pageshow', segSyncAll);
 document.addEventListener('DOMContentLoaded', segSyncAll);
 if (document.readyState !== 'loading') segSyncAll();
+
+// ===== Появление плиток и досчёт чисел =====
+// Общее для «Учёбы» и «Игр»: плитки выезжают по очереди, числа на них
+// досчитываются от нуля. Анимируются только transform и opacity — ни одна
+// плитка из-за этого не пересобирает раскладку.
+//
+// При «уменьшении движения» (prefers-reduced-motion) всё это выключено:
+// плитки просто появляются, число сразу стоит на месте.
+
+const calmMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+// Число досчитывается за 600 мс. value — конечное число, suffix — то, что
+// дописывается после него (например, « ч»).
+function countUp(el, value, suffix) {
+  if (!el) return;
+  const end = Number(value) || 0;
+  const tail = suffix || '';
+  if (calmMotion() || !end) { el.textContent = end + tail; return; }
+
+  const started = performance.now();
+  const dur = 600;
+  const step = (now) => {
+    const t = Math.min(1, (now - started) / dur);
+    // Замедление к концу: число «подъезжает», а не обрывается
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(end * eased) + tail;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  el.textContent = '0' + tail;
+  requestAnimationFrame(step);
+}
+
+// Плитки появляются по очереди: каждой следующей задержка на 60 мс больше.
+// Числа внутри (элементы с data-count) досчитываются, когда плитка доехала.
+function staggerTiles(root) {
+  if (!root) return;
+  const tiles = [...root.querySelectorAll('.tile')];
+  const calm = calmMotion();
+  tiles.forEach((tile, i) => {
+    const delay = calm ? 0 : i * 60;
+    if (!calm) {
+      tile.style.setProperty('--tile-delay', delay + 'ms');
+      tile.classList.remove('tile-in');
+      // Перезапуск анимации: без чтения offsetWidth браузер склеит два кадра
+      void tile.offsetWidth;
+      tile.classList.add('tile-in');
+    }
+    tile.querySelectorAll('[data-count]').forEach((el) => {
+      const run = () => countUp(el, el.dataset.count, el.dataset.suffix);
+      if (calm) run(); else setTimeout(run, delay + 120);
+    });
+  });
+}

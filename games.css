@@ -287,3 +287,17 @@ body.game-fs .fab { display: none; }
 /* Вкладки игр в листе рейтинга: в один ряд с прокруткой, если не влезают */
 .games-diffs.is-games { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
 .games-diffs.is-games .games-diff { flex: none; }
+
+/* Короткий топ-3 на плитке таблицы лидеров */
+.board-mini { display: grid; gap: 4px; width: 100%; }
+.board-mini-row {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: var(--fs-small); color: var(--color-text-secondary);
+}
+.board-mini-row b {
+  flex: none; width: 18px; color: var(--color-text-tertiary); font-weight: 600;
+}
+.board-mini-row span { flex: 1 1 auto; min-width: 0; color: var(--color-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-mini-row i { flex: none; font-style: normal; color: var(--color-text-secondary); }
+.board-mini-row.is-me span, .board-mini-row.is-me i { color: var(--color-accent); font-weight: 600; }

@@ -34,6 +34,11 @@ const GAMES_META = {
     note: 'касание — взмах, считаются пройденные трубы',
     icon: '<path d="M4 13.5c0-3.6 2.9-6.5 6.5-6.5h6.5c1.7 0 3 1.3 3 3s-1.3 3-3 3h-2"/><path d="M10.5 10.5h.01"/><path d="M4 13.5c0 3.6 2.9 6.5 6.5 6.5s6.5-2.9 6.5-6.5"/>'
   },
+  assoc: {
+    title: 'Ассоциации', view: 'words', unit: 'points',
+    note: 'угадайте слово по подсказкам',
+    icon: '<path d="M7.6 14.6a3.4 3.4 0 01-.6-6.7 4 4 0 017.4-1.4 3.2 3.2 0 014.2 3 3.3 3.3 0 01-3.3 3.3h-1"/><path d="M9.2 14.6h5"/><circle cx="7.4" cy="18.2" r="1.3"/>'
+  },
   snake: {
     title: 'Змейка', view: 'snake', unit: 'len',
     note: 'свайп — поворот, рекорд — длина змейки',
@@ -57,7 +62,9 @@ const DIFF_TITLES_M = { easy: 'Лёгкий', medium: 'Средний', hard: '�
 const gamesState = {
   records: new Map(),   // 'game:difficulty' → score
   loaded: false,
-  loading: null
+  loading: null,
+  assoc: null,          // «Слово дня»: сыграно ли, очки за месяц, серия
+  board: null           // короткий топ-3 общего рейтинга и своё место
 };
 
 // ===== Экран игры на весь экран =====
@@ -201,58 +208,186 @@ function withCore(retry) {
   return false;
 }
 
-// ===== Экран со списком игр =====
+// ===== Экран со списком игр: «Бенто» =====
+// Аркада — сетка 2×2 с рекордом на каждой плитке, под ней «Ассоциации» и
+// таблица лидеров во всю ширину. Числа досчитываются, плитки появляются по
+// очереди; при «уменьшении движения» ни того, ни другого нет.
+
+const ARCADE = ['sudoku', 'minesweeper', 'flappy', 'snake'];
+
+// Последняя сыгранная сложность: её рекорд и показываем на плитке. Судоку и
+// сапёр пишут её сюда при начале партии, у остальных сложности нет.
+const GAME_DIFF_KEYS = { sudoku: 'sudoku_diff', minesweeper: 'mines_diff' };
+
+function gameLastDiff(game) {
+  const key = GAME_DIFF_KEYS[game];
+  if (!key) return 'none';
+  const saved = lsGet(key, '');
+  return saved || GAME_DIFFS[game][0];
+}
+
+function gameRecordText(game) {
+  const diff = gameLastDiff(game);
+  const value = gamesState.records.get(gameKey(game, diff));
+  if (value == null) return 'рекорда пока нет';
+  const name = GAME_DIFF_KEYS[game]
+    ? (game === 'minesweeper' ? DIFF_TITLES_M[diff.replace(/_s$/, '')] : DIFF_TITLES[diff]) + ': '
+    : '';
+  return name + gameScoreText(game, value);
+}
+
+function gameIconHtml(meta) {
+  return '<span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    meta.icon + '</svg></span>';
+}
 
 function renderGamesList() {
-  const box = document.getElementById('gamesList');
-  if (!box) return;
+  const arcade = document.getElementById('gamesArcade');
+  const extra = document.getElementById('gamesExtra');
+  if (!arcade || !extra) return;
   const signed = gamesSigned();
   document.getElementById('gamesGuestNote').classList.toggle('d-none', signed);
 
-  box.innerHTML = '';
-  Object.keys(GAMES_META).forEach((game) => {
+  arcade.innerHTML = '';
+  ARCADE.forEach((game) => {
     const meta = GAMES_META[game];
-    const card = document.createElement('div');
-    card.className = 'game-card';
-    card.innerHTML =
-      '<span class="game-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + meta.icon + '</svg></span>' +
-      '<span class="game-main">' +
-        '<b class="game-title"></b>' +
-        '<small class="game-note"></small>' +
-        '<small class="game-rec"></small>' +
-      '</span>' +
-      '<span class="game-actions">' +
-        '<button type="button" class="btn btn-sm btn-primary game-play">Играть</button>' +
-        '<button type="button" class="btn btn-sm btn-secondary game-board">Рейтинг</button>' +
-      '</span>';
-    card.querySelector('.game-title').textContent = meta.title;
-    card.querySelector('.game-note').textContent = meta.note;
-
-    const rec = card.querySelector('.game-rec');
-    if (!signed) {
-      // Гостю про вход сказано один раз сверху экрана — в карточке не повторяем
-      rec.remove();
-    } else {
-      const line = (suffix) => GAME_DIFFS[game].map((d) => {
-        const v = gamesState.records.get(gameKey(game, d + suffix));
-        const name = game === 'minesweeper' ? DIFF_TITLES_M[d] : DIFF_TITLES[d];
-        return (d === 'none' ? '' : name + ' ') + gameScoreText(game, v == null ? null : v);
-      }).join(' · ');
-      rec.textContent = 'Рекорд: ' + line('');
-      // У сапёра на телефонном поле свой рейтинг: показываем, если там играли
-      if (game === 'minesweeper' &&
-          GAME_DIFFS[game].some((d) => gamesState.records.get(gameKey(game, d + '_s')) != null)) {
-        const small = document.createElement('small');
-        small.className = 'game-rec';
-        small.textContent = 'Телефонное поле: ' + line('_s');
-        rec.after(small);
-      }
-    }
-
-    card.querySelector('.game-play').addEventListener('click', () => { haptic('selection'); goView(meta.view); });
-    card.querySelector('.game-board').addEventListener('click', () => openGameRating(game));
-    box.appendChild(card);
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'tile';
+    tile.innerHTML = gameIconHtml(meta) +
+      '<span class="tile-name"></span>' +
+      '<span class="tile-note game-rec"></span>';
+    tile.querySelector('.tile-name').textContent = meta.title;
+    tile.querySelector('.game-rec').textContent = signed ? gameRecordText(game) : meta.note;
+    tile.addEventListener('click', () => { haptic('selection'); goView(meta.view); });
+    arcade.appendChild(tile);
   });
+
+  extra.innerHTML = '';
+  extra.appendChild(gamesAssocTile(signed));
+  extra.appendChild(gamesBoardTile(signed));
+  staggerTiles(document.getElementById('viewGames'));
+}
+
+// «Ассоциации»: метка «новое», пока «Слово дня» не сыграно, а под ней —
+// очки за текущий месяц и серия угаданных дней
+function gamesAssocTile(signed) {
+  const a = gamesState.assoc || {};
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = 'tile wide is-games';
+  tile.innerHTML = gameIconHtml(GAMES_META.assoc) +
+    (signed && a.pending ? '<span class="tile-flag">новое</span>' : '') +
+    '<span class="tile-name">Ассоциации</span>' +
+    '<span class="tile-note" id="gamesAssocNote"></span>' +
+    (signed ? '<span class="tile-note" id="gamesAssocStreak"></span>' : '');
+  tile.querySelector('#gamesAssocNote').textContent = signed
+    ? (a.loaded
+        ? (a.pending ? 'Слово дня ждёт' : 'Слово дня сыграно') +
+          ' · за месяц ' + (a.points || 0) + ' ' + gamePointsWord(a.points || 0)
+        : 'угадайте слово по подсказкам')
+    : 'угадайте слово по подсказкам';
+  const streak = tile.querySelector('#gamesAssocStreak');
+  if (streak) streak.textContent = a.loaded ? gamesStreakText(a.streak || 0) : '';
+  tile.addEventListener('click', () => { haptic('selection'); goView('words'); });
+  return tile;
+}
+
+function gamesStreakText(days) {
+  if (!days) return 'серии пока нет';
+  const a = Math.abs(days) % 100, b = a % 10;
+  const word = (a > 10 && a < 20) ? 'дней' : (b === 1 ? 'день' : (b >= 2 && b <= 4 ? 'дня' : 'дней'));
+  return 'серия: ' + days + ' ' + word + ' подряд';
+}
+
+// Таблица лидеров: короткий топ-3 общего рейтинга по игровым очкам и своё
+// место. По нажатию открывается полная таблица с вкладками по играм.
+function gamesBoardTile(signed) {
+  const b = gamesState.board || {};
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = 'tile wide';
+  const rows = (b.top || []).map((r, i) =>
+    '<span class="board-mini-row' + (r.me ? ' is-me' : '') + '">' +
+      '<b>' + (i + 1) + '</b><span>' + escapeHtml(r.name) + '</span>' +
+      '<i>' + r.points + '</i></span>').join('');
+  tile.innerHTML =
+    '<span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M8 20h8M12 16v4"/><path d="M6 4h12v4a6 6 0 01-12 0z"/>' +
+      '<path d="M6 5H3.5v1.5A3.5 3.5 0 006 10M18 5h2.5v1.5A3.5 3.5 0 0118 10"/></svg></span>' +
+    '<span class="tile-name">Таблица лидеров</span>' +
+    (signed
+      ? (rows ? '<span class="board-mini">' + rows + '</span>' : '<span class="tile-note">рекордов пока нет</span>') +
+        '<span class="tile-note">' + (b.place ? 'ваше место: ' + b.place : 'вы ещё не в рейтинге') + '</span>'
+      : '<span class="tile-note">войдите, чтобы видеть рейтинг</span>');
+  tile.addEventListener('click', () => { haptic('selection'); openGameRating('points'); });
+  return tile;
+}
+
+// Данные для двух нижних плиток. Всё необязательное: не загрузилось —
+// плитки просто покажут короткую подпись.
+async function gamesLoadBento() {
+  if (!gamesSigned() || !sb) return;
+
+  // «Слово дня»: сыграно ли сегодня. Попытку этот запрос не начинает.
+  const assoc = { loaded: true, pending: true, points: 0, streak: 0 };
+  try {
+    const state = typeof wordsCall === 'function' ? await wordsCall({ action: 'state' }) : null;
+    if (state && state.ok) assoc.pending = !state.finished;
+  } catch (e) { /* не загрузилось — плитка покажет короткую подпись */ }
+
+  try {
+    const { data } = await sb.rpc('rpc_assoc_board');
+    const mine = (data || []).find((r) => r.student_id === AppState.studentId);
+    if (mine) assoc.points = mine.points;
+  } catch (e) { /* рейтинг не загрузился */ }
+
+  assoc.streak = await gamesAssocStreak();
+  gamesState.assoc = assoc;
+
+  // Общий рейтинг по игровым очкам: топ-3 и своё место
+  const core = window.GamesCore;
+  if (core) {
+    try {
+      const codes = Object.keys(core.GAME_BADGES);
+      const points = codes.map((c) => core.GAME_BADGES[c].points);
+      const { data } = await sb.rpc('rpc_game_points', { codes, points });
+      const rows = data || [];
+      const myIndex = rows.findIndex((r) => r.student_id === AppState.studentId);
+      gamesState.board = {
+        top: rows.slice(0, 3).map((r) => ({
+          name: studentName(r.student_id), points: r.points, me: r.student_id === AppState.studentId
+        })),
+        place: myIndex >= 0 ? myIndex + 1 : 0
+      };
+    } catch (e) { /* рейтинг не загрузился */ }
+  }
+
+  renderGamesList();
+}
+
+// Серия: сколько дней подряд, считая сегодняшний или вчерашний, угадано
+// «Слово дня». Свои попытки студент видит сам — политика это разрешает.
+async function gamesAssocStreak() {
+  try {
+    const { data } = await sb.from('word_attempts')
+      .select('day, solved').eq('student_id', AppState.studentId)
+      .eq('solved', true).order('day', { ascending: false }).limit(60);
+    const days = new Set((data || []).map((r) => r.day));
+    if (!days.size) return 0;
+
+    const cursor = new Date();
+    // Сегодня слово могли ещё не сыграть — тогда серию считаем со вчера
+    const key = (d) => d.toISOString().slice(0, 10);
+    if (!days.has(key(cursor))) cursor.setDate(cursor.getDate() - 1);
+    let streak = 0;
+    while (days.has(key(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    return streak;
+  } catch (e) {
+    return 0;
+  }
 }
 
 // ===== Рейтинг =====
@@ -551,6 +686,8 @@ function sudokuStart(diff) {
   const core = window.GamesCore;
   const s = sudokuState;
   s.diff = diff;
+  // Плитка на экране игр показывает рекорд последней сыгранной сложности
+  lsSet('sudoku_diff', diff);
   s.seed = (Math.random() * 0xFFFFFFFF) >>> 0;
   const gen = core.sudokuGenerate(s.seed, diff);
   s.puzzle = gen.puzzle;
@@ -784,6 +921,7 @@ function minesStart(base) {
     ? gameFreeSpace(host, [host.querySelector('.mines-wrap')])
     : { w: 320, h: 480 };
   s.diff = core.minesPickLevel(s.base, free.w, free.h).difficulty;
+  lsSet('mines_diff', s.diff);
   s.seed = (Math.random() * 0xFFFFFFFF) >>> 0;
   s.field = null;
   s.opened = new Set();
@@ -1368,6 +1506,7 @@ async function openGamesView() {
   renderGamesList();
   await gamesLoadRecords();
   renderGamesList();
+  await gamesLoadBento();
 }
 
 // Экран мог открыться раньше, чем загрузился этот файл (он подключён в конце
