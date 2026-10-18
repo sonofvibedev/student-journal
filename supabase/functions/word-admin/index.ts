@@ -13,7 +13,10 @@
 //   train_remove убрать слово из тренировки
 import { admin, json, cors } from '../_shared/common.ts';
 import { minskDay, isRepoAdmin } from '../_shared/words.ts';
-import { ASSOC } from '../_shared/games-core.js';
+
+// Подсказок ровно шесть — столько же, сколько в правилах игры (ASSOC.hints).
+// Здесь это просто число: тянуть ради него все правила игр в функцию незачем.
+const HINTS = 6;
 
 type Body = Record<string, unknown>;
 type Item = { word: string; hints: string[]; answers: string[] };
@@ -111,7 +114,7 @@ function readItem(src: Body): Item | string {
   if (!word || word.length > MAX_WORD) return 'bad_word';
 
   const hints = Array.isArray(src.hints) ? src.hints.map((h) => String(h ?? '').trim()) : [];
-  if (hints.length !== ASSOC.hints) return 'bad_hints_count';
+  if (hints.length !== HINTS) return 'bad_hints_count';
   if (hints.some((h) => !h || h.length > MAX_HINT)) return 'bad_hint';
 
   const answers = Array.isArray(src.answers)
