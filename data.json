@@ -39,14 +39,6 @@
       "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
       "dueDate": "2026-10-21",
       "createdAt": "2026-10-09T04:43:41.433Z"
-    },
-    {
-      "id": "dl-1791809292787",
-      "type": "deadline",
-      "subject": "Маркетинг услуг",
-      "text": "доклады до 8 темы",
-      "dueDate": "2026-10-15",
-      "createdAt": "2026-10-12T12:48:12.787Z"
     }
   ],
   "subjects": [
@@ -1826,7 +1818,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791633421918-1-242",
@@ -1838,7 +1830,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791633445240-0-202",
@@ -1850,7 +1842,7 @@
       "comment": "",
       "certType": "Больничный",
       "certDueDate": "2026-10-24",
-      "certSubmitted": false
+      "certSubmitted": true
     },
     {
       "id": "abs-1791633470666-0-957",
@@ -1863,6 +1855,129 @@
       "certType": "Заявление",
       "certDueDate": "2026-10-17",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1791891935475-g0-840",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-12",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791891935475-g1-69",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-12",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791891935475-g2-513",
+      "studentId": "st-1789848096573",
+      "date": "2026-10-12",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1791891979120-0-434",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-12",
+      "totalHours": 4,
+      "isExcused": true,
+      "subject": "Эконометрика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-25",
+      "certSubmitted": true
+    },
+    {
+      "id": "abs-1791892005795-0-356",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-13",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Интегрированные маркетинговые коммуникации",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-25",
+      "certSubmitted": true
+    },
+    {
+      "id": "abs-1791892005795-1-970",
+      "studentId": "st-1758300000023",
+      "date": "2026-10-13",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Маркетинговые исследования и аналитика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-25",
+      "certSubmitted": true
+    },
+    {
+      "id": "abs-1791902423155-g0-592",
+      "studentId": "st-1758300000011",
+      "date": "2026-10-13",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Функционально-стоимостный анализ",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792156540174-0-994",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-16",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Логистика",
+      "comment": "",
+      "certType": "Освобождение",
+      "certDueDate": "2026-10-23",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792156540174-1-223",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-16",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Освобождение",
+      "certDueDate": "2026-10-23",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792238175213-g0-328",
+      "studentId": "st-1789850159847",
+      "date": "2026-10-17",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792238175213-g1-638",
+      "studentId": "st-1789848068933",
+      "date": "2026-10-17",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792238175213-g2-352",
+      "studentId": "st-1758300000021",
+      "date": "2026-10-17",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Стратегический маркетинг",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -1924,35 +2039,8 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-12T13:51:45.413Z",
+  "lastUpdated": "2026-10-17T11:56:16.235Z",
   "homework": [
-    {
-      "id": "hw-1790937732472",
-      "subject": "Маркетинг услуг",
-      "type": "ПЗ",
-      "text": "Письменная работа №1",
-      "dueDate": "2026-10-15",
-      "subgroup": 0,
-      "createdAt": "2026-10-02T10:42:12.472Z"
-    },
-    {
-      "id": "hw-1791228545760",
-      "subject": "Интегрированные маркетинговые коммуникации",
-      "type": "ПЗ",
-      "text": "Тема 10 (полностью)\nЗадание с баннером (преза)",
-      "dueDate": "2026-10-12",
-      "subgroup": 0,
-      "createdAt": "2026-10-05T19:29:05.760Z"
-    },
-    {
-      "id": "hw-1791285071897",
-      "subject": "Эконометрика",
-      "type": "ПЗ",
-      "text": "Модели управления запасами, допущения модели Уилсона и их нарушения + формулы",
-      "dueDate": "2026-10-12",
-      "subgroup": 0,
-      "createdAt": "2026-10-06T11:11:11.897Z"
-    },
     {
       "id": "hw-1791460174322",
       "subject": "Маркетинг услуг",
@@ -1963,15 +2051,6 @@
       "createdAt": "2026-10-08T11:49:34.322Z"
     },
     {
-      "id": "hw-1791520900462",
-      "subject": "Маркетинг услуг",
-      "type": "ПЗ",
-      "text": "Контрольная по темам 1-3",
-      "dueDate": "2026-10-15",
-      "subgroup": 0,
-      "createdAt": "2026-10-09T04:41:40.462Z"
-    },
-    {
       "id": "hw-1791521051483",
       "subject": "Маркетинг инноваций",
       "type": "ПЗ",
@@ -1979,15 +2058,6 @@
       "dueDate": "2026-10-21",
       "subgroup": 0,
       "createdAt": "2026-10-09T04:44:11.483Z"
-    },
-    {
-      "id": "hw-1791521130599",
-      "subject": "Функционально-стоимостный анализ",
-      "type": "ПЗ",
-      "text": "Принести на пару (будет защита) полный ФСА анализ своего предмета",
-      "dueDate": "2026-10-14",
-      "subgroup": 0,
-      "createdAt": "2026-10-09T04:45:30.599Z"
     },
     {
       "id": "hw-1791808780591",
