@@ -251,3 +251,33 @@ body.game-fs .fab { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .snake-key:active { transform: none; }
 }
+
+/* ===== Ассоциации ===== */
+.words-box { display: grid; gap: var(--space-3); }
+.word-card {
+  display: grid; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background-color: var(--pane-bg); border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+}
+.word-lead { margin: 0; color: var(--color-text-secondary); font-size: var(--fs-small); }
+.word-hints { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.word-hint { display: flex; align-items: baseline; gap: 10px; }
+.word-hint b {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center;
+  background-color: var(--color-accent); color: #fff;
+  font-size: var(--fs-caption); font-weight: 600;
+}
+.word-hint span { color: var(--color-text); overflow-wrap: anywhere; }
+.word-hint.is-left { color: var(--color-text-tertiary); font-size: var(--fs-small); padding-left: 32px; }
+.word-letter, .word-answer { margin: 0; color: var(--color-text); }
+.word-ask { display: flex; gap: 8px; }
+.word-ask .form-control { flex: 1 1 auto; min-width: 0; }
+.word-ask .btn { flex: none; }
+.word-miss { margin: 0; color: var(--color-danger); font-size: var(--fs-small); }
+.word-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.word-result {
+  font-size: var(--fs-title); font-weight: 700; color: var(--color-text-secondary);
+}
+.word-result.is-win { color: var(--color-accent); }

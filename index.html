@@ -1176,6 +1176,18 @@
   <div class="game-body" id="flappyHost"></div>
 </section>
 
+<!-- «Ассоциации»: слово дня и тренировка. Подсказки, ответ и само слово
+     приходят от Edge Function word-of-day — в коде страницы их нет. -->
+<section id="viewWords" class="app-view d-none" aria-labelledby="wordsViewTitle">
+  <div class="view-head">
+    <button type="button" class="game-back" onclick="goView('games')" aria-label="К играм">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h3 class="view-title" id="wordsViewTitle">Ассоциации</h3>
+  </div>
+  <div id="wordsHost"></div>
+</section>
+
 <!-- Змейка: поле целиком влезает в экран, управление свайпами и стрелками.
      Стрелки можно скрыть кнопкой «Стрелки» — выбор запоминается на устройстве. -->
 <section id="viewSnake" class="app-view game-screen d-none" aria-labelledby="snakeViewTitle">
@@ -2762,7 +2774,8 @@
     sudoku:      'viewSudoku',
     minesweeper: 'viewMinesweeper',
     flappy:      'viewFlappy',
-    snake:       'viewSnake'
+    snake:       'viewSnake',
+    words:       'viewWords'
   };
   const TAB_IDS = APP_TABS.map(t => t.id);
   let swipeDrivenView = false;   // раздел меняют свайпом: анимацию покажет swipeIn
@@ -2819,6 +2832,7 @@
     if (name === 'snake') {
       if (typeof snakeMount === 'function') snakeMount();
     } else if (typeof snakePause === 'function') { snakePause(); }
+    if (name === 'words' && typeof wordsMount === 'function') { wordsMount(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
     if (name === 'absences' && typeof renderPersonalStats === 'function') {
       renderPersonalStats();
@@ -6427,6 +6441,7 @@
 <script type="module" src="games-core.js?v=24"></script>
 <script src="games.js?v=24"></script>
 <script src="snake.js?v=24"></script>
+<script src="words.js?v=24"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
