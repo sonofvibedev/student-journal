@@ -3,27 +3,23 @@
 // Кто админ: тот, у кого есть токен GitHub с правом записи в репозиторий
 // журнала — ровно тот же токен, которым админка сохраняет data.json. Функция
 // сама спрашивает о нём GitHub и нигде его не хранит. Без этой проверки
-// слово и подсказки мог бы записать кто угодно, а вместе с ними и утечь.
+// слово мог бы задать кто угодно, а вместе с ним и утечь.
+//
+// Задать можно только слово, для которого уже посчитан рейтинг: файлы лежат
+// в приватном бакете assoc-ranks, их кладёт туда tools/assoc/upload.py.
 //
 // Действия (поле action):
 //   today        что задано на сегодня и сколько человек уже сыграли
-//   set_daily    задать слово дня (слово, 6 подсказок, синонимы)
+//   available    слова, для которых есть рейтинг
+//   set_daily    задать слово дня
 //   train_list   набор для тренировки
-//   train_add    добавить слова в тренировку (можно списком)
+//   train_add    добавить слова в тренировку (списком)
 //   train_remove убрать слово из тренировки
 import { admin, json, cors } from '../_shared/common.ts';
 import { minskDay, isRepoAdmin } from '../_shared/words.ts';
-
-// Подсказок ровно шесть — столько же, сколько в правилах игры (ASSOC.hints).
-// Здесь это просто число: тянуть ради него все правила игр в функцию незачем.
-const HINTS = 6;
+import { assocNormalize, BUCKET } from '../_shared/assoc.ts';
 
 type Body = Record<string, unknown>;
-type Item = { word: string; hints: string[]; answers: string[] };
-
-const MAX_WORD = 48;
-const MAX_HINT = 80;
-const MAX_ANSWERS = 12;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -47,53 +43,66 @@ Deno.serve(async (req) => {
 
   if (action === 'today') {
     const { data } = await admin.from('word_daily')
-      .select('day, created_by, word_bank (id, word, hints, answers)')
+      .select('day, created_by, word_bank (id, word)')
       .eq('day', day).maybeSingle();
     const { count } = await admin.from('word_attempts')
       .select('id', { count: 'exact', head: true }).eq('day', day);
     const { count: trainCount } = await admin.from('word_bank')
       .select('id', { count: 'exact', head: true }).eq('kind', 'train');
-    return json({ ok: true, day, word: data ?? null, played: count ?? 0, train: trainCount ?? 0 });
+    const { data: used } = await admin.from('word_daily')
+      .select('day, word_bank (word)').order('day', { ascending: false }).limit(60);
+    return json({
+      ok: true, day, word: data ?? null, played: count ?? 0, train: trainCount ?? 0,
+      history: (used ?? []).map((r: { day: string; word_bank?: { word: string } }) =>
+        ({ day: r.day, word: r.word_bank?.word ?? '' })),
+    });
+  }
+
+  if (action === 'available') {
+    const words = await availableWords();
+    return json({ ok: true, words });
   }
 
   if (action === 'set_daily') {
-    const item = readItem(body);
-    if (typeof item === 'string') return json({ error: item }, 400);
+    const word = assocNormalize(body.word);
+    if (!word) return json({ error: 'bad_word' }, 400);
+    const words = await availableWords();
+    // Без рейтинга игра не заработает, поэтому такое слово не принимаем
+    if (!words.includes(word)) return json({ error: 'no_ranks' }, 400);
 
-    const { data: made, error } = await admin.from('word_bank')
-      .insert({ kind: 'daily', word: item.word, hints: item.hints, answers: item.answers, created_by: who })
-      .select('id').maybeSingle();
-    if (error || !made) return json({ error: 'server_error' }, 500);
+    const id = await wordId(word, 'daily', who);
+    if (!id) return json({ error: 'server_error' }, 500);
 
-    // Слово дня можно заменить, пока его не сыграли: upsert по дате
     const { error: linkError } = await admin.from('word_daily')
-      .upsert({ day, word_id: made.id, created_by: who }, { onConflict: 'day' });
+      .upsert({ day, word_id: id, created_by: who }, { onConflict: 'day' });
     if (linkError) return json({ error: 'server_error' }, 500);
 
     const { count } = await admin.from('word_attempts')
       .select('id', { count: 'exact', head: true }).eq('day', day);
-    return json({ ok: true, day, played: count ?? 0 });
+    return json({ ok: true, day, word, played: count ?? 0 });
   }
 
   if (action === 'train_list') {
     const { data } = await admin.from('word_bank')
-      .select('id, word, hints, answers').eq('kind', 'train')
-      .order('id', { ascending: false }).limit(200);
+      .select('id, word').eq('kind', 'train')
+      .order('id', { ascending: false }).limit(300);
     return json({ ok: true, items: data ?? [] });
   }
 
   if (action === 'train_add') {
-    const raw = Array.isArray(body.items) ? body.items : [body];
-    if (!raw.length || raw.length > 100) return json({ error: 'bad_items' }, 400);
-    const rows: Record<string, unknown>[] = [];
-    for (const one of raw) {
-      const item = readItem(one as Body);
-      if (typeof item === 'string') return json({ error: item, at: rows.length + 1 }, 400);
-      rows.push({ kind: 'train', word: item.word, hints: item.hints, answers: item.answers, created_by: who });
+    const raw = Array.isArray(body.words) ? body.words : [body.word];
+    const words = raw.map((w) => assocNormalize(w)).filter(Boolean);
+    if (!words.length || words.length > 200) return json({ error: 'bad_items' }, 400);
+
+    const have = await availableWords();
+    const missing = words.filter((w) => !have.includes(w));
+    if (missing.length) return json({ error: 'no_ranks', words: missing }, 400);
+
+    let added = 0;
+    for (const word of words) {
+      if (await wordId(word, 'train', who)) added++;
     }
-    const { error } = await admin.from('word_bank').insert(rows);
-    if (error) return json({ error: 'server_error' }, 500);
-    return json({ ok: true, added: rows.length });
+    return json({ ok: true, added });
   }
 
   if (action === 'train_remove') {
@@ -107,21 +116,31 @@ Deno.serve(async (req) => {
   return json({ error: 'bad_action' }, 400);
 });
 
-// Проверка присланного слова. Возвращает готовую запись или код ошибки
-// строкой — так понятнее, что именно не так, чем «bad_request» на всё.
-function readItem(src: Body): Item | string {
-  const word = String(src.word ?? '').trim();
-  if (!word || word.length > MAX_WORD) return 'bad_word';
+// Слова, для которых в бакете есть рейтинг. Имя файла — это само слово.
+async function availableWords(): Promise<string[]> {
+  const out: string[] = [];
+  // Бакет отдаёт файлы страницами, поэтому идём до конца
+  for (let page = 0; page < 20; page++) {
+    const { data, error } = await admin.storage.from(BUCKET)
+      .list('', { limit: 100, offset: page * 100, sortBy: { column: 'name', order: 'asc' } });
+    if (error || !data?.length) break;
+    for (const file of data) {
+      if (file.name.endsWith('.json.gz')) out.push(assocNormalize(file.name.replace(/\.json\.gz$/, '')));
+    }
+    if (data.length < 100) break;
+  }
+  return out;
+}
 
-  const hints = Array.isArray(src.hints) ? src.hints.map((h) => String(h ?? '').trim()) : [];
-  if (hints.length !== HINTS) return 'bad_hints_count';
-  if (hints.some((h) => !h || h.length > MAX_HINT)) return 'bad_hint';
+// Слово в каталоге: если такое уже есть — берём его, иначе заводим
+async function wordId(word: string, kind: string, who: string): Promise<number | null> {
+  const { data: exist } = await admin.from('word_bank')
+    .select('id').eq('word', word).eq('kind', kind).maybeSingle();
+  if (exist) return (exist as { id: number }).id;
 
-  const answers = Array.isArray(src.answers)
-    ? src.answers.map((a) => String(a ?? '').trim()).filter(Boolean)
-    : [];
-  if (answers.length > MAX_ANSWERS) return 'bad_answers';
-  if (answers.some((a) => a.length > MAX_WORD)) return 'bad_answers';
-
-  return { word, hints, answers };
+  const { data: made, error } = await admin.from('word_bank')
+    .insert({ kind, word, hints: [], answers: [], created_by: who })
+    .select('id').maybeSingle();
+  if (error || !made) return null;
+  return (made as { id: number }).id;
 }
