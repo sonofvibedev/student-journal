@@ -1731,3 +1731,33 @@ body::before {
 .dl-text, .today-next b, .sch-dl-body b { overflow-wrap: anywhere; }
 /* Цвет крупной цифры на плитке задаёт сама плитка, а не унаследованный «успех» */
 .tile-num { color: var(--color-text); }
+
+/* ===== Появление плиток «Учёбы» и «Игр» ===== */
+/* Двигаются только transform и opacity: раскладка не пересчитывается. */
+@keyframes tileIn {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+.tile-in { animation: tileIn .34s cubic-bezier(.2, .7, .3, 1) both; animation-delay: var(--tile-delay, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .tile-in { animation: none; }
+}
+
+/* Плитка «Игры» на «Учёбе»: мягкий градиент акцента, чтобы её было видно */
+.tile.is-games {
+  background-image: linear-gradient(135deg,
+    rgba(var(--color-accent-rgb), .16), rgba(var(--color-accent-rgb), .04));
+  border-color: rgba(var(--color-accent-rgb), .28);
+}
+/* Метка «новое» и «Слово дня ждёт» */
+.tile-flag {
+  align-self: flex-start;
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  background-color: var(--color-accent); color: #fff;
+  font-size: var(--fs-caption); font-weight: 600;
+}
+/* Длинный текст дедлайна (бывает целой ссылкой) не растягивает плитку */
+#studyDeadlinesNext {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: anywhere;
+}
