@@ -545,7 +545,10 @@ function staggerTiles(root) {
   const calm = calmMotion();
   tiles.forEach((tile, i) => {
     const delay = calm ? 0 : i * 60;
-    if (!calm) {
+    if (calm) {
+      // «Уменьшение движения» могли включить после первой отрисовки
+      tile.classList.remove('tile-in');
+    } else {
       tile.style.setProperty('--tile-delay', delay + 'ms');
       tile.classList.remove('tile-in');
       // Перезапуск анимации: без чтения offsetWidth браузер склеит два кадра
