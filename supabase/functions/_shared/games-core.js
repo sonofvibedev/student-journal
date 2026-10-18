@@ -1,5 +1,5 @@
 // ============================================================================
-// Правила игр: судоку, сапёр, flappy и змейка.
+// Правила игр: судоку, сапёр, flappy, змейка и «Ассоциации».
 //
 // Файл работает и в браузере (<script type="module">), и в Edge Function на
 // Deno: никаких обращений к DOM, никакой случайности кроме генератора по зерну
@@ -573,6 +573,108 @@ export function snakeSimulate(seed, turns, limitSteps) {
 }
 
 // ============================================================================
+// АССОЦИАЦИИ
+//
+// Слово загадано, подсказки открываются по одной. Чем раньше угадал, тем
+// больше очков: после первой подсказки — 6, после шестой — 1. Первая буква
+// стоит одно очко и доступна с третьей подсказки.
+//
+// Само слово, подсказки и список допустимых ответов лежат только в базе и
+// выдаются Edge Function по одному. Здесь — лишь правила сравнения ответа и
+// счёт очков: они нужны обеим сторонам, и тренировке на клиенте тоже.
+// ============================================================================
+
+export const ASSOC = {
+  hints: 6,           // столько подсказок всего
+  letterCost: 1,      // во столько очков обходится открытая первая буква
+  letterFromHint: 3,  // букву можно открыть начиная с этой подсказки
+  typoFrom: 6         // в словах от стольких букв прощается одна опечатка
+};
+
+// Очки за угаданное слово: 6 за первую подсказку, 1 за шестую, минус очко
+// за открытую букву. Не угадал — ноль, ниже нуля не уходим.
+export function assocPoints(hint, letterUsed) {
+  if (!Number.isInteger(hint) || hint < 1 || hint > ASSOC.hints) return 0;
+  const base = ASSOC.hints + 1 - hint;
+  return Math.max(0, base - (letterUsed ? ASSOC.letterCost : 0));
+}
+
+// Приведение ответа к сравнимому виду: регистр, ё, края и лишние пробелы
+// внутри не должны решать, угадал человек или нет. Знаки препинания и дефисы
+// тоже не считаются: «ко-пи-райт» и «копирайт» — один ответ.
+export function assocNormalize(str) {
+  return String(str == null ? '' : str)
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^0-9a-zа-я\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Окончания от длинных к коротким: нужны, чтобы «дедлайны» и «дедлайна»
+// считались тем же словом, что и «дедлайн». Это не морфология, а грубое
+// отсечение хвоста — его хватает, потому что сравниваются два варианта
+// одного и того же слова, а не любые слова языка.
+const ASSOC_ENDINGS = ['ами', 'ями', 'ов', 'ев', 'ей', 'ам', 'ям', 'ах', 'ях',
+  'ии', 'ие', 'ия', 'ый', 'ий', 'ой', 'ом', 'ем', 'ую', 'юю',
+  'ы', 'и', 'а', 'я', 'у', 'ю', 'е', 'й', 'о'];
+
+// Основа слова: хвост отсекается, если без него остаётся не меньше трёх букв
+export function assocStem(word) {
+  const w = String(word || '');
+  for (let i = 0; i < ASSOC_ENDINGS.length; i++) {
+    const end = ASSOC_ENDINGS[i];
+    if (w.length - end.length >= 3 && w.endsWith(end)) return w.slice(0, w.length - end.length);
+  }
+  return w;
+}
+
+// Основа каждого слова ответа: «крайние сроки» и «крайний срок» сойдутся
+function assocStemPhrase(phrase) {
+  return assocNormalize(phrase).split(' ').map(assocStem).join(' ');
+}
+
+// Расстояние Левенштейна, но дальше limit не считаем: нужен лишь ответ
+// «одна опечатка или больше».
+export function assocDistance(a, b, limit = 2) {
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
+      if (row[j] < best) best = row[j];
+    }
+    if (best > limit) return limit + 1;
+    prev = row;
+  }
+  return prev[b.length];
+}
+
+// Подходит ли ответ. accepted — список допустимых ответов слова (сам ответ и
+// синонимы). Сравнение идёт по трём ступеням: как есть, по основам слов и —
+// для слов от шести букв — с одной опечаткой.
+export function assocMatch(answer, accepted) {
+  const given = assocNormalize(answer);
+  if (!given || !Array.isArray(accepted) || !accepted.length) return false;
+  const givenStem = assocStemPhrase(given);
+
+  for (let i = 0; i < accepted.length; i++) {
+    const want = assocNormalize(accepted[i]);
+    if (!want) continue;
+    if (given === want) return true;
+    if (givenStem === assocStemPhrase(want)) return true;
+    // Опечатка прощается только в длинных словах: в коротких «кот» и «код»
+    // это уже другое слово
+    if (Math.max(given.length, want.length) >= ASSOC.typoFrom &&
+        assocDistance(given, want, 1) <= 1) return true;
+  }
+  return false;
+}
+
+// ============================================================================
 // ЗНАЧКИ ЗА РЕКОРДЫ
 //
 // Очки здесь игровые: они идут только в рейтинг игр и на учебные баллы не
@@ -617,6 +719,7 @@ export const GamesCore = {
   MINES_LEVELS, MINES_MIN_CELL, minesPickLevel, mineField, mineNeighbors, mineOpen, minesReplay,
   FLAPPY, flappyGame, flappySimulate,
   SNAKE, SNAKE_DIRS, snakeMoveMs, snakeGame, snakeRun, snakeSimulate,
+  ASSOC, assocPoints, assocNormalize, assocStem, assocDistance, assocMatch,
   GAME_BADGES, gameBadgesFor
 };
 
