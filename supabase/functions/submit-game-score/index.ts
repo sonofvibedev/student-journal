@@ -6,6 +6,10 @@
 //               difficulty у сапёра может быть телефонным (easy_s, medium_s,
 //               hard_s): поле меньше, доля мин та же, рекорды отдельные
 //   flappy      { game: 'flappy', seed, flaps: number[] , score }
+//   змейка      { game: 'snake', seed, turns: [{s,d}], score }
+//               s — номер шага, d — направление (0 вверх, 1 вправо, 2 вниз,
+//               3 влево). Разворот на 180° правила не принимают, поэтому
+//               подделать им длинную партию нельзя.
 //
 // Заголовок Authorization: Bearer <access_token> обязателен — рекорд пишется
 // тому, кто вошёл, и никому другому. Таблица game_records закрыта RLS: прямой
@@ -18,12 +22,13 @@ import {
   SUDOKU_LEVELS, sudokuVerify,
   MINES_LEVELS, minesReplay,
   flappySimulate,
+  SNAKE, snakeSimulate,
   gameBadgesFor,
 } from '../_shared/games-core.js';
 
 type Body = Record<string, unknown>;
 
-const GAMES = new Set(['sudoku', 'minesweeper', 'flappy']);
+const GAMES = new Set(['sudoku', 'minesweeper', 'flappy', 'snake']);
 // Сколько секунд партия не может длиться дольше: защита от «времени в минус»
 // и от мусора в поле времени.
 const MAX_SECONDS = 6 * 60 * 60;
@@ -89,6 +94,31 @@ Deno.serve(async (req) => {
     score = seconds;
     proof = { seed, difficulty, seconds, moves: moves.length };
 
+  } else if (game === 'snake') {
+    // Змейка: сложности нет, рекорд — длина. Доказательство — повороты по
+    // номерам шагов: функция переигрывает партию по зерну и сверяет длину.
+    const claimed = num(body.score);
+    const maxLen = SNAKE.cols * SNAKE.rows;
+    if (!Number.isInteger(claimed) || claimed < SNAKE.startLen || claimed > maxLen) {
+      return json({ error: 'bad_score' }, 400);
+    }
+
+    const turns = Array.isArray(body.turns) ? body.turns as Array<Record<string, unknown>> : null;
+    // Поворотов не может быть больше, чем шагов в партии
+    if (!turns || turns.length > SNAKE.maxSteps) return json({ error: 'bad_proof' }, 400);
+    for (const t of turns) {
+      const step = num(t?.s), dir = num(t?.d);
+      if (!Number.isInteger(step) || step < 0 || !Number.isInteger(dir) || dir < 0 || dir > 3) {
+        return json({ error: 'bad_proof' }, 400);
+      }
+    }
+
+    const res = snakeSimulate(seed, turns);
+    if (res.len !== claimed) return json({ error: 'bad_proof' }, 400);
+
+    score = claimed;
+    proof = { seed, turns: turns.length, steps: res.steps, eaten: res.eaten };
+
   } else {
     // flappy: сложности нет, рекорд — число пройденных труб
     const claimed = num(body.score);
@@ -105,8 +135,9 @@ Deno.serve(async (req) => {
     proof = { seed, flaps: flaps.length, steps: res.steps };
   }
 
-  // Лучший результат: у судоку и сапёра меньше — лучше, у flappy больше — лучше
-  const betterIsLess = game !== 'flappy';
+  // Лучший результат: у судоку и сапёра меньше — лучше (это время),
+  // у flappy и змейки больше — лучше (трубы и длина)
+  const betterIsLess = game === 'sudoku' || game === 'minesweeper';
   const { data: prev } = await admin
     .from('game_records').select('id, score')
     .eq('student_id', studentId).eq('game', game).eq('difficulty', difficulty)
