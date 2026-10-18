@@ -1,11 +1,11 @@
 // ============================================================================
-// Правила трёх игр: судоку, сапёр и flappy.
+// Правила игр: судоку, сапёр, flappy и змейка.
 //
 // Файл работает и в браузере (<script type="module">), и в Edge Function на
 // Deno: никаких обращений к DOM, никакой случайности кроме генератора по зерну
-// (seed). Одно зерно — всегда одна и та же головоломка, одно и то же поле мин
-// и одни и те же трубы. Поэтому сервер может переиграть партию студента и
-// проверить, что результат действительно достигнут.
+// (seed). Одно зерно — всегда одна и та же головоломка, одно и то же поле мин,
+// одни и те же трубы и одна и та же еда. Поэтому сервер может переиграть партию
+// студента и проверить, что результат действительно достигнут.
 //
 // Браузеру модуль дополнительно кладёт себя в window.GamesCore, чтобы обычные
 // (не модульные) скрипты страницы могли им пользоваться.
@@ -413,6 +413,166 @@ export function flappySimulate(seed, flapSteps, limitSteps) {
 }
 
 // ============================================================================
+// ЗМЕЙКА
+//
+// Логика идёт фиксированным шагом: один шаг — один ход змейки. Длительность
+// шага зависит только от того, сколько еды съедено, поэтому на 60 и на 120 Гц
+// за одну и ту же секунду проходит одно и то же число ходов.
+//
+// Доказательство партии — зерно и повороты по номерам шагов: партия их
+// копит сама (game.turns), сервер прогоняет их через этот же код и получает
+// ту же длину. Разворот на 180° отклоняется здесь, в правилах, поэтому ни
+// кнопкой, ни подделанным доказательством его не сделать.
+// ============================================================================
+
+export const SNAKE = {
+  cols: 13,                 // поле целиком влезает в телефон: 13 × 17 клеток
+  rows: 17,
+  startLen: 3,
+  baseMs: 190,              // длительность шага в начале партии
+  minMs: 85,                // быстрее уже не разогнаться
+  stepDownMs: 4,            // на столько короче шаг за каждую съеденную еду
+  catchUpMs: 1000,          // больше секунды за кадр не догоняем (скрытая вкладка)
+  maxSteps: 60 * 60 * 60    // страховка: не больше часа игры
+};
+
+// Направления: 0 — вверх, 1 — вправо, 2 — вниз, 3 — влево.
+// Разворот — это +2 по кругу, поэтому его легко и проверить, и запретить.
+export const SNAKE_DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
+// Сколько миллисекунд длится шаг после eaten съеденных кусков
+export function snakeMoveMs(eaten) {
+  const n = Number.isFinite(eaten) && eaten > 0 ? Math.floor(eaten) : 0;
+  return Math.max(SNAKE.minMs, SNAKE.baseMs - n * SNAKE.stepDownMs);
+}
+
+// Партия: тот же объект крутит и браузер (по времени кадра), и сервер
+// (в цикле при проверке). Две реализации физики разойтись не могут — она одна.
+export function snakeGame(seed) {
+  const rng = makeRng(seed);
+  const cx = Math.floor(SNAKE.cols / 2);
+  const cy = Math.floor(SNAKE.rows / 2);
+  // Змейка лежит вдоль строки и смотрит вправо: голова первая
+  const cells = [];
+  for (let i = 0; i < SNAKE.startLen; i++) cells.push({ x: cx - i, y: cy });
+
+  const game = {
+    cells,
+    dir: 1,
+    food: null,
+    eaten: 0,
+    step: 0,
+    alive: true,
+    turns: [],              // доказательство: [{ s: номер шага, d: направление }]
+
+    // Занята ли клетка телом. skipTail — хвост, который на этом шаге уйдёт.
+    busy(x, y, skipTail) {
+      const last = this.cells.length - 1;
+      for (let i = 0; i < this.cells.length; i++) {
+        if (skipTail && i === last) continue;
+        if (this.cells[i].x === x && this.cells[i].y === y) return true;
+      }
+      return false;
+    },
+
+    // Новая еда на свободной клетке. Клетки перебираем по порядку и берём
+    // k-ю свободную: один и тот же rng на странице и на сервере даёт одну и
+    // ту же клетку. Если свободных нет — еды больше не будет.
+    placeFood() {
+      const free = SNAKE.cols * SNAKE.rows - this.cells.length;
+      if (free <= 0) { this.food = null; return; }
+      let k = Math.floor(rng() * free) % free;
+      for (let y = 0; y < SNAKE.rows; y++) {
+        for (let x = 0; x < SNAKE.cols; x++) {
+          if (this.busy(x, y, false)) continue;
+          if (k === 0) { this.food = { x, y }; return; }
+          k--;
+        }
+      }
+      this.food = null;
+    },
+
+    // Удлинить змейку на одну клетку, не двигаясь: нужно только тестам и
+    // отладке, в самой игре длина растёт от еды
+    grow() {
+      const tail = this.cells[this.cells.length - 1];
+      this.cells.push({ x: tail.x, y: tail.y });
+    },
+
+    // Один ход. turn — направление поворота или null.
+    // Разворот на 180° и поворот «туда же, куда и шли» не принимаются и в
+    // доказательство не попадают.
+    tick(turn) {
+      if (!this.alive) return this;
+
+      if (Number.isInteger(turn) && turn >= 0 && turn <= 3 &&
+          turn !== this.dir && turn !== (this.dir + 2) % 4) {
+        this.dir = turn;
+        this.turns.push({ s: this.step, d: turn });
+      }
+
+      const [dx, dy] = SNAKE_DIRS[this.dir];
+      const head = this.cells[0];
+      const nx = head.x + dx, ny = head.y + dy;
+
+      // Стена
+      if (nx < 0 || ny < 0 || nx >= SNAKE.cols || ny >= SNAKE.rows) { this.alive = false; return this; }
+
+      const feeds = !!this.food && this.food.x === nx && this.food.y === ny;
+      // Своё тело. Хвост на этом шаге уходит — в его клетку войти можно,
+      // но только если змейка не растёт.
+      if (this.busy(nx, ny, !feeds)) { this.alive = false; return this; }
+
+      this.cells.unshift({ x: nx, y: ny });
+      if (feeds) { this.eaten++; this.placeFood(); }
+      else this.cells.pop();
+
+      this.step++;
+      return this;
+    }
+  };
+
+  game.placeFood();
+  return game;
+}
+
+// Прокрутить партию на dtMs миллисекунд реального времени. Возвращает
+// остаток времени, который не набрал на целый шаг: его кладут в acc
+// следующего кадра. Отсюда и одинаковая скорость при любой частоте кадров.
+// takeTurn — функция, которая отдаёт следующий поворот из очереди или null.
+export function snakeRun(game, accMs, dtMs, takeTurn) {
+  let acc = (Number.isFinite(accMs) ? accMs : 0) +
+            Math.min(Number.isFinite(dtMs) ? Math.max(0, dtMs) : 0, SNAKE.catchUpMs);
+  while (game.alive) {
+    const ms = snakeMoveMs(game.eaten);
+    if (acc < ms) break;
+    acc -= ms;
+    game.tick(takeTurn ? takeTurn() : null);
+  }
+  return acc;
+}
+
+// Партия целиком по зерну и поворотам. Возвращает { len, steps, eaten, alive }.
+// len — длина змейки, она же рекорд.
+export function snakeSimulate(seed, turns, limitSteps) {
+  const byStep = new Map();
+  if (Array.isArray(turns)) {
+    for (let i = 0; i < turns.length; i++) {
+      const t = turns[i];
+      if (!t || !Number.isInteger(t.s) || t.s < 0 || !Number.isInteger(t.d) || t.d < 0 || t.d > 3) continue;
+      if (!byStep.has(t.s)) byStep.set(t.s, t.d);
+    }
+  }
+  const maxStep = Math.min(limitSteps == null ? SNAKE.maxSteps : limitSteps, SNAKE.maxSteps);
+  const game = snakeGame(seed);
+  while (game.alive && game.step <= maxStep) {
+    const turn = byStep.has(game.step) ? byStep.get(game.step) : null;
+    game.tick(turn);
+  }
+  return { len: game.cells.length, steps: game.step, eaten: game.eaten, alive: game.alive };
+}
+
+// ============================================================================
 // ЗНАЧКИ ЗА РЕКОРДЫ
 //
 // Очки здесь игровые: они идут только в рейтинг игр и на учебные баллы не
@@ -456,6 +616,7 @@ export const GamesCore = {
   sudokuPlaceNotes, sudokuRestoreNotes,
   MINES_LEVELS, MINES_MIN_CELL, minesPickLevel, mineField, mineNeighbors, mineOpen, minesReplay,
   FLAPPY, flappyGame, flappySimulate,
+  SNAKE, SNAKE_DIRS, snakeMoveMs, snakeGame, snakeRun, snakeSimulate,
   GAME_BADGES, gameBadgesFor
 };
 
