@@ -696,7 +696,27 @@ export const GAME_BADGES = {
   game_mines_pro:      { game: 'minesweeper', difficulty: 'medium', under: 180, points: 25 },
   game_mines_perfect:  { game: 'minesweeper', difficulty: 'hard',   under: 360, points: 40 },
   game_flappy_25:      { game: 'flappy', difficulty: 'none', atLeast: 25, points: 15 },
-  game_flappy_75:      { game: 'flappy', difficulty: 'none', atLeast: 75, points: 40 }
+  game_flappy_75:      { game: 'flappy', difficulty: 'none', atLeast: 75, points: 40 },
+
+  // Змейка: рекорд — длина, поэтому порог тоже по длине. Первая еда
+  // удлиняет змейку на одну клетку, значит «перекусила» — это длина 4.
+  game_snake_bite:     { game: 'snake', difficulty: 'none', atLeast: 4,  points: 10 },
+  game_snake_30:       { game: 'snake', difficulty: 'none', atLeast: 30, points: 20 },
+  game_snake_60:       { game: 'snake', difficulty: 'none', atLeast: 60, points: 40 },
+
+  // Значки, которые по одному результату не видно: их считает сервер —
+  // по месту в рейтинге, по числу сыгранных игр или по ходу попытки в
+  // «Ассоциациях». game: 'rank' означает «не по счёту партии», поэтому
+  // gameBadgesFor их никогда не выдаёт.
+  game_assoc_first:    { game: 'rank', difficulty: 'none', points: 10 },
+  game_assoc_flash:    { game: 'rank', difficulty: 'none', points: 30 },
+  game_assoc_week:     { game: 'rank', difficulty: 'none', points: 30 },
+  game_snake_top5:     { game: 'rank', difficulty: 'none', points: 30 },
+  game_assoc_top5:     { game: 'rank', difficulty: 'none', points: 30 },
+  game_player:         { game: 'rank', difficulty: 'none', points: 10 },
+  game_all_five:       { game: 'rank', difficulty: 'none', points: 20 },
+  game_three_top5:     { game: 'rank', difficulty: 'none', points: 60 },
+  game_five_top5:      { game: 'rank', difficulty: 'none', points: 150 }
 };
 
 // Какие значки заслужены этим результатом. score — секунды или трубы.
@@ -705,7 +725,8 @@ export function gameBadgesFor(game, difficulty, score) {
   const out = [];
   for (const code of Object.keys(GAME_BADGES)) {
     const b = GAME_BADGES[code];
-    if (b.game !== game || b.difficulty !== difficulty) continue;
+    // 'rank' — значки не за счёт партии, их считает сервер отдельно
+    if (b.game === 'rank' || b.game !== game || b.difficulty !== difficulty) continue;
     if (b.under != null && score > 0 && score < b.under) out.push(code);
     if (b.atLeast != null && score >= b.atLeast) out.push(code);
   }

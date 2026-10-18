@@ -19,6 +19,7 @@
 // пару «студент + день», и вторую попытку он не пропустит.
 import { admin, json, cors } from '../_shared/common.ts';
 import { minskDay, grantBadges } from '../_shared/words.ts';
+import { rankBadges } from '../_shared/ranks.ts';
 import { ASSOC, assocMatch, assocPoints } from '../_shared/games-core.js';
 
 type Body = Record<string, unknown>;
@@ -162,7 +163,9 @@ async function grantAssocBadges(studentId: string, attempt: Attempt, day: string
   const codes: string[] = ['game_assoc_first'];
   if (attempt.hint === 1 && !attempt.letter) codes.push('game_assoc_flash');
   if (await solvedStreak(studentId, day) >= 7) codes.push('game_assoc_week');
-  return await grantBadges(studentId, codes);
+  // Очки за слово могли внести студента в месячную пятёрку «Ассоциаций»
+  const ranks = await rankBadges(studentId);
+  return await grantBadges(studentId, codes.concat(ranks));
 }
 
 // Сколько дней подряд, считая сегодняшний, слово угадано

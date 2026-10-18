@@ -268,7 +268,7 @@ function setup({ days, absences, asOf, homeworkDone = 0, earned = [] }) {
 
   // Но каталог их знает: экран достижений показывает их как невыданные
   const catalog = Object.keys(ach.ACH_BY_CODE).filter((c) => c.startsWith('game_'));
-  check('каталог знает восемь игровых значков', catalog.length, 8);
+  check('каталог знает двадцать игровых значков', catalog.length, 20);
   check('у каждого игрового значка есть очки',
     catalog.every((c) => ach.ACH_BY_CODE[c].points > 0), true);
 }
