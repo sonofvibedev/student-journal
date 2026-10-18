@@ -280,22 +280,57 @@ function studentInitials(id) {
   return ((s.lastName || '?')[0] + (s.firstName ? s.firstName[0] : '')).toUpperCase();
 }
 
+// Вкладки таблицы лидеров: все игры, «Ассоциации» и общий рейтинг по очкам
+const RATING_TABS = [
+  { key: 'sudoku', title: 'Судоку' },
+  { key: 'minesweeper', title: 'Сапёр' },
+  { key: 'flappy', title: 'Flappy' },
+  { key: 'snake', title: 'Змейка' },
+  { key: 'assoc', title: 'Ассоциации' },
+  { key: 'points', title: 'Очки' }
+];
+
+const RATING_TITLES = { points: 'Рейтинг · игровые очки', assoc: 'Рейтинг · Ассоциации' };
+
 function openGameRating(game) {
   // Сапёр открываем на том размере поля, на котором студент играл последним
   const small = game === 'minesweeper' && /_s$/.test(minesState.diff);
-  gameRatingOpen = { game, diff: game === 'points' ? 'none' : GAME_DIFFS[game][0], small };
+  const diffs = GAME_DIFFS[game];
+  gameRatingOpen = { game, diff: diffs ? diffs[0] : 'none', small };
   document.getElementById('gameRatingTitle').textContent =
-    game === 'points' ? 'Рейтинг · игровые очки' : 'Рейтинг · ' + GAMES_META[game].title;
+    RATING_TITLES[game] || ('Рейтинг · ' + GAMES_META[game].title);
+  renderGameRatingTabs();
   renderGameRatingDiffs();
   renderGameRating();
   bootstrap.Modal.getOrCreateInstance(document.getElementById('gameRatingSheet')).show();
 }
 
+// Переключение между играми прямо в листе рейтинга: закрывать и открывать
+// его заново ради другой игры незачем
+function renderGameRatingTabs() {
+  const box = document.getElementById('gameRatingGames');
+  if (!box) return;
+  box.innerHTML = '';
+  RATING_TABS.forEach((tab) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'games-diff' + (tab.key === gameRatingOpen.game ? ' active' : '');
+    b.textContent = tab.title;
+    b.addEventListener('click', () => {
+      if (tab.key === gameRatingOpen.game) return;
+      haptic('selection');
+      openGameRating(tab.key);
+    });
+    box.appendChild(b);
+  });
+}
+
 function renderGameRatingDiffs() {
   const box = document.getElementById('gameRatingDiffs');
   const game = gameRatingOpen.game;
-  if (game === 'points') { box.classList.add('d-none'); box.innerHTML = ''; return; }
   const diffs = GAME_DIFFS[game];
+  // У «Ассоциаций» и общего рейтинга очков сложностей нет
+  if (!diffs) { box.classList.add('d-none'); box.innerHTML = ''; return; }
   box.classList.toggle('d-none', diffs.length < 2);
   box.innerHTML = '';
   diffs.forEach((d) => {
@@ -332,6 +367,7 @@ async function renderGameRating() {
   if (!gamesSigned() || !sb) { body.innerHTML = '<div class="games-empty">Войдите, чтобы видеть рейтинг</div>'; return; }
 
   if (game === 'points') { await renderGamePointsBoard(body); return; }
+  if (game === 'assoc') { await renderAssocBoard(body); return; }
 
   const asc = GAMES_META[game].unit === 'time';   // время: меньше лучше
   let rows = [];
@@ -347,6 +383,27 @@ async function renderGameRating() {
     return;
   }
   renderBoardRows(body, rows.map((r) => ({ id: r.student_id, value: gameScoreText(game, r.score) })));
+}
+
+// «Ассоциации»: сумма очков за текущий месяц. Считает её rpc_assoc_board,
+// и только по текущему месяцу — поэтому 1-го числа рейтинг начинается заново.
+async function renderAssocBoard(body) {
+  let rows = [];
+  try {
+    const { data } = await sb.rpc('rpc_assoc_board');
+    rows = data || [];
+  } catch (e) {
+    body.innerHTML = '<div class="games-empty">Рейтинг не загрузился</div>';
+    return;
+  }
+  renderBoardRows(body, rows.map((r) => ({
+    id: r.student_id,
+    value: r.points + ' ' + gamePointsWord(r.points)
+  })));
+  const note = document.createElement('p');
+  note.className = 'games-note mt-2 mb-0';
+  note.textContent = 'Очки за «Слово дня» с 1-го числа этого месяца. Тренировка в рейтинг не идёт.';
+  body.appendChild(note);
 }
 
 // Рейтинг по игровым очкам: очки дают значки за рекорды, и сколько стоит

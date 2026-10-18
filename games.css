@@ -284,3 +284,6 @@ body.game-fs .fab { display: none; }
 
 .word-admin-row { display: flex; align-items: center; gap: 10px; }
 .word-admin-row .lbl { flex: 1 1 auto; min-width: 0; }
+/* Вкладки игр в листе рейтинга: в один ряд с прокруткой, если не влезают */
+.games-diffs.is-games { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+.games-diffs.is-games .games-diff { flex: none; }
