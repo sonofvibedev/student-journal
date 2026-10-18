@@ -1,5 +1,5 @@
 ﻿// ============================================================================
-// Игры журнала: судоку, сапёр и flappy.
+// Игры журнала: судоку, сапёр, flappy и змейка.
 //
 // Правила и генерация — в games-core.js (его же использует Edge Function,
 // поэтому сервер может переиграть партию). Здесь только экраны, управление
@@ -10,7 +10,8 @@
 // таблицу game_records не пишет никто.
 //
 // Рекорд: судоку и сапёр — лучшее время (меньше лучше) на каждой сложности,
-// flappy — число пройденных труб (больше лучше).
+// flappy — число пройденных труб, змейка — длина (больше лучше).
+// Экран самой змейки — в snake.js, он подключён после этого файла.
 // ============================================================================
 
 'use strict';
@@ -32,6 +33,11 @@ const GAMES_META = {
     title: 'Flappy', view: 'flappy', unit: 'pipes',
     note: 'касание — взмах, считаются пройденные трубы',
     icon: '<path d="M4 13.5c0-3.6 2.9-6.5 6.5-6.5h6.5c1.7 0 3 1.3 3 3s-1.3 3-3 3h-2"/><path d="M10.5 10.5h.01"/><path d="M4 13.5c0 3.6 2.9 6.5 6.5 6.5s6.5-2.9 6.5-6.5"/>'
+  },
+  snake: {
+    title: 'Змейка', view: 'snake', unit: 'len',
+    note: 'свайп — поворот, рекорд — длина змейки',
+    icon: '<path d="M4 7.5h9a3 3 0 010 6H8a3 3 0 000 6h11"/><path d="M17 5.5h.01"/><path d="M14.5 4.5h4.5v3h-4.5z"/>'
   }
 };
 
@@ -39,7 +45,8 @@ const GAMES_META = {
 const GAME_DIFFS = {
   sudoku: ['easy', 'medium', 'hard'],
   minesweeper: ['easy', 'medium', 'hard'],
-  flappy: ['none']
+  flappy: ['none'],
+  snake: ['none']
 };
 
 const DIFF_TITLES = {
@@ -58,7 +65,7 @@ const gamesState = {
 // мобильных браузерах считает строку адреса по-своему), а из того, что реально
 // доступно: в Telegram это viewportStableHeight, иначе — innerHeight.
 // Остальное (безопасные зоны) добирает CSS переменными --app-inset-*.
-const GAME_VIEWS = { sudoku: 'sudoku', minesweeper: 'mines', flappy: 'flappy' };
+const GAME_VIEWS = { sudoku: 'sudoku', minesweeper: 'mines', flappy: 'flappy', snake: 'snake' };
 let gameViewNow = '';
 
 function gameAvailHeight() {
@@ -74,6 +81,7 @@ function gameLayout() {
   if (gameViewNow === 'sudoku') sudokuLayout();
   else if (gameViewNow === 'minesweeper') minesLayout();
   else if (gameViewNow === 'flappy' && typeof flappyResize === 'function') flappyResize();
+  else if (gameViewNow === 'snake' && typeof snakeLayout === 'function') snakeLayout();
 }
 
 // Вызывает showView при каждом переходе: включает полный экран на играх
@@ -103,7 +111,19 @@ function gameTime(sec) {
 
 function gameScoreText(game, score) {
   if (score == null) return '—';
-  return GAMES_META[game].unit === 'time' ? gameTime(score) : score + ' ' + gamePipeWord(score);
+  const unit = GAMES_META[game].unit;
+  if (unit === 'time') return gameTime(score);
+  if (unit === 'len') return score + ' ' + gameCellWord(score);
+  return score + ' ' + gamePipeWord(score);
+}
+
+// 1 клетка, 2 клетки, 5 клеток — длина змейки
+function gameCellWord(n) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return 'клеток';
+  if (b === 1) return 'клетка';
+  if (b >= 2 && b <= 4) return 'клетки';
+  return 'клеток';
 }
 
 function gamePipeWord(n) {
@@ -1302,6 +1322,7 @@ async function openGamesView() {
     else if (view === 'sudoku') sudokuMount();
     else if (view === 'minesweeper') minesMount();
     else if (view === 'flappy') flappyMount();
+    else if (view === 'snake' && typeof snakeMount === 'function') snakeMount();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
