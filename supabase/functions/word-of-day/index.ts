@@ -1,33 +1,40 @@
-// «Ассоциации»: подсказки по одной и проверка ответа.
+// «Ассоциации»: игра на близость слов.
 //
-// Загаданное слово, его подсказки и список допустимых ответов лежат только в
-// базе. Страница их не знает: она спрашивает очередную подсказку у этой
-// функции и присылает сюда ответ. Правильное слово уходит наружу ровно один
-// раз — когда попытка окончена.
+// Загадано существительное. Игрок называет любые существительные, игра
+// отвечает только одним числом — местом слова в рейтинге близости к
+// загаданному. №1 — само загаданное слово.
+//
+// Ни загаданное слово, ни рейтинг наружу не уходят, пока игра не окончена:
+// рейтинг лежит в приватном бакете и читается только здесь, а в ответе
+// клиенту есть лишь места названных им слов.
 //
 // Действия (поле action):
-//   state        что сейчас: открыта ли попытка, сколько подсказок, сколько очков
-//   start        начать попытку дня и получить первую подсказку
-//   hint         открыть следующую подсказку
-//   letter       открыть первую букву (с третьей подсказки, стоит очко)
-//   guess        прислать ответ
-//   train        взять слово из тренировочного набора (в рейтинг не идёт)
-//   train_hint   следующая подсказка тренировочного слова
-//   train_guess  ответ на тренировочное слово
+//   state        что сейчас: сколько попыток, подсказок, названные слова
+//   guess        прислать слово, получить его место
+//   hint         открыть слово ближе лучшего результата (стоит очков)
+//   giveup       сдаться: показывается загаданное слово
+//   train        взять слово для тренировки (в рейтинг не идёт)
+//   train_guess  слово в тренировке
+//   train_give   показать загаданное слово в тренировке
 //
 // «Слово дня» играется один раз в сутки: у word_attempts уникальный индекс на
 // пару «студент + день», и вторую попытку он не пропустит.
 import { admin, json, cors } from '../_shared/common.ts';
 import { minskDay, grantBadges } from '../_shared/words.ts';
 import { rankBadges } from '../_shared/ranks.ts';
-import { ASSOC, assocMatch, assocPoints } from '../_shared/games-core.js';
+import { assocNormalize, assocPoints, assocHint, loadRanks, type Ranks } from '../_shared/assoc.ts';
 
 type Body = Record<string, unknown>;
-type Word = { id: number; word: string; hints: string[]; answers: string[] };
+type Guess = { w: string; r: number; h?: boolean };
 type Attempt = {
   id: number; student_id: string; day: string;
-  hint: number; letter: boolean; solved: boolean; finished: boolean; points: number;
+  mode: string; tries: number; hints: number;
+  solved: boolean; gave_up: boolean; finished: boolean; points: number;
+  guesses: Guess[];
 };
+
+const TOP = 100;            // столько ближайших слов показываем в конце
+const MAX_WORD = 32;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -47,100 +54,117 @@ Deno.serve(async (req) => {
   const action = String(body.action ?? 'state');
 
   // ===== Тренировка =====
-  // Набор не секретный, но ответы всё равно проверяет сервер: так в коде
-  // страницы нет ни слов, ни подсказок, и набор можно менять из админки.
+  // Слова те же, что уже были словом дня, плюс отдельный набор. Счёт не
+  // ведётся, поэтому и строки в базе нет: страница сама помнит свои попытки.
   if (action === 'train') return await trainStart();
-  if (action === 'train_hint') return await trainHint(body);
   if (action === 'train_guess') return await trainGuess(body);
+  if (action === 'train_give') return await trainGive(body);
 
   // ===== Слово дня =====
   const day = minskDay();
-  const word = await dailyWord(day);
-  if (!word) return json({ ok: true, day, has: false });
+  const target = await dailyWord(day);
+  if (!target) return json({ ok: true, day, has: false });
+
+  const ranks = await loadRanks(target);
+  if (!ranks) return json({ error: 'no_ranks' }, 500);
 
   const { data: found } = await admin
     .from('word_attempts').select('*')
     .eq('student_id', studentId).eq('day', day).maybeSingle();
-  let attempt = found as Attempt | null;
+  let attempt = (found as Attempt | null);
 
-  if (action === 'start') {
-    if (attempt) return json(view(attempt, word));
+  // Первая игра за день заводит строку. Если строка осталась от старого
+  // режима, новую в тот же день не начинаем — день уже сыгран.
+  if (!attempt) {
     const { data: made, error } = await admin.from('word_attempts')
-      .insert({ student_id: studentId, day, hint: 1 })
+      .insert({ student_id: studentId, day, mode: 'ranks', tries: 0, hints: 0, guesses: [] })
       .select('*').maybeSingle();
-    // Две вкладки разом: вторая вставка упирается в уникальный индекс —
-    // берём ту попытку, что уже есть
     if (error) {
       const { data: again } = await admin.from('word_attempts').select('*')
         .eq('student_id', studentId).eq('day', day).maybeSingle();
       if (!again) return json({ error: 'server_error' }, 500);
-      return json(view(again as Attempt, word));
+      attempt = again as Attempt;
+    } else {
+      attempt = made as Attempt;
     }
-    return json(view(made as Attempt, word));
   }
 
-  if (!attempt) return json({ ok: true, day, has: true, started: false });
-  if (attempt.finished && action !== 'state') return json(view(attempt, word));
-
-  if (action === 'hint') {
-    if (attempt.hint >= ASSOC.hints) return json(view(attempt, word));
-    attempt = await save(attempt.id, { hint: attempt.hint + 1 });
-    return json(view(attempt, word));
+  if (attempt.mode !== 'ranks') {
+    // День уже сыгран по старым правилам: в рейтинг он идёт по-старому,
+    // а переиграть его нельзя
+    return json({ ok: true, day, has: true, old: true, finished: true });
   }
 
-  if (action === 'letter') {
-    // Букву дают не раньше третьей подсказки и только один раз
-    if (attempt.hint < ASSOC.letterFromHint) return json({ error: 'too_early' }, 400);
-    if (!attempt.letter) attempt = await save(attempt.id, { letter: true });
-    return json(view(attempt, word));
-  }
+  if (action === 'guess' && !attempt.finished) {
+    const word = assocNormalize(body.word);
+    if (!word || word.length > MAX_WORD) return json({ error: 'bad_word' }, 400);
 
-  if (action === 'guess') {
-    const answer = String(body.answer ?? '');
-    if (answer.length > 64) return json({ error: 'bad_answer' }, 400);
-    const ok = assocMatch(answer, [word.word, ...(word.answers ?? [])]);
+    const rank = ranks.place.get(word);
+    // Нет в словаре — не попытка
+    if (!rank) return json({ ...view(attempt, ranks), unknown: word });
+    // Повтор — тоже не попытка, просто подсвечиваем слово в списке
+    if (attempt.guesses.some((g) => g.w === word)) {
+      return json({ ...view(attempt, ranks), repeat: word });
+    }
 
-    if (ok) {
-      const points = assocPoints(attempt.hint, attempt.letter);
-      attempt = await save(attempt.id, { solved: true, finished: true, points });
+    const guesses = attempt.guesses.concat([{ w: word, r: rank }]);
+    const tries = attempt.tries + 1;
+    const solved = rank === 1;
+    attempt = await save(attempt.id, {
+      guesses, tries,
+      solved, finished: solved,
+      points: solved ? assocPoints(tries, attempt.hints) : 0,
+    });
+
+    if (solved) {
       const badges = await grantAssocBadges(studentId, attempt, day);
-      return json({ ...view(attempt, word), right: true, badges });
+      return json({ ...view(attempt, ranks), last: word, badges });
     }
-
-    // Не угадал с шестой подсказки — попытка окончена, очков нет
-    if (attempt.hint >= ASSOC.hints) {
-      attempt = await save(attempt.id, { finished: true, points: 0 });
-      return json({ ...view(attempt, word), right: false });
-    }
-    return json({ ...view(attempt, word), right: false });
+    return json({ ...view(attempt, ranks), last: word });
   }
 
-  return json(view(attempt, word));
+  if (action === 'hint' && !attempt.finished) {
+    const used = new Set(attempt.guesses.map((g) => g.w));
+    const best = attempt.guesses.reduce((min, g) => Math.min(min, g.r), ranks.words.length);
+    const hint = assocHint(ranks, best, used);
+    if (!hint) return json({ ...view(attempt, ranks), no_hint: true });
+
+    attempt = await save(attempt.id, {
+      guesses: attempt.guesses.concat([{ w: hint.word, r: hint.rank, h: true }]),
+      hints: attempt.hints + 1,
+    });
+    return json({ ...view(attempt, ranks), last: hint.word });
+  }
+
+  if (action === 'giveup' && !attempt.finished) {
+    attempt = await save(attempt.id, { finished: true, gave_up: true, solved: false, points: 0 });
+    return json(view(attempt, ranks));
+  }
+
+  return json(view(attempt, ranks));
 });
 
-// Что видит страница. Подсказки — только открытые, слово — только после
-// конца попытки. Ни ответа, ни подсказок вперёд наружу не уходит.
-function view(attempt: Attempt, word: Word) {
-  const opened = Math.min(attempt.hint, ASSOC.hints);
+// Что видит страница. Загаданное слово и список ближайших — только после
+// конца игры; до этого наружу уходят лишь места названных слов.
+function view(attempt: Attempt, ranks: Ranks) {
+  const done = attempt.finished;
   return {
     ok: true,
     day: attempt.day,
     has: true,
-    started: true,
-    hints: word.hints.slice(0, opened),
-    hint: opened,
-    total: ASSOC.hints,
-    letter: attempt.letter ? firstLetter(word.word) : null,
-    canLetter: !attempt.letter && opened >= ASSOC.letterFromHint,
+    mode: 'ranks',
+    tries: attempt.tries,
+    hints: attempt.hints,
+    guesses: attempt.guesses,
     solved: attempt.solved,
-    finished: attempt.finished,
+    gaveUp: attempt.gave_up,
+    finished: done,
     points: attempt.points,
-    willGet: attempt.finished ? attempt.points : assocPoints(opened, attempt.letter),
-    word: attempt.finished ? word.word : null,
+    total: ranks.words.length,
+    word: done ? ranks.word : null,
+    near: done ? ranks.words.slice(0, TOP) : null,
   };
 }
-
-const firstLetter = (w: string) => String(w || '').trim().slice(0, 1).toUpperCase();
 
 async function save(id: number, patch: Record<string, unknown>): Promise<Attempt> {
   const { data } = await admin.from('word_attempts')
@@ -149,21 +173,20 @@ async function save(id: number, patch: Record<string, unknown>): Promise<Attempt
   return data as Attempt;
 }
 
-async function dailyWord(day: string): Promise<Word | null> {
+async function dailyWord(day: string): Promise<string | null> {
   const { data } = await admin
-    .from('word_daily').select('word_id, word_bank (id, word, hints, answers)')
+    .from('word_daily').select('word_bank (word)')
     .eq('day', day).maybeSingle();
-  const w = (data as { word_bank?: Word } | null)?.word_bank;
-  return w ?? null;
+  const w = (data as { word_bank?: { word: string } } | null)?.word_bank?.word;
+  return w ? assocNormalize(w) : null;
 }
 
-// Значки «Ассоциаций», которые видно прямо по этой попытке. Значки за топ-5
-// выдаются отдельно, когда считается рейтинг.
+// Значки «Ассоциаций». «С полуслова» теперь даётся за догадку не больше чем
+// с десятой попытки и без подсказок.
 async function grantAssocBadges(studentId: string, attempt: Attempt, day: string): Promise<string[]> {
   const codes: string[] = ['game_assoc_first'];
-  if (attempt.hint === 1 && !attempt.letter) codes.push('game_assoc_flash');
+  if (attempt.tries <= 10 && attempt.hints === 0) codes.push('game_assoc_flash');
   if (await solvedStreak(studentId, day) >= 7) codes.push('game_assoc_week');
-  // Очки за слово могли внести студента в месячную пятёрку «Ассоциаций»
   const ranks = await rankBadges(studentId);
   return await grantBadges(studentId, codes.concat(ranks));
 }
@@ -189,43 +212,58 @@ async function solvedStreak(studentId: string, day: string): Promise<number> {
 }
 
 // ===== Тренировка =====
-// Слово берётся случайное из набора; очки за него не начисляются и в рейтинг
-// оно не идёт. Страница помнит только id слова и номер подсказки.
-async function trainStart(): Promise<Response> {
-  const { count } = await admin.from('word_bank')
-    .select('id', { count: 'exact', head: true }).eq('kind', 'train');
-  if (!count) return json({ ok: true, has: false });
-  const offset = Math.floor(Math.random() * count);
-  const { data } = await admin.from('word_bank')
-    .select('id, word, hints, answers').eq('kind', 'train')
-    .order('id').range(offset, offset).maybeSingle();
-  const w = data as Word | null;
-  if (!w) return json({ ok: true, has: false });
-  return json({ ok: true, has: true, id: w.id, hint: 1, total: ASSOC.hints, hints: w.hints.slice(0, 1) });
+// Слово выбирается случайно из уже сыгранных слов дня и отдельного набора.
+// Чтобы страница не знала ответа, сервер отдаёт только ключ слова (его id),
+// а места присылает по одному, как и в игре дня.
+async function trainWords(): Promise<{ id: number; word: string }[]> {
+  const today = minskDay();
+  const { data: past } = await admin
+    .from('word_daily').select('day, word_id, word_bank (id, word)')
+    .lt('day', today);
+  const { data: extra } = await admin
+    .from('word_bank').select('id, word').eq('kind', 'train');
+
+  const out: { id: number; word: string }[] = [];
+  for (const row of (past ?? []) as { word_bank?: { id: number; word: string } }[]) {
+    if (row.word_bank) out.push(row.word_bank);
+  }
+  for (const row of (extra ?? []) as { id: number; word: string }[]) out.push(row);
+  return out;
 }
 
-async function trainHint(body: Body): Promise<Response> {
-  const w = await trainWord(body.id);
-  const n = Number(body.hint);
-  if (!w) return json({ error: 'not_found' }, 404);
-  if (!Number.isInteger(n) || n < 1 || n > ASSOC.hints) return json({ error: 'bad_hint' }, 400);
-  return json({ ok: true, id: w.id, hint: n, total: ASSOC.hints, hints: w.hints.slice(0, n) });
+async function trainStart(): Promise<Response> {
+  const words = await trainWords();
+  if (!words.length) return json({ ok: true, has: false });
+  const pick = words[Math.floor(Math.random() * words.length)];
+  const ranks = await loadRanks(pick.word);
+  if (!ranks) return json({ ok: true, has: false });
+  return json({ ok: true, has: true, id: pick.id, total: ranks.words.length });
+}
+
+async function trainRanks(id: unknown): Promise<Ranks | null> {
+  const n = Number(id);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  const { data } = await admin.from('word_bank').select('word').eq('id', n).maybeSingle();
+  const word = (data as { word: string } | null)?.word;
+  return word ? await loadRanks(word) : null;
 }
 
 async function trainGuess(body: Body): Promise<Response> {
-  const w = await trainWord(body.id);
-  if (!w) return json({ error: 'not_found' }, 404);
-  const answer = String(body.answer ?? '');
-  if (answer.length > 64) return json({ error: 'bad_answer' }, 400);
-  const right = assocMatch(answer, [w.word, ...(w.answers ?? [])]);
-  const give = right || body.give === true;
-  return json({ ok: true, right, word: give ? w.word : null });
+  const ranks = await trainRanks(body.id);
+  if (!ranks) return json({ error: 'not_found' }, 404);
+  const word = assocNormalize(body.word);
+  if (!word || word.length > MAX_WORD) return json({ error: 'bad_word' }, 400);
+  const rank = ranks.place.get(word);
+  if (!rank) return json({ ok: true, unknown: word });
+  return json({
+    ok: true, word, rank, total: ranks.words.length,
+    solved: rank === 1,
+    near: rank === 1 ? ranks.words.slice(0, TOP) : null,
+  });
 }
 
-async function trainWord(id: unknown): Promise<Word | null> {
-  const n = Number(id);
-  if (!Number.isInteger(n) || n <= 0) return null;
-  const { data } = await admin.from('word_bank')
-    .select('id, word, hints, answers').eq('id', n).eq('kind', 'train').maybeSingle();
-  return (data as Word | null) ?? null;
+async function trainGive(body: Body): Promise<Response> {
+  const ranks = await trainRanks(body.id);
+  if (!ranks) return json({ error: 'not_found' }, 404);
+  return json({ ok: true, word: ranks.word, near: ranks.words.slice(0, TOP) });
 }
