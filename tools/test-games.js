@@ -13,6 +13,7 @@ import {
   MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen, minesPickLevel,
   FLAPPY, flappyGame, flappySimulate, makeRng,
   SNAKE, snakeGame, snakeSimulate, snakeMoveMs, snakeRun,
+  ASSOC, assocNormalize, assocMatch, assocPoints,
   GAME_BADGES, gameBadgesFor
 } from '../games-core.js';
 
@@ -468,6 +469,76 @@ test('выдуманная длина проверки не проходит', (
   // Повороты после смерти ничего не меняют
   const tail = SNAKE_SQUARE.concat([{ s: 100000, d: 1 }]);
   assert.deepEqual(snakeSimulate(2026, tail), honest);
+});
+
+
+console.log('Ассоциации');
+
+test('очки: 6 за первую подсказку, 1 за шестую', () => {
+  assert.equal(assocPoints(1, false), 6);
+  assert.equal(assocPoints(2, false), 5);
+  assert.equal(assocPoints(3, false), 4);
+  assert.equal(assocPoints(4, false), 3);
+  assert.equal(assocPoints(5, false), 2);
+  assert.equal(assocPoints(6, false), 1);
+});
+
+test('первая буква стоит одно очко и в минус не уводит', () => {
+  assert.equal(assocPoints(1, true), 5);
+  assert.equal(assocPoints(5, true), 1);
+  assert.equal(assocPoints(6, true), 0);
+  // Не угадал — ноль в любом случае
+  assert.equal(assocPoints(0, false), 0);
+  assert.equal(assocPoints(7, false), 0);
+  assert.equal(assocPoints(null, true), 0);
+});
+
+test('букву можно открыть только с третьей подсказки', () => {
+  assert.equal(ASSOC.letterFromHint, 3);
+  assert.equal(ASSOC.hints, 6);
+});
+
+test('регистр, ё и пробелы по краям не важны', () => {
+  assert.equal(assocNormalize('  ДедЛайн '), 'дедлайн');
+  assert.equal(assocNormalize('Ёлка'), 'елка');
+  assert.equal(assocNormalize('курсовая   работа'), 'курсовая работа');
+  assert.ok(assocMatch('  ДЕДЛАЙН ', ['дедлайн']));
+  assert.ok(assocMatch('Зачётка', ['зачетка']));
+});
+
+test('множественное число и начальная форма принимаются', () => {
+  assert.ok(assocMatch('дедлайны', ['дедлайн']));
+  assert.ok(assocMatch('дедлайна', ['дедлайн']));
+  assert.ok(assocMatch('конспект', ['конспекты']));
+  assert.ok(assocMatch('лекции', ['лекция']));
+});
+
+test('в словах от шести букв прощается одна опечатка', () => {
+  assert.ok(assocMatch('дедлайм', ['дедлайн']));
+  assert.ok(assocMatch('конспкт', ['конспект']));
+  // Две опечатки уже не прощаются
+  assert.equal(assocMatch('дедлаим', ['дедлайн']), false);
+});
+
+test('короткие слова опечаток не прощают', () => {
+  assert.equal(assocMatch('кот', ['код']), false);
+  assert.equal(assocMatch('пара', ['пары']), true);   // это форма слова, а не опечатка
+  assert.equal(assocMatch('парк', ['пара']), false);
+});
+
+test('список синонимов принимается целиком', () => {
+  const ok = ['дедлайн', 'срок сдачи', 'крайний срок'];
+  assert.ok(assocMatch('Крайний Срок', ok));
+  assert.ok(assocMatch('срок сдачи', ok));
+  assert.equal(assocMatch('пересдача', ok), false);
+});
+
+test('пустой и мусорный ответ не проходит', () => {
+  assert.equal(assocMatch('', ['дедлайн']), false);
+  assert.equal(assocMatch('   ', ['дедлайн']), false);
+  assert.equal(assocMatch(null, ['дедлайн']), false);
+  assert.equal(assocMatch('дедлайн', []), false);
+  assert.equal(assocMatch('дедлайн', null), false);
 });
 
 console.log(`\nПроверок пройдено: ${passed}`);
