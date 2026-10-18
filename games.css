@@ -281,3 +281,6 @@ body.game-fs .fab { display: none; }
   font-size: var(--fs-title); font-weight: 700; color: var(--color-text-secondary);
 }
 .word-result.is-win { color: var(--color-accent); }
+
+.word-admin-row { display: flex; align-items: center; gap: 10px; }
+.word-admin-row .lbl { flex: 1 1 auto; min-width: 0; }

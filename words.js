@@ -286,3 +286,177 @@ function wordsMiss() {
     });
   }
 })();
+
+// ============================================================================
+// Админ-панель «Ассоциаций»
+//
+// Слово дня и тренировочный набор задаёт администратор журнала. Запрос уходит
+// в Edge Function word-admin вместе с токеном GitHub из админ-режима: функция
+// сама спрашивает у GitHub, есть ли у токена право записи в репозиторий, и
+// только тогда пускает. Токен не хранится ни в базе, ни в журнале функции.
+// ============================================================================
+
+const WORD_ADMIN_FN = 'word-admin';
+
+async function wordAdminCall(payload) {
+  const ghToken = lsGet('gh_pat', '');
+  if (!ghToken) return { error: 'not_admin' };
+  if (!gamesSigned() || !sb) return { error: 'signed_out' };
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { error: 'signed_out' };
+    const res = await fetch(SUPABASE_URL + '/functions/v1/' + WORD_ADMIN_FN, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify(Object.assign({}, payload, { ghToken }))
+    });
+    return await res.json().catch(() => ({ error: 'server_error' }));
+  } catch (e) {
+    return { error: 'network' };
+  }
+}
+
+// Человеческие названия ошибок: по коду с сервера не всегда понятно, что чинить
+const WORD_ADMIN_ERRORS = {
+  not_admin: 'Нужен админ-режим: войдите в него токеном GitHub с правом repo',
+  signed_out: 'Войдите в кабинет — слово записывается от вашего имени',
+  bad_word: 'Слово пустое или слишком длинное',
+  bad_hints_count: 'Подсказок должно быть ровно шесть',
+  bad_hint: 'Одна из подсказок пустая или длиннее 80 знаков',
+  bad_answers: 'Слишком много синонимов или они слишком длинные',
+  bad_items: 'Пустой или слишком длинный список',
+  network: 'Сеть не ответила',
+  server_error: 'Сервер не принял запрос'
+};
+
+const wordAdminError = (code) => WORD_ADMIN_ERRORS[code] || ('Ошибка: ' + code);
+
+function openWordAdmin() {
+  const box = document.getElementById('wordAdminHints');
+  if (box && !box.dataset.ready) {
+    box.dataset.ready = '1';
+    box.innerHTML = Array.from({ length: 6 }, (_, i) =>
+      '<input type="text" class="form-control mb-2" id="wordAdminHint' + (i + 1) + '" maxlength="80" ' +
+      'autocomplete="off" placeholder="Подсказка ' + (i + 1) + '">').join('');
+  }
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('wordAdminModal')).show();
+  loadWordAdmin();
+}
+
+async function loadWordAdmin() {
+  const state = document.getElementById('wordAdminState');
+  state.textContent = 'Загружаем…';
+  const res = await wordAdminCall({ action: 'today' });
+  if (!res || !res.ok) { state.textContent = wordAdminError(res && res.error); return; }
+
+  const played = res.played
+    ? 'Сегодня уже сыграли: ' + res.played + '. Менять слово поздно — попытки не сбросятся.'
+    : 'Сегодня ещё никто не играл.';
+  const set = res.word && res.word.word_bank;
+  state.textContent = set
+    ? 'На ' + res.day + ' задано слово «' + set.word + '». ' + played
+    : 'На ' + res.day + ' слово не задано. ' + played;
+
+  if (set) {
+    document.getElementById('wordAdminWord').value = set.word || '';
+    (set.hints || []).forEach((h, i) => {
+      const el = document.getElementById('wordAdminHint' + (i + 1));
+      if (el) el.value = h;
+    });
+    document.getElementById('wordAdminAnswers').value = (set.answers || []).join(', ');
+  }
+  loadTrainWords();
+}
+
+function readWordAdminForm() {
+  const hints = [];
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById('wordAdminHint' + i);
+    hints.push(el ? el.value.trim() : '');
+  }
+  return {
+    word: document.getElementById('wordAdminWord').value.trim(),
+    hints,
+    answers: document.getElementById('wordAdminAnswers').value.split(',').map((a) => a.trim()).filter(Boolean)
+  };
+}
+
+async function saveWordOfDay() {
+  const note = document.getElementById('wordAdminNote');
+  const item = readWordAdminForm();
+  if (!item.word) { note.textContent = 'Напишите слово'; return; }
+  if (item.hints.some((h) => !h)) { note.textContent = 'Заполните все шесть подсказок'; return; }
+
+  note.textContent = 'Сохраняем…';
+  const res = await wordAdminCall(Object.assign({ action: 'set_daily' }, item));
+  if (res && res.ok) {
+    haptic('success');
+    note.textContent = 'Готово: слово на ' + res.day + ' задано.';
+    loadWordAdmin();
+  } else {
+    haptic('error');
+    note.textContent = wordAdminError(res && res.error);
+  }
+}
+
+// Строка списка: слово, шесть подсказок и синонимы — через вертикальную черту
+function parseTrainLine(line) {
+  const parts = line.split('|').map((p) => p.trim());
+  if (parts.length < 7) return null;
+  const word = parts[0];
+  const hints = parts.slice(1, 7);
+  const answers = (parts[7] || '').split(',').map((a) => a.trim()).filter(Boolean);
+  if (!word || hints.some((h) => !h)) return null;
+  return { word, hints, answers };
+}
+
+async function addTrainWords() {
+  const note = document.getElementById('wordAdminBulkNote');
+  const lines = document.getElementById('wordAdminBulk').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) { note.textContent = 'Вставьте хотя бы одну строку'; return; }
+
+  const items = [];
+  for (let i = 0; i < lines.length; i++) {
+    const item = parseTrainLine(lines[i]);
+    if (!item) { note.textContent = 'Строка ' + (i + 1) + ': нужно слово и ровно шесть подсказок через |'; return; }
+    items.push(item);
+  }
+
+  note.textContent = 'Добавляем…';
+  const res = await wordAdminCall({ action: 'train_add', items });
+  if (res && res.ok) {
+    haptic('success');
+    note.textContent = 'Добавлено слов: ' + res.added;
+    document.getElementById('wordAdminBulk').value = '';
+    loadTrainWords();
+  } else {
+    haptic('error');
+    note.textContent = wordAdminError(res && res.error);
+  }
+}
+
+async function loadTrainWords() {
+  const list = document.getElementById('wordAdminTrainList');
+  if (!list) return;
+  const res = await wordAdminCall({ action: 'train_list' });
+  if (!res || !res.ok) { list.innerHTML = ''; return; }
+  if (!res.items.length) {
+    list.innerHTML = '<p class="small text-secondary mb-0">Тренировочных слов пока нет.</p>';
+    return;
+  }
+  list.innerHTML = res.items.map((w) =>
+    '<div class="row-i word-admin-row"><span class="lbl">' + escapeHtml(w.word) +
+      '<small class="d-block text-secondary">' + escapeHtml((w.hints || []).join(' · ')) + '</small></span>' +
+      '<button type="button" class="btn btn-sm btn-outline-danger" data-word="' + w.id + '">Убрать</button>' +
+    '</div>').join('');
+  list.querySelectorAll('button[data-word]').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const gone = await wordAdminCall({ action: 'train_remove', id: Number(b.dataset.word) });
+      if (gone && gone.ok) loadTrainWords();
+    });
+  });
+}
