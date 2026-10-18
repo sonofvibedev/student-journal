@@ -6,3 +6,8 @@ shots/
 supabase/.temp/
 node_modules/
 package-lock.json
+
+# «Ассоциации»: модель, словарь и готовые рейтинги не в git
+tools/assoc/model/
+tools/assoc/out/
+tools/assoc/dict.txt
