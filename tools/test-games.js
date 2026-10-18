@@ -12,6 +12,7 @@ import {
   sudokuPlaceNotes, sudokuRestoreNotes,
   MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen, minesPickLevel,
   FLAPPY, flappyGame, flappySimulate, makeRng,
+  SNAKE, snakeGame, snakeSimulate, snakeMoveMs, snakeRun,
   GAME_BADGES, gameBadgesFor
 } from '../games-core.js';
 
@@ -332,6 +333,141 @@ test('выдуманный счёт проверку не проходит', () 
 
 test('шаг физики фиксированный', () => {
   assert.equal(FLAPPY.stepMs, 1000 / 120);
+});
+
+
+console.log('Змейка');
+
+// Повороты для пробной партии: змейка ходит квадратом и ни во что не врезается
+const SNAKE_SQUARE = [{ s: 2, d: 2 }, { s: 5, d: 3 }, { s: 8, d: 0 }, { s: 11, d: 1 }];
+
+test('поле влезает в телефон и шаг фиксирован', () => {
+  assert.ok(SNAKE.cols >= 10 && SNAKE.cols <= 16, 'столбцов должно быть 10–16');
+  assert.ok(SNAKE.rows >= SNAKE.cols, 'поле вытянуто по вертикали');
+  assert.ok(SNAKE.minMs > 0 && SNAKE.minMs < SNAKE.baseMs, 'скорость растёт до предела');
+});
+
+test('скорость растёт с едой и не уходит ниже предела', () => {
+  assert.equal(snakeMoveMs(0), SNAKE.baseMs);
+  assert.ok(snakeMoveMs(5) < snakeMoveMs(0));
+  assert.equal(snakeMoveMs(10000), SNAKE.minMs);
+});
+
+test('начало партии одинаково при одном зерне', () => {
+  const a = snakeGame(77), b = snakeGame(77);
+  assert.equal(a.cells.length, SNAKE.startLen);
+  assert.deepEqual(a.cells, b.cells);
+  assert.deepEqual(a.food, b.food);
+  // Еда не ложится под змейку
+  assert.ok(!a.cells.some((c) => c.x === a.food.x && c.y === a.food.y));
+});
+
+test('разворот на 180° невозможен', () => {
+  const game = snakeGame(5);
+  const dir = game.dir;
+  const back = (dir + 2) % 4;
+  game.tick(back);
+  assert.equal(game.dir, dir, 'змейка повернула в себя');
+  assert.equal(game.turns.length, 0, 'отклонённый поворот попал в доказательство');
+  assert.equal(game.alive, true);
+  // И в переигровке тоже: сервер присланный разворот не принимает
+  const honest = snakeSimulate(5, []);
+  const cheat = snakeSimulate(5, [{ s: 0, d: back }]);
+  assert.deepEqual(cheat, honest);
+});
+
+test('поворот на 90° принимается и попадает в доказательство', () => {
+  const game = snakeGame(5);
+  const side = (game.dir + 1) % 4;
+  game.tick(side);
+  assert.equal(game.dir, side);
+  assert.deepEqual(game.turns, [{ s: 0, d: side }]);
+});
+
+test('стена и своё тело — конец игры', () => {
+  // Без поворотов змейка упирается в стену
+  const wall = snakeSimulate(3, []);
+  assert.equal(wall.alive, false);
+  assert.ok(wall.steps <= SNAKE.cols + SNAKE.rows, 'до стены не дольше размеров поля');
+
+  // Длинная змейка, сложенная в кольцо, бьётся о себя
+  const game = snakeGame(9);
+  while (game.cells.length < 6 && game.alive) { game.grow(); }
+  const d = game.dir;
+  game.tick((d + 1) % 4);
+  game.tick((d + 2) % 4);
+  game.tick((d + 3) % 4);
+  game.tick(d);
+  assert.equal(game.alive, false, 'змейка прошла сквозь себя');
+});
+
+test('после конца игры шаги не считаются', () => {
+  const game = snakeGame(3);
+  while (game.alive) game.tick(null);
+  const steps = game.step, len = game.cells.length;
+  game.tick(null); game.tick(null);
+  assert.equal(game.step, steps);
+  assert.equal(game.cells.length, len);
+});
+
+test('повторный прогон по зерну и поворотам даёт тот же результат', () => {
+  for (const seed of [1, 77, 20261018]) {
+    const a = snakeSimulate(seed, SNAKE_SQUARE);
+    const b = snakeSimulate(seed, SNAKE_SQUARE);
+    assert.deepEqual(a, b, 'зерно ' + seed + ': результат разошёлся');
+  }
+});
+
+test('партия из браузера переигрывается по своим же поворотам', () => {
+  // Играем «по колонкам»: вниз до края, шаг вправо, вверх до края и так далее
+  const game = snakeGame(2026);
+  let guard = 0;
+  while (game.alive && guard++ < 4000) {
+    const head = game.cells[0];
+    const dir = game.dir;
+    let turn = null;
+    if (dir === 2 && head.y >= SNAKE.rows - 1) turn = 1;
+    else if (dir === 0 && head.y <= 0) turn = 1;
+    else if (dir === 1) turn = head.y <= 0 ? 2 : 0;
+    game.tick(turn);
+  }
+  const replay = snakeSimulate(2026, game.turns);
+  assert.equal(replay.len, game.cells.length, 'длина разошлась');
+  assert.equal(replay.steps, game.step, 'число шагов разошлось');
+  assert.equal(replay.eaten, game.eaten, 'съедено разное число еды');
+  assert.ok(game.eaten > 0, 'змейка так и не поела — проверка ничего не стоит');
+});
+
+test('одинаковая скорость на 60 и 120 Гц', () => {
+  // За одно и то же время должно пройти одно и то же число шагов логики
+  const run = (frameMs, frames) => {
+    const game = snakeGame(8);
+    let acc = 0;
+    for (let f = 0; f < frames && game.alive; f++) acc = snakeRun(game, acc, frameMs, null);
+    return { step: game.step, len: game.cells.length, alive: game.alive };
+  };
+  const hz120 = run(1000 / 120, 480);   // 4 секунды
+  const hz60  = run(1000 / 60, 240);    // те же 4 секунды
+  assert.deepEqual(hz60, hz120, 'разная скорость при разной частоте кадров');
+  assert.ok(hz120.step > 0, 'за 4 секунды ни одного шага не сделано');
+});
+
+test('провал кадров не прокручивает партию целиком', () => {
+  // Вкладка была скрыта полчаса: догонять это время нельзя
+  const game = snakeGame(8);
+  snakeRun(game, 0, 1800000, null);
+  assert.ok(game.step <= Math.ceil(SNAKE.catchUpMs / SNAKE.minMs) + 1, 'догнало слишком много шагов');
+});
+
+test('выдуманная длина проверки не проходит', () => {
+  const honest = snakeSimulate(2026, SNAKE_SQUARE);
+  assert.ok(honest.len < 60, 'пробная партия вдруг оказалась длинной');
+  // Мусор в поворотах не даёт ни длины, ни ошибки
+  assert.equal(snakeSimulate(2026, null).len >= SNAKE.startLen, true);
+  assert.equal(snakeSimulate(2026, [{ s: -5, d: 9 }, { s: 1.5, d: 1 }]).len >= SNAKE.startLen, true);
+  // Повороты после смерти ничего не меняют
+  const tail = SNAKE_SQUARE.concat([{ s: 100000, d: 1 }]);
+  assert.deepEqual(snakeSimulate(2026, tail), honest);
 });
 
 console.log(`\nПроверок пройдено: ${passed}`);
