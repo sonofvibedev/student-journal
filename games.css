@@ -214,3 +214,40 @@ body.game-fs .fab { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .pad-key:active { transform: none; }
 }
+
+/* ===== Змейка ===== */
+/* Поле и кнопки делят высоту экрана: canvas получает остаток, кнопки — своё
+   фиксированное место. Прокрутки нет ни на 360, ни на 430 px. */
+.snake-wrap {
+  position: relative; flex: 1 1 auto; min-height: 0;
+  display: grid; place-items: center;
+  border-radius: var(--radius-lg); overflow: hidden;
+  background-color: var(--color-surface);
+  border: 1px solid var(--glass-edge);
+}
+.snake-wrap canvas { display: block; touch-action: none; }
+.snake-hint {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  background-color: rgba(0, 0, 0, .45); color: #fff; font-size: var(--fs-caption);
+  pointer-events: none; text-align: center;
+}
+/* Крестовина: три столбца и два ряда, стрелки стоят как на джойстике */
+.snake-pad {
+  flex: none; display: grid; gap: 6px; margin-top: 6px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-areas: '. up .' 'left down right';
+}
+.snake-key {
+  min-height: 46px; border-radius: var(--radius-md);
+  border: 1px solid var(--color-separator); background-color: var(--pane-bg);
+  color: var(--color-text); font-size: 1.25rem; line-height: 1;
+}
+.snake-key:active { transform: scale(.96); }
+.snake-key.is-up { grid-area: up; }
+.snake-key.is-left { grid-area: left; }
+.snake-key.is-down { grid-area: down; }
+.snake-key.is-right { grid-area: right; }
+@media (prefers-reduced-motion: reduce) {
+  .snake-key:active { transform: none; }
+}

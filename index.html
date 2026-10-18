@@ -1176,6 +1176,19 @@
   <div class="game-body" id="flappyHost"></div>
 </section>
 
+<!-- Змейка: поле целиком влезает в экран, управление свайпами и стрелками.
+     Стрелки можно скрыть кнопкой «Стрелки» — выбор запоминается на устройстве. -->
+<section id="viewSnake" class="app-view game-screen d-none" aria-labelledby="snakeViewTitle">
+  <div class="game-top">
+    <button type="button" class="game-back" onclick="goView('games')" aria-label="К играм">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <h3 class="game-name" id="snakeViewTitle">Змейка</h3>
+    <span class="game-stat" id="snakeScore">0</span>
+  </div>
+  <div class="game-body" id="snakeHost"></div>
+</section>
+
 <!-- Перенос расчёта старого общего калькулятора: к какому предмету его отнести.
      Пока студент не выбрал, старый расчёт лежит на месте и не теряется. -->
 <div class="modal fade swipe-sheet" id="ratingMigrateSheet" tabindex="-1" aria-labelledby="ratingMigrateTitle">
@@ -2748,7 +2761,8 @@
     games:       'viewGames',        // список игр
     sudoku:      'viewSudoku',
     minesweeper: 'viewMinesweeper',
-    flappy:      'viewFlappy'
+    flappy:      'viewFlappy',
+    snake:       'viewSnake'
   };
   const TAB_IDS = APP_TABS.map(t => t.id);
   let swipeDrivenView = false;   // раздел меняют свайпом: анимацию покажет swipeIn
@@ -2802,6 +2816,9 @@
     if (name === 'flappy') {
       if (typeof flappyMount === 'function') flappyMount();
     } else if (typeof flappyPause === 'function') { flappyPause(); }
+    if (name === 'snake') {
+      if (typeof snakeMount === 'function') snakeMount();
+    } else if (typeof snakePause === 'function') { snakePause(); }
     if (name === 'deadlines') { renderDeadlines(); markDeadlinesSeen(); updateDeadlinesDot(); }
     if (name === 'absences' && typeof renderPersonalStats === 'function') {
       renderPersonalStats();
@@ -6409,6 +6426,7 @@
 <!-- Правила игр: модуль, тот же файл проверяет рекорды в Edge Function -->
 <script type="module" src="games-core.js?v=24"></script>
 <script src="games.js?v=24"></script>
+<script src="snake.js?v=24"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
