@@ -302,3 +302,28 @@ body.game-fs .fab { display: none; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-mini-row i { flex: none; font-style: normal; color: var(--color-text-secondary); }
 .board-mini-row.is-me span, .board-mini-row.is-me i { color: var(--color-accent); font-weight: 600; }
+
+/* ===== Жесты на экранах игр ===== */
+/* Пока открыта игра, страница не «пружинит» и не обновляется: ни нашим
+   жестом «потяни, чтобы обновить» (он выключен в index.html), ни встроенным
+   обновлением Chrome на Android — его отключает overscroll-behavior, но
+   только если он стоит и на <html>, и на <body>. */
+html.game-fs, body.game-fs {
+  overscroll-behavior: none;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Игровое поле: браузер не прокручивает, не выделяет текст и не показывает
+   своё меню по долгому нажатию (из-за него в сапёре флажок ставился с меню). */
+.game-screen .game-body,
+.snake-wrap, .flappy-wrap, .mines-wrap, .mines, .sudoku {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Кнопки внутри игры по-прежнему нажимаются как обычно */
+.game-screen button, .game-screen input { touch-action: manipulation; }

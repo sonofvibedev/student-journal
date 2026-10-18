@@ -96,6 +96,10 @@ function gamesFullscreen(view) {
   const isGame = Object.prototype.hasOwnProperty.call(GAME_VIEWS, view);
   gameViewNow = isGame ? view : '';
   document.body.classList.toggle('game-fs', isGame);
+  // Тот же класс на <html>: overscroll-behavior работает только если он стоит
+  // и на корневом элементе. Без него Chrome на Android обновлял бы страницу
+  // своим встроенным жестом поверх нашего.
+  document.documentElement.classList.toggle('game-fs', isGame);
   if (isGame) gameLayout();
   else document.documentElement.style.removeProperty('--game-h');
 }
@@ -1004,6 +1008,8 @@ function minesBindCell(cell, i) {
   cell.addEventListener('pointerleave', endPress);
   cell.addEventListener('pointercancel', endPress);
   cell.addEventListener('contextmenu', (e) => { e.preventDefault(); minesFlag(i); });
+  // Долгое нажатие ставит флажок, а не выделяет клетку и не тянет страницу
+  cell.addEventListener('touchmove', (e) => { endPress(); if (e.cancelable) e.preventDefault(); }, { passive: false });
   cell.addEventListener('click', () => {
     if (longPressed) { longPressed = false; return; }
     if (minesState.flagMode) minesFlag(i); else minesTap(i);
@@ -1149,6 +1155,9 @@ function flappyMount() {
 
   const flap = (e) => { e.preventDefault(); flappyFlap(); };
   flappyState.canvas.addEventListener('pointerdown', flap);
+  // Свайп по полю не должен ни прокручивать страницу, ни обновлять её
+  host.querySelector('.flappy-wrap').addEventListener('touchmove',
+    (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
   document.getElementById('flappyNew').addEventListener('click', () => flappyReset());
   document.getElementById('flappySound').addEventListener('click', () => {
     flappyState.sound = !flappyState.sound;
@@ -1514,6 +1523,10 @@ async function openGamesView() {
 (function gamesBoot() {
   const start = () => {
     const view = (location.hash || '').slice(1);
+    // Ссылка сразу на экран игры: showView успел отработать до загрузки этого
+    // файла, поэтому полноэкранный режим включаем сами. Без этого на body не
+    // было класса game-fs и жесты страницы оставались включёнными.
+    gamesFullscreen(view);
     if (view === 'games') openGamesView();
     else if (view === 'sudoku') sudokuMount();
     else if (view === 'minesweeper') minesMount();

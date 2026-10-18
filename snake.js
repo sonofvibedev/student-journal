@@ -76,6 +76,11 @@ function snakeMount() {
   });
   wrap.addEventListener('pointercancel', () => { snakeState.swipeFrom = null; });
 
+  // Касание по полю — только игра: ни прокрутки, ни «потяни, чтобы обновить».
+  // Слушатель не passive, иначе preventDefault браузер проигнорирует.
+  wrap.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+  wrap.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+
   document.getElementById('snakePad').addEventListener('click', (e) => {
     const b = e.target.closest('.snake-key');
     if (!b) return;
