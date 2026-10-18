@@ -111,7 +111,35 @@ const ACHIEVEMENTS = [
   { code: 'game_flappy_25', cat: 'games', icon: 'flappyUp', tier: 'bronze', points: 15,
     title: 'Набрал высоту', about: '25 труб во Flappy Bird' },
   { code: 'game_flappy_75', cat: 'games', icon: 'flappyKing', tier: 'gold', points: 40,
-    title: 'Покоритель небес', about: '75 труб во Flappy Bird' }
+    title: 'Покоритель небес', about: '75 труб во Flappy Bird' },
+
+  // Змейка и «Ассоциации». Очки здесь тоже игровые: в учебный рейтинг они
+  // не идут. Значки за место в рейтинге и за число сыгранных игр выдаёт
+  // сервер — по одному результату их не видно.
+  { code: 'game_snake_bite', cat: 'games', icon: 'apple', tier: 'bronze', points: 10,
+    title: 'Первый перекус', about: 'Змейка съела первую еду' },
+  { code: 'game_snake_30', cat: 'games', icon: 'snake', tier: 'silver', points: 20,
+    title: 'Удав', about: 'Змейка длиной 30 клеток' },
+  { code: 'game_snake_60', cat: 'games', icon: 'snakeCrown', tier: 'gold', points: 40,
+    title: 'Анаконда', about: 'Змейка длиной 60 клеток' },
+  { code: 'game_snake_top5', cat: 'games', icon: 'snake', tier: 'gold', points: 30, rank: 5,
+    title: 'Заклинатель змей', about: 'Попасть в топ-5 рейтинга змейки' },
+  { code: 'game_assoc_first', cat: 'games', icon: 'bulb', tier: 'bronze', points: 10,
+    title: 'Догадливый', about: 'Первое угаданное «Слово дня»' },
+  { code: 'game_assoc_flash', cat: 'games', icon: 'bulbBolt', tier: 'gold', points: 30,
+    title: 'С полуслова', about: '«Слово дня» угадано после первой подсказки' },
+  { code: 'game_assoc_week', cat: 'games', icon: 'calCheck', tier: 'gold', points: 30,
+    title: 'Неделя догадок', about: '«Слово дня» угадано семь дней подряд' },
+  { code: 'game_assoc_top5', cat: 'games', icon: 'thought', tier: 'gold', points: 30, rank: 5,
+    title: 'Ассоциатор', about: 'Попасть в топ-5 «Ассоциаций» за месяц' },
+  { code: 'game_player', cat: 'games', icon: 'joystick', tier: 'bronze', points: 10,
+    title: 'Игрок', about: 'Сыграть хотя бы в одну игру журнала' },
+  { code: 'game_all_five', cat: 'games', icon: 'joystickStar', tier: 'silver', points: 20,
+    title: 'Мастер на все руки', about: 'Сыграть во все пять игр' },
+  { code: 'game_three_top5', cat: 'games', icon: 'fiveStars', tier: 'gold', points: 60, rank: 3,
+    title: 'Трижды в пятёрке', about: 'Одновременно в топ-5 любых трёх игр' },
+  { code: 'game_five_top5', cat: 'games', icon: 'fiveStars', tier: 'gold', points: 150, rank: 5,
+    title: 'Пятёрка в пятёрке', about: 'Одновременно в топ-5 всех пяти игр' }
 ];
 
 // Значки за рекорды выдаёт сервер после проверенной партии, поэтому сам

@@ -285,10 +285,30 @@ test('мусор вместо результата значка не даёт', 
 
 test('у каждого значка есть игровые очки и они не учебные', () => {
   const codes = Object.keys(GAME_BADGES);
-  assert.equal(codes.length, 8, 'значков должно быть восемь');
+  assert.equal(codes.length, 20, 'значков должно быть двадцать');
   codes.forEach((code) => {
     assert.ok(code.startsWith('game_'), code + ': код без приставки game_');
     assert.ok(GAME_BADGES[code].points > 0, code + ': нет игровых очков');
+  });
+});
+
+
+test('змейка: значки по длине, первый — за первую еду', () => {
+  assert.deepEqual(gameBadgesFor('snake', 'none', 3), []);
+  assert.deepEqual(gameBadgesFor('snake', 'none', 4), ['game_snake_bite']);
+  assert.deepEqual(gameBadgesFor('snake', 'none', 30), ['game_snake_bite', 'game_snake_30']);
+  assert.deepEqual(gameBadgesFor('snake', 'none', 60),
+    ['game_snake_bite', 'game_snake_30', 'game_snake_60']);
+});
+
+test('значки за место в рейтинге по счёту партии не выдаются', () => {
+  const byScore = []
+    .concat(gameBadgesFor('snake', 'none', 999))
+    .concat(gameBadgesFor('flappy', 'none', 999))
+    .concat(gameBadgesFor('rank', 'none', 999));
+  ['game_snake_top5', 'game_assoc_top5', 'game_player', 'game_all_five',
+   'game_three_top5', 'game_five_top5', 'game_assoc_first'].forEach((code) => {
+    assert.equal(byScore.includes(code), false, code + ': выдан по счёту партии');
   });
 });
 

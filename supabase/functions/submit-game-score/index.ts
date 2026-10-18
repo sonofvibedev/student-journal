@@ -18,6 +18,8 @@
 // Правила игр берутся из того же файла, что и на странице (_shared/games-core.js),
 // его кладёт туда tools/sync-games-core.js. Две реализации разойтись не могут.
 import { admin, json, cors } from '../_shared/common.ts';
+import { grantBadges } from '../_shared/words.ts';
+import { rankBadges } from '../_shared/ranks.ts';
 import {
   SUDOKU_LEVELS, sudokuVerify,
   MINES_LEVELS, minesReplay,
@@ -144,7 +146,10 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (prev && (betterIsLess ? prev.score <= score : prev.score >= score)) {
-    return json({ ok: true, record: prev.score, improved: false });
+    // Рекорд не улучшен, но пятёрка могла измениться из-за чужих партий —
+    // значки за место в рейтинге всё равно пересчитываем
+    const badges = await grantBadges(studentId, await rankBadges(studentId));
+    return json({ ok: true, record: prev.score, improved: false, badges });
   }
 
   const row = {
@@ -159,43 +164,10 @@ Deno.serve(async (req) => {
   // Значки за рекорд выдаёт только эта функция и только здесь: партия уже
   // переиграна по зерну и признана честной. У студента прав на запись
   // значков с приставкой game_ нет, поэтому выдать их себе нельзя.
-  const badges = await grantGameBadges(studentId, game, difficulty, score);
+  // Вместе с ними пересчитываются значки за место в рейтинге и за число
+  // сыгранных игр: новый рекорд мог сдвинуть пятёрку.
+  const earned = gameBadgesFor(game, difficulty, score).concat(await rankBadges(studentId));
+  const badges = await grantBadges(studentId, earned);
 
   return json({ ok: true, record: score, improved: true, badges });
 });
-
-// Записывает заслуженные значки и возвращает коды тех, что выданы впервые.
-// Повтор не страшен: уникальный индекс не даст второй такой строки, 23505
-// означает «уже есть» и ошибкой не считается.
-async function grantGameBadges(
-  studentId: string, game: string, difficulty: string, score: number,
-): Promise<string[]> {
-  const codes: string[] = gameBadgesFor(game, difficulty, score);
-  if (!codes.length) return [];
-
-  const { data: had } = await admin
-    .from('student_achievements').select('code')
-    .eq('student_id', studentId).in('code', codes);
-  const have = new Set((had ?? []).map((r: { code: string }) => r.code));
-  const fresh = codes.filter((c) => !have.has(c));
-  if (!fresh.length) return [];
-
-  const now = new Date().toISOString();
-  const { error } = await admin.from('student_achievements').insert(
-    fresh.map((code) => ({
-      student_id: studentId, code, period: '', semester: gameSemester(now), earned_at: now,
-    })),
-  );
-  if (error && error.code !== '23505') return [];
-  return fresh;
-}
-
-// Семестр в том же виде, что и в study-days.json: fall-2026 или spring-2026.
-// Сентябрь — январь считаем осенним, остальное весенним.
-function gameSemester(iso: string): string {
-  const d = new Date(iso);
-  const m = d.getMonth();                 // 0 — январь
-  const fall = m >= 8 || m === 0;         // сентябрь…декабрь и январь
-  const year = m === 0 ? d.getFullYear() - 1 : d.getFullYear();
-  return fall ? `fall-${year}` : `spring-${d.getFullYear()}`;
-}
