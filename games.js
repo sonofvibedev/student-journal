@@ -36,7 +36,7 @@ const GAMES_META = {
   },
   assoc: {
     title: 'Ассоциации', view: 'words', unit: 'points',
-    note: 'угадайте слово по подсказкам',
+    note: 'угадайте слово по близости',
     icon: '<path d="M7.6 14.6a3.4 3.4 0 01-.6-6.7 4 4 0 017.4-1.4 3.2 3.2 0 014.2 3 3.3 3.3 0 01-3.3 3.3h-1"/><path d="M9.2 14.6h5"/><circle cx="7.4" cy="18.2" r="1.3"/>'
   },
   snake: {
@@ -290,8 +290,8 @@ function gamesAssocTile(signed) {
     ? (a.loaded
         ? (a.pending ? 'Слово дня ждёт' : 'Слово дня сыграно') +
           ' · за месяц ' + (a.points || 0) + ' ' + gamePointsWord(a.points || 0)
-        : 'угадайте слово по подсказкам')
-    : 'угадайте слово по подсказкам';
+        : GAMES_META.assoc.note)
+    : GAMES_META.assoc.note;
   const streak = tile.querySelector('#gamesAssocStreak');
   if (streak) streak.textContent = a.loaded ? gamesStreakText(a.streak || 0) : '';
   tile.addEventListener('click', () => { haptic('selection'); goView('words'); });
