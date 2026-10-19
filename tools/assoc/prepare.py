@@ -19,6 +19,7 @@
 """
 
 import gzip
+import hashlib
 import json
 import os
 import sys
@@ -43,6 +44,13 @@ BAD_GRAMMEMES = {'Name', 'Surn', 'Patr', 'Geox', 'Orgn', 'Trad', 'Abbr', 'Infr',
 def norm(word):
     """ё → е, нижний регистр, без краёв."""
     return unicodedata.normalize('NFC', str(word)).strip().lower().replace('ё', 'е')
+
+
+def key_of(word):
+    """Имя файла в бакете. Storage не принимает кириллицу в ключах, поэтому
+    имя — это sha-256 от нормализованного слова. Edge Function считает ровно
+    такой же хеш, а читаемый список слов лежит рядом в index.json."""
+    return hashlib.sha256(norm(word).encode('utf-8')).hexdigest()[:32]
 
 
 def is_cyrillic(word):
@@ -141,6 +149,7 @@ def build_ranks():
     targets = read_targets()
     os.makedirs(OUT_DIR, exist_ok=True)
 
+    done = []
     matrix = np.stack([navec[w] for w in words]).astype('float32')
     matrix /= np.linalg.norm(matrix, axis=1, keepdims=True)
     index = {w: i for i, w in enumerate(words)}
@@ -155,12 +164,19 @@ def build_ranks():
         ranked = [words[i] for i in order]
         assert ranked[0] == target, target + ': загаданное слово должно быть первым'
 
-        path = os.path.join(OUT_DIR, target + '.json.gz')
+        path = os.path.join(OUT_DIR, key_of(target) + '.json.gz')
         with gzip.open(path, 'wt', encoding='utf-8') as f:
             json.dump({'word': target, 'words': ranked}, f, ensure_ascii=False)
         size = os.path.getsize(path) / 1024
+        done.append(target)
         print(f'{n:3d}/{len(targets)}  {target:<16} {size:6.0f} КБ  ближайшие: ' +
               ', '.join(ranked[1:6]))
+
+    # Список слов: по нему админка показывает, что можно загадать, не
+    # перебирая бакет и не раскрывая имена файлов
+    with gzip.open(os.path.join(OUT_DIR, 'index.json.gz'), 'wt', encoding='utf-8') as f:
+        json.dump({'words': sorted(done)}, f, ensure_ascii=False)
+    print('индекс:', len(done), 'слов')
 
 
 def check():

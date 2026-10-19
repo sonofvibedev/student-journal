@@ -39,6 +39,8 @@ def request(method, path, data=None, content_type=None):
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
     files = sorted(f for f in os.listdir(OUT_DIR) if f.endswith('.json.gz'))
+    # Можно и через Supabase CLI одной командой:
+    #   npx supabase storage cp -r tools/assoc/out ss:///assoc-ranks     #       --project-ref <ref> --experimental
     if not files:
         sys.exit('В out/ нет рейтингов — сначала запустите prepare.py ranks')
 
@@ -47,8 +49,10 @@ def main():
         with open(os.path.join(OUT_DIR, name), 'rb') as f:
             body = f.read()
         # upsert: повторная заливка заменяет файл, а не падает с ошибкой
+        # Папка out/ и хеш-имена: Storage не принимает кириллицу в ключах,
+        # а Edge Function считает такой же хеш от слова
         status, text = request(
-            'POST', f'/storage/v1/object/{BUCKET}/{name}?upsert=true',
+            'POST', f'/storage/v1/object/{BUCKET}/out/{name}?upsert=true',
             data=body, content_type='application/gzip',
         )
         if status in (200, 201):

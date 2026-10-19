@@ -12,6 +12,36 @@ import { assocNormalize, assocPoints, assocHintRank } from './games-core.js';
 export { assocNormalize, assocPoints };
 
 export const BUCKET = 'assoc-ranks';
+// Файлы лежат в папке out/, имя файла — хеш слова: Storage не принимает
+// кириллицу в именах объектов. Читаемый список слов — в out/index.json.gz,
+// по нему админка показывает, что можно загадать.
+const PREFIX = 'out/';
+const INDEX = PREFIX + 'index.json.gz';
+
+// Тот же ключ, что считает tools/assoc/prepare.py: первые 32 знака sha-256
+export async function assocKey(word: string): Promise<string> {
+  const data = new TextEncoder().encode(assocNormalize(word));
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}
+
+// Скачать и распаковать gzip-файл из бакета
+async function readGzip(path: string): Promise<unknown | null> {
+  const { data, error } = await admin.storage.from(BUCKET).download(path);
+  if (error || !data) return null;
+  const unzipped = data.stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(unzipped).text());
+}
+
+// Слова, для которых посчитан рейтинг
+let indexCache: string[] | null = null;
+
+export async function assocWords(): Promise<string[]> {
+  if (indexCache) return indexCache;
+  const data = await readGzip(INDEX) as { words?: string[] } | null;
+  indexCache = data?.words ?? [];
+  return indexCache;
+}
 
 export type Ranks = {
   word: string;
@@ -27,12 +57,8 @@ export async function loadRanks(word: string): Promise<Ranks | null> {
   const cached = cache.get(key);
   if (cached) return cached;
 
-  const { data, error } = await admin.storage.from(BUCKET).download(key + '.json.gz');
-  if (error || !data) return null;
-
-  const unzipped = data.stream().pipeThrough(new DecompressionStream('gzip'));
-  const text = await new Response(unzipped).text();
-  const parsed = JSON.parse(text) as { word: string; words: string[] };
+  const parsed = await readGzip(PREFIX + await assocKey(key) + '.json.gz') as
+    { word: string; words: string[] } | null;
   if (!parsed?.words?.length) return null;
 
   const place = new Map<string, number>();
