@@ -575,103 +575,82 @@ export function snakeSimulate(seed, turns, limitSteps) {
 // ============================================================================
 // АССОЦИАЦИИ
 //
-// Слово загадано, подсказки открываются по одной. Чем раньше угадал, тем
-// больше очков: после первой подсказки — 6, после шестой — 1. Первая буква
-// стоит одно очко и доступна с третьей подсказки.
+// Загадано существительное. Игрок называет любые существительные, игра
+// отвечает местом слова в рейтинге близости к загаданному: №1 — само
+// загаданное слово, чем меньше номер, тем ближе.
 //
-// Само слово, подсказки и список допустимых ответов лежат только в базе и
-// выдаются Edge Function по одному. Здесь — лишь правила сравнения ответа и
-// счёт очков: они нужны обеим сторонам, и тренировке на клиенте тоже.
+// Здесь только правила, которые нужны обеим сторонам: как привести ввод к
+// виду словаря, сколько очков стоит разгаданное слово, какое слово выдать
+// подсказкой и каким цветом рисовать полосу близости. Сам рейтинг лежит в
+// приватном бакете и живёт только на сервере.
 // ============================================================================
 
 export const ASSOC = {
-  hints: 6,           // столько подсказок всего
-  letterCost: 1,      // во столько очков обходится открытая первая буква
-  letterFromHint: 3,  // букву можно открыть начиная с этой подсказки
-  typoFrom: 6         // в словах от стольких букв прощается одна опечатка
+  top: 100,          // столько ближайших слов показываем в конце игры
+  base: 100,         // очки за слово, угаданное с первой попытки
+  perTry: 2,         // столько очков снимает каждая следующая попытка
+  perHint: 10,       // столько очков стоит подсказка
+  minPoints: 10,     // меньше этого за угаданное слово не дают
+  green: 300,        // до этого места — очень близко
+  yellow: 1500       // до этого — средне, дальше далеко
 };
 
-// Очки за угаданное слово: 6 за первую подсказку, 1 за шестую, минус очко
-// за открытую букву. Не угадал — ноль, ниже нуля не уходим.
-export function assocPoints(hint, letterUsed) {
-  if (!Number.isInteger(hint) || hint < 1 || hint > ASSOC.hints) return 0;
-  const base = ASSOC.hints + 1 - hint;
-  return Math.max(0, base - (letterUsed ? ASSOC.letterCost : 0));
-}
-
-// Приведение ответа к сравнимому виду: регистр, ё, края и лишние пробелы
-// внутри не должны решать, угадал человек или нет. Знаки препинания и дефисы
-// тоже не считаются: «ко-пи-райт» и «копирайт» — один ответ.
-export function assocNormalize(str) {
-  return String(str == null ? '' : str)
+// Ввод приводим к виду словаря: регистр, ё, края и лишние пробелы внутри
+// не должны решать, знает игра слово или нет.
+export function assocNormalize(input) {
+  return String(input == null ? '' : input)
     .toLowerCase()
     .replace(/ё/g, 'е')
-    .replace(/[^0-9a-zа-я\s]/g, '')
+    .replace(/[^0-9a-zа-я\s-]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-// Окончания от длинных к коротким: нужны, чтобы «дедлайны» и «дедлайна»
-// считались тем же словом, что и «дедлайн». Это не морфология, а грубое
-// отсечение хвоста — его хватает, потому что сравниваются два варианта
-// одного и того же слова, а не любые слова языка.
-const ASSOC_ENDINGS = ['ами', 'ями', 'ов', 'ев', 'ей', 'ам', 'ям', 'ах', 'ях',
-  'ии', 'ие', 'ия', 'ый', 'ий', 'ой', 'ом', 'ем', 'ую', 'юю',
-  'ы', 'и', 'а', 'я', 'у', 'ю', 'е', 'й', 'о'];
-
-// Основа слова: хвост отсекается, если без него остаётся не меньше трёх букв
-export function assocStem(word) {
-  const w = String(word || '');
-  for (let i = 0; i < ASSOC_ENDINGS.length; i++) {
-    const end = ASSOC_ENDINGS[i];
-    if (w.length - end.length >= 3 && w.endsWith(end)) return w.slice(0, w.length - end.length);
-  }
-  return w;
+// Очки за угаданное «Слово дня». Чем меньше попыток и подсказок, тем больше,
+// но ниже минимума не опускаемся. Сдался — ноль, это решает вызывающий код.
+export function assocPoints(tries, hints) {
+  const t = Number.isFinite(tries) && tries > 0 ? Math.floor(tries) : 1;
+  const h = Number.isFinite(hints) && hints > 0 ? Math.floor(hints) : 0;
+  return Math.max(ASSOC.minPoints, ASSOC.base - ASSOC.perTry * (t - 1) - ASSOC.perHint * h);
 }
 
-// Основа каждого слова ответа: «крайние сроки» и «крайний срок» сойдутся
-function assocStemPhrase(phrase) {
-  return assocNormalize(phrase).split(' ').map(assocStem).join(' ');
+// Цвет полосы близости по месту слова
+export function assocBarColor(rank) {
+  if (!Number.isFinite(rank) || rank <= 0) return 'red';
+  if (rank <= ASSOC.green) return 'green';
+  if (rank <= ASSOC.yellow) return 'yellow';
+  return 'red';
 }
 
-// Расстояние Левенштейна, но дальше limit не считаем: нужен лишь ответ
-// «одна опечатка или больше».
-export function assocDistance(a, b, limit = 2) {
-  if (Math.abs(a.length - b.length) > limit) return limit + 1;
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    const row = [i];
-    let best = i;
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
-      if (row[j] < best) best = row[j];
+// Длина полосы в долях от 0 до 1: у первого места полная, дальше убывает
+// по логарифму — иначе разница между 20-м и 200-м местом была бы незаметна.
+export function assocBarShare(rank, total) {
+  const n = Number.isFinite(rank) && rank > 0 ? rank : (total || 1);
+  const size = Number.isFinite(total) && total > 1 ? total : 40000;
+  const share = 1 - Math.log(n) / Math.log(size);
+  return Math.max(0.02, Math.min(1, share));
+}
+
+// Подсказка: слово ближе лучшего результата игрока, примерно на половине пути
+// до первого места. Уже названные слова пропускаем, идя ещё ближе к цели.
+// Само загаданное слово подсказкой не выдаём — это был бы ответ.
+// words — рейтинг целиком, used — множество уже названных слов.
+export function assocHintRank(words, best, used) {
+  if (!Array.isArray(words) || words.length < 3) return null;
+  const taken = used instanceof Set ? used : new Set(used || []);
+  const from = Number.isFinite(best) && best > 1 ? Math.floor(best) : words.length;
+  if (from <= 2) return null;
+
+  let rank = Math.max(2, Math.floor(from / 2));
+  while (rank < from && taken.has(words[rank - 1])) rank++;
+  if (rank >= from) {
+    rank = 0;
+    for (let r = 2; r < from; r++) {
+      if (!taken.has(words[r - 1])) { rank = r; break; }
     }
-    if (best > limit) return limit + 1;
-    prev = row;
+    if (!rank) return null;
   }
-  return prev[b.length];
-}
-
-// Подходит ли ответ. accepted — список допустимых ответов слова (сам ответ и
-// синонимы). Сравнение идёт по трём ступеням: как есть, по основам слов и —
-// для слов от шести букв — с одной опечаткой.
-export function assocMatch(answer, accepted) {
-  const given = assocNormalize(answer);
-  if (!given || !Array.isArray(accepted) || !accepted.length) return false;
-  const givenStem = assocStemPhrase(given);
-
-  for (let i = 0; i < accepted.length; i++) {
-    const want = assocNormalize(accepted[i]);
-    if (!want) continue;
-    if (given === want) return true;
-    if (givenStem === assocStemPhrase(want)) return true;
-    // Опечатка прощается только в длинных словах: в коротких «кот» и «код»
-    // это уже другое слово
-    if (Math.max(given.length, want.length) >= ASSOC.typoFrom &&
-        assocDistance(given, want, 1) <= 1) return true;
-  }
-  return false;
+  return { word: words[rank - 1], rank };
 }
 
 // ============================================================================
@@ -740,7 +719,7 @@ export const GamesCore = {
   MINES_LEVELS, MINES_MIN_CELL, minesPickLevel, mineField, mineNeighbors, mineOpen, minesReplay,
   FLAPPY, flappyGame, flappySimulate,
   SNAKE, SNAKE_DIRS, snakeMoveMs, snakeGame, snakeRun, snakeSimulate,
-  ASSOC, assocPoints, assocNormalize, assocStem, assocDistance, assocMatch,
+  ASSOC, assocNormalize, assocPoints, assocBarColor, assocBarShare, assocHintRank,
   GAME_BADGES, gameBadgesFor
 };
 
