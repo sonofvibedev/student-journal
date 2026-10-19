@@ -13,7 +13,7 @@ import {
   MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen, minesPickLevel,
   FLAPPY, flappyGame, flappySimulate, makeRng,
   SNAKE, snakeGame, snakeSimulate, snakeMoveMs, snakeRun,
-  ASSOC, assocNormalize, assocMatch, assocPoints,
+  ASSOC, assocNormalize, assocPoints, assocBarColor, assocBarShare, assocHintRank,
   GAME_BADGES, gameBadgesFor
 } from '../games-core.js';
 
@@ -494,71 +494,91 @@ test('выдуманная длина проверки не проходит', (
 
 console.log('Ассоциации');
 
-test('очки: 6 за первую подсказку, 1 за шестую', () => {
-  assert.equal(assocPoints(1, false), 6);
-  assert.equal(assocPoints(2, false), 5);
-  assert.equal(assocPoints(3, false), 4);
-  assert.equal(assocPoints(4, false), 3);
-  assert.equal(assocPoints(5, false), 2);
-  assert.equal(assocPoints(6, false), 1);
+// Маленький «рейтинг» вместо настоящего: слова по местам, первое — загаданное
+const RANK = ['цель', 'мишень', 'задача', 'план', 'замысел', 'идея', 'мысль',
+  'стол', 'стул', 'дом', 'лес', 'море'];
+const placeOf = (w) => RANK.indexOf(w) + 1;
+
+test('загаданное слово стоит на первом месте', () => {
+  assert.equal(placeOf('цель'), 1);
+  assert.ok(placeOf('мишень') > 1);
 });
 
-test('первая буква стоит одно очко и в минус не уводит', () => {
-  assert.equal(assocPoints(1, true), 5);
-  assert.equal(assocPoints(5, true), 1);
-  assert.equal(assocPoints(6, true), 0);
-  // Не угадал — ноль в любом случае
-  assert.equal(assocPoints(0, false), 0);
-  assert.equal(assocPoints(7, false), 0);
-  assert.equal(assocPoints(null, true), 0);
-});
-
-test('букву можно открыть только с третьей подсказки', () => {
-  assert.equal(ASSOC.letterFromHint, 3);
-  assert.equal(ASSOC.hints, 6);
-});
-
-test('регистр, ё и пробелы по краям не важны', () => {
-  assert.equal(assocNormalize('  ДедЛайн '), 'дедлайн');
+test('нормализация ввода: регистр, ё и пробелы', () => {
+  assert.equal(assocNormalize('  ЦЕЛЬ '), 'цель');
   assert.equal(assocNormalize('Ёлка'), 'елка');
-  assert.equal(assocNormalize('курсовая   работа'), 'курсовая работа');
-  assert.ok(assocMatch('  ДЕДЛАЙН ', ['дедлайн']));
-  assert.ok(assocMatch('Зачётка', ['зачетка']));
+  assert.equal(assocNormalize('ёжик'), 'ежик');
+  assert.equal(assocNormalize('крайний   срок'), 'крайний срок');
+  assert.equal(assocNormalize('Цель!'), 'цель');
+  assert.equal(assocNormalize(null), '');
+  assert.equal(assocNormalize('  '), '');
 });
 
-test('множественное число и начальная форма принимаются', () => {
-  assert.ok(assocMatch('дедлайны', ['дедлайн']));
-  assert.ok(assocMatch('дедлайна', ['дедлайн']));
-  assert.ok(assocMatch('конспект', ['конспекты']));
-  assert.ok(assocMatch('лекции', ['лекция']));
+test('очки: 100 за первую попытку, по 2 за попытку, по 10 за подсказку', () => {
+  assert.equal(assocPoints(1, 0), 100);
+  assert.equal(assocPoints(2, 0), 98);
+  assert.equal(assocPoints(11, 0), 80);
+  assert.equal(assocPoints(1, 1), 90);
+  assert.equal(assocPoints(1, 3), 70);
+  assert.equal(assocPoints(6, 2), 70);
 });
 
-test('в словах от шести букв прощается одна опечатка', () => {
-  assert.ok(assocMatch('дедлайм', ['дедлайн']));
-  assert.ok(assocMatch('конспкт', ['конспект']));
-  // Две опечатки уже не прощаются
-  assert.equal(assocMatch('дедлаим', ['дедлайн']), false);
+test('очки не опускаются ниже минимума', () => {
+  assert.equal(assocPoints(100, 0), ASSOC.minPoints);
+  assert.equal(assocPoints(50, 9), ASSOC.minPoints);
+  assert.equal(assocPoints(1, 100), ASSOC.minPoints);
+  // Мусор вместо чисел считается как первая попытка без подсказок
+  assert.equal(assocPoints(NaN, NaN), 100);
+  assert.equal(assocPoints(0, -5), 100);
 });
 
-test('короткие слова опечаток не прощают', () => {
-  assert.equal(assocMatch('кот', ['код']), false);
-  assert.equal(assocMatch('пара', ['пары']), true);   // это форма слова, а не опечатка
-  assert.equal(assocMatch('парк', ['пара']), false);
+test('подсказка всегда ближе лучшего результата', () => {
+  for (const best of [3, 5, 8, 12]) {
+    const hint = assocHintRank(RANK, best, new Set());
+    assert.ok(hint, 'подсказка не нашлась при лучшем месте ' + best);
+    assert.ok(hint.rank < best, `подсказка ${hint.rank} не ближе ${best}`);
+    assert.ok(hint.rank >= 2, 'подсказка не должна быть самим загаданным словом');
+    assert.equal(RANK[hint.rank - 1], hint.word);
+  }
 });
 
-test('список синонимов принимается целиком', () => {
-  const ok = ['дедлайн', 'срок сдачи', 'крайний срок'];
-  assert.ok(assocMatch('Крайний Срок', ok));
-  assert.ok(assocMatch('срок сдачи', ok));
-  assert.equal(assocMatch('пересдача', ok), false);
+test('подсказка не повторяет уже названное слово', () => {
+  const used = new Set(['задача', 'план', 'замысел']);
+  const hint = assocHintRank(RANK, 8, used);
+  assert.ok(hint);
+  assert.equal(used.has(hint.word), false);
+  assert.ok(hint.rank < 8);
 });
 
-test('пустой и мусорный ответ не проходит', () => {
-  assert.equal(assocMatch('', ['дедлайн']), false);
-  assert.equal(assocMatch('   ', ['дедлайн']), false);
-  assert.equal(assocMatch(null, ['дедлайн']), false);
-  assert.equal(assocMatch('дедлайн', []), false);
-  assert.equal(assocMatch('дедлайн', null), false);
+test('подсказки нет, когда до цели уже всё названо', () => {
+  // Лучший результат — второе место, ближе только само слово
+  assert.equal(assocHintRank(RANK, 2, new Set()), null);
+  // Всё между первым и лучшим местом уже названо
+  const used = new Set(['мишень', 'задача', 'план']);
+  assert.equal(assocHintRank(RANK, 5, used), null);
+  assert.equal(assocHintRank([], 10, new Set()), null);
+  assert.equal(assocHintRank(null, 10, new Set()), null);
+});
+
+test('цвет полосы: зелёный близко, жёлтый средне, красный далеко', () => {
+  assert.equal(assocBarColor(1), 'green');
+  assert.equal(assocBarColor(ASSOC.green), 'green');
+  assert.equal(assocBarColor(ASSOC.green + 1), 'yellow');
+  assert.equal(assocBarColor(ASSOC.yellow), 'yellow');
+  assert.equal(assocBarColor(ASSOC.yellow + 1), 'red');
+  assert.equal(assocBarColor(0), 'red');
+  assert.equal(assocBarColor(NaN), 'red');
+});
+
+test('полоса близости тем длиннее, чем ближе слово', () => {
+  const total = 40000;
+  const first = assocBarShare(1, total);
+  const near = assocBarShare(10, total);
+  const far = assocBarShare(30000, total);
+  assert.equal(first, 1, 'у первого места полоса полная');
+  assert.ok(near > far, 'ближнее слово должно иметь полосу длиннее');
+  assert.ok(far >= 0.02 && far <= 1, 'полоса не выходит за свои пределы');
+  assert.ok(assocBarShare(total, total) >= 0.02);
 });
 
 console.log(`\nПроверок пройдено: ${passed}`);
