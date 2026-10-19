@@ -127,7 +127,7 @@ const ACHIEVEMENTS = [
   { code: 'game_assoc_first', cat: 'games', icon: 'bulb', tier: 'bronze', points: 10,
     title: 'Догадливый', about: 'Первое угаданное «Слово дня»' },
   { code: 'game_assoc_flash', cat: 'games', icon: 'bulbBolt', tier: 'gold', points: 30,
-    title: 'С полуслова', about: '«Слово дня» угадано после первой подсказки' },
+    title: 'С полуслова', about: '«Слово дня» угадано за 10 попыток и без подсказок' },
   { code: 'game_assoc_week', cat: 'games', icon: 'calCheck', tier: 'gold', points: 30,
     title: 'Неделя догадок', about: '«Слово дня» угадано семь дней подряд' },
   { code: 'game_assoc_top5', cat: 'games', icon: 'thought', tier: 'gold', points: 30, rank: 5,

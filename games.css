@@ -253,41 +253,92 @@ body.game-fs .fab { display: none; }
 }
 
 /* ===== Ассоциации ===== */
-.words-box { display: grid; gap: var(--space-3); }
+/* Экран целиком влезает в телефон: поле ввода и счётчики стоят на месте,
+   прокручивается только список попыток внутри своего блока. */
+#viewWords { display: flex; flex-direction: column; min-height: 0; }
+#wordsHost { display: flex; flex-direction: column; gap: var(--space-3); min-height: 0; flex: 1 1 auto; }
+.words-box { display: flex; flex-direction: column; gap: var(--space-3); min-height: 0; flex: 1 1 auto; }
+
 .word-card {
   display: grid; gap: var(--space-3);
   padding: var(--space-4); border-radius: var(--radius-lg);
   background-color: var(--pane-bg); border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
 }
+/* Блок со списком попыток: он и прокручивается */
+.word-card.is-list {
+  flex: 0 1 auto; min-height: 120px; overflow-y: auto;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: var(--space-3);
+}
 .word-lead { margin: 0; color: var(--color-text-secondary); font-size: var(--fs-small); }
-.word-hints { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.word-hint { display: flex; align-items: baseline; gap: 10px; }
-.word-hint b {
-  flex: none; width: 22px; height: 22px; border-radius: 50%;
-  display: grid; place-items: center;
-  background-color: var(--color-accent); color: #fff;
-  font-size: var(--fs-caption); font-weight: 600;
-}
-.word-hint span { color: var(--color-text); overflow-wrap: anywhere; }
-.word-hint.is-left { color: var(--color-text-tertiary); font-size: var(--fs-small); padding-left: 32px; }
-.word-letter, .word-answer { margin: 0; color: var(--color-text); }
-.word-ask { display: flex; gap: 8px; }
-.word-ask .form-control { flex: 1 1 auto; min-width: 0; }
-.word-ask .btn { flex: none; }
-.word-miss { margin: 0; color: var(--color-danger); font-size: var(--fs-small); }
-.word-acts { display: flex; gap: 8px; flex-wrap: wrap; }
-.word-result {
-  font-size: var(--fs-title); font-weight: 700; color: var(--color-text-secondary);
-}
-.word-result.is-win { color: var(--color-accent); }
+.word-note { margin: 0; color: var(--color-danger); font-size: var(--fs-small); }
 
-.word-admin-row { display: flex; align-items: center; gap: 10px; }
-.word-admin-row .lbl { flex: 1 1 auto; min-width: 0; }
-/* Вкладки игр в листе рейтинга: в один ряд с прокруткой, если не влезают */
-.games-diffs.is-games { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-.games-diffs.is-games::-webkit-scrollbar { display: none; }
-.games-diffs.is-games .games-diff { flex: none; }
+.word-form { display: grid; gap: 8px; }
+.word-ask { display: flex; gap: 8px; }
+.word-ask .form-control { flex: 1 1 auto; min-width: 0; font-size: 16px; }
+.word-ask .btn { flex: none; }
+
+.word-stats {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  color: var(--color-text-secondary); font-size: var(--fs-small);
+}
+.word-stats b { color: var(--color-text); }
+.word-stats-points { margin-left: auto; }
+.word-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.word-acts .btn { flex: 1 1 auto; }
+
+/* Список попыток: место, слово и полоса близости */
+.word-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.word-list.is-last-row { margin-top: 2px; }
+.word-row {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: var(--radius-sm); overflow: hidden;
+  background-color: var(--color-surface-2);
+}
+/* Полоса — фон строки: чем ближе слово, тем она длиннее */
+.word-row-bar {
+  position: absolute; inset: 0 auto 0 0; width: var(--w, 0%);
+  background-color: currentColor; opacity: .22; pointer-events: none;
+}
+.word-row.is-green { color: var(--color-success-text, #35b37e); }
+.word-row.is-yellow { color: #d9a441; }
+.word-row.is-red { color: #d2544f; }
+.word-row-word {
+  position: relative; flex: 1 1 auto; min-width: 0;
+  color: var(--color-text); overflow-wrap: anywhere;
+}
+.word-row-rank {
+  position: relative; flex: none;
+  color: var(--color-text); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.word-row-tag {
+  margin-left: 6px; padding: 1px 6px; border-radius: var(--radius-pill);
+  background-color: var(--color-accent); color: #fff;
+  font-size: var(--fs-caption); font-style: normal;
+}
+/* Последнее введённое слово выделено рамкой */
+.word-row.is-last { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+.word-result { font-size: var(--fs-title); font-weight: 700; color: var(--color-text-secondary); }
+.word-result.is-win { color: var(--color-accent); }
+.word-answer { margin: 0; color: var(--color-text); }
+.word-near summary { color: var(--color-accent); cursor: pointer; font-size: var(--fs-small); }
+.word-near-list {
+  margin: 8px 0 0; padding-left: 20px;
+  color: var(--color-text-secondary); font-size: var(--fs-small);
+  columns: 2; column-gap: 16px;
+}
+
+/* Выбор слова в админке */
+.word-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.word-pick {
+  padding: 5px 10px; border-radius: var(--radius-pill);
+  border: 1px solid var(--color-separator); background: none;
+  color: var(--color-text); font-size: var(--fs-small);
+}
+.word-pick.is-used { color: var(--color-text-tertiary); border-style: dashed; }
+.word-pick i { margin-left: 6px; font-style: normal; font-size: var(--fs-caption); opacity: .7; }
 
 /* Короткий топ-3 на плитке таблицы лидеров */
 .board-mini { display: grid; gap: 4px; width: 100%; }

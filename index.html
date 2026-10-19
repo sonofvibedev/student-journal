@@ -2555,6 +2555,9 @@
 <!-- Админ-панель «Ассоциаций»: слово на сегодня и тренировочный набор.
      Слово уходит прямо в Supabase через Edge Function word-admin; она
      пускает только того, у кого токен GitHub с правом записи в репозиторий. -->
+<!-- Админ-панель «Ассоциаций»: какое слово загадано сегодня и из чего выбирать.
+     Выбрать можно только слово с готовым рейтингом — его считает
+     tools/assoc/prepare.py и заливает upload.py в приватный бакет. -->
 <div class="modal fade" id="wordAdminModal" tabindex="-1" aria-labelledby="wordAdminTitle">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
@@ -2565,25 +2568,21 @@
       <div class="modal-body">
         <p class="small text-secondary" id="wordAdminState" role="status">Загружаем…</p>
 
-        <form id="wordAdminForm" onsubmit="saveWordOfDay(); return false;" novalidate>
-          <label class="form-label small text-secondary" for="wordAdminWord">Загаданное слово</label>
-          <input type="text" class="form-control mb-3" id="wordAdminWord" maxlength="48" autocomplete="off" placeholder="ДЕДЛАЙН">
-
-          <label class="form-label small text-secondary">Шесть подсказок, от далёкой к близкой</label>
-          <div class="mb-3" id="wordAdminHints"></div>
-
-          <label class="form-label small text-secondary" for="wordAdminAnswers">Другие допустимые ответы, через запятую</label>
-          <input type="text" class="form-control mb-3" id="wordAdminAnswers" maxlength="200" autocomplete="off" placeholder="срок сдачи, крайний срок">
-
-          <button type="submit" class="btn btn-primary w-100 fw-bold">Задать слово на сегодня</button>
-          <p class="small mt-2 mb-0" id="wordAdminNote" role="status"></p>
-        </form>
+        <label class="form-label small text-secondary" for="wordAdminSearch">Выберите слово на сегодня</label>
+        <input type="search" class="form-control mb-2" id="wordAdminSearch" placeholder="Поиск по началу слова"
+               autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p class="small text-secondary mb-2" id="wordAdminCount"></p>
+        <div class="word-picks" id="wordAdminWords"></div>
+        <p class="small mt-2 mb-0" id="wordAdminNote" role="status"></p>
 
         <hr class="my-4">
 
         <h6 class="text-white">Тренировка</h6>
-        <p class="small text-secondary">Слова для тренировки. Одна строка — одно слово: слово, шесть подсказок и, если нужно, синонимы — через вертикальную черту. Синонимы в последнем поле разделяются запятой.</p>
-        <textarea class="form-control mb-2" id="wordAdminBulk" rows="4" spellcheck="false" placeholder="СЕССИЯ | январь | зачётка | бессонница | шпаргалка | комиссия | экзамены подряд | зачётная неделя"></textarea>
+        <p class="small text-secondary">В тренировке сами собой идут все прошлые слова дня.
+          Сюда можно добавить слова, которые загадывать в «Слове дня» не планируете —
+          через пробел или запятую. Рейтинг для них тоже должен быть готов.</p>
+        <textarea class="form-control mb-2" id="wordAdminBulk" rows="3" spellcheck="false"
+                  placeholder="море лес дорога"></textarea>
         <button type="button" class="btn btn-secondary w-100" onclick="addTrainWords()">Добавить в тренировку</button>
         <p class="small mt-2" id="wordAdminBulkNote" role="status"></p>
         <div class="rows" id="wordAdminTrainList"></div>
