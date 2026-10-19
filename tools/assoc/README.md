@@ -23,13 +23,19 @@ https://storage.yandexcloud.net/natasha-navec/packs/navec_hudlit_v1_12B_500K_300
 python tools/assoc/prepare.py dict    # словарь существительных (40 000 слов)
 python tools/assoc/prepare.py ranks   # рейтинги для слов из targets.txt
 python tools/assoc/prepare.py check   # проверка: всё ли на месте
-python tools/assoc/upload.py          # залить рейтинги в бакет assoc-ranks
 ```
 
-Для заливки нужен секретный ключ проекта в переменной окружения:
+Заливка в бакет — через Supabase CLI, он уже знает вход администратора:
+
+```
+npx supabase storage cp -r tools/assoc/out ss:///assoc-ranks     --project-ref woiqekpuoddxixlrbvkp --experimental
+```
+
+Либо скриптом, если удобнее задать ключ руками:
 
 ```
 $env:SUPABASE_SERVICE_KEY = "<секретный ключ из настроек проекта>"
+python tools/assoc/upload.py
 ```
 
 Ключ в репозиторий не попадает и нигде не сохраняется.
@@ -48,10 +54,14 @@ $env:SUPABASE_SERVICE_KEY = "<секретный ключ из настроек 
 
 ## Как устроен рейтинг
 
-Файл `out/<слово>.json.gz` — это `{ "word": "<загаданное>", "words": [...] }`,
+Файл `out/<хеш слова>.json.gz` — это `{ "word": "<загаданное>", "words": [...] }`,
 где `words` — все слова словаря по убыванию близости. Место слова равно его
 номеру в списке плюс один, поэтому само загаданное слово всегда стоит первым.
 Близость — косинус между векторами Navec.
+
+Имя файла — первые 32 знака sha-256 от нормализованного слова: Supabase Storage
+не принимает кириллицу в именах объектов. Читаемый список слов лежит рядом в
+`out/index.json.gz` — по нему админка показывает, что можно загадать.
 
 Сервер (Edge Function `word-of-day`) скачивает такой файл из бакета, держит его
 в памяти и отвечает игроку только номером присланного слова. Ни загаданное

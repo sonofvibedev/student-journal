@@ -1,4 +1,4 @@
-// Админ-панель «Ассоциаций»: слово на сегодня и набор для тренировки.
+﻿// Админ-панель «Ассоциаций»: слово на сегодня и набор для тренировки.
 //
 // Кто админ: тот, у кого есть токен GitHub с правом записи в репозиторий
 // журнала — ровно тот же токен, которым админка сохраняет data.json. Функция
@@ -17,7 +17,7 @@
 //   train_remove убрать слово из тренировки
 import { admin, json, cors } from '../_shared/common.ts';
 import { minskDay, isRepoAdmin } from '../_shared/words.ts';
-import { assocNormalize, BUCKET } from '../_shared/assoc.ts';
+import { assocNormalize, assocWords } from '../_shared/assoc.ts';
 
 type Body = Record<string, unknown>;
 
@@ -59,14 +59,14 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'available') {
-    const words = await availableWords();
+    const words = await assocWords();
     return json({ ok: true, words });
   }
 
   if (action === 'set_daily') {
     const word = assocNormalize(body.word);
     if (!word) return json({ error: 'bad_word' }, 400);
-    const words = await availableWords();
+    const words = await assocWords();
     // Без рейтинга игра не заработает, поэтому такое слово не принимаем
     if (!words.includes(word)) return json({ error: 'no_ranks' }, 400);
 
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const words = raw.map((w) => assocNormalize(w)).filter(Boolean);
     if (!words.length || words.length > 200) return json({ error: 'bad_items' }, 400);
 
-    const have = await availableWords();
+    const have = await assocWords();
     const missing = words.filter((w) => !have.includes(w));
     if (missing.length) return json({ error: 'no_ranks', words: missing }, 400);
 
@@ -115,22 +115,6 @@ Deno.serve(async (req) => {
 
   return json({ error: 'bad_action' }, 400);
 });
-
-// Слова, для которых в бакете есть рейтинг. Имя файла — это само слово.
-async function availableWords(): Promise<string[]> {
-  const out: string[] = [];
-  // Бакет отдаёт файлы страницами, поэтому идём до конца
-  for (let page = 0; page < 20; page++) {
-    const { data, error } = await admin.storage.from(BUCKET)
-      .list('', { limit: 100, offset: page * 100, sortBy: { column: 'name', order: 'asc' } });
-    if (error || !data?.length) break;
-    for (const file of data) {
-      if (file.name.endsWith('.json.gz')) out.push(assocNormalize(file.name.replace(/\.json\.gz$/, '')));
-    }
-    if (data.length < 100) break;
-  }
-  return out;
-}
 
 // Слово в каталоге: если такое уже есть — берём его, иначе заводим
 async function wordId(word: string, kind: string, who: string): Promise<number | null> {
