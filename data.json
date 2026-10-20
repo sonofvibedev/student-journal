@@ -2125,6 +2125,87 @@
       "isExcused": false,
       "subject": "Функционально-стоимостный анализ",
       "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l0-55",
+      "studentId": "st-1758300000002",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l1-699",
+      "studentId": "st-1789848068933",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l2-490",
+      "studentId": "st-1758300000009",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l3-222",
+      "studentId": "st-1758300000010",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l4-131",
+      "studentId": "st-1758300000011",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l5-183",
+      "studentId": "st-1758300000015",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l6-774",
+      "studentId": "st-1758300000017",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l7-471",
+      "studentId": "st-1758300000021",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520037119-l8-734",
+      "studentId": "st-1758300000025",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -2186,7 +2267,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-20T18:13:21.957Z",
+  "lastUpdated": "2026-10-20T18:13:57.879Z",
   "homework": [
     {
       "id": "hw-1791460174322",
