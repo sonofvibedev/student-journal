@@ -1978,6 +1978,39 @@
       "isExcused": false,
       "subject": "Стратегический маркетинг",
       "comment": ""
+    },
+    {
+      "id": "abs-1792519855480-l0-370",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-19",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Эконометрика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792519855480-l1-152",
+      "studentId": "st-1758300000017",
+      "date": "2026-10-19",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Эконометрика",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792519855480-l2-916",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-19",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Эконометрика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -2039,7 +2072,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-17T11:56:16.235Z",
+  "lastUpdated": "2026-10-20T18:10:57.627Z",
   "homework": [
     {
       "id": "hw-1791460174322",
