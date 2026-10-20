@@ -2107,6 +2107,24 @@
       "certType": "Больничный",
       "certDueDate": "2026-11-01",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1792520001645-l0-364",
+      "studentId": "st-1758300000015",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Функционально-стоимостный анализ",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792520001645-l1-972",
+      "studentId": "st-1758300000017",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Функционально-стоимостный анализ",
+      "comment": ""
     }
   ],
   "teachers": [
@@ -2168,7 +2186,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-20T18:12:56.357Z",
+  "lastUpdated": "2026-10-20T18:13:21.957Z",
   "homework": [
     {
       "id": "hw-1791460174322",
