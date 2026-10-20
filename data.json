@@ -2071,6 +2071,42 @@
       "certType": "Больничный",
       "certDueDate": "2026-11-01",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1792519976062-0-221",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792519976062-1-433",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Функционально-стоимостный анализ",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792519976062-2-488",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-20",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Эконометрика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -2132,7 +2168,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-20T18:12:31.479Z",
+  "lastUpdated": "2026-10-20T18:12:56.357Z",
   "homework": [
     {
       "id": "hw-1791460174322",
