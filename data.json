@@ -44,7 +44,7 @@
       "id": "dl-1792520204359",
       "type": "deadline",
       "subject": "Функционально-стоимостный анализ",
-      "text": "Мудл тест",
+      "text": "Мудл тест: https://elearning.bseu.by/mod/quiz/view.php?id=23415",
       "dueDate": "2026-10-24",
       "createdAt": "2026-10-20T18:16:44.359Z"
     }
@@ -120,7 +120,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-20T18:19:17.737Z",
+  "lastUpdated": "2026-10-20T18:23:22.274Z",
   "homework": [
     {
       "id": "hw-1791460174322",
