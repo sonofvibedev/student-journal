@@ -2214,6 +2214,51 @@
       "isExcused": false,
       "subject": "Эконометрика",
       "comment": ""
+    },
+    {
+      "id": "abs-1792667014821-l0-737",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-22",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Маркетинг услуг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792667014821-l1-18",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-22",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Маркетинг услуг",
+      "comment": "",
+      "certType": "Освобождение",
+      "certDueDate": "2026-10-31",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792667014821-l2-822",
+      "studentId": "st-1758300000025",
+      "date": "2026-10-22",
+      "totalHours": 2,
+      "isExcused": false,
+      "subject": "Маркетинг услуг",
+      "comment": ""
+    },
+    {
+      "id": "abs-1792667014821-l3-360",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-22",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Маркетинг услуг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -2275,7 +2320,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-21T13:11:13.593Z",
+  "lastUpdated": "2026-10-22T11:03:35.678Z",
   "homework": [
     {
       "id": "hw-1791460174322",
