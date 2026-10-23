@@ -2295,6 +2295,42 @@
       "certType": "Больничный",
       "certDueDate": "2026-11-01",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1792761327233-l0-53",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-23",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-31",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792761327233-l1-357",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-23",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-31",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792761327233-l2-496",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-23",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Стратегический маркетинг",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-10-31",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -2356,7 +2392,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-23T13:14:38.228Z",
+  "lastUpdated": "2026-10-23T13:15:27.886Z",
   "homework": [
     {
       "id": "hw-1791460174322",
