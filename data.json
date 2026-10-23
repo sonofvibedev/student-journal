@@ -2259,6 +2259,42 @@
       "certType": "Больничный",
       "certDueDate": "2026-11-01",
       "certSubmitted": false
+    },
+    {
+      "id": "abs-1792761277429-l0-657",
+      "studentId": "st-1758300000005",
+      "date": "2026-10-23",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Логистика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792761277429-l1-328",
+      "studentId": "st-1758300000013",
+      "date": "2026-10-23",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Логистика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
+    },
+    {
+      "id": "abs-1792761277429-l2-728",
+      "studentId": "st-1758300000024",
+      "date": "2026-10-23",
+      "totalHours": 2,
+      "isExcused": true,
+      "subject": "Логистика",
+      "comment": "",
+      "certType": "Больничный",
+      "certDueDate": "2026-11-01",
+      "certSubmitted": false
     }
   ],
   "teachers": [
@@ -2320,7 +2356,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-23T10:46:48.684Z",
+  "lastUpdated": "2026-10-23T13:14:38.228Z",
   "homework": [
     {
       "id": "hw-1791460174322",
