@@ -1,7 +1,6 @@
 // Проверка пропуска Studak для pass.html (без входа): { token } → действителен ли токен.
-// Отдаёт только то, что видно на пропуске: student_id (ФИО, роль и номер pass.html берёт из data.json),
-// логин и ссылку на фото, которая живёт 5 минут. Секретный ключ — только в окружении функции.
-import { admin, json, cors } from '../_shared/common.ts';
+// Отдаёт только то, что видно на пропуске: ФИО, роль, номер в списке, логин и ссылку на фото, которая живёт 5 минут. Секретный ключ — только в окружении функции.
+import { admin, json, cors, loadStudents, studentNumber } from '../_shared/common.ts';
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
 
@@ -23,5 +22,12 @@ Deno.serve(async (req) => {
   const signed = await admin.storage.from('avatars').createSignedUrl(`${row.user_id}.jpg`, 300);
   if (!signed.error && signed.data?.signedUrl) photo_url = signed.data.signedUrl;
 
-  return json({ valid: true, student_id: row.student_id, login: row.login, photo_url, expires_at: row.expires_at });
+  const students = await loadStudents();
+  const student = students.find((s) => s.id === row.student_id);
+  if (!student) return json({ valid: false });
+
+  return json({
+    valid: true, student_id: row.student_id, last_name: student.lastName ?? '', first_name: student.firstName ?? '', role: student.role ?? '',
+    number: studentNumber(students, row.student_id), login: row.login, photo_url, expires_at: row.expires_at,
+  });
 });

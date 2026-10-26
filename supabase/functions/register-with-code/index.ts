@@ -1,8 +1,8 @@
 // Первый вход и восстановление доступа по одноразовому коду.
-//   { action: 'check', code }                    → { student_id, has_account, login? }
+//   { action: 'check', code }                    → { student_id, name, has_account, login? }
 //   { action: 'register', code, login, password } → { ok, login }  (создать аккаунт или задать новый пароль)
 // Публичная регистрация в Supabase Auth выключена: аккаунты создаёт только эта функция.
-import { admin, cors, json, sha256hex, loginToEmail, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX } from '../_shared/common.ts';
+import { admin, cors, json, sha256hex, loadStudents, studentName, loginToEmail, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX } from '../_shared/common.ts';
 
 const MAX_FAILS = 10;            // неудачных вводов кода с одного IP
 const WINDOW_MIN = 15;           // за 15 минут
@@ -49,7 +49,10 @@ Deno.serve(async (req) => {
   const { data: profile } = await admin.from('profiles').select('user_id, login').eq('student_id', student_id).maybeSingle();
 
   if (body.action === 'check') {
-    return json({ student_id, has_account: !!profile, login: profile?.login ?? null });
+    // ФИО — чтобы студент убедился, что код его. Код одноразовый и угадать его нельзя (лимит попыток выше).
+    const student = (await loadStudents()).find((x) => x.id === student_id);
+    if (!student) return json({ error: 'no_student' }, 404);
+    return json({ student_id, name: studentName(student), has_account: !!profile, login: profile?.login ?? null });
   }
   if (body.action !== 'register') return json({ error: 'bad_request' }, 400);
 

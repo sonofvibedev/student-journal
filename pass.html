@@ -82,9 +82,8 @@
 <script src="studak.js?v=11"></script>
 <script>
   // Проверка пропуска Studak без входа. В адресе — одноразовый токен (?t=…), живёт 5 минут.
-  // Проверяет его Edge Function verify-pass; она отдаёт только student_id, логин и временную ссылку на фото.
-  // ФИО, роль и номер в списке берём из открытого data.json. Пропуски, часы, форма обучения
-  // и Telegram на странице не показываются.
+  // Проверяет его Edge Function verify-pass; она отдаёт ФИО, роль, номер в списке, логин и временную
+  // ссылку на фото. Пропуски, часы, форма обучения и Telegram на странице не показываются.
   // В коде только адрес проекта и публичный ключ (sb_publishable) — те же, что в cabinet.html.
   // SUPABASE_URL и SUPABASE_KEY — в env.js
   const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
@@ -114,34 +113,29 @@
     clearInterval(passTimer);
     showPassState('passLoading');
     if (!TOKEN_RE.test(passToken)) { showInvalid(false); return; }
-    let result, data;
+    let result;
     try {
-      const [res, dataRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/functions/v1/verify-pass`, {
-          method: 'POST', cache: 'no-store',
-          headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-          body: JSON.stringify({ token: passToken })
-        }),
-        fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' })
-      ]);
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pass`, {
+        method: 'POST', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+        body: JSON.stringify({ token: passToken })
+      });
       if (res.status >= 500) throw new Error('server');
       result = await res.json();
-      if (result && result.valid) data = await dataRes.json();
     } catch (e) {
       showError(navigator.onLine === false ? 'Нет интернета. Подключитесь к сети и нажмите «Повторить».' : 'Сервер не ответил. Попробуйте ещё раз через несколько секунд.');
       return;
     }
     if (!result || result.valid !== true) { showInvalid(false); return; }
-    const student = ((data && data.students) || []).find(s => s.id === result.student_id);
     const expiresAt = new Date(result.expires_at).getTime();
-    if (!student || !expiresAt) { showInvalid(false); return; }
+    if (!expiresAt) { showInvalid(false); return; }
     // Срок — по ответу сервера, пересчитанный на часы этого телефона (они могут быть сбиты)
     const localExpires = Date.now() + Math.max(0, Math.min(300000, expiresAt - Date.now()));
     const stage = document.getElementById('passStage');
     stage.innerHTML = studakCardHTML({ back: false });
     studakFill(stage, {
-      lastName: student.lastName, firstName: student.firstName, role: student.role,
-      number: studakNumber(data.students, student.id),
+      lastName: result.last_name, firstName: result.first_name, role: result.role,
+      number: result.number,
       login: result.login,
       photo: result.photo_url
     });

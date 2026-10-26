@@ -36,3 +36,22 @@ export async function sha256hex(s: string): Promise<string> {
 
 export const loginToEmail = (login: string) => `${login}@${EMAIL_DOMAIN}`;
 export const normLogin = (v: unknown) => String(v ?? '').trim().toLowerCase();
+
+// Студенты группы из закрытой таблицы journal_private (ФИО, роль). Функциям, которые
+// работают без входа (пропуск, первый вход по коду), ФИО теперь отдаёт сервер:
+// в открытом data.json его больше нет.
+export type Student = { id: string; lastName?: string; firstName?: string; role?: string; status?: string };
+
+export async function loadStudents(): Promise<Student[]> {
+  const { data } = await admin.from('journal_private').select('students').eq('id', 'main').maybeSingle();
+  return Array.isArray(data?.students) ? data.students : [];
+}
+
+export const studentName = (s?: Student) => (s ? `${s.lastName ?? ''} ${s.firstName ?? ''}`.trim() : '');
+
+// Номер в списке — по алфавиту (фамилия, имя), как в studak.js на странице
+export function studentNumber(students: Student[], id: string): number | null {
+  const ordered = [...students].sort((a, b) => studentName(a).localeCompare(studentName(b), 'ru'));
+  const i = ordered.findIndex((s) => s.id === id);
+  return i < 0 ? null : i + 1;
+}

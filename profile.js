@@ -193,7 +193,8 @@
     over_request_rate_limit: 'Слишком много попыток. Подождите несколько минут и попробуйте снова.',
     unauthorized: 'Сессия закончилась. Войдите заново.',
     session_not_found: 'Сессия закончилась. Войдите заново.',
-    no_profile: 'Аккаунт не привязан к студенту. Обратитесь к старосте.'
+    no_profile: 'Аккаунт не привязан к студенту. Обратитесь к старосте.',
+    no_student: 'Этот код выдан студенту, которого нет в журнале. Обратитесь к старосте.'
   };
 
   function isNetworkError(err) {
@@ -286,10 +287,12 @@
     }
   }
 
-  function enterCabinet(profile) {
+  async function enterCabinet(profile) {
     // Сессия могла восстановиться раньше, чем загрузился data.json: без этой
     // проверки студент «не найден в журнале» только потому, что список пуст
     if (AppState.data === 'loading') { AppState.onDataSettled(() => enterCabinet(profile)); return; }
+    // Только что вошли: список группы до входа не загружается (он закрытый)
+    if (!privateLoaded) await refreshPrivateData();
     if (!appData.students.find(s => s.id === profile.student_id)) {
       showLoginForm();
       showAlert('Студент не найден в журнале. Обратитесь к старосте.');
@@ -304,6 +307,7 @@
   }
 
   function showLoginForm() {
+    if (privateLoaded) refreshPrivateData();   // вышли: список группы с устройства убираем
     AppState.setAuth('guest');                 // вход точно отсутствует: разделы покажут приглашение войти
     document.getElementById('cabinetLoginInput').value = '';
     document.getElementById('cabinetPasswordInput').value = '';
@@ -347,7 +351,7 @@
     }
   }
 
-  // «Первый вход», шаг 1: код → чей он (ФИО берём из data.json по student_id)
+  // «Первый вход», шаг 1: код → чей он (ФИО отдаёт сервер: до входа списка студентов на странице нет)
   async function submitInviteCode() {
     const code = document.getElementById('inviteCodeInput').value.toUpperCase().replace(/[\s-]/g, '');
     if (!/^[A-Z0-9]{10}$/.test(code)) { showAlert('Код состоит из 10 букв и цифр, например ABCDE-23456.'); return; }
@@ -355,10 +359,8 @@
     setBusy(btn, true);
     try {
       const info = await callFunction('register-with-code', { action: 'check', code });
-      const student = appData.students.find(s => s.id === info.student_id);
-      if (!student) { showAlert('Этот код выдан студенту, которого нет в журнале. Обратитесь к старосте.'); return; }
       inviteState = { code, ...info };
-      document.getElementById('inviteStudentName').innerText = `${student.lastName} ${student.firstName}`;
+      document.getElementById('inviteStudentName').innerText = info.name;
       document.getElementById('inviteAccountNote').innerText = info.has_account
         ? `У вас уже есть аккаунт с логином «${info.login}». Задайте новый пароль, логин можно оставить.`
         : 'Придумайте логин и пароль — с ними вы будете входить в кабинет.';
