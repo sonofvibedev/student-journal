@@ -33,14 +33,6 @@
       "createdAt": "2026-10-08T11:46:12.131Z"
     },
     {
-      "id": "dl-1791521021433",
-      "type": "deadline",
-      "subject": "Маркетинг инноваций",
-      "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
-      "dueDate": "2026-10-21",
-      "createdAt": "2026-10-09T04:43:41.433Z"
-    },
-    {
       "id": "dl-1792520204359",
       "type": "deadline",
       "subject": "Функционально-стоимостный анализ",
@@ -120,7 +112,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-28T13:29:50.680Z",
+  "lastUpdated": "2026-10-29T19:18:43.962Z",
   "homework": [
     {
       "id": "hw-1791460174322",
