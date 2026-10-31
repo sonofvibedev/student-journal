@@ -20,14 +20,19 @@ const snakeState = {
   queue: [],            // буфер поворотов: не больше SNAKE_QUEUE_MAX
   canvas: null, ctx: null, view: null,
   pad: true,            // показывать кнопки-стрелки
-  swipeFrom: null
+  counting: false,      // идёт отсчёт 3-2-1: поле стоит, повороты копятся в очереди
+  countTimer: 0, playTimer: 0,
+  overAt: 0,            // когда игра закончилась: от этого считаем дебаунс
+  land: false
 };
 
 // Буфер на два поворота: быстрый двойной свайп («вниз, сразу вправо») не
 // теряется, но и не копится в очередь на полсекунды вперёд.
 const SNAKE_QUEUE_MAX = 2;
 const SNAKE_PAD_KEY = 'snake_pad';
-const SNAKE_SWIPE_MIN = 18;   // короче этого — не свайп, а промах по полю
+const SNAKE_SWIPE_MIN = 13;   // сдвиг пальца по оси, после которого сразу поворот
+const SNAKE_COUNT_MS = 700;   // одна цифра отсчёта: 3-2-1 = 2,1 с
+const SNAKE_DEBOUNCE_MS = 600; // после смерти ввод и «Играть» молчат: паника не сбросит результат
 
 function snakeMount() {
   const host = document.getElementById('snakeHost');
@@ -43,8 +48,8 @@ function snakeMount() {
       '<button type="button" class="btn btn-sm btn-secondary ms-auto" id="snakeNew">Заново</button>' +
     '</div>' +
     '<div class="snake-wrap no-swipe"><canvas id="snakeCanvas"></canvas>' +
-      '<div class="snake-hint" id="snakeHint">Свайп по полю или стрелки</div></div>' +
-    '<div class="game-msg d-none" id="snakeMsg"></div>' +
+      '<div class="snake-hint" id="snakeHint">Коснитесь, чтобы начать · свайп — поворот</div>' +
+      '<div class="snake-ov d-none" id="snakeOv" role="status" aria-live="polite"></div></div>' +
     '<div class="snake-pad" id="snakePad">' +
       '<button type="button" class="snake-key is-up" data-dir="0" aria-label="Вверх">↑</button>' +
       '<button type="button" class="snake-key is-left" data-dir="3" aria-label="Влево">←</button>' +
@@ -55,43 +60,68 @@ function snakeMount() {
   snakeState.canvas = document.getElementById('snakeCanvas');
   snakeState.ctx = snakeState.canvas.getContext('2d');
 
-  // Свайп по полю: направление задаёт та ось, по которой палец ушёл дальше
-  const wrap = snakeState.canvas.parentElement;
-  wrap.addEventListener('pointerdown', (e) => {
+  // Жест ловим на всём экране игры, а не только на поле: свайп может начаться
+  // на крестовине, в зазоре или на панели. Поворот уходит сразу, как только палец
+  // сдвинулся на SNAKE_SWIPE_MIN по главной оси, и точка отсчёта переезжает под
+  // палец: в одном касании можно повернуть несколько раз («змейка идёт за пальцем»).
+  // Кнопки панели и «Играть» жест не трогают — они остаются обычными кнопками.
+  const sec = host.closest('.game-screen') || host;
+  sec.classList.add('no-swipe');   // свайп по игре не листает разделы приложения
+  const skip = (t) => !t.closest || !!t.closest('.game-top, .game-bar') ||
+    (!!t.closest('button') && !t.closest('.snake-key'));
+  let g = null;
+  sec.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (skip(e.target) || snakeState.over) return;
+    if (g && !e.isPrimary) return;          // второй палец не мешает первому
+    // У самого края экрана в iOS живёт системный жест «назад»: ему не мешаем
+    g = { x: e.clientX, y: e.clientY,
+          edge: e.clientX < 12 || e.clientX > window.innerWidth - 12 };
     e.preventDefault();
-    snakeState.swipeFrom = { x: e.clientX, y: e.clientY };
+    snakeKick();                            // тап: начать / продолжить (через отсчёт)
   });
-  wrap.addEventListener('pointerup', (e) => {
-    const from = snakeState.swipeFrom;
-    snakeState.swipeFrom = null;
-    if (!from) return;
-    const dx = e.clientX - from.x, dy = e.clientY - from.y;
-    if (Math.abs(dx) < SNAKE_SWIPE_MIN && Math.abs(dy) < SNAKE_SWIPE_MIN) {
-      // Касание без движения: начать партию или начать заново после конца
-      if (snakeState.over) snakeReset();
-      else snakeStart();
-      return;
-    }
-    snakeTurn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+  sec.addEventListener('pointermove', (e) => {
+    if (!g || !e.isPrimary) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (Math.max(ax, ay) < SNAKE_SWIPE_MIN) return;
+    g.x = e.clientX; g.y = e.clientY;
+    snakeTurn(ax > ay ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
   });
-  wrap.addEventListener('pointercancel', () => { snakeState.swipeFrom = null; });
+  const endGesture = (e) => { if (e.isPrimary) g = null; };
+  sec.addEventListener('pointerup', endGesture);
+  sec.addEventListener('pointercancel', endGesture);
 
-  // Касание по полю — только игра: ни прокрутки, ни «потяни, чтобы обновить».
-  // Слушатель не passive, иначе preventDefault браузер проигнорирует.
-  wrap.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
-  wrap.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+  // Касание по игре — только игра: ни прокрутки, ни «потяни, чтобы обновить».
+  // Слушатель не passive, иначе preventDefault браузер проигнорирует. Кнопки не
+  // трогаем (g там пуст): иначе у них пропал бы click.
+  const block = (e) => { if (g && !g.edge && e.cancelable) e.preventDefault(); };
+  sec.addEventListener('touchstart', block, { passive: false });
+  sec.addEventListener('touchmove', block, { passive: false });
 
-  document.getElementById('snakePad').addEventListener('click', (e) => {
+  // Крестовина реагирует на касание, а не на отпускание. Click оставлен только
+  // для клавиатуры (detail 0), чтобы тап не засчитывался дважды.
+  const padEl = document.getElementById('snakePad');
+  padEl.addEventListener('pointerdown', (e) => {
     const b = e.target.closest('.snake-key');
     if (!b) return;
+    e.preventDefault();
     snakeTurn(Number(b.dataset.dir));
   });
+  padEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.snake-key');
+    if (b && e.detail === 0) snakeTurn(Number(b.dataset.dir));
+  });
+  document.getElementById('snakeOv').addEventListener('click', (e) => {
+    if (e.target.closest('#snakePlay')) snakeRestart();
+  });
 
-  document.getElementById('snakeNew').addEventListener('click', () => snakeReset());
+  document.getElementById('snakeNew').addEventListener('click', () => {
+    if (snakeState.over) snakeRestart(); else snakeReset();
+  });
   document.getElementById('snakePauseBtn').addEventListener('click', () => {
     if (snakeState.over) return;
-    if (snakeState.running) snakePause(); else snakeStart();
-    snakeSyncPause();
+    if (snakeState.running || snakeState.counting) snakePause(); else snakeKick();
   });
   document.getElementById('snakePadBtn').addEventListener('click', () => {
     snakeState.pad = !snakeState.pad;
@@ -100,22 +130,47 @@ function snakeMount() {
     snakeLayout();
   });
 
-  // Стрелки с клавиатуры — для 1024 px и ноутбуков. Ловим их только когда на
-  // экране змейка: иначе стрелки в судоку поворачивали бы её вслепую.
+  // Клавиатура — для 1024 px и ноутбуков: стрелки/WASD — поворот, пробел —
+  // пауза/старт, Enter или пробел после конца — «Играть». Ловим только когда на
+  // экране змейка и фокус не в поле ввода (иначе стрелки в судоку поворачивали бы
+  // её вслепую, а набор текста ломался бы).
   document.addEventListener('keydown', (e) => {
     if ((location.hash || '').slice(1) !== 'snake') return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+    if (document.querySelector('.modal.show')) return;
+    const s = snakeState;
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (t && t.closest && t.closest('button, a')) return;   // у кнопки своё нажатие
+      e.preventDefault();
+      if (e.repeat) return;
+      if (s.over) snakeRestart();
+      else if (e.key === ' ') { if (s.running || s.counting) snakePause(); else snakeKick(); }
+      return;
+    }
     const map = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3,
-                  w: 0, d: 1, s: 2, a: 3 };
+                  w: 0, d: 1, s: 2, a: 3, W: 0, D: 1, S: 2, A: 3 };
     const dir = map[e.key];
     if (dir === undefined) return;
     e.preventDefault();
     snakeTurn(dir);
   });
 
+  // Автопауза: окно потеряло фокус или скрылось, повернули экран, открылось окно.
+  // snakePause трогает только идущую партию или отсчёт.
+  const auto = () => snakePause();
   window.addEventListener('resize', snakeLayout);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { snakePause(); snakeSyncPause(); }
+  window.addEventListener('resize', () => {
+    const land = window.innerWidth > window.innerHeight;
+    if (land !== snakeState.land) { snakeState.land = land; auto(); }
   });
+  snakeState.land = window.innerWidth > window.innerHeight;
+  window.addEventListener('orientationchange', auto);
+  window.addEventListener('blur', auto);
+  window.addEventListener('pagehide', auto);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) auto(); });
+  document.addEventListener('show.bs.modal', auto);
 
   snakeSyncPad();
   snakeReset();
@@ -133,8 +188,9 @@ function snakeSyncPad() {
 function snakeSyncPause() {
   const b = document.getElementById('snakePauseBtn');
   if (!b) return;
-  const paused = snakeState.started && !snakeState.running && !snakeState.over;
-  b.textContent = paused ? 'Продолжить' : 'Пауза';
+  const paused = snakeState.started && !snakeState.running && !snakeState.counting && !snakeState.over;
+  const idle = !snakeState.started && !snakeState.counting && !snakeState.over;
+  b.textContent = paused ? 'Продолжить' : (idle ? 'Старт' : 'Пауза');
   b.classList.toggle('active', paused);
   b.setAttribute('aria-pressed', String(paused));
 }
@@ -142,7 +198,7 @@ function snakeSyncPause() {
 function snakeReset() {
   if (!withCore(() => snakeReset())) return;
   const core = window.GamesCore;
-  snakePause();
+  snakeHalt();
   snakeState.seed = (Math.random() * 0xFFFFFFFF) >>> 0;
   snakeState.game = core.snakeGame(snakeState.seed);
   snakeState.queue = [];
@@ -150,8 +206,7 @@ function snakeReset() {
   snakeState.last = 0;
   snakeState.over = false;
   snakeState.started = false;
-  const msg = document.getElementById('snakeMsg');
-  if (msg) { msg.classList.add('d-none'); msg.textContent = ''; }
+  snakeOverlay('');
   const hint = document.getElementById('snakeHint');
   if (hint) hint.classList.remove('d-none');
   snakeSyncPause();
@@ -161,17 +216,50 @@ function snakeReset() {
 
 // Поворот от игрока. В буфере не больше двух: лишние свайпы отбрасываются.
 // Разворот на 180° и повтор текущего направления в очередь не попадают —
-// иначе буфер забивался бы бесполезными поворотами.
+// иначе буфер забивался бы бесполезными поворотами. Но любой ввод запускает или
+// возобновляет игру (через отсчёт), даже если сам поворот не годится: «свайп
+// назад» на старте не должен выглядеть как зависание. На отсчёте повороты тоже
+// копятся в очередь (и применятся на первом шаге), на паузе свайп = продолжить +
+// поворот. После конца игры ввод молчит: перезапуск только через snakeRestart.
 function snakeTurn(dir) {
   const s = snakeState;
   if (!Number.isInteger(dir) || dir < 0 || dir > 3) return;
-  if (s.over) { snakeReset(); return; }
-  if (!s.game) return;
+  if (s.over || !s.game) return;
+  snakeKick();
   const last = s.queue.length ? s.queue[s.queue.length - 1] : s.game.dir;
   if (dir === last || dir === (last + 2) % 4) return;
   if (s.queue.length >= SNAKE_QUEUE_MAX) return;
   s.queue.push(dir);
-  if (!s.running) snakeStart();
+  snakeBuzz(12);
+}
+
+// Вибро: в Telegram остаётся родной haptic (на повороте его нет), в браузере и
+// PWA — navigator.vibrate. Отдельной настройки вибро в проекте нет, поэтому и тут нет.
+function snakeBuzz(ms, kind) {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.initData) { if (kind) haptic(kind); return; }
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
+}
+
+// Пустое поле / пауза -> отсчёт 3-2-1 -> игра
+function snakeKick() {
+  const s = snakeState;
+  if (s.running || s.counting || s.over || !s.game) return;
+  s.counting = true;
+  const hint = document.getElementById('snakeHint');
+  if (hint) hint.classList.add('d-none');
+  let n = 3;
+  const show = () => snakeOverlay('count', '<span class="snake-ov-num">' + n + '</span>');
+  show();
+  snakeSyncPause();
+  s.countTimer = setInterval(() => {
+    n--;
+    if (n > 0) { show(); return; }
+    clearInterval(s.countTimer); s.countTimer = 0;
+    s.counting = false;
+    snakeOverlay('');
+    snakeStart();
+  }, SNAKE_COUNT_MS);
 }
 
 function snakeStart() {
@@ -186,11 +274,49 @@ function snakeStart() {
   snakeSyncPause();
 }
 
-function snakePause() {
+// Остановить всё без оверлея: для сброса и для конца партии
+function snakeHalt() {
   const s = snakeState;
   s.running = false;
+  s.counting = false;
+  if (s.countTimer) clearInterval(s.countTimer);
+  s.countTimer = 0;
+  if (s.playTimer) clearTimeout(s.playTimer);
+  s.playTimer = 0;
   if (s.raf) cancelAnimationFrame(s.raf);
   s.raf = 0;
+}
+
+// Пауза: игроку нужно явно нажать, чтобы продолжить. Зовётся и снаружи
+// (index.html при уходе с экрана), поэтому без партии ничего не делает.
+function snakePause() {
+  const s = snakeState;
+  if (!s.game || s.over || !(s.running || s.counting)) return;
+  snakeHalt();
+  if (s.started) {
+    snakeOverlay('pause', '<span class="snake-ov-pill">Пауза · нажмите, чтобы продолжить</span>');
+  } else {
+    snakeOverlay('');
+    const hint = document.getElementById('snakeHint');
+    if (hint) hint.classList.remove('d-none');
+  }
+  snakeSyncPause();
+}
+
+// «Играть» после конца: только когда дебаунс прошёл. Сразу идёт отсчёт.
+function snakeRestart() {
+  const s = snakeState;
+  if (!s.over || performance.now() - s.overAt < SNAKE_DEBOUNCE_MS) return;
+  snakeReset();
+  snakeKick();
+}
+
+// Оверлей поверх поля: отсчёт, пауза, конец партии. kind '' - спрятать.
+function snakeOverlay(kind, html) {
+  const ov = document.getElementById('snakeOv');
+  if (!ov) return;
+  ov.className = 'snake-ov' + (kind ? ' is-' + kind : ' d-none');
+  ov.innerHTML = html || '';
 }
 
 // Фиксированный шаг логики: сколько бы кадров ни рисовал экран, за секунду
@@ -205,12 +331,12 @@ function snakeLoop(now) {
 
   const before = s.game.eaten;
   s.acc = core.snakeRun(s.game, s.acc, dt, () => (s.queue.length ? s.queue.shift() : null));
-  if (s.game.eaten > before) haptic('light');
+  if (s.game.eaten > before) snakeBuzz(30, 'light');
 
   snakeScore();
   snakeDraw();
 
-  if (!s.game.alive) { snakePause(); snakeOver(); return; }
+  if (!s.game.alive) { snakeHalt(); snakeOver(); return; }
   s.raf = requestAnimationFrame(snakeLoop);
 }
 
@@ -266,6 +392,12 @@ function snakeDraw() {
   for (let x = 1; x < core.SNAKE.cols; x++) { ctx.moveTo(x * cell + .5, 0); ctx.lineTo(x * cell + .5, h); }
   for (let y = 1; y < core.SNAKE.rows; y++) { ctx.moveTo(0, y * cell + .5); ctx.lineTo(w, y * cell + .5); }
   ctx.stroke();
+  ctx.globalAlpha = 1;
+  // Граница поля: за ней стена, и её должно быть видно
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, w - 2, h - 2);
   ctx.globalAlpha = 1;
 
   // Еда — тетрадка: страница со строчками и корешком
@@ -356,24 +488,37 @@ function snakeRound(ctx, x, y, w, h, r) {
 
 // Конец партии: рекорд — длина змейки. Клиент отправляет зерно и повороты,
 // сервер прогоняет партию заново и записывает только подтверждённую длину.
+// Результат лежит на поле вместе с кнопкой «Играть» и не пропадает от касаний:
+// первые SNAKE_DEBOUNCE_MS кнопка выключена, дальше сбрасывает только она.
 async function snakeOver() {
   const s = snakeState;
+  const game = s.game;
   s.over = true;
+  s.overAt = performance.now();
   snakeSyncPause();
-  haptic('error');
-  const len = s.game.cells.length;
-  const msg = document.getElementById('snakeMsg');
-  if (!msg) return;
-  msg.classList.remove('d-none');
-  const base = 'Длина ' + len + ' ' + gameCellWord(len);
-  if (!s.game.eaten) { msg.textContent = base + '. Еда — тетрадка, свайп — поворот.'; return; }
-  msg.textContent = base + (gamesSigned() ? '. Проверяем рекорд…' : '. Войдите, чтобы попасть в рейтинг.');
+  snakeBuzz(80, 'error');
+  const len = game.cells.length;
+  snakeOverlay('over',
+    '<div class="snake-ov-card"><div class="snake-ov-title">Длина ' + len + ' ' + gameCellWord(len) + '</div>' +
+    '<div class="snake-ov-sub" id="snakeOvSub"></div>' +
+    '<button type="button" class="btn btn-primary snake-ov-btn" id="snakePlay" disabled>Играть</button></div>');
+  s.playTimer = setTimeout(() => {
+    const b = document.getElementById('snakePlay');
+    if (b) b.disabled = false;
+  }, SNAKE_DEBOUNCE_MS);
+  // Пока шла отправка, игрок мог уже начать новую партию: её экран не трогаем
+  const say = (text) => {
+    const el = document.getElementById('snakeOvSub');
+    if (el && s.game === game && s.over) el.textContent = text;
+  };
+  if (!game.eaten) { say('Еда — тетрадка, свайп — поворот.'); return; }
+  say(gamesSigned() ? 'Проверяем рекорд…' : 'Войдите, чтобы попасть в рейтинг.');
 
-  const res = await gamesSubmit({ game: 'snake', seed: s.seed, turns: s.game.turns, score: len });
+  const res = await gamesSubmit({ game: 'snake', seed: s.seed, turns: game.turns, score: len });
   if (res && res.ok) {
-    msg.textContent = base + (res.improved ? ' — новый рекорд!' : '. Прежний рекорд лучше.');
+    say(res.improved ? 'Новый рекорд!' : 'Прежний рекорд лучше.');
   } else if (res && res.error) {
-    msg.textContent = base + '. Рекорд не записался (' + res.error + ').';
+    say('Рекорд не записался (' + res.error + ').');
   }
 }
 
