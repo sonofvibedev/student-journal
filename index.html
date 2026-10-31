@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=32"></script>
+  <script src="env.js?v=33"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,15 +25,15 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=32" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=33" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=32" rel="stylesheet">
+  <link href="profile.css?v=33" rel="stylesheet">
   <!-- Достижения: значки и карточки со шкалой выполнения -->
-  <link href="achievements.css?v=32" rel="stylesheet">
+  <link href="achievements.css?v=33" rel="stylesheet">
   <!-- Игры: список, судоку, сапёр, flappy и рейтинг -->
-  <link href="games.css?v=32" rel="stylesheet">
-  <script src="theme.js?v=32"></script>
+  <link href="games.css?v=33" rel="stylesheet">
+  <script src="theme.js?v=33"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -547,6 +547,8 @@
        Бюджет высоты (px): «Далее» ≈96, «Срочно» ≈126 (на низких экранах ≈104, без
        описания), пропуски 72, неделя ≈132, промежутки 8. Низ страницы даёт body
        (место под таб-бар), поэтому у главной своего нижнего отступа нет. */
+    /* Эти разделы лежат вне .container (у него 16px по бокам): без отступа карточки липли к краям экрана */
+    #viewHome, #viewStudy, #viewHomeworkList, #viewExams { padding-left: 16px; padding-right: 16px; }
     .hm { position: relative; isolation: isolate;
       --hm-card: rgba(255, 255, 255, .05);
       --hm-calm-rgb: 124, 203, 247; --hm-calm-text: var(--color-blue-soft-text);
@@ -558,8 +560,7 @@
     @media (max-height: 600px) { body:has(#adminFab:not(.d-none)) .hm { padding-bottom: 48px; } }
     /* Низкие экраны (встроенный браузер, 360×640): отступы меньше, дни ниже, описание «Срочно» прячем */
     @media (max-height: 700px) {
-      .hm { --hm-gap: 6px; --hm-pad-y: 10px; --hm-pad-x: 12px; --hm-day-h: 48px; }
-      .hm-urgent .hm-desc { display: none; }
+      .hm { --hm-gap: 5px; --hm-pad-y: 7px; --hm-pad-x: 12px; --hm-day-h: 46px; }
     }
     /* Совсем низкие: запасной скролл остаётся обычной прокруткой страницы */
 
@@ -621,7 +622,7 @@
       transition: transform var(--dur-slow) var(--ease-out); }
 
     /* --- Срочно: чип, название, описание; справа кружок «выполнено» (зона 44, кружок 36) --- */
-    .hm-urgent { padding-bottom: 0; gap: 0; }
+    .hm-urgent { gap: 0; }
     .hm-urgent .hm-title { font-size: 18px; width: 100%; }
     .hm-urgent-main { display: flex; align-items: center; gap: 8px; }
     .hm-urgent-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
@@ -636,11 +637,6 @@
     .hm-check.on { color: var(--status-done-line); }
     .hm-check.on::before { border-color: var(--status-done-line); background: var(--status-done-fill-strong); }
     .hm-check.on svg { opacity: 1; transform: none; }
-    .hm-more { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 2px; border-top: 1px solid var(--color-separator); }
-    .hm-more.d-none { display: none; }
-    .hm-more .hm-cap { flex: 1 1 auto; }
-    .hm-more .hm-link { margin: 0 -4px 0 auto; }
-
     /* --- Пропуски: плашка высотой 72 с кольцом 52 --- */
     .hm-hours { flex-direction: row; align-items: center; gap: 12px; min-height: 72px; padding-top: 9px; padding-bottom: 9px; }
     .hm-hours.d-none { display: none; }
@@ -691,8 +687,79 @@
     .wk-dot.is-hw { background: var(--status-soon-line); }
     .wk-dot.is-zachet { background: var(--status-zachet-line); }
     .wk-cell.is-sel .wk-dot { background: rgba(255, 255, 255, .92); }
-    .hm-week-foot { min-height: 40px; }
-    .hm-week-foot .hm-cap { flex: 1 1 auto; }
+
+    /* --- Что сдавать в выбранный день: одна-две строки под лентой --- */
+    .hm-sch { display: none; }
+    .hm-week-foot { gap: 8px; min-height: 44px; }
+    .hm-sum { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+      font-size: 14px; line-height: 18px; color: var(--color-text-2); }
+    .hm-sum .l { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .hm-sum .l .tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hm-sum .l b { color: var(--color-text); font-weight: 600; }
+    .hm-sum .l i { flex: none; width: 6px; height: 6px; border-radius: 50%; }
+    .hm-sum .l i.dl { background: var(--color-accent); }
+    .hm-sum .l i.hw { background: var(--status-soon-line); }
+    .hm-sum .l i.zachet { background: var(--status-zachet-line); }
+    .hm-sum .l.is-done .tx { color: var(--color-text-tertiary); text-decoration: line-through; }
+    .hm-sum .more { flex: none; color: var(--color-text-secondary); }
+    .hm-week-foot .hm-link { margin-right: -4px; }
+
+    /* --- Ближайшее: переключатель «Дедлайны | Домашки/УСР» и две записи --- */
+    .hm-lst { gap: 0; padding: 8px 10px 0; }
+    .hm-seg { display: flex; border-radius: var(--radius-pill); background: var(--color-surface-3); }
+    .hm-seg button { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 6px;
+      border: 0; border-radius: var(--radius-pill); background: none; color: var(--color-text-secondary);
+      font-size: 14px; font-weight: 700; text-align: center; white-space: nowrap;
+      transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+    .hm-seg button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .hm-seg button[aria-selected=true] { background: var(--color-accent); color: #fff; }
+    .hm-seg em { min-width: 20px; padding: 0 6px; border-radius: 10px; background: rgba(128, 128, 128, .22);
+      font-style: normal; font-size: 13px; line-height: 20px; }
+    .hm-seg [aria-selected=true] em { background: rgba(255, 255, 255, .22); }
+    .hm-row-item { display: flex; align-items: center; min-height: 48px; }
+    .hm-row-item + .hm-row-item { border-top: 1px solid var(--color-separator); }
+    .hm-row-check { margin-right: 0; }
+    .hm-row-check::before { inset: 8px; }
+    .hm-row-gap { flex: none; width: 12px; }
+    .hm-row-main { flex: 1 1 0; min-width: 0; }
+    .hm-row-t { display: flex; align-items: center; gap: 6px; color: var(--color-text); font-size: 15px; font-weight: 700; line-height: 20px; }
+    .hm-row-t > .hm-one { flex: 0 1 auto; }
+    .hm-row-s { color: var(--color-text-secondary); font-size: 14px; line-height: 18px; }
+    .hm-row-s .pre { display: none; }
+    .hm-kind { flex: none; padding: 0 6px; border-radius: 6px; background: rgba(var(--color-accent-rgb), .18);
+      color: var(--color-accent-soft); font-size: 13px; font-weight: 700; line-height: 18px; }
+    .hm-row-due { flex: none; margin-left: 8px; color: var(--color-text-secondary); font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .hm-row-due.is-hot { color: var(--status-soon-text); }
+    .hm-row-item.is-done .hm-row-t, .hm-row-item.is-done .hm-row-s { color: var(--color-text-tertiary); text-decoration: line-through; }
+    .hm-row-item.is-done .hm-row-due { color: var(--status-done-text); }
+    .hm-row-all { display: none; min-width: 50px; margin: 0 -6px 0 2px; padding: 0 6px; text-align: center; font-size: 14px; }
+    .hm-empty { padding: 10px 4px; color: var(--color-text-secondary); font-size: 14px; }
+    .hm-lst-foot { display: flex; align-items: center; justify-content: flex-end; min-height: 44px; }
+    .hm-lst-foot .hm-link { margin: 0 -4px 0 0; }
+    /* Низкие экраны (должны стоять после основных правил): на 800 и ниже в блоке одна запись и нет описания «Срочно» */
+    @media (max-height: 800px) {
+      .hm-urgent .hm-desc { display: none; }
+      .hm-urgent { padding-top: 7px; padding-bottom: 7px; }
+      .hm-row-item:nth-child(n+2) { display: none; }
+    }
+    @media (max-height: 700px) {
+      .hm-next .hm-chip, .hm-urgent .hm-chip { min-height: 20px; }
+      .hm-urgent { padding-top: 4px; padding-bottom: 4px; }
+      .hm-week-title .hm-cap { display: none; }
+      .hm-week { padding-top: 2px; }
+      .hm-sch { display: inline-flex; align-items: center; margin: -8px 0 -8px auto; }
+      .hm-sch-foot { display: none; }
+      .hm-week-foot { min-height: 24px; }
+      .on-home .va-header { padding-bottom: 0; }
+      /* Полоса «идёт пара» ложится в нижний отступ карточки и высоты не прибавляет */
+      .hm-next { position: relative; }
+      .hm-next .now-bar { position: absolute; left: var(--hm-pad-x); right: var(--hm-pad-x); bottom: 2px; width: auto; margin: 0; height: 3px; }
+      .hm-lst { padding: 4px 8px 4px; }
+      .hm-lst-foot { display: none; }
+      .hm-row-s .pre, .hm-row-all { display: inline; }
+      .hm-row-due .far { display: none; }
+      .hm-row-all { display: block; }
+    }
     /* Легенда точек — на экране «Расписание» */
     .wk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 0; font-size: 13px; color: var(--color-text-secondary); }
     .wk-legend i { margin-right: 5px; vertical-align: 1px; }
@@ -1473,7 +1540,7 @@
     </button>
 
     <!-- 2. Срочно: одна самая горящая задача. Кружок «выполнено» — у домашки
-         и у дедлайнов. Заполняет renderHomeUrgent(). -->
+         и у дедлайнов. Заполняет renderHomeUrgent(). Остальное — в блоке «Ближайшее» ниже. -->
     <div class="hm-card hm-urgent" id="homeUrgent">
       <div class="hm-urgent-main">
         <div class="hm-urgent-text">
@@ -1484,10 +1551,6 @@
         <button type="button" class="hm-check d-none" id="homeUrgentDone" aria-pressed="false" aria-label="Отметить выполненным">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>
         </button>
-      </div>
-      <div class="hm-more" id="homeUrgentMore">
-        <span class="hm-cap hm-one" id="homeUrgentNext"></span>
-        <button type="button" class="hm-link" id="homeUrgentAll" onclick="goView('study')">Все</button>
       </div>
     </div>
 
@@ -1521,6 +1584,7 @@
     <div class="hm-card hm-week" id="homeWeek">
       <div class="hm-row hm-week-head">
         <span class="hm-week-title hm-one"><b class="hm-h" id="homeWeekTitle">Эта неделя</b><span class="hm-cap" id="homeWeekRange"></span></span>
+        <button type="button" class="hm-link hm-sch" onclick="goView('schedule')">Расписание &rsaquo;</button>
         <span class="wk-nav">
           <button type="button" class="wk-arrow" onclick="shiftHomeWeek(-1)" aria-label="Предыдущая неделя">&lsaquo;</button>
           <button type="button" class="wk-arrow" onclick="shiftHomeWeek(1)" aria-label="Следующая неделя">&rsaquo;</button>
@@ -1528,10 +1592,22 @@
       </div>
       <div class="wk-strip" id="homeWeekStrip" role="group" aria-label="Дни недели"></div>
       <div class="hm-row hm-week-foot">
-        <span class="hm-cap hm-one" id="homeWeekDay"></span>
-        <button type="button" class="hm-link" onclick="goView('schedule')">Расписание &rsaquo;</button>
+        <div class="hm-sum" id="homeWeekDay" aria-live="polite"></div>
+        <button type="button" class="hm-link hm-sch-foot" onclick="goView('schedule')">Расписание &rsaquo;</button>
       </div>
     </div>
+
+    <!-- 5. Ближайшее: переключатель «Дедлайны | Домашки/УСР», в блоке две записи
+         (то, что уже на карточке «Срочно», не повторяется) и «Все N» — в свой раздел.
+         Зачёты и экзамены здесь не показываются. Заполняет renderHomeList(). -->
+    <section class="hm-card hm-lst" id="homeList" aria-label="Ближайшее">
+      <div class="hm-seg" role="tablist" aria-label="Ближайшее">
+        <button type="button" role="tab" id="homeTabDl" data-tab="dl" aria-selected="true">Дедлайны <em>0</em></button>
+        <button type="button" role="tab" id="homeTabHw" data-tab="hw" aria-selected="false">Домашки/УСР <em>0</em></button>
+      </div>
+      <div id="homeListRows" role="tabpanel"></div>
+      <div class="hm-lst-foot"><button type="button" class="hm-link" id="homeListAll">Все ›</button></div>
+    </section>
   </div>
 </section>
 
@@ -2665,11 +2741,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=32"></script>
-<script src="schedule.js?v=32"></script>
-<script src="notify.js?v=32"></script>
-<script src="shared.js?v=32"></script>
-<script src="dean-report.js?v=32"></script>
+<script src="changelog.js?v=33"></script>
+<script src="schedule.js?v=33"></script>
+<script src="notify.js?v=33"></script>
+<script src="shared.js?v=33"></script>
+<script src="dean-report.js?v=33"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -2920,7 +2996,7 @@
   function showView(name) {
     if (!VIEWS[name]) name = 'home';
     const changed = currentViewName !== name;
-    if (changed) homeUrgentPin = null;   // отметка на «Срочно» держится, пока главная не закрыта
+    if (changed) { homeUrgentPin = null; homeListPin.clear(); }   // отметка на «Срочно» и в списке держится, пока главная не закрыта
     currentViewName = name;
     document.body.classList.toggle('on-home', name === 'home');   // шапка главной тоньше
     Object.keys(VIEWS).forEach(k => {
@@ -3094,8 +3170,7 @@
     document.getElementById('homeGuestAbs').classList.toggle('d-none', !!me);
     if (me) renderHomeHours(me);
     renderHomeNow();
-    renderHomeUrgent();
-    renderHomeWeek();
+    refreshHomeTasks();
   }
 
   // Нет сети: «Повторить» запрашивает data.json заново, дальше главную перерисует AppState
@@ -3246,30 +3321,18 @@
   let homeUrgentPin = null;    // ключ задачи, которую только что отметили: остаётся на карточке, чтобы отметку можно было снять
   let homeUrgentMain = null;   // задача, которую сейчас показывает карточка
 
-  function homeUrgentItems() {
-    const out = [];
-    (appData.deadlines || []).forEach(d => {
-      if (!d.dueDate) return;
-      const n = deadlineDaysLeft(d.dueDate);
-      if (n < -7 || (n < 0 && isZachet(d))) return;     // как в списке дедлайнов
-      out.push({ key: 'dl:' + (d.id || d.dueDate + ':' + d.subject), n, rank: isZachet(d) ? 2 : 1,
-        subject: d.subject, kind: deadlineKindName(d), text: d.text || '', dl: d, done: isDeadlineDone(d), markable: !!d.id });
-    });
-    (appData.homework || []).forEach(h => {
-      if (!h.dueDate) return;
-      const n = deadlineDaysLeft(h.dueDate);
-      if (!(n >= 0)) return;
-      out.push({ key: 'hw:' + h.id, n, rank: 0, subject: h.subject, kind: 'Домашка', text: h.text || 'Без описания',
-        hw: h, done: homeworkDone(h), markable: homeworkLessons(h).length > 0 });
-    });
-    return out.sort((a, b) => a.n - b.n || a.rank - b.rank || String(a.subject).localeCompare(String(b.subject), 'ru'));
+  // Список «горящего» и «ближайшего» — общий (studyHot, studyUpcoming в shared.js):
+  // те же записи видят разделы, плитки «Учёбы» и красная точка на «Учёбе».
+  function toggleStudyDone(it) {
+    if (!it || !it.markable) return;
+    if (it.kind === 'homework') toggleHomeworkDoneById(it.id);
+    else toggleDeadlineDoneById(it.id);
   }
 
   function renderHomeUrgent() {
-    const items = homeUrgentItems();
-    const hot = items.filter(i => i.n <= 1);
     // Выполненное не горит: после отметки оно остаётся на карточке (homeUrgentPin), пока главную не закроют
-    const main = hot.find(i => i.key === homeUrgentPin) || hot.find(i => !i.done) || null;
+    const pinned = homeUrgentPin ? studyListed().find(i => i.key === homeUrgentPin && i.n <= 1) : null;
+    const main = pinned || studyHot()[0] || null;
     homeUrgentMain = main;
 
     const chip = document.getElementById('homeUrgentChip');
@@ -3287,29 +3350,95 @@
       else if (main.n < 0) setChip('Просрочено · ' + (-main.n) + ' ' + daysWord(main.n), 'hot');
       else setChip('Горит · ' + deadlineRelative(main.n), 'soon');
       title.textContent = main.subject;
-      document.getElementById('homeUrgentDesc').textContent = main.kind + (main.text ? ' · ' + main.text : '');
+      const text = main.text || (main.kind === 'homework' ? 'Без описания' : '');
+      document.getElementById('homeUrgentDesc').textContent = main.label + (text ? ' · ' + text : '');
       btn.classList.toggle('d-none', !main.markable);
       btn.classList.toggle('on', !!main.done);
       btn.setAttribute('aria-pressed', main.done ? 'true' : 'false');
       btn.setAttribute('aria-label', main.done ? 'Снять отметку «выполнено»' : 'Отметить выполненным');
     }
-
-    // Ниже — следующая по сроку невыполненная задача и общее число открытых
-    const open = items.filter(i => !i.done);
-    const nxt = open.find(i => i !== main);
-    document.getElementById('homeUrgentMore').classList.toggle('d-none', open.length === 0);
-    document.getElementById('homeUrgentNext').textContent = nxt
-      ? 'Дальше · ' + (nxt.n < 0 ? 'просрочено' : deadlineRelative(nxt.n)) + ' · ' + nxt.subject
-      : '';
-    document.getElementById('homeUrgentAll').textContent = 'Все ' + open.length;
   }
 
   document.getElementById('homeUrgentDone').addEventListener('click', () => {
     if (!homeUrgentMain) return;
     homeUrgentPin = homeUrgentMain.key;
-    if (homeUrgentMain.hw) toggleHomeworkDoneById(homeUrgentMain.hw.id);
-    else if (homeUrgentMain.dl) toggleDeadlineDoneById(homeUrgentMain.dl.id);
+    toggleStudyDone(homeUrgentMain);
   });
+
+  // --- Ближайшее: «Дедлайны | Домашки/УСР» ---
+  // Две записи, без зачётов; то, что уже на карточке «Срочно», не повторяется,
+  // но входит в счётчик «Все N». Только что отмеченная запись остаётся на месте
+  // (homeListPin), пока главную не закроют, — чтобы отметку можно было снять.
+  const HOME_TABS = {
+    dl: { kinds: ['deadline'], view: 'deadlines', name: 'Дедлайн', empty: 'Дедлайнов впереди нет' },
+    hw: { kinds: ['homework'], view: 'homework', name: 'Домашка', empty: 'Домашек впереди нет' }
+  };
+  let homeListTab = 'dl';
+  const homeListPin = new Set();
+
+  function homeListRow(it, total) {
+    const h = escapeHtml;
+    const rel = it.n === 0 ? 'сегодня' : it.n === 1 ? 'завтра'
+      : '<span class="far">через </span>' + it.n + ' ' + daysWord(it.n);
+    const check = it.markable
+      ? '<button type="button" class="hm-check hm-row-check' + (it.done ? ' on' : '') + '" data-check="' + h(it.key) +
+        '" aria-pressed="' + (it.done ? 'true' : 'false') + '" aria-label="Выполнено: ' + h(it.subject) + (it.text ? ', ' + h(it.text) : '') + '">' +
+        '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg></button>'
+      : '<span class="hm-row-gap" aria-hidden="true"></span>';
+    return '<div class="hm-row-item' + (it.done ? ' is-done' : '') + '">' + check +
+      '<div class="hm-row-main"><div class="hm-row-t"><span class="hm-one">' + h(it.subject) + '</span>' +
+      (it.type ? '<span class="hm-kind">' + h(it.type) + '</span>' : '') + '</div>' +
+      '<div class="hm-row-s hm-one"><span class="pre">' + h(HOME_TABS[homeListTab].name) + ' · </span>' + h(it.text || 'Без описания') + '</div></div>' +
+      '<div class="hm-row-due' + (it.n <= 1 && !it.done ? ' is-hot' : '') + '">' + (it.done ? 'готово' : rel) + '</div>' +
+      '<button type="button" class="hm-link hm-row-all" data-open="1" aria-label="Все: ' + total + '">Все ' + total + '</button></div>';
+  }
+
+  function renderHomeList() {
+    const box = document.getElementById('homeListRows');
+    if (!box) return;
+    const mainKey = homeUrgentMain ? homeUrgentMain.key : null;
+    Object.keys(HOME_TABS).forEach(t => {
+      const btn = document.querySelector('#homeList [data-tab="' + t + '"]');
+      btn.setAttribute('aria-selected', t === homeListTab ? 'true' : 'false');
+      btn.querySelector('em').textContent = studyUpcoming(HOME_TABS[t].kinds).length;
+    });
+    const cur = HOME_TABS[homeListTab];
+    const total = studyUpcoming(cur.kinds).length;
+    const rows = studyListed(cur.kinds)
+      .filter(it => it.n >= 0 && it.key !== mainKey && (!it.done || homeListPin.has(it.key)))
+      .slice(0, 2);
+    box.innerHTML = rows.length
+      ? rows.map(it => homeListRow(it, total)).join('')
+      : '<div class="hm-empty">' + (total ? 'Остальное — на карточке «Срочно»' : cur.empty) + '</div>';
+    const all = document.getElementById('homeListAll');
+    all.textContent = total ? 'Все ' + total + ' ›' : 'Открыть ›';
+    all.dataset.view = cur.view;
+  }
+
+  document.getElementById('homeList').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.tab) {
+      homeListTab = btn.dataset.tab;
+      haptic('selection');
+      renderHomeList();
+    } else if (btn.dataset.check) {
+      const it = studyListed().find(x => x.key === btn.dataset.check);
+      if (!it) return;
+      homeListPin.add(it.key);
+      toggleStudyDone(it);
+    } else if (btn.id === 'homeListAll' || btn.dataset.open) {
+      haptic('selection');
+      goView(HOME_TABS[homeListTab].view);
+    }
+  });
+
+  // Отметка выполнена: перерисовать всё, что на главной зависит от задач
+  function refreshHomeTasks() {
+    renderHomeUrgent();
+    renderHomeList();
+    renderHomeWeek();
+  }
 
   // --- Лента недели -------------------------------------------------------
   // Смещение недели: 0 — эта неделя. Свайп по ленте уводит на соседние.
@@ -3333,40 +3462,18 @@
     return new Date(m.getFullYear(), m.getMonth(), m.getDate() + homeWeekShift * 7);
   }
 
-  // Все дела дня: дедлайны, зачёты и экзамены из appData.deadlines, домашка из
-  // appData.homework. Порядок — горит, дедлайн, домашка, зачёт.
-  function homeDayEvents(key) {
-    const out = [];
-    (appData.deadlines || []).forEach(d => {
-      if (d.dueDate !== key) return;
-      const zachet = isZachet(d);
-      const n = deadlineDaysLeft(d.dueDate);
-      const done = isDeadlineDone(d);
-      out.push({
-        kind: zachet ? 'zachet' : 'dl',
-        hot: n <= 1 && !done,
-        done: done,
-        label: zachet ? deadlineKindName(d) : 'Дедлайн',
-        subject: d.subject,
-        text: d.text || deadlineKindName(d),
-        rel: deadlineRelative(n)
-      });
-    });
-    (appData.homework || []).forEach(h => {
-      if (h.dueDate !== key) return;
-      const n = deadlineDaysLeft(h.dueDate);
-      const done = homeworkDone(h);
-      out.push({
-        kind: 'hw',
-        hot: n <= 1 && !done,
-        label: 'Домашка',
-        subject: h.subject,
-        text: h.text || 'Без описания',
-        rel: deadlineRelative(n),
-        hw: h,
-        done: done
-      });
-    });
+  // Все дела дня: дедлайны, зачёты и экзамены, домашка — из того же общего списка,
+  // что и всё остальное. Порядок — горит, дедлайн, домашка, зачёт.
+  function homeDayEvents(key, items) {
+    const kindOf = { deadline: 'dl', homework: 'hw', zachet: 'zachet' };
+    const out = (items || studyItems()).filter(it => it.dueDate === key).map(it => ({
+      kind: kindOf[it.kind],
+      hot: it.n <= 1 && !it.done,
+      done: it.done,
+      subject: it.subject,
+      text: it.text || (it.kind === 'homework' ? 'Без описания' : it.label),
+      tag: it.kind === 'homework' ? (it.type || it.label) : it.label
+    }));
     const rank = (e) => e.hot ? 0 : e.kind === 'dl' ? 1 : e.kind === 'hw' ? 2 : 3;
     return out.sort((a, b) => rank(a) - rank(b) || String(a.subject).localeCompare(String(b.subject), 'ru'));
   }
@@ -3389,10 +3496,11 @@
     document.getElementById('homeWeekRange').textContent = monday.getDate() +
       (monday.getMonth() === sunday.getMonth() ? '' : ' ' + MONTHS_GEN[monday.getMonth()]) + '–' + sunday.getDate() + ' ' + MONTHS_GEN[sunday.getMonth()];
 
+    const items = studyItems();
     strip.innerHTML = WD_SHORT.map((wd, i) => {
       const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
       const key = dayKey(d);
-      const evs = homeDayEvents(key);
+      const evs = homeDayEvents(key, items);
       const kinds = ['dl', 'hw', 'zachet'].filter(k => evs.some(e => e.kind === k));
       const cls = ['wk-cell'];
       if (i >= 5) cls.push('is-weekend');
@@ -3432,17 +3540,29 @@
     renderHomeWeekDay();
   }
 
-  // Одна строка под лентой: «Суббота, 31 октября · 1 задача». Сами дела дня — в «Расписании».
+  // Под лентой коротко: что сдавать в выбранный день — одна-две строки и «+N».
+  // Не расписание: пары смотрят по ссылке «Расписание ›».
   function renderHomeWeekDay() {
     const box = document.getElementById('homeWeekDay');
     if (!box) return;
     const [y, m, d] = String(homeDaySel || '').split('-').map(Number);
     const date = new Date(y, m - 1, d);
-    const n = homeDayEvents(homeDaySel).length;
-    const a = n % 100, b = n % 10;
-    const word = (a > 10 && a < 20) || b === 0 || b > 4 ? 'задач' : b === 1 ? 'задача' : 'задачи';
-    box.textContent = WD_FULL[date.getDay() === 0 ? 7 : date.getDay()] + ', ' + d + ' ' + MONTHS_GEN[m - 1] +
-      ' · ' + (n ? n + ' ' + word : 'задач нет');
+    const evs = homeDayEvents(homeDaySel);
+    const lim = window.innerHeight <= 700 ? 1 : 2;
+    const h = escapeHtml;
+    const line = (e, more) => '<div class="l' + (e.done ? ' is-done' : '') + '"><i class="' + e.kind + '"></i><span class="tx"><b>' +
+      h(e.subject) + '</b> · ' + h(e.text) + ' · ' + h(e.tag) + '</span>' + (more ? '<span class="more">+' + more + '</span>' : '') + '</div>';
+    let html;
+    if (!evs.length) {
+      html = '<div class="l"><span class="tx more">' + WD_FULL[date.getDay() === 0 ? 7 : date.getDay()] + ', ' + d + ' ' + MONTHS_GEN[m - 1] + ' — задач нет</span></div>';
+    } else if (evs.length <= lim) {
+      html = evs.map(e => line(e)).join('');
+    } else if (lim === 1) {
+      html = line(evs[0], evs.length - 1);
+    } else {
+      html = line(evs[0]) + '<div class="l more">+ещё ' + (evs.length - 1) + '</div>';
+    }
+    box.innerHTML = html;
   }
 
   // Пары того дня, к которым привязано задание: «Сделано» хранится по паре (setLessonDone)
@@ -3463,8 +3583,7 @@
     const next = !homeworkDone(h);
     lessons.forEach(l => setLessonDone(l, h.dueDate, next));
     haptic(next ? 'success' : 'selection');
-    renderHomeUrgent();
-    renderHomeWeek();
+    refreshHomeTasks();
   }
 
   // Пока главная открыта — раз в минуту обновляем «ещё N мин» и полосу пары
@@ -4687,7 +4806,7 @@
     serverIds.forEach((id) => { if (!map[id]) { map[id] = 1; changed = true; } });
     if (changed) {
       lsSet(dlDoneStorageKey(), JSON.stringify(map));
-      if (currentViewName === 'home' && AppState.ready) { renderHomeUrgent(); renderHomeWeek(); }
+      if (currentViewName === 'home' && AppState.ready) refreshHomeTasks();
     }
     return Object.keys(map).filter((id) => map[id] && !serverIds.has(id));
   }
@@ -4700,8 +4819,7 @@
     lsSet(dlDoneStorageKey(), JSON.stringify(map));
     if (typeof achSetDeadlineDone === 'function') achSetDeadlineDone(d.id, next);   // в Supabase, если вошли
     haptic(next ? 'success' : 'selection');
-    renderHomeUrgent();
-    renderHomeWeek();
+    refreshHomeTasks();
   }
   function lessonDoneKey(lesson, iso) { return iso + '|' + lesson.id; }
   function isLessonDone(lesson, iso) { return !!readDoneMap()[lessonDoneKey(lesson, iso)]; }
@@ -6747,15 +6865,15 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="badges.js?v=32"></script>
-<script src="achievements.js?v=32"></script>
-<script src="studak.js?v=32"></script>
-<script src="profile.js?v=32"></script>
+<script src="badges.js?v=33"></script>
+<script src="achievements.js?v=33"></script>
+<script src="studak.js?v=33"></script>
+<script src="profile.js?v=33"></script>
 <!-- Правила игр: модуль, тот же файл проверяет рекорды в Edge Function -->
-<script type="module" src="games-core.js?v=32"></script>
-<script src="games.js?v=32"></script>
-<script src="snake.js?v=32"></script>
-<script src="words.js?v=32"></script>
+<script type="module" src="games-core.js?v=33"></script>
+<script src="games.js?v=33"></script>
+<script src="snake.js?v=33"></script>
+<script src="words.js?v=33"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>

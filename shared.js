@@ -208,6 +208,69 @@ const isZachet = (d) => d.type === 'zachet' || d.type === 'exam';
 const isExam = (d) => d.type === 'exam';
 const deadlineKindName = (d) => (isExam(d) ? 'Экзамен' : d.type === 'zachet' ? 'Зачёт' : 'Дедлайн');
 
+// ============================================================================
+// ЕДИНЫЙ ИСТОЧНИК «ГОРЯЩЕГО» И «БЛИЖАЙШЕГО»
+//
+// Главная (списки, «Срочно», неделя), разделы «Дедлайны» и «Домашки», плитки
+// «Учёбы», красная точка на «Учёбе» и лист «Что сдавать» читают записи только
+// отсюда — поэтому цифры на всех экранах всегда одинаковы.
+//
+// Запись: { kind: 'deadline' | 'zachet' | 'homework', key, id, subject, text,
+//           label, type, dueDate, n, done, markable, rec }
+//   n        — сколько дней до срока по Минску (меньше нуля — просрочено)
+//   done     — личная отметка «выполнено» (её знает index.html: isDeadlineDone,
+//              homeworkDone; в других страницах отметок нет)
+//   markable — можно ли отметить (у домашки — только если у неё есть пара)
+//
+// Правила:
+//   актуальна  — дедлайн: срок не старше 7 дней; зачёт и домашка: срок не прошёл
+//                (просроченная домашка скрыта из списков и лежит в «Архиве»)
+//   горит      — актуальна, не выполнена, срок сегодня, завтра или уже прошёл
+//   ближайшая  — не выполнена, срок сегодня или позже, по возрастанию срока
+// ============================================================================
+const STUDY_RANK = { homework: 0, deadline: 1, zachet: 2 };
+
+function studyItems() {
+  const out = [];
+  const fn = (name) => (typeof globalThis[name] === 'function' ? globalThis[name] : null);
+  const dlDone = fn('isDeadlineDone'), hwDone = fn('homeworkDone'), hwLessons = fn('homeworkLessons');
+  (appData.deadlines || []).forEach((d) => {
+    if (!d || !d.dueDate) return;
+    const zachet = isZachet(d);
+    out.push({
+      kind: zachet ? 'zachet' : 'deadline', key: 'dl:' + (d.id || d.dueDate + ':' + d.subject), id: d.id,
+      subject: d.subject, text: d.text || '', label: deadlineKindName(d), type: '', dueDate: d.dueDate,
+      n: deadlineDaysLeft(d.dueDate), done: dlDone ? !!dlDone(d) : false, markable: !!d.id && !!dlDone, rec: d
+    });
+  });
+  (appData.homework || []).forEach((h) => {
+    if (!h || !h.dueDate) return;
+    out.push({
+      kind: 'homework', key: 'hw:' + h.id, id: h.id,
+      subject: h.subject, text: h.text || '', label: 'Домашка', type: h.type || '', dueDate: h.dueDate,
+      n: deadlineDaysLeft(h.dueDate), done: hwDone ? !!hwDone(h) : false,
+      markable: !!hwLessons && hwLessons(h).length > 0, rec: h
+    });
+  });
+  return out;
+}
+
+const studyActive = (it) => it.kind === 'deadline' ? it.n >= -7 : it.n >= 0;
+const studyHotItem = (it) => studyActive(it) && !it.done && it.n <= 1;
+const studyUpcomingItem = (it) => !it.done && it.n >= 0;
+const studyByDue = (a, b) => a.n - b.n || STUDY_RANK[a.kind] - STUDY_RANK[b.kind] ||
+  String(a.subject).localeCompare(String(b.subject), 'ru');
+
+// kinds — какие виды брать (по умолчанию все)
+const studyPick = (kinds, test) => studyItems()
+  .filter((it) => (!kinds || kinds.includes(it.kind)) && test(it)).sort(studyByDue);
+const studyHot = (kinds) => studyPick(kinds, studyHotItem);
+const studyUpcoming = (kinds) => studyPick(kinds, studyUpcomingItem);
+// Всё, что ещё в списках (в том числе выполненное — его можно отметить заново)
+const studyListed = (kinds) => studyPick(kinds, studyActive);
+// Просроченная домашка: из списков скрыта, в данных остаётся; сначала самая свежая
+const studyArchive = () => studyPick(['homework'], (it) => it.n < 0).reverse();
+
 function deadlineCard(d) {
   const n = deadlineDaysLeft(d.dueDate);
   const zachet = isZachet(d);
