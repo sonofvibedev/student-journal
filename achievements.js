@@ -314,7 +314,7 @@ const achMonthOf = (date) => String(date).slice(0, 7);
 // Считаем по данным, которые староста уже внёс: «Пропуски актуальны на»
 function achAsOf() {
   const iso = String((typeof appData !== 'undefined' && appData.lastUpdated) || '').slice(0, 10);
-  return iso || dayKey(new Date());
+  return iso || minskTodayISO();
 }
 
 function achMyAbsences() {

@@ -183,9 +183,42 @@ function deadlineDate(iso) {
   const [y, m, d] = String(iso).split('-').map(Number);
   return new Date(y, m - 1, d);
 }
-function deadlineDaysLeft(iso) {
-  const t = new Date();
-  return Math.round((deadlineDate(iso) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+// ============================================================================
+// СУТКИ ПО МИНСКУ
+//
+// «Сегодня», «завтра» и «через N дней» считаются по календарной дате в Минске
+// (Europe/Minsk, UTC+3 круглый год), а не по часам устройства: студент с другим
+// часовым поясом видит то же, что и группа. Всё про «сегодня» берёт дату отсюда.
+//   minskTodayISO(now)    — 'YYYY-MM-DD' сегодняшнего дня в Минске
+//   minskNow(now)         — Date, у которого локальные поля (год, день, часы…) равны
+//                           минскому времени: годится для старого кода на getDate()/getHours()
+//   minskDayDiff(iso,now) — сколько суток от минского «сегодня» до даты iso
+// now необязателен (по умолчанию — сейчас), нужен тестам.
+// ============================================================================
+const MINSK_TZ = 'Europe/Minsk';
+function minskParts(now) {
+  const f = new Intl.DateTimeFormat('en-GB', { timeZone: MINSK_TZ, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const o = {};
+  f.formatToParts(now || new Date()).forEach((p) => { o[p.type] = Number(p.value); });
+  return o;
+}
+function minskTodayISO(now) {
+  const p = minskParts(now);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+}
+function minskNow(now) {
+  const p = minskParts(now);
+  return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+}
+function minskDayDiff(iso, now) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  const t = minskParts(now);
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(t.year, t.month - 1, t.day)) / 86400000);
+}
+
+function deadlineDaysLeft(iso, now) {
+  return minskDayDiff(iso, now);
 }
 function daysWord(n) {
   const a = Math.abs(n) % 100, b = a % 10;
@@ -341,7 +374,7 @@ function renderDeadlines() {
     const all = studyItems().filter((it) => it.kind === 'deadline').sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     const shown = all.filter(studyActive);
     const past = all.filter((it) => !studyActive(it)).reverse();
-    const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
+    const toSunday = 6 - (minskNow().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
     renderStudyGroups(list, shown, [
       ['Просрочено', (it) => it.n < 0], ['Сегодня', (it) => it.n === 0],
       ['На этой неделе', (it) => it.n <= toSunday], ['Позже', () => true]]);
@@ -362,7 +395,7 @@ function readSeenDeadlines() {
 }
 function updateDeadlinesDot() {
   const seen = readSeenDeadlines();
-  const hasNew = activeDeadlines().some(d => !seen.includes(d.id));
+  const hasNew = studyPick(['deadline', 'zachet'], (it) => studyActive(it) && !it.done).some(it => !seen.includes(it.id));
   document.querySelectorAll('.js-deadlines-dot').forEach(el => el.classList.toggle('d-none', !hasNew));
 }
 function markDeadlinesSeen() {

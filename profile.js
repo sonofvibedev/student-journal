@@ -760,20 +760,15 @@
 
   // Ближайший дедлайн и ближайшая домашка — по одной строке
   function renderProfileNext() {
-    const dl = activeDeadlines()
-      .slice()
-      .sort((a, b) => deadlineDaysLeft(a) - deadlineDaysLeft(b))[0];
+    const dl = studyUpcoming(['deadline'])[0];
     const elDl = document.getElementById('profileNextDeadline');
     if (elDl) {
       elDl.textContent = dl
-        ? (dl.text || dl.subject) + ' · ' + deadlineRelative(deadlineDaysLeft(dl))
+        ? (dl.text || dl.subject) + ' · ' + deadlineRelative(dl.n)
         : 'ничего не горит';
     }
 
-    const today = dayKey(new Date());
-    const hw = (appData.homework || [])
-      .filter(h => !h.dueDate || dayKey(deadlineDate(h.dueDate)) >= today)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)))[0];
+    const hw = studyUpcoming(['homework'])[0];
     const elHw = document.getElementById('profileNextHomework');
     if (elHw) {
       elHw.textContent = hw
@@ -1389,7 +1384,7 @@
   });
   // ===== Лента событий: пропуски, справки и сообщения старосты — по дням, с фильтром =====
     function dayTitle(d) {
-    const today = new Date(); const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    const today = minskNow(); const yesterday = minskNow(); yesterday.setDate(today.getDate() - 1);
     if (dayKey(d) === dayKey(today)) return 'Сегодня';
     if (dayKey(d) === dayKey(yesterday)) return 'Вчера';
     return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}${d.getFullYear() !== today.getFullYear() ? ' ' + d.getFullYear() : ''}`;
@@ -1468,13 +1463,13 @@
       if (a.isExcused) byDay[k].e += Number(a.totalHours); else byDay[k].u += Number(a.totalHours);
     });
     if (!calendarMonth) {
-      const latest = abs.length ? new Date(abs[0].date) : new Date();
+      const latest = abs.length ? new Date(abs[0].date) : minskNow();
       calendarMonth = new Date(latest.getFullYear(), latest.getMonth(), 1);
       if (abs.length) calendarDay = dayKey(latest);
     }
     const y = calendarMonth.getFullYear(), m = calendarMonth.getMonth();
     document.getElementById('calendarTitle').textContent = `${MONTHS_NOM[m]} ${y}`;
-    const todayKey = dayKey(new Date());
+    const todayKey = minskTodayISO();
     const offset = (new Date(y, m, 1).getDay() + 6) % 7;       // понедельник — первый день
     const days = new Date(y, m + 1, 0).getDate();
     let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(w => `<span class="wd">${w}</span>`).join('');

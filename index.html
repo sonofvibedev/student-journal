@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=34"></script>
+  <script src="env.js?v=35"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,15 +25,15 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=34" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=35" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=34" rel="stylesheet">
+  <link href="profile.css?v=35" rel="stylesheet">
   <!-- Достижения: значки и карточки со шкалой выполнения -->
-  <link href="achievements.css?v=34" rel="stylesheet">
+  <link href="achievements.css?v=35" rel="stylesheet">
   <!-- Игры: список, судоку, сапёр, flappy и рейтинг -->
-  <link href="games.css?v=34" rel="stylesheet">
-  <script src="theme.js?v=34"></script>
+  <link href="games.css?v=35" rel="stylesheet">
+  <script src="theme.js?v=35"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -2728,11 +2728,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=34"></script>
-<script src="schedule.js?v=34"></script>
-<script src="notify.js?v=34"></script>
-<script src="shared.js?v=34"></script>
-<script src="dean-report.js?v=34"></script>
+<script src="changelog.js?v=35"></script>
+<script src="schedule.js?v=35"></script>
+<script src="notify.js?v=35"></script>
+<script src="shared.js?v=35"></script>
+<script src="dean-report.js?v=35"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -3179,7 +3179,7 @@
   // Три состояния, статус всегда ещё и словами: «в пределах нормы»,
   // «Почти лимит» (осталось не больше DEAN_NEAR_HOURS ч), «Предупреждение».
   function renderHomeHours(me) {
-    const now = new Date();
+    const now = minskNow();
     let un = 0, ex = 0;
     (appData.absences || []).forEach(a => {
       if (a.studentId !== me) return;
@@ -3219,7 +3219,7 @@
 
   function renderHomeNow() {
     if (typeof lessonsOfDay !== 'function') return;
-    const now = new Date();
+    const now = minskNow();
     const week = currentSemesterWeek(now);
     const day = now.getDay() === 0 ? 7 : now.getDay();
     const list = (day <= 6 && week ? lessonsOfDay(week, day) : []) || [];
@@ -3442,7 +3442,7 @@
   const EV_NAMES = { dl: 'дедлайн', hw: 'домашка', zachet: 'зачёт' };
 
   function homeWeekMonday() {
-    const m = mondayOf(new Date());
+    const m = mondayOf(minskNow());
     return new Date(m.getFullYear(), m.getMonth(), m.getDate() + homeWeekShift * 7);
   }
 
@@ -3466,7 +3466,7 @@
     const strip = document.getElementById('homeWeekStrip');
     if (!strip) return;
     const monday = homeWeekMonday();
-    const todayKey = dayKey(new Date());
+    const todayKey = minskTodayISO();
     if (!homeDaySel) {
       // Эта неделя открывается на сегодня, соседние — на своём понедельнике
       homeDaySel = homeWeekShift === 0 ? todayKey : dayKey(monday);
@@ -3578,29 +3578,26 @@
   // появлении (staggerTiles в shared.js); при «уменьшении движения»
   // они просто стоят на месте.
   function renderStudyTiles() {
-    const all = typeof activeDeadlines === 'function' ? activeDeadlines() : [];
-    // Дедлайны: только они, без зачётов и экзаменов — у тех своя плитка
-    const plain = all.filter(d => !isZachet(d)).sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
-    const hot = plain.filter(d => deadlineDaysLeft(d.dueDate) <= 1 && !isDeadlineDone(d));
+    // Все цифры — из общего списка (shared.js): горит = срок сегодня/завтра или просрочен и не выполнен,
+    // ближайшее = не выполнено, срок не раньше сегодняшнего. Дедлайны и зачёты считаются отдельно.
+    const hot = studyHot(['deadline']);
+    const open = studyUpcoming(['deadline']);
 
     const cnt = document.getElementById('studyDeadlinesCount');
     cnt.textContent = hot.length;
     cnt.classList.toggle('d-none', hot.length === 0);
 
-    const next = plain.find(d => deadlineDaysLeft(d.dueDate) >= 0);
+    const next = open[0];
     document.getElementById('studyDeadlinesNext').textContent = next
       ? [next.subject, next.text].filter(Boolean).join(' — ') +
-        ', ' + deadlineRelative(deadlineDaysLeft(next.dueDate)).toLowerCase()
+        ', ' + deadlineRelative(next.n).toLowerCase()
       : 'ближайших сроков нет';
-    document.getElementById('studyDeadlinesNote').textContent = plain.length
-      ? plain.length + ' впереди' + (hot.length ? ', горит ' + hot.length : '')
+    document.getElementById('studyDeadlinesNote').textContent = open.length
+      ? open.length + ' впереди' + (hot.length ? ', горит ' + hot.length : '')
       : 'список сроков';
 
     // Домашка на ближайшую неделю
-    const week = (appData.homework || []).filter(h => {
-      const n = deadlineDaysLeft(h.dueDate || '');
-      return Number.isFinite(n) && n >= 0 && n <= 7;
-    }).length;
+    const week = studyUpcoming(['homework']).filter(it => it.n <= 7).length;
     const hwNum = document.getElementById('studyHomeworkNum');
     hwNum.dataset.count = week;
     hwNum.textContent = week;
@@ -3612,9 +3609,7 @@
     tNum.textContent = teachers;
 
     // Зачёты и экзамены: ближайшая дата и предмет
-    const dated = all.filter(isZachet)
-      .filter(d => deadlineDaysLeft(d.dueDate) >= 0)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    const dated = studyUpcoming(['zachet']);
     document.getElementById('studyExamsNote').textContent = dated.length
       ? dlFormatDate(deadlineDate(dated[0].dueDate)) + ' — ' + dated[0].subject
       : 'формы контроля и даты';
@@ -3643,7 +3638,7 @@
   const miniMonth = { exam: null };
   const miniDay = { exam: null };   // выбранный день, ключ YYYY-MM-DD
   function shiftMiniMonth(which, delta) {
-    const base = miniMonth[which] || new Date();
+    const base = miniMonth[which] || minskNow();
     miniMonth[which] = new Date(base.getFullYear(), base.getMonth() + delta, 1);
     renderExams();
   }
@@ -3657,13 +3652,13 @@
     const grid = document.getElementById('examCalGrid');
     const title = document.getElementById('examCalTitle');
     if (!grid) return;
-    const base = miniMonth[which] || new Date();
+    const base = miniMonth[which] || minskNow();
     const y = base.getFullYear(), m = base.getMonth();
     title.textContent = base.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
     const first = new Date(y, m, 1);
     const shift = (first.getDay() + 6) % 7;             // неделя с понедельника
     const days = new Date(y, m + 1, 0).getDate();
-    const todayKey = dayKey(new Date());
+    const todayKey = minskTodayISO();
     const selected = miniDay[which];
     // Шапка с днями недели: без неё непонятно, на какой день попадает отметка
     let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -3700,7 +3695,7 @@
     const list = document.getElementById('examCalDayList');
     if (!title || !list) return;
     const key = miniDay[which];
-    const base = miniMonth[which] || new Date();
+    const base = miniMonth[which] || minskNow();
     const [yy, mm, dd] = String(key || '').split('-').map(Number);
     // Переключили месяц — выбранный день другого месяца не показываем
     if (!key || yy !== base.getFullYear() || mm - 1 !== base.getMonth()) {
@@ -3708,7 +3703,7 @@
       list.innerHTML = '<div class="feed-empty">Выберите день, чтобы увидеть события</div>';
       return;
     }
-    title.textContent = dd + ' ' + MONTHS_GEN[mm - 1] + (key === dayKey(new Date()) ? ' · сегодня' : '');
+    title.textContent = dd + ' ' + MONTHS_GEN[mm - 1] + (key === minskTodayISO() ? ' · сегодня' : '');
     const items = controlsOfDay(key);
     if (!items.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
     list.innerHTML = items.join('');
@@ -3752,7 +3747,7 @@
     const box = document.getElementById('homeworkListBody');
     if (!box) return;
     const shown = studyListed(['homework']);
-    const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
+    const toSunday = 6 - (minskNow().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
     renderStudyGroups(box, shown, [
       ['Сегодня', (it) => it.n === 0], ['На этой неделе', (it) => it.n <= toSunday], ['Позже', () => true]]);
     document.getElementById('homeworkEmpty').classList.toggle('d-none', shown.length > 0);
@@ -3849,20 +3844,9 @@
   // в него и заглядывают: что сдавать и когда. Красная точка — пока есть
   // дедлайны, которые студент ещё не открывал (их считает updateDeadlinesDot).
   function remindersItems() {
-    const out = [];
-    (appData.deadlines || []).forEach(d => {
-      if (!d.dueDate) return;
-      const n = deadlineDaysLeft(d.dueDate);
-      if (n < -7 || n > 14) return;
-      out.push({ n: n, kind: deadlineKindName(d), title: d.text || d.subject, sub: d.subject, date: d.dueDate });
-    });
-    (appData.homework || []).forEach(h => {
-      if (!h.dueDate) return;
-      const n = deadlineDaysLeft(h.dueDate);
-      if (n < -7 || n > 14) return;
-      out.push({ n: n, kind: 'Домашка', title: h.text || h.subject, sub: h.subject, date: h.dueDate });
-    });
-    return out.sort((a, b) => a.n - b.n);
+    // То, что ещё не выполнено и актуально: дедлайны, зачёты и домашка на ближайшие две недели
+    return studyPick(null, (it) => studyActive(it) && !it.done && it.n <= 14)
+      .map(it => ({ n: it.n, kind: it.label, title: it.text || it.subject, sub: it.subject, date: it.dueDate }));
   }
 
   function openRemindersSheet() {
@@ -3945,10 +3929,10 @@
     goView('homework');
   }
 
-  // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
+  // Есть ли что-то горящее: красная точка на «Учёбе». Тот же список, что у «Срочно» и плиток
   function hasHotDeadlines() {
     try {
-      return activeDeadlines().some(d => deadlineDaysLeft(d) <= 1);
+      return studyHot().length > 0;
     } catch (e) { return false; }
   }
 
@@ -4203,7 +4187,7 @@
 
   function renderDeadlinesAdminList() {
     const list = document.getElementById('deadlinesAdminList');
-    const today = toISODateLocal(new Date());
+    const today = minskTodayISO();
     const all = appData.deadlines || [];
     const upcoming = all.filter(d => d.dueDate >= today).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     const past = all.filter(d => d.dueDate < today).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
@@ -4304,7 +4288,7 @@
     if (!subject) return showAlert('Выберите предмет');
     if (!text && !isZachet) return showAlert('Опишите, что нужно сделать');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert(isZachet ? 'Укажите дату зачёта' : 'Укажите срок');
-    if (dueDate < toISODateLocal(new Date())) {
+    if (dueDate < minskTodayISO()) {
       if (!(await showConfirm(`${isZachet ? 'Дата' : 'Срок'} ${formatDateShort(deadlineDate(dueDate))} уже ${isZachet ? 'прошла' : 'прошёл'}. Всё равно сохранить ${noun}?`))) return;
     }
 
@@ -4355,14 +4339,14 @@
   // Домашка привязана к занятию по предмету, виду и дате: карточка показывается
   // под той парой, на которую её нужно сдать.
 
-  let scheduleWeek = currentSemesterWeek(new Date());
+  let scheduleWeek = currentSemesterWeek(minskNow());
   let scheduleDay = 1;
   let scheduleTicker = null;
 
   // Какую неделю и день показать «по умолчанию»: сегодняшний день,
   // а в воскресенье — понедельник следующей недели (сегодня пар всё равно нет).
   function todayPosition(now) {
-    const d = (now || new Date());
+    const d = (now || minskNow());
     const weekday = d.getDay();
     if (weekday === 0) {
       return { week: Math.min(SEMESTER_WEEKS, currentSemesterWeek(d) + 1), day: 1 };
@@ -4370,12 +4354,12 @@
     return { week: currentSemesterWeek(d), day: weekday };
   }
   function resetToToday(render) {
-    const pos = todayPosition(new Date());
+    const pos = todayPosition(minskNow());
     scheduleWeek = pos.week;
     scheduleDay = pos.day;
     if (render !== false) renderHomeworkView();
   }
-  (() => { const pos = todayPosition(new Date()); scheduleWeek = pos.week; scheduleDay = pos.day; })();
+  (() => { const pos = todayPosition(minskNow()); scheduleWeek = pos.week; scheduleDay = pos.day; })();
 
   const homeworkList = () => appData.homework || [];
 
@@ -4517,7 +4501,7 @@
   function updateLessonStatuses() {
     const rows = document.querySelectorAll('#hwDayList .sch-lesson');
     if (!rows.length) return;
-    const now = new Date();
+    const now = minskNow();
     const todayIso = dayKey(now);
     const minutesNow = now.getHours() * 60 + now.getMinutes();
     let nextShown = false;
@@ -4612,10 +4596,10 @@
     document.getElementById('hwPrevWeek').disabled = scheduleWeek <= 1;
     document.getElementById('hwNextWeek').disabled = scheduleWeek >= SEMESTER_WEEKS;
     // Ушли с текущей недели — даём способ вернуться одним нажатием
-    document.getElementById('hwTodayBtn').classList.toggle('d-none', scheduleWeek === todayPosition(new Date()).week);
+    document.getElementById('hwTodayBtn').classList.toggle('d-none', scheduleWeek === todayPosition(minskNow()).week);
 
     // Полоска дней
-    const todayKey = dayKey(new Date());
+    const todayKey = minskTodayISO();
     const counts = daysWithLessons(scheduleWeek);
     const strip = document.getElementById('hwDayStrip');
     strip.innerHTML = '';
@@ -4692,10 +4676,8 @@
         list.appendChild(el);
       });
 
-    // Ближайшая домашка: не старше недели, по возрастанию срока
-    const upcoming = homeworkList()
-      .filter(h => deadlineDaysLeft(h.dueDate) >= -7)
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    // Ближайшая домашка: не выполнено и срок не прошёл, по возрастанию срока (тот же список, что на главной)
+    const upcoming = studyUpcoming(['homework']).map(it => it.rec);
     const box = document.getElementById('hwUpcoming');
     box.innerHTML = '';
     upcoming.forEach(h => box.appendChild(upcomingHomeworkCard(h)));
@@ -4955,7 +4937,7 @@
     subjectSelect.value = h ? h.subject : subjectSelect.options[0] ? subjectSelect.options[0].value : '';
     document.getElementById('homeworkType').value = h ? (h.type || '') : '';
     document.getElementById('homeworkText').value = h ? (h.text || '') : '';
-    document.getElementById('homeworkDueDate').value = h ? h.dueDate : toISODateLocal(new Date());
+    document.getElementById('homeworkDueDate').value = h ? h.dueDate : minskTodayISO();
     document.getElementById('homeworkSubgroup').value = h ? String(h.subgroup || 0) : '0';
     document.getElementById('homeworkDeleteBtn').classList.toggle('d-none', !h);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('homeworkFormModal')).show();
@@ -4972,7 +4954,7 @@
     if (!subject) return showAlert('Выберите предмет');
     if (!text) return showAlert('Опишите, что нужно сделать');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return showAlert('Укажите дату сдачи');
-    if (dueDate < toISODateLocal(new Date())) {
+    if (dueDate < minskTodayISO()) {
       if (!(await showConfirm(`Дата ${formatDateShort(deadlineDate(dueDate))} уже прошла. Всё равно сохранить?`))) return;
     }
 
@@ -5192,7 +5174,7 @@
   }
 
   function getPeriodRangeFor(periodValue) {
-    const now = new Date();
+    const now = minskNow();
     if (periodValue === 'WEEK') {
       const day = now.getDay(); // 0 = воскресенье
       const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -5252,7 +5234,7 @@
     document.getElementById('extStatWorstSubject').innerText = worstEntry ? `${worstEntry[0]} (${worstEntry[1]} ч)` : '—';
 
     // Справка просрочена: пропуск уважительный, справка не сдана, срок сдачи уже прошёл
-    const today = new Date();
+    const today = minskNow();
     let overdueCerts = 0;
     appData.absences.forEach(a => {
       if (!a.isExcused || a.certSubmitted || !a.certDueDate) return;
@@ -5271,7 +5253,7 @@
     if (!canvas || typeof Chart === 'undefined') return;
 
     // Неуважительные часы за текущий семестр по предметам, по убыванию
-    const range = getSemesterRange(new Date());
+    const range = getSemesterRange(minskNow());
     const bySubject = {};
     appData.subjects.forEach(s => { bySubject[s] = 0; });
     appData.absences.forEach(a => {
@@ -5319,7 +5301,7 @@
 
   // --- Отчёт для деканата (Excel) по образцу деканата: сама таблица строится в dean-report.js ---
   function generateDeanReport() {
-    const now = new Date();
+    const now = minskNow();
     document.getElementById('deanReportMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     bootstrap.Modal.getOrCreateInstance(document.getElementById('deanReportModal')).show();
   }
@@ -5353,7 +5335,7 @@
     const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `data_backup_${toISODateLocal(new Date())}.json`;
+    link.download = `data_backup_${minskTodayISO()}.json`;
     link.click();
   }
 
@@ -5496,7 +5478,7 @@
   function periodCaptionText() {
     const el = document.getElementById('periodFilter');
     const value = el ? el.value : 'MONTH';
-    const now = new Date();
+    const now = minskNow();
     if (value === 'MONTH') {
       return `${MONTHS_NOM[now.getMonth()]} ${now.getFullYear()}`;
     }
@@ -5602,7 +5584,7 @@
     if (isNaN(d.getTime())) { caption.innerText = ''; return; }
     const weekday = WEEKDAYS_FULL[d.getDay()];
     const dateStr = formatDateShort(d);
-    const today = new Date();
+    const today = minskNow();
     today.setHours(0, 0, 0, 0);
     const isFuture = d > today;
     caption.innerText = `Пропуски вносятся за: ${weekday}, ${dateStr}${isFuture ? ' (дата в будущем)' : ''}`;
@@ -5618,7 +5600,7 @@
       .map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(journalNumbers[s.id] + '. ' + s.lastName + ' ' + s.firstName)}</option>`)
       .join('');
 
-    document.getElementById('absenceDate').valueAsDate = new Date();
+    document.getElementById('absenceDate').value = minskTodayISO();
     updateAbsenceDateCaption();
     document.getElementById('absenceHours').value = 2;
     document.getElementById('absenceComment').value = '';
@@ -5645,7 +5627,7 @@
 
   function openGroupAbsenceModal() {
     document.getElementById('groupAbsenceSubject').innerHTML = appData.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
-    document.getElementById('groupAbsenceDate').valueAsDate = new Date();
+    document.getElementById('groupAbsenceDate').value = minskTodayISO();
     document.getElementById('groupAbsenceHours').value = 2;
     document.getElementById('groupAbsenceComment').value = '';
     document.getElementById('groupAbsenceIsExcused').checked = false;
@@ -5928,7 +5910,7 @@
 
     const studentAbs = appData.absences.filter(a => a.studentId === studentId);
 
-    const currentMonth = new Date().getMonth();
+    const currentMonth = minskNow().getMonth();
     let monthUnexcused = 0, monthExcused = 0;
     let totalUnexcused = 0, totalExcused = 0;
 
@@ -5978,7 +5960,7 @@
     }
     if (a.certDueDate) {
       const due = new Date(a.certDueDate);
-      if (!isNaN(due.getTime()) && due < new Date()) {
+      if (!isNaN(due.getTime()) && minskDayDiff(String(a.certDueDate).slice(0, 10)) < 0) {
         return `<span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50">${a.certType}: просрочена (до ${formatDateShort(due)})</span>`;
       }
       return `<span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50">${a.certType}: ожидается до ${formatDateShort(due)}</span>`;
@@ -6803,15 +6785,15 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="badges.js?v=34"></script>
-<script src="achievements.js?v=34"></script>
-<script src="studak.js?v=34"></script>
-<script src="profile.js?v=34"></script>
+<script src="badges.js?v=35"></script>
+<script src="achievements.js?v=35"></script>
+<script src="studak.js?v=35"></script>
+<script src="profile.js?v=35"></script>
 <!-- Правила игр: модуль, тот же файл проверяет рекорды в Edge Function -->
-<script type="module" src="games-core.js?v=34"></script>
-<script src="games.js?v=34"></script>
-<script src="snake.js?v=34"></script>
-<script src="words.js?v=34"></script>
+<script type="module" src="games-core.js?v=35"></script>
+<script src="games.js?v=35"></script>
+<script src="snake.js?v=35"></script>
+<script src="words.js?v=35"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>

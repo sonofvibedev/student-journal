@@ -219,7 +219,7 @@ const semesterMonday = () => {
 };
 // Номер текущей учебной недели, обрезанный границами семестра
 function currentSemesterWeek(now) {
-  const diff = mondayOf(now || new Date()) - semesterMonday();
+  const diff = mondayOf(now || minskNow()) - semesterMonday();
   const week = Math.floor(diff / (7 * 24 * 3600 * 1000)) + 1;
   return Math.min(SEMESTER_WEEKS, Math.max(1, week));
 }

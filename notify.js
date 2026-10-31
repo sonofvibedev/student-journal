@@ -288,16 +288,11 @@ function notifyMarkShown(key) {
   lsSet(NOTIFY_SHOWN_KEY, JSON.stringify(map));
 }
 
-// Что напомнить сегодня: срок сегодня или завтра
+// Что напомнить сегодня: срок сегодня или завтра и ещё не выполнено (тот же список, что «горит» на главной)
 function notifyDueToday() {
-  if (typeof appData === 'undefined' || !appData) return [];
-  const items = [];
-  (appData.deadlines || []).forEach((d) => items.push({ id: d.id, kind: 'Дедлайн', subject: d.subject, text: d.text, dueDate: d.dueDate }));
-  (appData.homework || []).forEach((h) => items.push({ id: h.id, kind: 'Домашка', subject: h.subject, text: h.text, dueDate: h.dueDate }));
-  return items.filter((i) => {
-    const left = deadlineDaysLeft(i.dueDate);
-    return left === 0 || left === 1;
-  });
+  if (typeof appData === 'undefined' || !appData || typeof studyUpcoming !== 'function') return [];
+  return studyUpcoming().filter((it) => it.n <= 1)
+    .map((it) => ({ id: it.id, kind: it.label, subject: it.subject, text: it.text, dueDate: it.dueDate }));
 }
 
 function checkLocalReminders() {
