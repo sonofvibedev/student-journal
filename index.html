@@ -8,6 +8,11 @@
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
   <script src="env.js?v=38"></script>
   <script src="tg-gate.js?v=1"></script><!-- замок Mini App: без ключа бота из Telegram — 404 -->
+  <script>
+    // data.json начинает грузиться сразу, а не после bootstrap/supabase-js и остальных скриптов страницы:
+    // loadData() забирает этот запрос один раз (при ошибке просто запросит заново)
+    window.__dataFetch = fetch('./data.json?t=' + Date.now(), { cache: 'no-store' }).catch(function () { return null; });
+  </script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -22,7 +27,6 @@
 
   <!-- Аналитика (график) и Excel-отчёт для деканата -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
@@ -4060,6 +4064,13 @@
   }
 
 
+  // Скрипты без defer (profile.js, achievements.js и др.) выполняются до DOMContentLoaded:
+  // пока readyState === 'loading', initProfile и остальное из них ещё может не существовать
+  function afterPageScripts() {
+    if (document.readyState !== 'loading') return Promise.resolve();
+    return new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+  }
+
   async function init() {
     // Инициализация Telegram Mini App
     if (window.Telegram && window.Telegram.WebApp) {
@@ -4073,13 +4084,17 @@
     setupTelegram();
 
     updateAdminUI();
-    await loadData();
+    await loadData();                        // стартует сразу: цифры не ждут загрузки остальных скриптов
+    const scriptsPending = document.readyState === 'loading';
     primeNotificationsRead();                // первый запуск: старые записи сразу прочитаны
     if (!openAchFromHash()) showView(currentView());   // index.html#teachers / #deadlines — сразу нужный раздел
     updateDeadlinesDot();
     renderAppVersionLabel('profileNewsVersion');
-    refreshCabinetProfile();
     updateAdminUI();
+    await afterPageScripts();                // profile.js подключён ниже: ждём его только здесь
+    refreshCabinetProfile();                 // стартует вместе с initProfile: оба берут одну строку profiles одним запросом
+    // Раздел из адреса (игры, пропуски) мог открыться без скриптов, которых тогда ещё не было
+    if (scriptsPending && currentView() !== 'home') showView(currentView());
     await initProfile();                     // вход, профиль, зачётка, пропуски — profile.js
   }
 
@@ -4106,8 +4121,16 @@
 
   async function loadData() {
     try {
-      const response = await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
-      appData = await response.json();
+      // data.json и личная часть (сессия + journal_private) не зависят друг от друга: грузим вместе.
+      // Первый запрос data.json уже идёт с начала страницы (window.__dataFetch в <head>)
+      const early = window.__dataFetch; window.__dataFetch = null;
+      const publicP = (async () => {
+        const response = (early && await early) || await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
+        return response.json();
+      })();
+      const privateP = fetchPrivateRow();    // ошибки ловит сама: публичные данные от неё не зависят
+      const [publicData, privateRow] = await Promise.all([publicP, privateP]);
+      appData = publicData;
       if (!appData.subjects || appData.subjects.length === 0) {
         appData.subjects = DEFAULT_SUBJECTS;
       }
@@ -4118,7 +4141,7 @@
         appData.deadlines = [];
       }
       rememberLoadedRecords();
-      await loadPrivateData();              // студенты и пропуски — из Supabase, только после входа
+      applyPrivateRow(privateRow);          // студенты и пропуски — из Supabase, только после входа
       AppState.setData('ready');               // данные есть: разделы могут показывать цифры
       renderOfflineBar();                      // в плашке «Нет сети» — дата этих данных
       populateSubjectFilter();
@@ -4144,7 +4167,7 @@
   // пустой список затёр бы настоящий.
   let privateLoaded = false;
 
-  async function loadPrivateData() {
+  async function fetchPrivateRow() {
     let row = null;
     try {
       const { data: { session } } = sb ? await sb.auth.getSession() : { data: { session: null } };
@@ -4156,9 +4179,17 @@
     } catch (e) {
       console.error('Личная часть журнала не загрузилась:', e);
     }
+    return row;
+  }
+
+  function applyPrivateRow(row) {
     privateLoaded = !!row;
     appData.students = (row && row.students) || [];
     appData.absences = (row && row.absences) || [];
+  }
+
+  async function loadPrivateData() {
+    applyPrivateRow(await fetchPrivateRow());
   }
 
   // После входа или выхода: загрузить или убрать личную часть и перерисовать журнал
@@ -4188,6 +4219,17 @@
     } catch (e) {}
   }
 
+  // Строка profiles своего пользователя. refreshCabinetProfile (index.html) и loadMyProfile (profile.js)
+  // стартуют одновременно при запуске: пока запрос в пути, второй вызов получает тот же ответ
+  let profileRowInflight = null;
+  function fetchProfileRow(userId) {
+    if (profileRowInflight && profileRowInflight.userId === userId) return profileRowInflight.promise;
+    const promise = Promise.resolve(sb.from('profiles').select('student_id, login').eq('user_id', userId).maybeSingle())
+      .finally(() => { if (profileRowInflight && profileRowInflight.promise === promise) profileRowInflight = null; });
+    profileRowInflight = { userId, promise };
+    return promise;
+  }
+
   async function refreshCabinetProfile() {
     lsRemove('my_student_id');   // старый вход user## больше не используется
     if (!sb) return;
@@ -4196,7 +4238,7 @@
       if (!session) {
         if (navigator.onLine) saveCabinetProfile(null);
       } else {
-        const { data, error } = await sb.from('profiles').select('student_id, login').eq('user_id', session.user.id).maybeSingle();
+        const { data, error } = await fetchProfileRow(session.user.id);
         if (!error) saveCabinetProfile(data ? { user_id: session.user.id, student_id: data.student_id, login: data.login } : null);
       }
     } catch (e) {
@@ -5613,17 +5655,30 @@
   }
 
   // --- Отчёт для деканата (Excel) по образцу деканата: сама таблица строится в dean-report.js ---
+  // exceljs (238 КБ) нужен только админу и только здесь: подгружаем при первом обращении
+  let exceljsPromise = null;
+  function loadExcelJs() {
+    if (typeof ExcelJS !== 'undefined') return Promise.resolve();
+    if (!exceljsPromise) {
+      exceljsPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+        s.onload = () => resolve();
+        s.onerror = () => { s.remove(); exceljsPromise = null; reject(new Error('exceljs')); };
+        document.head.appendChild(s);
+      });
+    }
+    return exceljsPromise;
+  }
+
   function generateDeanReport() {
+    loadExcelJs().catch(() => {});   // прогрев: пока админ выбирает месяц, библиотека уже грузится
     const now = minskNow();
     document.getElementById('deanReportMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     bootstrap.Modal.getOrCreateInstance(document.getElementById('deanReportModal')).show();
   }
 
   async function downloadDeanReport() {
-    if (typeof ExcelJS === 'undefined') {
-      showAlert('Библиотека для Excel ещё загружается — подождите секунду и попробуйте снова.');
-      return;
-    }
     if (!appData.students.length) {
       showAlert('Список группы не загружен — войдите в кабинет и попробуйте снова.');
       return;
@@ -5632,6 +5687,8 @@
     if (!/^\d{4}-\d{2}$/.test(value)) { showAlert('Выберите месяц.'); return; }
     const [year, month] = value.split('-').map(Number);
 
+    try { await loadExcelJs(); }
+    catch (e) { showAlert('Не удалось загрузить библиотеку для Excel. Проверьте интернет и попробуйте снова.'); return; }
     const wb = buildDeanReport(ExcelJS, appData.students, appData.absences, year, month - 1);
     const blob = new Blob([await wb.xlsx.writeBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
@@ -7093,9 +7150,8 @@
   ptrInit();
   initTopBar();
   initOfflineWatch();
-  // Запускаем после загрузки всех скриптов страницы: init() вызывает initProfile() из profile.js,
-  // который подключён ниже; на медленной сети data.json успевал прийти раньше него.
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  // init() стартует сразу (data.json не ждёт скриптов); до initProfile() из profile.js он дожидается сам
+  init();
 
   // Дорисовать после штатной функции страницы (сами функции не меняются)
   function afterCall(name, fn) {

@@ -246,7 +246,7 @@
   // student_id вошедшего студента — только из его строки в profiles (RLS отдаёт лишь свою)
   async function loadMyProfile(session) {
     try {
-      const { data, error } = await sb.from('profiles').select('student_id, login').eq('user_id', session.user.id).maybeSingle();
+      const { data, error } = await fetchProfileRow(session.user.id);   // index.html: общий запрос с refreshCabinetProfile
       if (error) throw error;
       if (!data) return null;
       const profile = { user_id: session.user.id, student_id: data.student_id, login: data.login };
