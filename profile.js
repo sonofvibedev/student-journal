@@ -747,7 +747,6 @@
 
     renderPersonalStats();
     updateProfileAdminUI();
-    dlCalendarMonth = null;    // календарь дедлайнов открывается на текущем месяце
     renderDeadlines();
     renderMyAbsences();
     renderZachetka();
@@ -1043,50 +1042,6 @@
 
 
 
-  // --- Дедлайны и календарь — общий код в shared.js. Здесь только своё для кабинета:
-  // сроки справок вошедшего студента. Справка попадает в календарь, если пропуск уважительный,
-  // указаны certType и certDueDate и справка ещё не сдана (certSubmitted).
-  // Просроченная — красная ячейка и красная метка. shared.js вызывает deadlineExtraEvents и certDueCard.
-  function deadlineExtraEvents(add) {
-    const certs = {};
-    (myStudentId ? myAbsencesSorted() : []).forEach(a => {
-      if (!a.isExcused || !a.certType || !a.certDueDate || a.certSubmitted) return;
-      const k = String(a.certDueDate).slice(0, 10);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
-      const id = k + '|' + a.certType;
-      if (!certs[id]) { certs[id] = { kind: 'cert', dueDate: k, certType: a.certType, list: [], over: deadlineDaysLeft(k) < 0 }; add(k, certs[id]); }
-      certs[id].list.push(a);
-    });
-    // Свои пропуски по дням: день подкрашен (неуважительный — красным, уважительный — зелёным)
-    (myStudentId ? myAbsencesSorted() : []).forEach(a => {
-      const d = new Date(a.date); if (isNaN(d.getTime())) return;
-      add(dayKey(d), { kind: 'abs', a });
-    });
-  }
-  // Карточка пропуска в списке выбранного дня (календарь «Дедлайнов»)
-  function absenceDayCard(a) {
-    const row = document.createElement('div');
-    row.className = 'ev' + (a.isExcused ? ' is-excused' : '');
-    const subName = a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан');
-    row.innerHTML = `<span class="ev-ic" aria-hidden="true"></span><div class="ev-body"><div class="fw-bold text-white"></div><div class="small text-secondary"></div><div class="mt-1">${certStatusBadge(a)}</div></div>`;
-    row.querySelector('.ev-ic').textContent = a.totalHours;
-    row.querySelector('.fw-bold').textContent = `Пропуск · ${subName} · ${a.totalHours} ч`;
-    row.querySelector('.small').textContent = (a.isExcused ? 'Уважительный' : 'Неуважительный') + (a.comment ? ` · ${a.comment}` : '');
-    return row;
-  }
-  function certDueCard(c) {
-    const n = deadlineDaysLeft(c.dueDate);
-    const card = document.createElement('div');
-    card.className = 'dl-card is-cert' + (c.over ? ' is-over' : n <= 3 ? ' is-soon' : '');
-    card.innerHTML = '<div class="dl-subject"><span class="dl-kind">Справка</span></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
-    card.querySelector('.dl-subject').append(c.certType);
-    const lines = [...c.list].sort((a, b) => new Date(a.date) - new Date(b.date))
-      .map(a => `${formatDateShort(a.date)} · ${a.subject || (a.subjects ? a.subjects.join(', ') : 'Предмет не указан')}`);
-    card.querySelector('.dl-text').textContent = `Сдать за пропуски:\n${lines.join('\n')}`;
-    card.querySelector('.dl-date').textContent = `до ${formatDateFull(deadlineDate(c.dueDate))}`;
-    card.querySelector('.dl-rel').textContent = deadlineRelative(n);
-    return card;
-  }
   // Блок «Сегодня» (самое срочное + 3 ближайших дедлайна) с главной убран: срочное теперь на карточке «Срочно», список — в разделе «Дедлайны».
   // Плитки со средним баллом и рейтингом на главной больше нет: средний балл
   // и калькулятор живут в зачётке (zachetkaAverage и recalcRating), заметку

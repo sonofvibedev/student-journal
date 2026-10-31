@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=33"></script>
+  <script src="env.js?v=34"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,15 +25,15 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=33" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=34" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=33" rel="stylesheet">
+  <link href="profile.css?v=34" rel="stylesheet">
   <!-- Достижения: значки и карточки со шкалой выполнения -->
-  <link href="achievements.css?v=33" rel="stylesheet">
+  <link href="achievements.css?v=34" rel="stylesheet">
   <!-- Игры: список, судоку, сапёр, flappy и рейтинг -->
-  <link href="games.css?v=33" rel="stylesheet">
-  <script src="theme.js?v=33"></script>
+  <link href="games.css?v=34" rel="stylesheet">
+  <script src="theme.js?v=34"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -1169,27 +1169,15 @@
     <div id="hwUpcomingEmpty" class="dl-empty d-none">Домашки пока нет</div>
   </section>
 
-  <!-- Раздел «Дедлайны» (index.html#deadlines, открывается по прямой ссылке и из админки): календарь и список; код — shared.js -->
+  <!-- Раздел «Дедлайны» (index.html#deadlines, открывается плиткой «Учёбы», с главной и из админки): список
+       по возрастанию срока, без зачётов (они в «Зачётах и экзаменах») и без календаря; код — shared.js -->
   <section id="viewDeadlines" class="app-view d-none" aria-labelledby="deadlinesViewTitle">
     <div class="view-head">
-      <h3 class="view-title" id="deadlinesViewTitle">Дедлайны и зачёты</h3>
+      <h3 class="view-title" id="deadlinesViewTitle">Дедлайны</h3>
       <!-- Лист «Напоминания» переехал сюда с колокольчика: там теперь уведомления -->
       <button type="button" class="btn btn-outline-light btn-sm" onclick="openRemindersSheet()">Что сдавать</button>
       <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openDeadlinesModal()">Управлять</button>
     </div>
-    <div class="cal dl-cal">
-      <div class="cal-head">
-        <button type="button" class="cal-nav" onclick="shiftDeadlineCalendarMonth(-1)" aria-label="Предыдущий месяц">‹</button>
-        <b id="dlCalendarTitle">—</b>
-        <button type="button" class="cal-nav" onclick="shiftDeadlineCalendarMonth(1)" aria-label="Следующий месяц">›</button>
-      </div>
-      <div class="cal-grid" id="dlCalendarGrid"></div>
-      <div class="cal-legend"><span><i class="m-dl"></i>дедлайн</span><span><i class="m-zachet"></i>зачёт</span></div>
-    </div>
-    <div class="cap" id="dlCalendarDayTitle"></div>
-    <div id="dlCalendarDayList"></div>
-
-    <div class="kicker mt-4">Дедлайны и зачёты группы</div>
     <div id="deadlinesList"></div>
     <div id="deadlinesEmpty" class="dl-empty d-none">Дедлайнов пока нет</div>
     <details class="dl-past d-none" id="deadlinesPast">
@@ -1222,7 +1210,7 @@
     <button type="button" class="tile wide" onclick="goView('deadlines')">
       <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span>
       <span class="tile-name">Дедлайны</span>
-      <span class="tile-note" id="studyDeadlinesNext">список и календарь</span>
+      <span class="tile-note" id="studyDeadlinesNext">список сроков</span>
       <span class="tile-note" id="studyDeadlinesNote"></span>
       <span class="tile-count d-none" id="studyDeadlinesCount">0</span>
     </button>
@@ -1236,7 +1224,7 @@
 
     <button type="button" class="tile" onclick="goView('homework')">
       <span class="tile-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h8M8 17h5"/></svg></span>
-      <span class="tile-name">Домашка</span>
+      <span class="tile-name">Домашки / УСР</span>
       <span class="tile-num" id="studyHomeworkNum" data-count="0">0</span>
       <span class="tile-note" id="studyHomeworkNote">заданий на неделю</span>
     </button>
@@ -1391,20 +1379,19 @@
   </div>
 </div>
 
-<!-- Раздел «Домашка» (index.html#homework) — все задания по датам и календарь -->
-<section id="viewHomeworkList" class="app-view d-none">
-  <div class="cal">
-    <div class="cal-head">
-      <button type="button" class="cal-nav" onclick="shiftMiniMonth('hw', -1)" aria-label="Предыдущий месяц">&lsaquo;</button>
-      <b id="hwCalTitle">—</b>
-      <button type="button" class="cal-nav" onclick="shiftMiniMonth('hw', 1)" aria-label="Следующий месяц">&rsaquo;</button>
-    </div>
-    <div class="cal-grid" id="hwCalGrid"></div>
-    <!-- Домашка выбранного дня: заполняет renderMiniDayList('hw') -->
-    <div class="cap" id="hwCalDayTitle"></div>
-    <div id="hwCalDayList"></div>
+<!-- Раздел «Домашки / УСР» (index.html#homework) — список по возрастанию срока, без календаря.
+     Просроченные не показываются (в data.json они остаются), их можно открыть по ссылке «Архив» -->
+<section id="viewHomeworkList" class="app-view d-none" aria-labelledby="homeworkListTitle">
+  <div class="view-head">
+    <h3 class="view-title" id="homeworkListTitle">Домашки / УСР</h3>
+    <button type="button" class="btn btn-outline-light btn-sm admin-only d-none" onclick="openHomeworkModal()">Управлять</button>
   </div>
   <div id="homeworkListBody"></div>
+  <div id="homeworkEmpty" class="dl-empty d-none">Домашек впереди нет</div>
+  <details class="hw-archive d-none" id="homeworkArchive">
+    <summary>Архив <span id="homeworkArchiveCount"></span></summary>
+    <div id="homeworkArchiveList"></div>
+  </details>
 </section>
 
 <!-- Раздел «Зачёты и экзамены» (index.html#exams) -->
@@ -2741,11 +2728,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=33"></script>
-<script src="schedule.js?v=33"></script>
-<script src="notify.js?v=33"></script>
-<script src="shared.js?v=33"></script>
-<script src="dean-report.js?v=33"></script>
+<script src="changelog.js?v=34"></script>
+<script src="schedule.js?v=34"></script>
+<script src="notify.js?v=34"></script>
+<script src="shared.js?v=34"></script>
+<script src="dean-report.js?v=34"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -3323,12 +3310,6 @@
 
   // Список «горящего» и «ближайшего» — общий (studyHot, studyUpcoming в shared.js):
   // те же записи видят разделы, плитки «Учёбы» и красная точка на «Учёбе».
-  function toggleStudyDone(it) {
-    if (!it || !it.markable) return;
-    if (it.kind === 'homework') toggleHomeworkDoneById(it.id);
-    else toggleDeadlineDoneById(it.id);
-  }
-
   function renderHomeUrgent() {
     // Выполненное не горит: после отметки оно остаётся на карточке (homeUrgentPin), пока главную не закроют
     const pinned = homeUrgentPin ? studyListed().find(i => i.key === homeUrgentPin && i.n <= 1) : null;
@@ -3362,7 +3343,7 @@
   document.getElementById('homeUrgentDone').addEventListener('click', () => {
     if (!homeUrgentMain) return;
     homeUrgentPin = homeUrgentMain.key;
-    toggleStudyDone(homeUrgentMain);
+    studyToggleDone(homeUrgentMain);
   });
 
   // --- Ближайшее: «Дедлайны | Домашки/УСР» ---
@@ -3426,7 +3407,7 @@
       const it = studyListed().find(x => x.key === btn.dataset.check);
       if (!it) return;
       homeListPin.add(it.key);
-      toggleStudyDone(it);
+      studyToggleDone(it);
     } else if (btn.id === 'homeListAll' || btn.dataset.open) {
       haptic('selection');
       goView(HOME_TABS[homeListTab].view);
@@ -3438,6 +3419,9 @@
     renderHomeUrgent();
     renderHomeList();
     renderHomeWeek();
+    // Отметку могли поставить в самом разделе — перерисовываем и его
+    if (currentViewName === 'deadlines') renderDeadlines();
+    else if (currentViewName === 'homework') renderHomeworkList();
   }
 
   // --- Лента недели -------------------------------------------------------
@@ -3610,7 +3594,7 @@
       : 'ближайших сроков нет';
     document.getElementById('studyDeadlinesNote').textContent = plain.length
       ? plain.length + ' впереди' + (hot.length ? ', горит ' + hot.length : '')
-      : 'список и календарь';
+      : 'список сроков';
 
     // Домашка на ближайшую неделю
     const week = (appData.homework || []).filter(h => {
@@ -3654,25 +3638,24 @@
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // ===== Маленький календарь месяца для «Домашки» и «Зачётов» =====
-  // Большой календарь дедлайнов живёт в shared.js и привязан к своим id;
-  // здесь тот же вид, но на своих данных и в своём разделе.
-  const miniMonth = { hw: null, exam: null };
-  const miniDay = { hw: null, exam: null };   // выбранный день, ключ YYYY-MM-DD
+  // ===== Маленький календарь месяца для «Зачётов и экзаменов» =====
+  // (у «Дедлайнов» и «Домашек» календаря больше нет — только список по сроку)
+  const miniMonth = { exam: null };
+  const miniDay = { exam: null };   // выбранный день, ключ YYYY-MM-DD
   function shiftMiniMonth(which, delta) {
     const base = miniMonth[which] || new Date();
     miniMonth[which] = new Date(base.getFullYear(), base.getMonth() + delta, 1);
-    if (which === 'hw') renderHomeworkList(); else renderExams();
+    renderExams();
   }
   // Нажатие на дату: под календарём появляются события именно этого дня
   function selectMiniDay(which, key) {
     miniDay[which] = key;
     haptic('selection');
-    if (which === 'hw') renderHomeworkList(); else renderExams();
+    renderExams();
   }
   function renderMiniCalendar(which, marks) {
-    const grid = document.getElementById(which === 'hw' ? 'hwCalGrid' : 'examCalGrid');
-    const title = document.getElementById(which === 'hw' ? 'hwCalTitle' : 'examCalTitle');
+    const grid = document.getElementById('examCalGrid');
+    const title = document.getElementById('examCalTitle');
     if (!grid) return;
     const base = miniMonth[which] || new Date();
     const y = base.getFullYear(), m = base.getMonth();
@@ -3713,8 +3696,8 @@
   // Список событий выбранного дня под маленьким календарём.
   // Пока день не выбран — подсказка; день без событий — «В этот день ничего нет».
   function renderMiniDayList(which) {
-    const title = document.getElementById(which === 'hw' ? 'hwCalDayTitle' : 'examCalDayTitle');
-    const list = document.getElementById(which === 'hw' ? 'hwCalDayList' : 'examCalDayList');
+    const title = document.getElementById('examCalDayTitle');
+    const list = document.getElementById('examCalDayList');
     if (!title || !list) return;
     const key = miniDay[which];
     const base = miniMonth[which] || new Date();
@@ -3726,7 +3709,7 @@
       return;
     }
     title.textContent = dd + ' ' + MONTHS_GEN[mm - 1] + (key === dayKey(new Date()) ? ' · сегодня' : '');
-    const items = which === 'hw' ? homeworkOfDay(key) : controlsOfDay(key);
+    const items = controlsOfDay(key);
     if (!items.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
     list.innerHTML = items.join('');
   }
@@ -3749,23 +3732,6 @@
       });
   }
 
-  // Домашка с этим сроком: предмет, задание и отметка «Сделано»
-  function homeworkOfDay(key) {
-    return (appData.homework || [])
-      .filter(h => h.dueDate === key)
-      .sort((a, b) => String(a.subject).localeCompare(String(b.subject), 'ru'))
-      .map(h => {
-        const done = homeworkDone(h);
-        const meta = [h.type, h.subgroup ? 'подгр. ' + h.subgroup : ''].filter(Boolean).join(' · ');
-        return '<div class="dl-card' + (done ? ' is-done' : '') + '">' +
-          '<div class="dl-subject">' + escapeHtml(h.subject) +
-          (done ? '<span class="dl-done">Сделано</span>' : '') + '</div>' +
-          '<div class="dl-text">' + escapeHtml(h.text || '') + '</div>' +
-          (meta ? '<div class="dl-meta"><span class="dl-date">' + escapeHtml(meta) + '</span></div>' : '') +
-          '</div>';
-      });
-  }
-
   // «Сделано» у домашки — та же личная отметка, что в карточке пары (ключ
   // hw_done_<student_id>, внутри «дата|занятие»). Домашка привязана к паре
   // через homeworkForLesson(), поэтому смотрим пары того дня, к которым она относится.
@@ -3779,39 +3745,24 @@
       homeworkForLesson(l, h.dueDate).some(x => x.id === h.id) && isLessonDone(l, h.dueDate));
   }
 
-  // ===== «Домашка»: все задания, сгруппированные по датам =====
+  // ===== «Домашки / УСР»: список по возрастанию срока =====
+  // Те же записи, что на главной и в плитках (studyItems в shared.js). Просроченные
+  // скрыты из списка, в data.json они остаются и открываются по ссылке «Архив» (только чтение).
   function renderHomeworkList() {
     const box = document.getElementById('homeworkListBody');
     if (!box) return;
-    const list = (appData.homework || []).slice()
-      .sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    const shown = studyListed(['homework']);
+    const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
+    renderStudyGroups(box, shown, [
+      ['Сегодня', (it) => it.n === 0], ['На этой неделе', (it) => it.n <= toSunday], ['Позже', () => true]]);
+    document.getElementById('homeworkEmpty').classList.toggle('d-none', shown.length > 0);
 
-    const marks = {};
-    list.forEach(h => {
-      if (!h.dueDate) return;
-      const k = dayKey(deadlineDate(h.dueDate));
-      marks[k] = (marks[k] || 0) + 1;
-    });
-    renderMiniCalendar('hw', marks);
-
-    if (!list.length) { box.innerHTML = '<div class="dl-empty">Домашних заданий пока нет</div>'; return; }
-
-    const groups = {};
-    list.forEach(h => {
-      const key = h.dueDate || 'nodate';
-      (groups[key] = groups[key] || []).push(h);
-    });
-    box.innerHTML = Object.keys(groups).sort().map(key => {
-      const when = key === 'nodate' ? 'Без срока' : dlFormatDate(deadlineDate(key));
-      const rel = key === 'nodate' ? '' : deadlineRelative(deadlineDaysLeft(key));
-      return '<div class="dl-group">' + escapeHtml(when) + (rel ? ' · ' + escapeHtml(rel) : '') + '</div>' +
-        groups[key].map(h =>
-          '<div class="dl-card"><div class="dl-subject">' + escapeHtml(h.subject) + '</div>' +
-          '<div class="dl-text">' + escapeHtml(h.text || '') + '</div>' +
-          '<div class="dl-meta"><span class="dl-date">' +
-          escapeHtml([h.type, h.subgroup ? 'подгр. ' + h.subgroup : ''].filter(Boolean).join(' · ')) +
-          '</span></div></div>').join('');
-    }).join('');
+    const archive = studyArchive();
+    const list = document.getElementById('homeworkArchiveList');
+    list.innerHTML = '';
+    archive.forEach((it) => list.appendChild(studyCard(it, true)));
+    document.getElementById('homeworkArchiveCount').textContent = archive.length ? '(' + archive.length + ')' : '';
+    document.getElementById('homeworkArchive').classList.toggle('d-none', archive.length === 0);
   }
 
   // ===== «Зачёты и экзамены»: форма контроля по предметам и даты от админа =====
@@ -3989,22 +3940,9 @@
       if (item.id === APP_VERSION) showWhatsNew(true); else openChangelogModal();
       return;
     }
-    if (item.group === 'deadlines') {
-      goView('deadlines');
-      if (/^\d{4}-\d{2}-\d{2}$/.test(item.day || '')) {
-        const d = deadlineDate(item.day);
-        dlCalendarMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-        dlCalendarDay = item.day;
-        renderDeadlineCalendar();
-      }
-      return;
-    }
+    // Зачёты и экзамены — в своём разделе, дедлайны и домашки — в своих списках
+    if (item.group === 'deadlines') { goView(item.kind === 'Зачёт' || item.kind === 'Экзамен' ? 'exams' : 'deadlines'); return; }
     goView('homework');
-    if (/^\d{4}-\d{2}-\d{2}$/.test(item.day || '')) {
-      const d = deadlineDate(item.day);
-      miniMonth.hw = new Date(d.getFullYear(), d.getMonth(), 1);
-      selectMiniDay('hw', item.day);
-    }
   }
 
   // «Горящий» дедлайн: срок сегодня, завтра или уже прошёл
@@ -6865,15 +6803,15 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="badges.js?v=33"></script>
-<script src="achievements.js?v=33"></script>
-<script src="studak.js?v=33"></script>
-<script src="profile.js?v=33"></script>
+<script src="badges.js?v=34"></script>
+<script src="achievements.js?v=34"></script>
+<script src="studak.js?v=34"></script>
+<script src="profile.js?v=34"></script>
 <!-- Правила игр: модуль, тот же файл проверяет рекорды в Edge Function -->
-<script type="module" src="games-core.js?v=33"></script>
-<script src="games.js?v=33"></script>
-<script src="snake.js?v=33"></script>
-<script src="words.js?v=33"></script>
+<script type="module" src="games-core.js?v=34"></script>
+<script src="games.js?v=34"></script>
+<script src="snake.js?v=34"></script>
+<script src="words.js?v=34"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>

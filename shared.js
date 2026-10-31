@@ -1,7 +1,6 @@
-﻿// Общий код дедлайнов и календаря для index.html и cabinet.html (подключается до встроенных скриптов страниц).
-// Дедлайны группы: appData.deadlines { id, type?: 'deadline' | 'zachet', subject, text, dueDate: 'YYYY-MM-DD', createdAt }.
-// Записи без type — дедлайны. Страница может добавить свои события в календарь функцией deadlineExtraEvents(add)
-// и свои карточки certDueCard(e), absenceDayCard(a) (кабинет — сроки справок и свои пропуски по дням). Разметка раздела — в самих страницах (те же id).
+﻿// Общий код дедлайнов и домашки для index.html (подключается до встроенных скриптов страницы).
+// Дедлайны группы: appData.deadlines { id, type?: 'deadline' | 'zachet' | 'exam', subject, text, dueDate: 'YYYY-MM-DD', createdAt }.
+// Записи без type — дедлайны. «Горящее» и «ближайшее» считают studyHot / studyUpcoming ниже: их читает всё приложение.
 // Новые (непросмотренные) дедлайны — красная точка .js-deadlines-dot, ключ localStorage seen_deadlines.
 
 // ============================================================================
@@ -271,129 +270,90 @@ const studyListed = (kinds) => studyPick(kinds, studyActive);
 // Просроченная домашка: из списков скрыта, в данных остаётся; сначала самая свежая
 const studyArchive = () => studyPick(['homework'], (it) => it.n < 0).reverse();
 
-function deadlineCard(d) {
-  const n = deadlineDaysLeft(d.dueDate);
-  const zachet = isZachet(d);
+// Отметить запись выполненной (отметку знает index.html: домашка — по паре, дедлайн — по id)
+function studyToggleDone(it) {
+  if (!it || !it.markable) return;
+  if (it.kind === 'homework') toggleHomeworkDoneById(it.id);
+  else toggleDeadlineDoneById(it.id);
+}
+
+const CHECK_SVG = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>';
+
+// Карточка записи в разделах «Дедлайны» и «Домашки»: предмет, текст, срок и
+// кружок «выполнено» (зона нажатия 44px). readonly — архив: без кружка.
+// Статус словом: просрочено / горит (сегодня и завтра) / скоро (до 3 дней).
+function studyCard(it, readonly) {
+  const n = it.n;
+  const zachet = it.kind === 'zachet', hw = it.kind === 'homework';
   const card = document.createElement('div');
-  // Отмеченный студентом дедлайн остаётся в списке, но без «горит»: зачёркнут и с пометкой
-  const done = typeof isDeadlineDone === 'function' && isDeadlineDone(d);
-  card.className = 'dl-card' + (done ? ' is-done' : zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
+  const canMark = !readonly && it.markable;
+  card.className = 'dl-card' + (canMark ? ' has-check' : '') +
+    (it.done ? ' is-done' : zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
   card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
-  card.querySelector('.dl-subject').textContent = d.subject;
-  // Статус продублирован словом: в гаммах с красным или зелёным акцентом
-  // цвет карточки один в один с акцентом, и по цвету статус не прочитать.
-  const kind = done ? 'Выполнено' : zachet ? deadlineKindName(d) : n < 0 ? 'Просрочено' : n <= 3 ? 'Горит' : '';
-  if (kind) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">' + kind + '</span>');
+  card.querySelector('.dl-subject').textContent = it.subject;
+  const status = it.done ? 'Выполнено' : zachet ? it.label : n < 0 ? 'Просрочено' : n <= 1 ? 'Горит' : n <= 3 ? 'Скоро' : '';
+  // У домашки подпись типа («ПЗ», «УСР») остаётся всегда: в значке или, если там статус, в строке срока
+  const badge = status || (hw ? it.type : '');
+  if (badge) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind"></span>');
+  if (badge) card.querySelector('.dl-kind').textContent = badge;
   const text = card.querySelector('.dl-text');
-  if (d.text) text.textContent = d.text; else text.remove();
-  card.querySelector('.dl-date').textContent = zachet ? dlFormatDate(deadlineDate(d.dueDate)) : `до ${dlFormatDate(deadlineDate(d.dueDate))}`;
+  if (it.text) text.textContent = it.text; else text.remove();
+  const when = dlFormatDate(deadlineDate(it.dueDate));
+  const sub = hw ? [status && it.type, it.rec.subgroup ? 'подгр. ' + it.rec.subgroup : ''].filter(Boolean) : [];
+  card.querySelector('.dl-date').textContent = [zachet ? when : `до ${when}`].concat(sub).join(' · ');
   card.querySelector('.dl-rel').textContent = zachet && n < 0 ? `${-n} ${daysWord(n)} назад` : deadlineRelative(n);
+  if (canMark) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hm-check dl-check' + (it.done ? ' on' : '');
+    btn.setAttribute('aria-pressed', it.done ? 'true' : 'false');
+    btn.setAttribute('aria-label', (it.done ? 'Снять отметку «выполнено»: ' : 'Выполнено: ') + it.subject + (it.text ? ', ' + it.text.split('\n')[0] : ''));
+    btn.innerHTML = CHECK_SVG;
+    btn.addEventListener('click', () => studyToggleDone(it));
+    card.appendChild(btn);
+  }
   return card;
 }
 
-function renderDeadlines() {
-  const list = document.getElementById('deadlinesList');
-  const pastList = document.getElementById('deadlinesPastList');
-  list.innerHTML = '';
-  pastList.innerHTML = '';
-  const all = [...(appData.deadlines || [])].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
-  const groups = [['Просрочено', []], ['Сегодня', []], ['На этой неделе', []], ['Позже', []]];
-  const past = [];
-  all.forEach(d => {
-    const n = deadlineDaysLeft(d.dueDate);
-    if (n < -7 || (n < 0 && isZachet(d))) past.push(d);
-    else if (n < 0) groups[0][1].push(d);
-    else if (n === 0) groups[1][1].push(d);
-    else if (n <= toSunday) groups[2][1].push(d);
-    else groups[3][1].push(d);
-  });
-  groups.forEach(([title, items]) => {
-    if (!items.length) return;
+// Список по возрастанию срока. groups — [[заголовок, подходит(it)], …]; запись
+// попадает в первую подходящую группу, пустые группы не рисуются.
+function renderStudyGroups(box, items, groups) {
+  box.innerHTML = '';
+  const left = items.slice();
+  groups.forEach(([title, test]) => {
+    const mine = left.filter(test);
+    mine.forEach((it) => left.splice(left.indexOf(it), 1));
+    if (!mine.length) return;
     const h = document.createElement('div');
     h.className = 'dl-group';
     h.textContent = title;
-    list.appendChild(h);
-    items.forEach(d => list.appendChild(deadlineCard(d)));
+    box.appendChild(h);
+    mine.forEach((it) => box.appendChild(studyCard(it)));
   });
-  past.reverse().forEach(d => pastList.appendChild(deadlineCard(d)));
-  document.getElementById('deadlinesPastCount').textContent = past.length ? `(${past.length})` : '';
-  document.getElementById('deadlinesPast').classList.toggle('d-none', past.length === 0);
-  document.getElementById('deadlinesEmpty').classList.toggle('d-none', all.length > 0);
+}
+
+// «Дедлайны»: без зачётов и экзаменов (они в «Зачётах и экзаменах»), по возрастанию срока.
+// Просроченное остаётся в списке отдельной группой; старше недели — в «Прошедших».
+function renderDeadlines() {
+  const list = document.getElementById('deadlinesList');
+  const pastList = document.getElementById('deadlinesPastList');
+  if (list) {
+    const all = studyItems().filter((it) => it.kind === 'deadline').sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    const shown = all.filter(studyActive);
+    const past = all.filter((it) => !studyActive(it)).reverse();
+    const toSunday = 6 - (new Date().getDay() + 6) % 7;         // сколько дней до воскресенья этой недели
+    renderStudyGroups(list, shown, [
+      ['Просрочено', (it) => it.n < 0], ['Сегодня', (it) => it.n === 0],
+      ['На этой неделе', (it) => it.n <= toSunday], ['Позже', () => true]]);
+    if (pastList) { pastList.innerHTML = ''; past.forEach((it) => pastList.appendChild(studyCard(it, true))); }
+    const cnt = document.getElementById('deadlinesPastCount');
+    if (cnt) cnt.textContent = past.length ? `(${past.length})` : '';
+    const box = document.getElementById('deadlinesPast');
+    if (box) box.classList.toggle('d-none', past.length === 0);
+    const empty = document.getElementById('deadlinesEmpty');
+    if (empty) empty.classList.toggle('d-none', shown.length > 0);
+  }
   updateDeadlinesDot();
-  renderDeadlineCalendar();
-}
-
-// --- Календарь месяца: дедлайны и зачёты группы (+ события страницы) ---
-let dlCalendarMonth = null;   // первый день показанного месяца
-let dlCalendarDay = null;     // выбранный день (ключ YYYY-MM-DD)
-function deadlineCalendarEvents() {
-  const byDay = {};
-  const add = (k, e) => (byDay[k] = byDay[k] || []).push(e);
-  (appData.deadlines || []).forEach(d => {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)) add(d.dueDate, { kind: isZachet(d) ? 'zachet' : 'dl', d });
-  });
-  // Страница может добавить свои события (кабинет — сроки справок вошедшего студента)
-  if (typeof deadlineExtraEvents === 'function') deadlineExtraEvents(add);
-  return byDay;
-}
-function renderDeadlineCalendar() {
-  const byDay = deadlineCalendarEvents();
-  const now = new Date();
-  if (!dlCalendarMonth) {
-    dlCalendarMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    dlCalendarDay = dayKey(now);
-  }
-  const y = dlCalendarMonth.getFullYear(), m = dlCalendarMonth.getMonth();
-  document.getElementById('dlCalendarTitle').textContent = `${MONTHS_NOM[m]} ${y}`;
-  const todayKey = dayKey(now);
-  const offset = (new Date(y, m, 1).getDay() + 6) % 7;       // понедельник — первый день
-  const days = new Date(y, m + 1, 0).getDate();
-  const NAMES = { dl: 'дедлайн', zachet: 'зачёт', cert: 'справка' };
-  // Пропуски (кабинет): день подкрашивается — красным, если есть неуважительный, иначе зелёным
-  const absHours = (evs, excused) => evs.filter(e => e.kind === 'abs' && !!e.a.isExcused === excused).reduce((s, e) => s + Number(e.a.totalHours || 0), 0);
-  let html = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(w => `<span class="wd">${w}</span>`).join('');
-  html += '<span></span>'.repeat(offset);
-  for (let d = 1; d <= days; d++) {
-    const k = dayKey(new Date(y, m, d));
-    const evs = byDay[k] || [];
-    const kinds = ['dl', 'zachet', 'cert'].filter(kind => evs.some(e => e.kind === kind));
-    const certOver = evs.some(e => e.kind === 'cert' && e.over);
-    const cls = ['cal-day'];
-    if ((offset + d - 1) % 7 >= 5) cls.push('weekend');
-    if (evs.length) cls.push('has');
-    const absU = absHours(evs, false), absE = absHours(evs, true);
-    if (certOver) cls.push('cert-over');
-    else if (absU) cls.push('u');
-    else if (absE) cls.push('e');
-    if (k === dlCalendarDay) cls.push('sel');
-    if (k === todayKey) cls.push('today');
-    const marks = kinds.map(kind => `<i class="${kind === 'cert' && certOver ? 'm-over' : 'm-' + kind}"></i>`).join('');
-    const label = `${d} ${MONTHS_GEN[m]}${k === todayKey ? ', сегодня' : ''}${kinds.length ? ': ' + kinds.map(kind => kind === 'cert' && certOver ? 'просроченная справка' : NAMES[kind]).join(', ') : ''}${absU ? `, неуважительные пропуски ${absU} ч` : ''}${absE ? `, уважительные пропуски ${absE} ч` : ''}`;
-    html += `<button type="button" class="${cls.join(' ')}" data-day="${k}" aria-label="${label}"${k === dlCalendarDay ? ' aria-pressed="true"' : ''}>${d}${marks ? `<span class="cal-marks" aria-hidden="true">${marks}</span>` : ''}</button>`;
-  }
-  const grid = document.getElementById('dlCalendarGrid');
-  grid.innerHTML = html;
-  grid.querySelectorAll('.cal-day').forEach(b => b.addEventListener('click', () => { dlCalendarDay = b.dataset.day; renderDeadlineCalendar(); }));
-
-  const title = document.getElementById('dlCalendarDayTitle');
-  const list = document.getElementById('dlCalendarDayList');
-  list.innerHTML = '';
-  const [yy, mm, dd] = (dlCalendarDay || '').split('-').map(Number);
-  if (!dlCalendarDay || yy !== y || mm - 1 !== m) { title.textContent = ''; list.innerHTML = '<div class="feed-empty">Выберите день, чтобы увидеть события</div>'; return; }
-  title.textContent = `${dd} ${MONTHS_GEN[mm - 1]}${dlCalendarDay === todayKey ? ' · сегодня' : ''}`;
-  const evs = byDay[dlCalendarDay] || [];
-  if (!evs.length) { list.innerHTML = '<div class="feed-empty">В этот день ничего нет</div>'; return; }
-  const order = { cert: 0, zachet: 1, dl: 2, abs: 3 };
-  [...evs].sort((a, b) => order[a.kind] - order[b.kind]).forEach(e => {
-    if (e.kind === 'cert' && typeof certDueCard === 'function') list.appendChild(certDueCard(e));
-    else if (e.kind === 'abs' && typeof absenceDayCard === 'function') list.appendChild(absenceDayCard(e.a));
-    else if (e.d) list.appendChild(deadlineCard(e.d));
-  });
-}
-function shiftDeadlineCalendarMonth(delta) {
-  dlCalendarMonth = new Date(dlCalendarMonth.getFullYear(), dlCalendarMonth.getMonth() + delta, 1);
-  renderDeadlineCalendar();
 }
 
 // --- Просмотренные дедлайны: красная точка на кнопке «Дедлайны» ---

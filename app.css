@@ -1701,6 +1701,18 @@ body::before {
 .dl-card.is-done { opacity: .65; }
 .dl-card.is-done .dl-text, .dl-card.is-done .dl-subject { text-decoration: line-through; }
 .dl-card.is-done .dl-kind { display: inline-block; text-decoration: none; background: rgba(var(--status-done-rgb), .20); color: var(--status-done-text); }
+/* Кружок «выполнено» в карточке дедлайна и домашки: зона нажатия 44px справа по центру */
+.dl-card.has-check { padding-right: 56px; }
+.dl-card .dl-check { position: absolute; right: 6px; top: 50%; margin: -22px 0 0; }
+.dl-card.is-done .dl-check { text-decoration: none; }
+/* «Архив» домашки: маленькая ссылка внизу списка, внутри просроченное, только чтение */
+.hw-archive { margin-top: 8px; }
+.hw-archive summary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--color-accent-soft); font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; }
+.hw-archive summary::-webkit-details-marker { display: none; }
+.hw-archive summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.hw-archive summary span { margin-left: 4px; color: var(--color-text-tertiary); font-weight: 500; }
+.hw-archive[open] summary { margin-bottom: 4px; }
+.hw-archive .dl-card { opacity: .7; }
 .dl-done {
   margin-left: 6px; padding: 1px 7px;
   border-radius: 6px;
