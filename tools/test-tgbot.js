@@ -130,20 +130,130 @@ function test(name, fn) {
     assert.equal(T.cleanText('я'.repeat(900)).length, T.TEXT_MAX);
   });
 
-  test('права на правку: автор в течение суток, админ всегда, чужое никогда', () => {
+  test('права на правку: после заявок только админ', () => {
     const now = Date.parse('2026-10-31T12:00:00Z');
-    const rec = (over) => ({ id: 'hw-1', source: 'bot', author: 'st-1', createdAt: new Date(now - 3600000).toISOString(), ...over });
-    const me = { studentId: 'st-1', isAdmin: false };
-    assert.equal(T.canModify(rec({}), me, now), true);
-    assert.equal(T.canModify(rec({ createdAt: new Date(now - 25 * 3600000).toISOString() }), me, now), false);
-    assert.equal(T.canModify(rec({ author: 'st-2' }), me, now), false);
-    assert.equal(T.canModify(rec({ source: undefined, author: undefined }), me, now), false);   // запись админа из браузера
-    assert.equal(T.canModify(rec({ author: 'st-2', createdAt: '2020-01-01T00:00:00Z' }), { studentId: 'x', isAdmin: true }, now), true);
-    assert.equal(T.canModify(null, me, now), false);
+    const rec = { id: 'hw-1', source: 'bot', author: 'st-1', createdAt: new Date(now - 3600000).toISOString() };
+    assert.equal(T.canModify(rec, { studentId: 'st-1', isAdmin: false }, now), false);   // даже свою одобренную автор не правит
+    assert.equal(T.canModify(rec, { studentId: 'x', isAdmin: true }, now), true);
+    assert.equal(T.canModify(null, { studentId: 'x', isAdmin: true }, now), false);
+  });
+
+  test('запись из заявки: заранее назначенный id', () => {
+    const now = Date.parse('2026-10-31T12:00:00Z');
+    const rec = T.buildRecord('homework', { subject: 'Логистика', type: 'УСР', text: 'х', dueDate: '2026-11-05' }, 'st-1', now, new Set(), 'hw-42');
+    assert.equal(rec.id, 'hw-42');
+    assert.equal(T.recordIdFor('deadline', 7), 'dl-7');
   });
 
   test('сообщение коммита', () => {
     assert.equal(T.commitMessage('добавлено', 'homework', 'Эконометрика', '2026-11-05'), 'Бот: домашка Эконометрика — 05.11 (добавлено)');
+  });
+
+  // ---------- заявки ----------
+  test('дубль: нормализация, вхождение, Жаккар >= 0.6', () => {
+    assert.equal(T.normText('  КР №2, по всем-ТЕМАМ!! Ёлка '), 'кр 2 по всем темам елка');
+    assert.equal(T.similarText('Выставки по подгруппам', 'выставки  по подгруппам.'), true);
+    assert.equal(T.similarText('Выставки', 'Выставки по подгруппам'), true);                 // одно содержит другое
+    assert.equal(T.similarText('сделать задачи 1 2 3 из учебника', 'из учебника сделать задачи 1 2'), true);   // Жаккар 5/6
+    assert.equal(T.similarText('Гостиницы', 'Рестораны'), false);
+    assert.equal(T.similarText('', 'что-то'), false);
+    const c = { subject: 'Маркетинг услуг', dueDate: '2026-11-04', text: 'Гостиницы' };
+    assert.equal(T.findDuplicate(c, [{ subject: 'Маркетинг услуг', dueDate: '2026-11-04', text: 'гостиницы!' }], []), 'record');
+    assert.equal(T.findDuplicate(c, [], [{ subject: 'Маркетинг услуг', due_date: '2026-11-04', text: 'Гостиницы (страница 5)' }]), 'request');
+    assert.equal(T.findDuplicate(c, [{ subject: 'Маркетинг услуг', dueDate: '2026-11-05', text: 'Гостиницы' }], []), null);   // другая дата
+    assert.equal(T.findDuplicate(c, [{ subject: 'Логистика', dueDate: '2026-11-04', text: 'Гостиницы' }], []), null);        // другой предмет
+  });
+
+  test('лимит заявок на проверке: пятая можно, шестая нет', () => {
+    assert.equal(T.pendingAllowed(4), true);
+    assert.equal(T.pendingAllowed(5), false);
+    assert.equal(T.PENDING_MAX, 5);
+  });
+
+  test('кто может решать: только telegram_id из TG_ADMIN_IDS', () => {
+    const ids = new Set(['111', '222']);
+    assert.equal(T.canDecide(111, ids), true);
+    assert.equal(T.canDecide('222', ids), true);
+    assert.equal(T.canDecide(333, ids), false);
+    assert.equal(T.canDecide(null, ids), false);
+    assert.equal(T.canDecide(111, new Set()), false);        // админы не заданы — никто
+  });
+
+  test('переходы статусов: только по схеме', () => {
+    assert.equal(T.transition('pending', 'claim'), 'approving');
+    assert.equal(T.transition('approving', 'commit'), 'approved');
+    assert.equal(T.transition('approving', 'rollback'), 'pending');
+    assert.equal(T.transition('pending', 'reject'), 'rejected');
+    assert.equal(T.transition('pending', 'withdraw'), 'withdrawn');
+    assert.equal(T.transition('pending', 'expire'), 'expired');
+    // решённую заявку ничем не изменить
+    for (const done of ['approved', 'rejected', 'withdrawn', 'expired']) {
+      for (const ev of Object.keys(T.TRANSITIONS)) assert.equal(T.transition(done, ev), null, done + ' + ' + ev);
+    }
+    // нельзя отклонить/отозвать заявку, которую уже вносят
+    assert.equal(T.transition('approving', 'reject'), null);
+    assert.equal(T.transition('approving', 'withdraw'), null);
+    assert.equal(T.transition('approving', 'expire'), null);
+  });
+
+  test('идемпотентность: условный UPDATE «WHERE status = from» отдаёт строку только первому', () => {
+    // Модель БД: update(event) меняет заявку, только если статус совпал (как UPDATE ... WHERE status = $from)
+    const row = { status: 'pending', writes: 0 };
+    const update = (event) => {
+      const t = T.TRANSITIONS[event];
+      if (row.status !== t.from) return null;
+      row.status = t.to;
+      return { ...row };
+    };
+    const first = update('claim'), second = update('claim');       // двойное нажатие «Одобрить»
+    assert.ok(first);
+    assert.equal(second, null);
+    if (first) row.writes++;                                       // запись в data.json только после успешного claim
+    assert.equal(row.writes, 1);
+    // сбой GitHub: откат возвращает заявку, и повтор снова проходит
+    assert.ok(update('rollback'));
+    assert.equal(row.status, 'pending');
+    assert.ok(update('claim'));
+    assert.ok(update('commit'));
+    assert.equal(update('reject'), null);                          // одобренную уже не отклонить
+  });
+
+  test('зависшее «вносится»: подхватить можно через 2 минуты', () => {
+    const now = Date.parse('2026-11-01T12:00:00Z');
+    assert.equal(T.approvingStale(new Date(now - 60000).toISOString(), now), false);
+    assert.equal(T.approvingStale(new Date(now - 121000).toISOString(), now), true);
+  });
+
+  test('истечение заявки через 7 суток', () => {
+    const now = Date.parse('2026-11-08T12:00:00Z');
+    assert.equal(T.requestExpired('2026-11-01T12:00:01Z', now), false);
+    assert.equal(T.requestExpired('2026-11-01T12:00:00Z', now), true);
+    assert.equal(T.requestExpired('2026-10-20T00:00:00Z', now), true);
+  });
+
+  test('текст заявки для админа', () => {
+    const s = T.requestSummary({ kind: 'homework', subtype: 'ПЗ', subject: 'Эконометрика', due_date: '2026-11-05', text: 'КР' }, 'Иванов Иван');
+    assert.match(s, /^Иванов Иван хочет внести домашку \(ПЗ\)/);
+    assert.match(s, /Срок: Чт 05\.11\.2026/);
+    assert.match(T.requestSummary({ kind: 'deadline', subject: 'А', due_date: '2026-11-05', text: 'Т' }, ''), /^Студент хочет внести дедлайн/);
+  });
+
+  test('миграция заявок: клиент не меняет таблицы, функция только для service_role', () => {
+    const sql = fs.readFileSync(path.join(root, 'supabase/migrations/20261101140000_tg_task_requests.sql'), 'utf8');
+    assert.match(sql, /alter table public\.tg_task_requests enable row level security/);
+    assert.match(sql, /revoke all on public\.tg_task_requests from anon, authenticated/);
+    assert.match(sql, /alter table public\.tg_action_log enable row level security/);
+    assert.match(sql, /revoke all on public\.tg_action_log from anon, authenticated/);
+    // единственная выдача прав клиенту — чтение своих заявок
+    const grants = (sql.match(/^grant [^;]+;/gm) || []).filter((g) => /\b(anon|authenticated)\b/.test(g));
+    assert.deepEqual(grants, ['grant select on public.tg_task_requests to authenticated;']);
+    assert.ok(!/create policy[^;]+for (insert|update|delete|all)/i.test(sql));
+    assert.match(sql, /revoke all on function public\.tg_submit_request[^;]*from public, anon, authenticated/);
+    assert.match(sql, /grant execute on function public\.tg_submit_request[^;]* to service_role/);
+    for (const st of ['pending', 'approving', 'approved', 'rejected', 'withdrawn', 'expired']) assert.ok(sql.includes(`'${st}'`), st);
+    for (const k of ['request_created', 'approved', 'rejected', 'withdrawn', 'expired', 'admin_direct']) assert.ok(sql.includes(`'${k}'`), k);
+    assert.match(sql, /cron\.schedule\(\s*'journal-tg-requests-expire'/);
+    assert.ok(!/beyJ|bsk_|ghp_|github_pat/.test(sql));   // секретов в файле нет
   });
 
   console.log(`\n${passed} проверок прошло`);

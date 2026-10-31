@@ -8,7 +8,6 @@ export const LINK_CODE_TTL_MS = 10 * 60_000;
 export const DIALOG_TTL_MS = 30 * 60_000;
 export const RATE_MAX = 20;                 // записей в час на пользователя
 export const RATE_WINDOW_MS = 3_600_000;
-export const OWN_EDIT_WINDOW_MS = DAY_MS;   // автор может удалить/поправить своё в течение суток
 export const TEXT_MAX = 500;
 export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // как в reset_student_access
 
@@ -161,26 +160,124 @@ export function cleanText(s: string, max = TEXT_MAX): string {
 }
 
 // Поля записи — как у админки (index.html: saveHomework / saveDeadline) + author, source
-export function buildRecord(kind: Kind, f: Fields, author: string, nowMs: number, taken: Set<string> = new Set()): TaskRecord {
-  const prefix = kind === 'homework' ? 'hw-' : 'dl-';
+export const recordIdFor = (kind: Kind, ms: number) => (kind === 'homework' ? 'hw-' : 'dl-') + ms;
+
+export function buildRecord(
+  kind: Kind, f: Fields, author: string, nowMs: number, taken: Set<string> = new Set(), fixedId?: string,
+): TaskRecord {
   let ms = nowMs;
-  while (taken.has(prefix + ms)) ms++;
+  while (!fixedId && taken.has(recordIdFor(kind, ms))) ms++;
+  const id = fixedId ?? recordIdFor(kind, ms);
   const createdAt = new Date(nowMs).toISOString();
   return kind === 'homework'
-    ? { id: prefix + ms, subject: f.subject, type: f.type, text: f.text, dueDate: f.dueDate, subgroup: 0, createdAt, author, source: 'bot' }
-    : { id: prefix + ms, type: 'deadline', subject: f.subject, text: f.text, dueDate: f.dueDate, createdAt, author, source: 'bot' };
+    ? { id, subject: f.subject, type: f.type, text: f.text, dueDate: f.dueDate, subgroup: 0, createdAt, author, source: 'bot' }
+    : { id, type: 'deadline', subject: f.subject, text: f.text, dueDate: f.dueDate, createdAt, author, source: 'bot' };
 }
 
-// Админ — любые записи; остальные — только свои, созданные ботом, и не старше суток
-export function canModify(rec: TaskRecord | null | undefined, who: { studentId: string; isAdmin: boolean }, nowMs: number): boolean {
-  if (!rec) return false;
-  if (who.isAdmin) return true;
-  if (rec.source !== 'bot' || !who.studentId || rec.author !== who.studentId) return false;
-  const created = Date.parse(String(rec.createdAt ?? ''));
-  return Number.isFinite(created) && nowMs - created <= OWN_EDIT_WINDOW_MS;
+// После внедрения заявок правит и удаляет готовые записи только админ.
+// Автору остаётся «Отозвать» у заявки, пока она не решена.
+export function canModify(rec: TaskRecord | null | undefined, who: { studentId?: string; isAdmin: boolean }, _nowMs?: number): boolean {
+  return !!rec && who.isAdmin === true;
 }
 
 export function commitMessage(action: string, kind: Kind, subject: string, dueDate: string): string {
   const noun = kind === 'homework' ? 'домашка' : 'дедлайн';
   return `Бот: ${noun} ${String(subject).replace(/\s+/g, ' ').slice(0, 80)} — ${fmtDm(dueDate)} (${action})`;
+}
+
+// ---------- Заявки на проверку админом ----------
+export const PENDING_MAX = 5;                    // не больше 5 неразобранных заявок от одного автора
+export const REQUEST_TTL_MS = 7 * DAY_MS;        // без решения 7 суток — закрывается как «истекла»
+export const APPROVING_STALE_MS = 2 * 60_000;    // «вносится» дольше двух минут — считаем, что внесение оборвалось
+
+export type ReqStatus = 'pending' | 'approving' | 'approved' | 'rejected' | 'withdrawn' | 'expired';
+export const STATUS_RU: Record<ReqStatus, string> = {
+  pending: 'на проверке', approving: 'вносится', approved: 'одобрено',
+  rejected: 'отклонено', withdrawn: 'отозвана', expired: 'истекла',
+};
+
+export const pendingAllowed = (pendingCount: number, max = PENDING_MAX) => pendingCount < max;
+export const requestExpired = (createdAt: string, nowMs: number, ttlMs = REQUEST_TTL_MS) =>
+  nowMs - Date.parse(createdAt) >= ttlMs;
+
+// Единственные допустимые переходы статуса. Тот же список использует БД-слой:
+// каждый переход — один условный UPDATE ... WHERE status = from RETURNING, поэтому
+// повторное нажатие или гонка двух админов решённую заявку не меняют.
+//   claim    pending   → approving   админ нажал «Одобрить»: заявка занята, идёт внесение
+//   commit   approving → approved    запись в data.json внесена
+//   rollback approving → pending     внести не вышло: заявка снова ждёт решения
+//   reject   pending   → rejected
+//   withdraw pending   → withdrawn   автор отозвал
+//   expire   pending   → expired     7 суток без решения
+export const TRANSITIONS = {
+  claim: { from: 'pending', to: 'approving' },
+  commit: { from: 'approving', to: 'approved' },
+  rollback: { from: 'approving', to: 'pending' },
+  reject: { from: 'pending', to: 'rejected' },
+  withdraw: { from: 'pending', to: 'withdrawn' },
+  expire: { from: 'pending', to: 'expired' },
+} as const;
+export type ReqEvent = keyof typeof TRANSITIONS;
+
+export function transition(status: ReqStatus, event: ReqEvent): ReqStatus | null {
+  const t = TRANSITIONS[event];
+  return t && t.from === status ? t.to : null;
+}
+
+// Повторное «Одобрить» по зависшей заявке (approving) разрешаем, только если прошло больше двух минут:
+// иначе мы мешали бы внесению, которое ещё идёт.
+export const approvingStale = (decidedAt: string | null | undefined, nowMs: number, ms = APPROVING_STALE_MS) =>
+  !decidedAt || nowMs - Date.parse(decidedAt) >= ms;
+
+// Решать заявки может только telegram_id из TG_ADMIN_IDS (проверяется по from.id нажавшего, не по чату)
+export const canDecide = (telegramId: number | string | null | undefined, adminIds: Set<string>) =>
+  telegramId != null && adminIds.has(String(telegramId));
+
+// ---------- Поиск дубля ----------
+export function normText(s: string): string {
+  return String(s ?? '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').trim();
+}
+
+export function jaccard(a: string, b: string): number {
+  const A = new Set(normText(a).split(' ').filter(Boolean)), B = new Set(normText(b).split(' ').filter(Boolean));
+  if (!A.size || !B.size) return 0;
+  let inter = 0;
+  for (const w of A) if (B.has(w)) inter++;
+  return inter / (A.size + B.size - inter);
+}
+
+// Похоже: совпали после нормализации, одно содержит другое или слова пересекаются на 60 % и больше
+export function similarText(a: string, b: string): boolean {
+  const x = normText(a), y = normText(b);
+  if (!x || !y) return false;
+  if (x === y || x.includes(y) || y.includes(x)) return true;
+  return jaccard(x, y) >= 0.6;
+}
+
+export type Candidate = { subject: string; dueDate: string; text: string };
+// Тот же предмет, та же дата и похожий текст среди уже внесённых записей и других заявок.
+// Возвращает первое совпадение с пометкой, где оно найдено.
+export function findDuplicate(
+  c: Candidate,
+  records: Array<{ subject?: unknown; dueDate?: unknown; text?: unknown }>,
+  pending: Array<{ subject?: unknown; due_date?: unknown; text?: unknown }>,
+): 'record' | 'request' | null {
+  const same = (subj: unknown, date: unknown, text: unknown) =>
+    subj === c.subject && String(date) === c.dueDate && similarText(c.text, String(text ?? ''));
+  if (records.some((r) => r && same(r.subject, r.dueDate, r.text))) return 'record';
+  if (pending.some((r) => r && same(r.subject, r.due_date, r.text))) return 'request';
+  return null;
+}
+
+// Текст заявки для админа (и для /мои)
+export function requestSummary(
+  r: { kind: string; subtype?: string | null; subject: string; due_date: string; text: string },
+  authorName: string,
+): string {
+  const what = r.kind === 'homework' ? `домашку${r.subtype ? ` (${r.subtype})` : ''}` : 'дедлайн';
+  return `${authorName || 'Студент'} хочет внести ${what}
+Предмет: ${r.subject}
+`
+    + `Срок: ${dowShort(r.due_date)} ${fmtDmy(r.due_date)}
+Текст: ${r.text}`;
 }
