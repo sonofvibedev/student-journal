@@ -20,7 +20,7 @@
 // «Слово дня» играется один раз в сутки: у word_attempts уникальный индекс на
 // пару «студент + день», и вторую попытку он не пропустит.
 import { admin, json, cors } from '../_shared/common.ts';
-import { minskDay, grantBadges } from '../_shared/words.ts';
+import { minskDay, grantBadges, ensureDailyWord } from '../_shared/words.ts';
 import { rankBadges } from '../_shared/ranks.ts';
 import { assocNormalize, assocPoints, assocHint, loadRanks, type Ranks } from '../_shared/assoc.ts';
 
@@ -173,11 +173,9 @@ async function save(id: number, patch: Record<string, unknown>): Promise<Attempt
   return data as Attempt;
 }
 
+// Слово дня. Нет строки (запуск word-auto в полночь пропущен) — создаём тем же общим кодом.
 async function dailyWord(day: string): Promise<string | null> {
-  const { data } = await admin
-    .from('word_daily').select('word_bank (word)')
-    .eq('day', day).maybeSingle();
-  const w = (data as { word_bank?: { word: string } } | null)?.word_bank?.word;
+  const w = (await ensureDailyWord(day))?.word;
   return w ? assocNormalize(w) : null;
 }
 
@@ -217,6 +215,9 @@ async function solvedStreak(studentId: string, day: string): Promise<number> {
 // а места присылает по одному, как и в игре дня.
 async function trainWords(): Promise<{ id: number; word: string }[]> {
   const today = minskDay();
+  // Слово сегодняшнего дня в тренировку не попадает ни под каким id: оно может совпасть со словом
+  // давнего дня (слова повторяются) или с тренировочным
+  const hidden = await dailyWord(today);
   const { data: past } = await admin
     .from('word_daily').select('day, word_id, word_bank (id, word)')
     .lt('day', today);
@@ -228,7 +229,7 @@ async function trainWords(): Promise<{ id: number; word: string }[]> {
     if (row.word_bank) out.push(row.word_bank);
   }
   for (const row of (extra ?? []) as { id: number; word: string }[]) out.push(row);
-  return out;
+  return out.filter((w) => assocNormalize(w.word) !== hidden);
 }
 
 async function trainStart(): Promise<Response> {
@@ -240,12 +241,13 @@ async function trainStart(): Promise<Response> {
   return json({ ok: true, has: true, id: pick.id, total: ranks.words.length });
 }
 
+// Тренировать можно только слова из trainWords(): иначе перебором id по word_bank можно было бы
+// выудить сегодняшнее слово (train_give отдаёт слово сразу).
 async function trainRanks(id: unknown): Promise<Ranks | null> {
   const n = Number(id);
   if (!Number.isInteger(n) || n <= 0) return null;
-  const { data } = await admin.from('word_bank').select('word').eq('id', n).maybeSingle();
-  const word = (data as { word: string } | null)?.word;
-  return word ? await loadRanks(word) : null;
+  const item = (await trainWords()).find((w) => w.id === n);
+  return item ? await loadRanks(item.word) : null;
 }
 
 async function trainGuess(body: Body): Promise<Response> {

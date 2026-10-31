@@ -437,7 +437,7 @@ async function wordsGiveUp() {
 
 const WORD_ADMIN_FN = 'word-admin';
 
-const wordAdminState = { available: [], history: [] };
+const wordAdminState = { available: [], history: [], pool: [], settings: {}, source: '' };
 
 async function wordAdminCall(payload) {
   const ghToken = lsGet('gh_pat', '');
@@ -469,7 +469,11 @@ const WORD_ADMIN_ERRORS = {
   no_ranks: 'Для этого слова ещё не посчитан рейтинг',
   bad_items: 'Пустой или слишком длинный список',
   network: 'Сеть не ответила',
-  server_error: 'Сервер не принял запрос'
+  server_error: 'Сервер не принял запрос',
+  reroll_off: 'Замена слова выключена в настройках ниже',
+  already_played: 'Уже есть ответы игроков — слово менять поздно',
+  no_candidates: 'Нет другого подходящего слова в пуле',
+  no_word: 'Такого слова нет в пуле'
 };
 
 const wordAdminError = (code) => WORD_ADMIN_ERRORS[code] || ('Ошибка: ' + code);
@@ -494,10 +498,15 @@ async function loadWordAdmin() {
     ? 'Сегодня уже играли: ' + res.played + '. Менять слово поздно — попытки не сбросятся.'
     : 'Сегодня ещё никто не играл.';
   const set = res.word && res.word.word_bank;
+  const how = res.source === 'auto' ? ' (выбрано автоматически)' : res.source === 'manual' ? ' (задано вручную)' : '';
   state.textContent = set
-    ? 'На ' + res.day + ' загадано слово «' + set.word + '». ' + played
+    ? 'На ' + res.day + ' загадано слово «' + set.word + '»' + how + '. ' + played
     : 'На ' + res.day + ' слово не задано. ' + played;
   wordAdminState.history = res.history || [];
+  wordAdminState.settings = res.settings || {};
+  wordAdminState.source = res.source || '';
+  wordAutoRenderSettings();
+  loadWordPool();
 
   const list = await wordAdminCall({ action: 'available' });
   wordAdminState.available = (list && list.ok && list.words) ? list.words : [];
@@ -528,6 +537,90 @@ function renderWordAdminWords() {
       (used.has(w) ? '<i>' + escapeHtml(used.get(w)) + '</i>' : '') + '</button>').join('');
   box.querySelectorAll('button[data-word]').forEach((b) => {
     b.addEventListener('click', () => setWordOfDay(b.dataset.word));
+  });
+}
+
+// ----- Автовыбор слова дня: опции и пул (создаётся здесь, в index.html правок нет) -----
+function wordAutoBox() {
+  let box = document.getElementById('wordAutoBox');
+  if (box) return box;
+  const state = document.getElementById('wordAdminState');
+  if (!state) return null;
+  box = document.createElement('div');
+  box.id = 'wordAutoBox';
+  box.className = 'mb-3';
+  box.innerHTML =
+    '<p class="small text-secondary mb-2">Каждую полночь по Минску слово выбирается само из пула ниже: ' +
+      'случайное включённое, которого не было последние 60 дней.</p>' +
+    '<div id="wordAutoSettings" class="small mb-2"></div>' +
+    '<h6 class="text-white">Пул слов</h6>' +
+    '<div id="wordAutoPool" style="max-height:260px;overflow-y:auto"></div>' +
+    '<p class="small mt-2 mb-0" id="wordAutoNote" role="status"></p><hr class="my-3">';
+  state.insertAdjacentElement('afterend', box);
+  return box;
+}
+
+function wordAutoRenderSettings() {
+  const box = wordAutoBox();
+  if (!box) return;
+  const s = wordAdminState.settings || {};
+  const row = (key, label) =>
+    '<label class="d-flex align-items-center gap-2 mb-1"><input type="checkbox" class="form-check-input mt-0" data-setting="' +
+      key + '"' + (s[key] ? ' checked' : '') + '><span>' + label + '</span></label>';
+  const el = document.getElementById('wordAutoSettings');
+  el.innerHTML =
+    row('notify_admin_telegram', 'Присылать слово мне в Telegram в полночь') +
+    row('allow_reroll', 'Разрешить заменить слово до первого ответа игроков') +
+    (s.allow_reroll ? '<button type="button" class="btn btn-sm btn-outline-secondary mt-1" data-reroll="1">' +
+      'Заменить сегодняшнее слово случайным</button>' : '');
+  el.querySelectorAll('input[data-setting]').forEach((i) => {
+    i.addEventListener('change', async () => {
+      const res = await wordAdminCall({ action: 'set_setting', key: i.dataset.setting, value: i.checked });
+      if (res && res.ok) { wordAdminState.settings[res.key] = res.value; wordAutoRenderSettings(); }
+      else { i.checked = !i.checked; document.getElementById('wordAutoNote').textContent = wordAdminError(res && res.error); }
+    });
+  });
+  const rr = el.querySelector('button[data-reroll]');
+  if (rr) rr.addEventListener('click', rerollWordOfDay);
+}
+
+async function rerollWordOfDay() {
+  const ok = await showConfirm('Заменить сегодняшнее слово случайным?');
+  if (!ok) return;
+  const res = await wordAdminCall({ action: 'reroll_daily' });
+  document.getElementById('wordAutoNote').textContent = res && res.ok
+    ? 'Готово: слово заменено (задано вручную).' : wordAdminError(res && res.error);
+  if (res && res.ok) { haptic('success'); loadWordAdmin(); } else haptic('error');
+}
+
+async function loadWordPool() {
+  wordAutoBox();
+  const res = await wordAdminCall({ action: 'pool_list' });
+  wordAdminState.pool = (res && res.ok && res.items) ? res.items : [];
+  renderWordPool();
+}
+
+function renderWordPool() {
+  const box = document.getElementById('wordAutoPool');
+  if (!box) return;
+  if (!wordAdminState.pool.length) {
+    box.innerHTML = '<p class="small text-secondary mb-0">Пул пуст: он заполнится из готовых рейтингов при первом запуске.</p>';
+    return;
+  }
+  box.innerHTML = wordAdminState.pool.map((w) =>
+    '<div class="row-i word-admin-row"><span class="lbl">' + escapeHtml(w.word) +
+      (w.today ? ' <b>· сегодня (' + (wordAdminState.source === 'auto' ? 'авто' : 'вручную') + ')</b>' : '') +
+      '<i class="ms-2 text-secondary">' + (w.last_used ? escapeHtml(w.last_used) : 'не было') + '</i></span>' +
+      '<input type="checkbox" class="form-check-input" data-pool="' + escapeHtml(w.word) + '"' +
+        (w.enabled ? ' checked' : '') + ' aria-label="В пуле: ' + escapeHtml(w.word) + '"></div>').join('');
+  box.querySelectorAll('input[data-pool]').forEach((i) => {
+    i.addEventListener('change', async () => {
+      const res = await wordAdminCall({ action: 'pool_toggle', word: i.dataset.pool, enabled: i.checked });
+      if (!(res && res.ok)) {
+        i.checked = !i.checked;
+        document.getElementById('wordAutoNote').textContent = wordAdminError(res && res.error);
+      }
+    });
   });
 }
 
