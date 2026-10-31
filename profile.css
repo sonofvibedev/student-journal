@@ -322,3 +322,10 @@
 .pf-btn:active { transform: scale(.98); }
 .pf-btn-danger { color: var(--color-danger); }
 @media (max-width: 380px) { .pf-btn svg { display: none; } }
+
+/* Привязка Telegram-бота: код крупно, под ним таймер */
+.tg-code-box { margin-bottom: 14px; padding: 14px 12px; border-radius: 14px; background: var(--color-surface-3); text-align: center; }
+.tg-code { font-size: 32px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--color-text); user-select: all; padding-left: .12em; }
+.tg-code-timer { margin: 2px 0 10px; font-size: 15px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+.tg-code-timer.is-low { color: var(--color-warning); }
+#tgBotPanel .btn { min-height: 48px; }

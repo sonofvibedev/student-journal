@@ -1780,6 +1780,20 @@
             <input type="password" id="changePasswordRepeatInput" class="form-control mb-3" autocomplete="new-password">
             <button type="submit" class="btn btn-primary w-100 fw-bold" id="changePasswordBtn">Сохранить пароль</button>
           </form>
+          <!-- Telegram-бот журнала: строка видна только тем, кому админ выдал право вносить задачи, и админу (profile.js, initTgBot) -->
+          <div id="tgBotBlock" class="d-none">
+            <button type="button" class="row-i" id="tgBotRow" aria-expanded="false" aria-controls="tgBotPanel" onclick="toggleTgBot()"><span class="ic" style="--ic: #2aabee"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2 2 6 3-4 5 4Z"/><path d="m9 13 12-9"/></svg></span><span class="lbl">Telegram-бот</span><span class="val" id="tgBotState">…</span><span class="chev" aria-hidden="true">›</span></button>
+            <div id="tgBotPanel" class="account-form d-none">
+              <p class="auth-hint mb-3" id="tgBotNote">Через бота можно добавлять домашку и дедлайны. Сначала привяжите свой Telegram к кабинету.</p>
+              <div id="tgBotCodeBox" class="tg-code-box d-none" role="status" aria-live="polite">
+                <div class="tg-code" id="tgBotCode" aria-label="Код привязки"></div>
+                <div class="tg-code-timer" id="tgBotTimer"></div>
+                <p class="auth-hint mb-0">Откройте бота журнала в Telegram и отправьте ему этот код.</p>
+              </div>
+              <button type="button" class="btn btn-primary w-100 fw-bold" id="tgBotGetBtn" onclick="getTgCode()">Получить код</button>
+              <button type="button" class="btn btn-outline-danger w-100 mt-2 d-none" id="tgBotUnlinkBtn" onclick="unlinkTg()">Отвязать</button>
+            </div>
+          </div>
           <button type="button" class="row-i d-none" id="adminPanelRow" onclick="openAdminPanel()"><span class="ic" style="--ic: #5e5ce6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lbl">Админ-панель</span><span class="val" id="adminPanelState">Войти</span><span class="chev" aria-hidden="true">›</span></button>
         </div>
       </details>

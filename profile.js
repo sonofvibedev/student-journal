@@ -313,6 +313,7 @@
     document.getElementById('cabinetPasswordInput').value = '';
     resetInviteForm();
     setAuthTab('login');
+    resetTgBot();                              // код привязки и строка бота не должны пережить выход
     document.body.classList.add('is-login');   // до входа разделы кабинета не нужны
     document.getElementById('cabinetLoginSection').classList.remove('d-none');
     document.getElementById('cabinetContentSection').classList.add('d-none');
@@ -491,6 +492,149 @@
     }
   }
 
+  // ===== Telegram-бот: привязка аккаунта =====
+  // Строка видна тем, кому админ выдал право вносить задачи (profiles.can_post_tasks), и админу.
+  // «Получить код» → RPC tg_create_link_code (код ABCD-EFGH на 10 минут), его нужно отправить боту.
+  // Статус — своя строка в tg_links (RLS отдаёт только её). «Отвязать» → RPC tg_unlink.
+  const TG_CODE_TTL = 10 * 60 * 1000;
+  const TG_ERRORS = {
+    not_authenticated: 'Сессия закончилась. Войдите заново.',
+    no_profile: AUTH_ERRORS.no_profile
+  };
+  const tgBot = { seq: 0, linked: null, expires: 0, timer: null };
+
+  function tgErrorText(err) {
+    if (isNetworkError(err)) return NO_NETWORK_TEXT;
+    const msg = String((err && (err.message || err.code)) || '');
+    const key = Object.keys(TG_ERRORS).find(k => msg.includes(k));
+    return key ? TG_ERRORS[key] : 'Не получилось. Попробуйте ещё раз чуть позже.';
+  }
+
+  function tgStopTimer() { clearInterval(tgBot.timer); tgBot.timer = null; tgBot.expires = 0; }
+
+  function tgHideCode() {
+    tgStopTimer();
+    document.getElementById('tgBotCodeBox').classList.add('d-none');
+  }
+
+  // linked: true / false / null (не удалось узнать)
+  function tgSetLinked(linked) {
+    tgBot.linked = linked;
+    document.getElementById('tgBotState').textContent = linked === true ? 'Привязан' : linked === false ? 'Не привязан' : '—';
+    document.getElementById('tgBotUnlinkBtn').classList.toggle('d-none', linked !== true);
+    document.getElementById('tgBotNote').textContent = linked === true
+      ? 'Telegram привязан. Отправьте боту /start, чтобы добавить домашку или дедлайн.'
+      : 'Через бота можно добавлять домашку и дедлайны. Сначала привяжите свой Telegram к кабинету.';
+  }
+
+  async function tgReadLink() {
+    const { data, error } = await sb.from('tg_links').select('telegram_id,linked_at').eq('user_id', myProfile.user_id).maybeSingle();
+    if (error) throw error;
+    return !!data;
+  }
+
+  async function initTgBot() {
+    const block = document.getElementById('tgBotBlock');
+    const seq = ++tgBot.seq;
+    const hide = () => { tgHideCode(); block.classList.add('d-none'); };
+    if (!sb || !myProfile || !myProfile.user_id) { hide(); return; }
+    const student = appData.students.find(s => s.id === myStudentId);
+    let can = !!readAdminToken() || !!(student && student.isAdmin);
+    try {
+      if (!can) {
+        const { data, error } = await sb.from('profiles').select('can_post_tasks').eq('user_id', myProfile.user_id).maybeSingle();
+        if (error) throw error;
+        can = !!(data && data.can_post_tasks);
+      }
+    } catch (e) { can = false; }
+    if (seq !== tgBot.seq) return;
+    if (!can) { hide(); return; }
+    block.classList.remove('d-none');
+    let linked = null;
+    try { linked = await tgReadLink(); } catch (e) { /* статус неизвестен: код всё равно можно получить */ }
+    if (seq !== tgBot.seq) return;
+    tgSetLinked(linked);
+  }
+
+  function resetTgBot() {
+    tgBot.seq++;
+    tgHideCode();
+    document.getElementById('tgBotBlock').classList.add('d-none');
+    document.getElementById('tgBotPanel').classList.add('d-none');
+    document.getElementById('tgBotRow').setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleTgBot() {
+    const panel = document.getElementById('tgBotPanel');
+    const open = panel.classList.contains('d-none');
+    panel.classList.toggle('d-none', !open);
+    document.getElementById('tgBotRow').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) FX.reveal(panel.children, { step: 0.03 });
+    else tgHideCode();   // код не светим на экране без нужды
+  }
+
+  function tgTick() {
+    const left = tgBot.expires - Date.now();
+    const timer = document.getElementById('tgBotTimer');
+    if (left <= 0) {
+      tgHideCode();
+      document.getElementById('tgBotNote').textContent = 'Код истёк. Получите новый.';
+      return;
+    }
+    const sec = Math.ceil(left / 1000);
+    timer.textContent = 'Действует ещё ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+    timer.classList.toggle('is-low', sec <= 60);
+    // Пока код на экране, раз в 5 секунд смотрим, не привязал ли пользователь аккаунт в боте
+    if (sec % 5 === 0 && !tgBot.checking) {
+      tgBot.checking = true;
+      tgReadLink().then((linked) => {
+        if (linked && tgBot.expires) { tgHideCode(); tgSetLinked(true); haptic('success'); }
+      }).catch(() => {}).finally(() => { tgBot.checking = false; });
+    }
+  }
+
+  async function getTgCode() {
+    const btn = document.getElementById('tgBotGetBtn');
+    setBusy(btn, true);
+    try {
+      await currentSession();
+      const { data, error } = await sb.rpc('tg_create_link_code');
+      if (error) throw error;
+      const code = String(data || '').trim();
+      if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) throw new Error('bad_code');
+      tgStopTimer();
+      document.getElementById('tgBotCode').textContent = code;
+      document.getElementById('tgBotCodeBox').classList.remove('d-none');
+      tgBot.expires = Date.now() + TG_CODE_TTL;
+      tgTick();
+      tgBot.timer = setInterval(tgTick, 1000);
+      haptic('success');
+    } catch (e) {
+      haptic('error');
+      showAlert(e && e.code === 'unauthorized' ? AUTH_ERRORS.unauthorized : tgErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  async function unlinkTg() {
+    if (!(await showConfirm('Отвязать Telegram от кабинета? Бот перестанет принимать от вас задачи, пока вы не привяжете его снова.'))) return;
+    const btn = document.getElementById('tgBotUnlinkBtn');
+    setBusy(btn, true);
+    try {
+      const { error } = await sb.rpc('tg_unlink');
+      if (error) throw error;
+      tgHideCode();
+      tgSetLinked(false);
+      haptic('success');
+    } catch (e) {
+      haptic('error');
+      showAlert(tgErrorText(e));
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
   async function signOutQuietly() {
     if (sb) {
       try {
@@ -540,6 +684,7 @@
     state.innerText = on ? 'Включена' : 'Войти';
     state.classList.toggle('on', on);
     document.getElementById('adminModeChip').classList.toggle('d-none', !on);
+    initTgBot();
   }
   function renderAdminModal(title) {
     const on = !!readAdminToken();
