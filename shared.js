@@ -212,12 +212,14 @@ function deadlineCard(d) {
   const n = deadlineDaysLeft(d.dueDate);
   const zachet = isZachet(d);
   const card = document.createElement('div');
-  card.className = 'dl-card' + (zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
+  // Отмеченный студентом дедлайн остаётся в списке, но без «горит»: зачёркнут и с пометкой
+  const done = typeof isDeadlineDone === 'function' && isDeadlineDone(d);
+  card.className = 'dl-card' + (done ? ' is-done' : zachet ? ' is-zachet' : n < 0 ? ' is-over' : n <= 3 ? ' is-soon' : '');
   card.innerHTML = '<div class="dl-subject"></div><div class="dl-text"></div><div class="dl-meta"><span class="dl-date"></span><span class="dl-rel"></span></div>';
   card.querySelector('.dl-subject').textContent = d.subject;
   // Статус продублирован словом: в гаммах с красным или зелёным акцентом
   // цвет карточки один в один с акцентом, и по цвету статус не прочитать.
-  const kind = zachet ? deadlineKindName(d) : n < 0 ? 'Просрочено' : n <= 3 ? 'Горит' : '';
+  const kind = done ? 'Выполнено' : zachet ? deadlineKindName(d) : n < 0 ? 'Просрочено' : n <= 3 ? 'Горит' : '';
   if (kind) card.querySelector('.dl-subject').insertAdjacentHTML('afterbegin', '<span class="dl-kind">' + kind + '</span>');
   const text = card.querySelector('.dl-text');
   if (d.text) text.textContent = d.text; else text.remove();

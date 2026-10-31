@@ -149,7 +149,8 @@ function setup({ days, absences, asOf, homeworkDone = 0, earned = [] }) {
     [2,  ['anti_m2']],
     [5,  ['anti_m2', 'anti_m4']],
     [8,  ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8']],
-    [13, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12']],
+    [11, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10']],
+    [12, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12', 'anti_m14']],
     [14, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12', 'anti_m14']],
     [20, ['anti_m2', 'anti_m4', 'anti_m6', 'anti_m8', 'anti_m10', 'anti_m12', 'anti_m14']]
   ];

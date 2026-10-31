@@ -1699,7 +1699,8 @@ body::before {
 
 /* Домашка, которую студент отметил сделанной в карточке пары */
 .dl-card.is-done { opacity: .65; }
-.dl-card.is-done .dl-text { text-decoration: line-through; }
+.dl-card.is-done .dl-text, .dl-card.is-done .dl-subject { text-decoration: line-through; }
+.dl-card.is-done .dl-kind { display: inline-block; text-decoration: none; background: rgba(var(--status-done-rgb), .20); color: var(--status-done-text); }
 .dl-done {
   margin-left: 6px; padding: 1px 7px;
   border-radius: 6px;

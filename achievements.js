@@ -89,8 +89,8 @@ const ACHIEVEMENTS = [
     title: 'Дальний родственник группы', about: '10 неуважительных часов за месяц' },
   { code: 'anti_m12', cat: 'anti', icon: 'warn',     tier: 'anti-6', group: 'anti', need: 12, anti: true, repeatable: true,
     title: 'Красная зона', about: '12 неуважительных часов за месяц' },
-  { code: 'anti_m14', cat: 'anti', icon: 'envelope', tier: 'anti-7', group: 'anti', need: 14, anti: true, repeatable: true,
-    title: 'Вызов в деканат', about: '14 и больше неуважительных часов за месяц' },
+  { code: 'anti_m14', cat: 'anti', icon: 'envelope', tier: 'anti-7', group: 'anti', need: 12, anti: true, repeatable: true,
+    title: 'Вызов в деканат', about: '12 и больше неуважительных часов за месяц — порог деканата' },
 
   // Игры: значки за проверенные рекорды. points — игровые очки, они идут
   // только в рейтинг игр и на учебные баллы не влияют. Пороги и очки
