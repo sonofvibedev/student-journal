@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=31"></script>
+  <script src="env.js?v=32"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,15 +25,15 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=31" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=32" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=31" rel="stylesheet">
+  <link href="profile.css?v=32" rel="stylesheet">
   <!-- Достижения: значки и карточки со шкалой выполнения -->
-  <link href="achievements.css?v=31" rel="stylesheet">
+  <link href="achievements.css?v=32" rel="stylesheet">
   <!-- Игры: список, судоку, сапёр, flappy и рейтинг -->
-  <link href="games.css?v=31" rel="stylesheet">
-  <script src="theme.js?v=31"></script>
+  <link href="games.css?v=32" rel="stylesheet">
+  <script src="theme.js?v=32"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -539,24 +539,43 @@
     /* Отмеченное занятие */
     .sch-lesson.is-done .sch-name { color: var(--color-text-tertiary); }
     /* Нижний лист занятия */
-    /* ===== Главная «Сбалансированная» ========================================
-       Карточки «Стекло»: заливка, кромка и тень — токены приложения, радиус 24.
-       Цвета — только токены: акцент и статусы подстраиваются под гамму и
-       светлую тему. Движение — только transform и opacity. */
+    /* ===== Главная «Сбалансированная», компактная ============================
+       Всё главное — шапка, «Далее», «Срочно», пропуски и неделя — помещается на
+       один экран без прокрутки: от 360×640. Карточки «Стекло»: заливка, кромка и
+       тень — токены приложения, радиус 24. Цвета — только токены: акцент и статусы
+       подстраиваются под гамму и светлую тему. Движение — только transform и opacity.
+       Бюджет высоты (px): «Далее» ≈96, «Срочно» ≈126 (на низких экранах ≈104, без
+       описания), пропуски 72, неделя ≈132, промежутки 8. Низ страницы даёт body
+       (место под таб-бар), поэтому у главной своего нижнего отступа нет. */
     .hm { position: relative; isolation: isolate;
       --hm-card: rgba(255, 255, 255, .05);
       --hm-calm-rgb: 124, 203, 247; --hm-calm-text: var(--color-blue-soft-text);
-      /* снизу место под «+» и таб-бар: ничего не перекрывается */
-      padding-bottom: 156px; }
+      --hm-gap: 8px; --hm-pad-y: 11px; --hm-pad-x: 14px; --hm-day-h: 56px; }
     [data-bs-theme=light] .hm { --hm-card: var(--pane-bg); --hm-calm-rgb: 10, 91, 179; }
+    /* Кнопка «+» администратора стоит над таб-баром справа (её верх — в 152px от низа окна).
+       На экранах от 640 контент заканчивается выше; запасной отступ нужен только там,
+       где страница всё равно прокручивается */
+    @media (max-height: 600px) { body:has(#adminFab:not(.d-none)) .hm { padding-bottom: 48px; } }
+    /* Низкие экраны (встроенный браузер, 360×640): отступы меньше, дни ниже, описание «Срочно» прячем */
+    @media (max-height: 700px) {
+      .hm { --hm-gap: 6px; --hm-pad-y: 10px; --hm-pad-x: 12px; --hm-day-h: 48px; }
+      .hm-urgent .hm-desc { display: none; }
+    }
+    /* Совсем низкие: запасной скролл остаётся обычной прокруткой страницы */
+
+    /* Шапка на главной тоньше: нет подзаголовка, отступы меньше */
+    .on-home .container { margin-top: 4px !important; margin-bottom: 0 !important; }
+    .on-home .va-header { align-items: center; padding: 2px 0 8px; }
+    .on-home .va-header .app-title { font-size: 26px; line-height: 1.15; }
+
     /* Фиолетовое (акцентное) свечение сверху */
     .hm::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: -140px; height: 420px;
       background: radial-gradient(60% 100% at 50% 0%, rgba(var(--color-accent-rgb), .26), transparent 72%);
       pointer-events: none; }
     [data-bs-theme=light] .hm::before { opacity: .55; }
 
-    .hm-card { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 0 0 var(--space-3);
-      padding: var(--space-4); border: 1px solid var(--glass-edge); border-radius: var(--radius-xl);
+    .hm-card { display: flex; flex-direction: column; gap: 3px; width: 100%; margin: 0 0 var(--hm-gap);
+      padding: var(--hm-pad-y) var(--hm-pad-x); border: 1px solid var(--glass-edge); border-radius: var(--radius-xl);
       background: var(--hm-card); box-shadow: var(--glass-shadow);
       -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
       color: inherit; text-align: left; text-decoration: none; }
@@ -565,62 +584,73 @@
     .hm-card:focus-visible, .hm-link:focus-visible, .hm-check:focus-visible, .wk-cell:focus-visible, .wk-arrow:focus-visible, .hm-btn:focus-visible, .hdr-login:focus-visible {
       outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-    .hm-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; }
-    .hm-chip { display: inline-flex; align-items: center; align-self: flex-start; min-height: 28px; padding: 0 10px;
+    .hm-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+    /* Одна строка: длинное название обрезается многоточием, высота не меняется */
+    .hm-one { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hm-chip { display: inline-flex; align-items: center; flex: none; align-self: flex-start; min-height: 24px; padding: 0 9px;
       border-radius: var(--radius-pill); background: rgba(var(--hm-c), .18); color: var(--hm-ct);
-      font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+      font-size: 13px; font-weight: 700; line-height: 1; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
     .hm-chip--accent { --hm-c: var(--color-accent-rgb);  --hm-ct: var(--color-accent-soft); }
     .hm-chip--soon   { --hm-c: var(--status-soon-rgb);   --hm-ct: var(--status-soon-text); }
     .hm-chip--hot    { --hm-c: var(--status-hot-rgb);    --hm-ct: var(--status-hot-text); }
     .hm-chip--done   { --hm-c: var(--status-done-rgb);   --hm-ct: var(--status-done-text); }
     .hm-chip--calm   { --hm-c: var(--hm-calm-rgb);       --hm-ct: var(--hm-calm-text); }
 
-    .hm-cap { font-size: 13px; line-height: 1.35; color: var(--color-text-secondary); }
-    .hm-title { color: var(--color-text); font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -.4px; overflow-wrap: anywhere; }
+    .hm-cap { font-size: 13px; line-height: 1.3; color: var(--color-text-secondary); }
+    .hm-title { color: var(--color-text); font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -.2px; }
     .hm-title.is-done { color: var(--color-text-secondary); text-decoration: line-through; }
-    .hm-title-s { color: var(--color-text); font-size: 17px; font-weight: 700; line-height: 1.25; }
-    .hm-h { color: var(--color-text); font-size: 16px; font-weight: 700; }
-    .hm-time { color: var(--color-accent-soft); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .hm-meta, .hm-desc { color: var(--color-text-secondary); font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
-    .hm-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-    .hm-clamp:empty { display: none; }
-    .hm-link { flex: none; min-height: 44px; margin: -6px -4px -6px auto; padding: 0 4px; border: 0; border-radius: var(--radius-sm);
+    .hm-title-s { color: var(--color-text); font-size: 16px; font-weight: 700; line-height: 1.25; }
+    .hm-h { color: var(--color-text); font-size: 16px; font-weight: 700; white-space: nowrap; }
+    .hm-time { flex: none; color: var(--color-accent-soft); font-size: 18px; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hm-meta, .hm-desc { color: var(--color-text-secondary); font-size: 15px; line-height: 1.3; }
+    .hm-link { flex: none; min-height: 44px; margin: -2px -4px -2px auto; padding: 0 4px; border: 0; border-radius: var(--radius-sm);
       background: none; color: var(--color-accent-soft); font-size: 15px; font-weight: 600; white-space: nowrap; }
     .hm-btn { align-self: flex-start; min-height: 44px; margin-top: 4px; padding: 0 20px; border: 0; border-radius: var(--radius-pill);
       background: var(--color-accent); color: #fff; font-size: 16px; font-weight: 600; }
     .hm-chev { flex: none; color: var(--color-text-tertiary); font-size: 28px; line-height: 1; }
+    .hm-error .hm-title { font-size: 20px; }
 
-    /* --- Далее --- */
-    .hm-next .hm-title { font-size: 28px; margin-top: 4px; }
-    .hm-next .now-bar { display: block; width: 100%; height: 6px; margin-top: 8px; border-radius: 999px; background: var(--color-surface-3); overflow: hidden; }
+    /* --- Далее: чип и подпись / название и время / тип и преподаватель --- */
+    .hm-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+    .hm-line .hm-title { flex: 1 1 auto; }
+    .hm-next .hm-cap { flex: 0 1 auto; text-align: right; }
+    .hm-next .now-bar { display: block; width: 100%; height: 4px; margin-top: 4px; border-radius: 999px; background: var(--color-surface-3); overflow: hidden; }
     .hm-next .now-bar.d-none { display: none; }
     .hm-next .now-bar i { display: block; height: 100%; border-radius: 999px; background: var(--color-accent);
       transform-origin: left center; transform: scaleX(var(--p, 0));
       transition: transform var(--dur-slow) var(--ease-out); }
-    .hm-next .hm-cap:empty { display: none; }
 
-    /* --- Срочно --- */
-    .hm-urgent .hm-title { font-size: 22px; margin: 0; }
-    .hm-urgent-main { display: flex; align-items: center; gap: var(--space-3); margin-top: 4px; }
-    .hm-urgent-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .hm-check { flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
-      border: 2px solid var(--color-border-strong); border-radius: 50%; background: none; color: var(--color-text-secondary);
+    /* --- Срочно: чип, название, описание; справа кружок «выполнено» (зона 44, кружок 36) --- */
+    .hm-urgent { padding-bottom: 0; gap: 0; }
+    .hm-urgent .hm-title { font-size: 18px; width: 100%; }
+    .hm-urgent-main { display: flex; align-items: center; gap: 8px; }
+    .hm-urgent-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .hm-urgent-text > .hm-one { width: 100%; }
+    .hm-check { position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -4px; padding: 0;
+      border: 0; background: none; color: var(--color-text-secondary);
       transition: transform var(--dur-fast) var(--ease-out); }
+    .hm-check::before { content: ''; position: absolute; inset: 4px; border: 2px solid var(--color-border-strong); border-radius: 50%; }
     .hm-check:active { transform: scale(.9); }
-    .hm-check svg { width: 20px; height: 20px; opacity: 0; transform: scale(.4);
+    .hm-check svg { position: relative; width: 18px; height: 18px; opacity: 0; transform: scale(.4);
       transition: transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) var(--ease-out); }
-    .hm-check.on { border-color: var(--status-done-line); background: var(--status-done-fill-strong); color: var(--status-done-line); }
+    .hm-check.on { color: var(--status-done-line); }
+    .hm-check.on::before { border-color: var(--status-done-line); background: var(--status-done-fill-strong); }
     .hm-check.on svg { opacity: 1; transform: none; }
-    .hm-more { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--color-separator); }
+    .hm-more { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 2px; border-top: 1px solid var(--color-separator); }
     .hm-more.d-none { display: none; }
-    .hm-more .hm-cap { flex: 1 1 auto; min-width: 0; -webkit-line-clamp: 1; line-clamp: 1; }
+    .hm-more .hm-cap { flex: 1 1 auto; }
+    .hm-more .hm-link { margin: 0 -4px 0 auto; }
 
-    /* --- Пропуски: плашка с кольцом --- */
-    .hm-hours { flex-direction: row; align-items: center; gap: var(--space-4); }
+    /* --- Пропуски: плашка высотой 72 с кольцом 52 --- */
+    .hm-hours { flex-direction: row; align-items: center; gap: 12px; min-height: 72px; padding-top: 9px; padding-bottom: 9px; }
     .hm-hours.d-none { display: none; }
-    .hm-hours-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .hm-hours-text .hm-chip { margin-top: 6px; }
-    .hm-hours-text .hm-chip.d-none { display: none; }
+    .hm-hours .ring { width: 52px; height: 52px; }
+    .hm-hours .ring-num { font-size: 17px; }
+    .hm-hours-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .hm-sub { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .hm-sub .hm-cap { flex: 1 1 auto; }
+    .hm-sub .hm-chip { min-height: 20px; padding: 0 8px; }
+    .hm-sub .hm-chip.d-none { display: none; }
     .hm-hours.is-near { border-color: rgba(var(--status-soon-rgb), .5); }
     .hm-hours.is-near .ring-fg { stroke: var(--status-soon-line); }
     .hm-hours.is-over { border-color: rgba(var(--status-hot-rgb), .55); }
@@ -633,31 +663,36 @@
     .ach-tile .ach-last { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 
     /* --- Эта неделя: лента из семи кнопок не уже 44px --- */
-    .hm-week { gap: 8px; }
-    .wk-nav { display: flex; gap: 2px; margin: -6px -8px -6px auto; }
+    .hm-week { gap: 0; padding: 4px 10px 0; }
+    .hm-week-head { min-height: 28px; }
+    .hm-week-title { flex: 1 1 auto; display: flex; align-items: baseline; gap: 8px; }
+    .hm-week-title .hm-cap { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wk-nav { display: flex; gap: 0; margin: -8px -8px -8px 0; }
     .wk-arrow { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
       background: none; color: var(--color-text-2); font-size: 24px; line-height: 1; }
     .wk-arrow:active { transform: scale(.92); }
-    .wk-strip { display: flex; gap: 4px; overflow-x: auto; margin: 0 -6px; padding: 2px 6px; scroll-snap-type: x proximity;
+    .wk-strip { display: flex; gap: 2px; overflow-x: auto; margin: 0 -4px; padding: 0 4px; scroll-snap-type: x proximity;
       -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .wk-strip::-webkit-scrollbar { display: none; }
-    .wk-cell { flex: 1 0 44px; min-width: 44px; padding: 7px 0 6px; border: 1.5px solid transparent; border-radius: 14px;
+    .wk-cell { flex: 1 0 44px; min-width: 44px; height: var(--hm-day-h); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+      padding: 0; border: 1.5px solid transparent; border-radius: 14px;
       background: none; color: var(--color-text-2); scroll-snap-align: center;
       transition: transform var(--dur-fast) var(--ease-out); }
     .wk-cell:active { transform: scale(.94); }
-    .wk-cell .wd { display: block; font-size: 13px; color: var(--color-text-secondary); }
-    .wk-cell .dn { display: block; margin-top: 1px; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .wk-cell .wd { display: block; font-size: 13px; line-height: 16px; color: var(--color-text-secondary); }
+    .wk-cell .dn { display: block; font-size: 17px; line-height: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
     .wk-cell.is-weekend .wd { color: var(--color-text-tertiary); }
     .wk-cell.is-today { border-color: var(--color-accent); }
     .wk-cell.is-sel { background: var(--color-accent); color: #fff; }
     .wk-cell.is-sel .wd { color: rgba(255, 255, 255, .85); }
-    .wk-marks { display: flex; justify-content: center; gap: 3px; min-height: 6px; margin-top: 4px; }
+    .wk-marks { display: flex; justify-content: center; gap: 3px; height: 6px; margin-top: 3px; }
     .wk-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-border-strong); }
     .wk-dot.is-dl { background: var(--color-accent); }
     .wk-dot.is-hw { background: var(--status-soon-line); }
     .wk-dot.is-zachet { background: var(--status-zachet-line); }
     .wk-cell.is-sel .wk-dot { background: rgba(255, 255, 255, .92); }
-    .hm-week-foot .hm-cap { flex: 1 1 auto; min-width: 0; }
+    .hm-week-foot { min-height: 40px; }
+    .hm-week-foot .hm-cap { flex: 1 1 auto; }
     /* Легенда точек — на экране «Расписание» */
     .wk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 0; font-size: 13px; color: var(--color-text-secondary); }
     .wk-legend i { margin-right: 5px; vertical-align: 1px; }
@@ -675,10 +710,6 @@
     .hdr-login { min-height: 44px; padding: 0 18px; border: 0; border-radius: var(--radius-pill);
       background: var(--color-accent); color: #fff; font-size: 16px; font-weight: 600; }
     .hdr-login.d-none { display: none; }
-
-    /* --- «Что нового» в профиле --- */
-    .news-ver { color: var(--color-text-secondary); font-size: 13px; }
-
     /* Плитка раскрывается в свой раздел: View Transitions. Там, где его нет,
        остаётся обычный переход. Движение внутри перехода — transform и opacity. */
     ::view-transition-group(tile-open) { animation-duration: var(--dur-slow); }
@@ -1426,42 +1457,44 @@
   <div id="homeBody" class="d-none">
 
     <!-- 1. Далее: текущая или ближайшая пара. По нажатию — нижний лист
-         с полной информацией (openHomeNowSheet). -->
+         с полной информацией (openHomeNowSheet). Три строки: чип и подпись,
+         название и время, тип и преподаватель. -->
     <button type="button" class="hm-card hm-next" id="homeNowCard" data-view-target="schedule" onclick="openHomeNowSheet(this)">
       <span class="hm-row">
         <span class="hm-chip hm-chip--accent" id="homeNowWhen">—</span>
-        <span class="hm-cap" id="homeNowCap"></span>
+        <span class="hm-cap hm-one" id="homeNowCap"></span>
       </span>
-      <span class="hm-title hm-clamp" id="homeNowSubject">—</span>
-      <span class="hm-time" id="homeNowTime"></span>
-      <span class="hm-meta hm-clamp" id="homeNowMeta"></span>
+      <span class="hm-line">
+        <span class="hm-title hm-one" id="homeNowSubject">—</span>
+        <span class="hm-time" id="homeNowTime"></span>
+      </span>
+      <span class="hm-meta hm-one" id="homeNowMeta"></span>
       <span class="now-bar d-none" id="homeNowBar" aria-hidden="true"><i></i></span>
-      <span class="hm-cap hm-clamp" id="homeNowNext"></span>
     </button>
 
-    <!-- 2. Срочно: одна самая горящая задача. Кружок «выполнено» — только у
-         домашки: у дедлайнов отметки нет. Заполняет renderHomeUrgent(). -->
+    <!-- 2. Срочно: одна самая горящая задача. Кружок «выполнено» — у домашки
+         и у дедлайнов. Заполняет renderHomeUrgent(). -->
     <div class="hm-card hm-urgent" id="homeUrgent">
-      <span class="hm-row"><span class="hm-chip" id="homeUrgentChip">—</span></span>
       <div class="hm-urgent-main">
         <div class="hm-urgent-text">
-          <b class="hm-title hm-clamp" id="homeUrgentTitle">—</b>
-          <span class="hm-desc hm-clamp" id="homeUrgentDesc"></span>
+          <span class="hm-chip" id="homeUrgentChip">—</span>
+          <b class="hm-title hm-one" id="homeUrgentTitle">—</b>
+          <span class="hm-desc hm-one" id="homeUrgentDesc"></span>
         </div>
         <button type="button" class="hm-check d-none" id="homeUrgentDone" aria-pressed="false" aria-label="Отметить выполненным">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>
         </button>
       </div>
       <div class="hm-more" id="homeUrgentMore">
-        <span class="hm-cap hm-clamp" id="homeUrgentNext"></span>
+        <span class="hm-cap hm-one" id="homeUrgentNext"></span>
         <button type="button" class="hm-link" id="homeUrgentAll" onclick="goView('study')">Все</button>
       </div>
     </div>
 
     <!-- 3. Пропуски. Вошедшему — часы за месяц и кольцо до порога деканата,
-         гостю — только ссылка на таблицу группы. -->
+         гостю — только ссылка на таблицу группы. Высота плашки 72px. -->
     <button type="button" class="hm-card hm-hours" id="homeHoursTile" data-view-target="absences" onclick="goTile('absences', this)">
-      <span class="ring" id="homeHoursRing">
+      <span class="ring" id="homeHoursRing" role="img" aria-label="Неуважительных часов за месяц">
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <circle class="ring-bg" cx="24" cy="24" r="20"/>
           <circle class="ring-fg" cx="24" cy="24" r="20"/>
@@ -1469,24 +1502,25 @@
         <b class="ring-num" id="homeHoursUnexcused">0</b>
       </span>
       <span class="hm-hours-text">
-        <b class="hm-title-s" id="homeHoursLeft"></b>
-        <span class="hm-cap">неуважительных часов за месяц</span>
-        <span class="hm-cap" id="homeHoursNote"></span>
-        <span class="hm-chip d-none" id="homeHoursBadge"></span>
+        <b class="hm-title-s hm-one" id="homeHoursLeft"></b>
+        <span class="hm-sub">
+          <span class="hm-chip d-none" id="homeHoursBadge"></span>
+          <span class="hm-cap hm-one" id="homeHoursNote"></span>
+        </span>
       </span>
     </button>
     <button type="button" class="hm-card hm-hours hm-guest-abs d-none" id="homeGuestAbs" data-view-target="absences" onclick="goTile('absences', this)">
       <span class="hm-hours-text">
-        <b class="hm-title-s">Пропуски группы</b>
-        <span class="hm-cap">только просмотр · войдите, чтобы видеть свои часы</span>
+        <b class="hm-title-s hm-one">Пропуски группы</b>
+        <span class="hm-cap hm-one">только просмотр · войдите, чтобы видеть свои часы</span>
       </span>
       <span class="hm-chev" aria-hidden="true">&rsaquo;</span>
     </button>
 
     <!-- 4. Эта неделя: дни с делами отмечены точкой, подробности — в «Расписании» -->
     <div class="hm-card hm-week" id="homeWeek">
-      <div class="hm-row">
-        <b class="hm-h" id="homeWeekTitle">Эта неделя</b>
+      <div class="hm-row hm-week-head">
+        <span class="hm-week-title hm-one"><b class="hm-h" id="homeWeekTitle">Эта неделя</b><span class="hm-cap" id="homeWeekRange"></span></span>
         <span class="wk-nav">
           <button type="button" class="wk-arrow" onclick="shiftHomeWeek(-1)" aria-label="Предыдущая неделя">&lsaquo;</button>
           <button type="button" class="wk-arrow" onclick="shiftHomeWeek(1)" aria-label="Следующая неделя">&rsaquo;</button>
@@ -1494,7 +1528,7 @@
       </div>
       <div class="wk-strip" id="homeWeekStrip" role="group" aria-label="Дни недели"></div>
       <div class="hm-row hm-week-foot">
-        <span class="hm-cap hm-clamp" id="homeWeekDay"></span>
+        <span class="hm-cap hm-one" id="homeWeekDay"></span>
         <button type="button" class="hm-link" onclick="goView('schedule')">Расписание &rsaquo;</button>
       </div>
     </div>
@@ -2631,11 +2665,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=31"></script>
-<script src="schedule.js?v=31"></script>
-<script src="notify.js?v=31"></script>
-<script src="shared.js?v=31"></script>
-<script src="dean-report.js?v=31"></script>
+<script src="changelog.js?v=32"></script>
+<script src="schedule.js?v=32"></script>
+<script src="notify.js?v=32"></script>
+<script src="shared.js?v=32"></script>
+<script src="dean-report.js?v=32"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -2888,6 +2922,7 @@
     const changed = currentViewName !== name;
     if (changed) homeUrgentPin = null;   // отметка на «Срочно» держится, пока главная не закрыта
     currentViewName = name;
+    document.body.classList.toggle('on-home', name === 'home');   // шапка главной тоньше
     Object.keys(VIEWS).forEach(k => {
       const el = document.getElementById(VIEWS[k]);
       if (el) el.classList.toggle('d-none', k !== name);
@@ -3105,6 +3140,7 @@
       : 'До предупреждения ' + h(left) + ' ч';
     document.getElementById('homeHoursNote').textContent =
       (over || near ? '' : 'в пределах нормы · ') + 'уважительных ' + h(ex);
+    document.getElementById('homeHoursRing').setAttribute('aria-label', 'Неуважительных часов за месяц: ' + h(un));
 
     const badge = document.getElementById('homeHoursBadge');
     badge.textContent = over ? 'Предупреждение' : 'Почти лимит';
@@ -3129,7 +3165,6 @@
 
     const when = document.getElementById('homeNowWhen');
     const cap = document.getElementById('homeNowCap');
-    const line = document.getElementById('homeNowNext');
     const bar = document.getElementById('homeNowBar');
     const setWhen = (text, mod) => { when.textContent = text; when.className = 'hm-chip hm-chip--' + mod; };
     const current = list.find(l => mins >= toMinutes(l.start) && mins < toMinutes(l.end));
@@ -3142,7 +3177,6 @@
       bar.classList.remove('d-none');
       bar.querySelector('i').style.setProperty('--p', String(Math.max(0, Math.min(1, (mins - from) / (to - from)))));
       cap.textContent = 'ещё ' + formatLeft(to - mins);
-      line.textContent = next ? 'Дальше: ' + next.start + ' ' + next.subject : 'Это последняя пара на сегодня';
       return;
     }
 
@@ -3151,19 +3185,18 @@
     if (next) {
       setWhen('Далее · сегодня', 'accent');
       fillHomeLesson(next, dayKey(now));
-      cap.textContent = next === list[0] ? 'Первая пара' : 'Следующая пара';
-      line.textContent = 'начало через ' + formatLeft(toMinutes(next.start) - mins);
+      cap.textContent = (next === list[0] ? 'Первая пара' : 'Следующая') + ' · через ' + formatLeft(toMinutes(next.start) - mins);
       return;
     }
 
     // Пар на сегодня больше нет (или не было — воскресенье, выходной):
     // показываем первую пару следующего учебного дня
-    setWhen(list.length ? 'Сегодня пар больше нет' : 'Сегодня пар нет', 'calm');
+    setWhen(list.length ? 'Пар больше нет' : 'Сегодня пар нет', 'calm');
     cap.textContent = 'Следующая пара';
-    line.textContent = '';
     const first = nextStudyDayFirstLesson(now);
     if (first) {
-      fillHomeLesson(first.lesson, first.iso, first.label.charAt(0).toUpperCase() + first.label.slice(1));
+      fillHomeLesson(first.lesson, first.iso);
+      cap.textContent = first.label.charAt(0).toUpperCase() + first.label.slice(1);
     } else {
       homeNowOpen = null;
       cap.textContent = '';
@@ -3184,10 +3217,9 @@
     goTile('schedule', tileEl);
   }
 
-  // dayLabel — «Завтра» или «Понедельник, 2 ноября», когда пара не сегодня
-  function fillHomeLesson(l, iso, dayLabel) {
+  function fillHomeLesson(l, iso) {
     homeNowOpen = { lesson: l, iso };
-    document.getElementById('homeNowTime').textContent = (dayLabel ? dayLabel + ' · ' : '') + l.start + '\u2060–\u2060' + l.end;   // неразрывные знаки: время не рвётся на две строки
+    document.getElementById('homeNowTime').textContent = l.start + '\u2060–\u2060' + l.end;   // неразрывные знаки: время не рвётся на две строки
     document.getElementById('homeNowSubject').textContent = l.subject;
     document.getElementById('homeNowMeta').textContent =
       [LESSON_KIND_FULL[l.type] || l.type, l.teacher, l.room && ('ауд. ' + l.room)].filter(Boolean).join(' · ');
@@ -3351,7 +3383,11 @@
 
     document.getElementById('homeWeekTitle').textContent = homeWeekShift === 0
       ? 'Эта неделя'
-      : monday.getDate() + ' ' + MONTHS_GEN[monday.getMonth()] + ' · неделя ' + currentSemesterWeek(monday);
+      : 'Неделя ' + currentSemesterWeek(monday);
+
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    document.getElementById('homeWeekRange').textContent = monday.getDate() +
+      (monday.getMonth() === sunday.getMonth() ? '' : ' ' + MONTHS_GEN[monday.getMonth()]) + '–' + sunday.getDate() + ' ' + MONTHS_GEN[sunday.getMonth()];
 
     strip.innerHTML = WD_SHORT.map((wd, i) => {
       const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
@@ -6711,15 +6747,15 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="badges.js?v=31"></script>
-<script src="achievements.js?v=31"></script>
-<script src="studak.js?v=31"></script>
-<script src="profile.js?v=31"></script>
+<script src="badges.js?v=32"></script>
+<script src="achievements.js?v=32"></script>
+<script src="studak.js?v=32"></script>
+<script src="profile.js?v=32"></script>
 <!-- Правила игр: модуль, тот же файл проверяет рекорды в Edge Function -->
-<script type="module" src="games-core.js?v=31"></script>
-<script src="games.js?v=31"></script>
-<script src="snake.js?v=31"></script>
-<script src="words.js?v=31"></script>
+<script type="module" src="games-core.js?v=32"></script>
+<script src="games.js?v=32"></script>
+<script src="snake.js?v=32"></script>
+<script src="words.js?v=32"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
