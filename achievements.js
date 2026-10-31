@@ -176,6 +176,7 @@ const achState = {
   periods: new Map(),     // code -> Set периодов ('' у разовых, '2026-10' у месячных)
   kinds: new Set(),       // first_login, avatar_set, …
   homeworkDone: new Set(),
+  deadlineDone: new Set(), // id дедлайнов, отмеченных «выполнено»: значков за них нет, только синхронизация
   loaded: false
 };
 
@@ -201,6 +202,7 @@ async function achLoadMine() {
     achState.periods = new Map();
     achState.kinds = new Set();
     achState.homeworkDone = new Set();
+    achState.deadlineDone = new Set();
     return;
   }
   try {
@@ -208,7 +210,7 @@ async function achLoadMine() {
       sb.from('student_achievements').select('code, period, earned_at'),
       sb.from('app_events').select('kind, ref')
     ]);
-    const earned = new Map(), periods = new Map(), kinds = new Set(), homeworkDone = new Set();
+    const earned = new Map(), periods = new Map(), kinds = new Set(), homeworkDone = new Set(), deadlineDone = new Set();
     (badges || []).forEach((b) => {
       const prev = earned.get(b.code);
       if (!prev || String(b.earned_at) < String(prev.earned_at)) earned.set(b.code, b);
@@ -217,13 +219,42 @@ async function achLoadMine() {
     });
     (events || []).forEach((e) => {
       if (e.kind === 'homework_done') homeworkDone.add(e.ref);
+      else if (e.kind === 'deadline_done') deadlineDone.add(e.ref);   // не в kinds: на значки не влияет
       else kinds.add(e.kind);
     });
     achState.earned = earned;
     achState.periods = periods;
     achState.kinds = kinds;
     achState.homeworkDone = homeworkDone;
+    achState.deadlineDone = deadlineDone;
+    achSyncDeadlineDone();
   } catch (e) { console.error('Достижения не загрузились:', e); }
+}
+
+// «Выполнено» у дедлайнов: объединяем отметки с сервера и с устройства (локальные не
+// затираются), недостающее на сервере дописываем. Источник правды на устройстве — localStorage
+// (index.html), поэтому без входа или без сети всё работает как раньше.
+function achSyncDeadlineDone() {
+  if (typeof mergeDeadlineDone !== 'function') return;
+  mergeDeadlineDone(achState.deadlineDone).forEach((id) => achSetDeadlineDone(id, true));
+}
+
+// Ошибки студенту не показываем: отметка уже сохранена на устройстве
+async function achSetDeadlineDone(deadlineId, done) {
+  if (!sb || AppState.auth !== 'signed') return;
+  const key = String(deadlineId);
+  try {
+    if (done) {
+      if (achState.deadlineDone.has(key)) return;
+      const { error } = await sb.from('app_events').insert({ kind: 'deadline_done', ref: key });
+      if (error && error.code !== '23505') throw error;     // 23505 — уже отмечено
+      achState.deadlineDone.add(key);
+    } else {
+      const { error } = await sb.from('app_events').delete().eq('kind', 'deadline_done').eq('ref', key);
+      if (error) throw error;
+      achState.deadlineDone.delete(key);
+    }
+  } catch (e) { console.warn('Отметка дедлайна не синхронизировалась:', e); }
 }
 
 // ===== Запись событий =====

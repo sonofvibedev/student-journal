@@ -27,6 +27,9 @@ function loadAchievements() {
     AppState: { auth: 'signed', data: 'ready', studentId: 'st-1', onChange() {} },
     appData: { students: [], absences: [], homework: [] },
     sb: null,
+    achSheetOpen: () => false,
+    renderAchievementsView() {},
+    renderProfileBadges() {},
     document: { getElementById: () => null, querySelectorAll: () => [], body: null },
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     lsGet: () => null,
@@ -52,7 +55,7 @@ function loadAchievements() {
   vm.createContext(sandbox);
 
   const source = fs.readFileSync(path.join(root, 'achievements.js'), 'utf8').replace(/^﻿/, '');
-  const handover = '\n;globalThis.__ach = { achState, achStats, achProgressOf, achDeserved, ACH_BY_CODE, achLadder, achBestStreak, achCurrentStreak };\n';
+  const handover = '\n;globalThis.__ach = { achState, achStats, achProgressOf, achDeserved, ACH_BY_CODE, achLadder, achBestStreak, achCurrentStreak, achLoadMine, achSetDeadlineDone };\n';
   vm.runInContext(source + handover, sandbox, { filename: 'achievements.js' });
   return { ach: sandbox.__ach, sandbox };
 }
@@ -274,5 +277,51 @@ function setup({ days, absences, asOf, homeworkDone = 0, earned = [] }) {
     catalog.every((c) => ach.ACH_BY_CODE[c].points > 0), true);
 }
 
-console.log(failed === 0 ? '\nВсе проверки прошли' : `\nПровалено проверок: ${failed}`);
-process.exit(failed === 0 ? 0 : 1);
+// --- 8. «Выполнено» у дедлайнов: событие deadline_done только синхронизируется ---
+// Значков, счётчиков других видов и очков от него быть не должно.
+(async () => {
+  await new Promise((r) => setTimeout(r, 20));   // пусть уляжется стартовый achInit из самого файла
+  const days = ['2026-10-01', '2026-10-02'];
+  const base = setup({ days, asOf: '2026-10-02', absences: [] });
+  const baseCodes = ach.achDeserved(base).map((d) => d.code);
+  for (let i = 0; i < 60; i++) ach.achState.deadlineDone.add('dl-' + i);
+  const withDl = ach.achStats();
+  check('deadline_done: значки не меняются', ach.achDeserved(withDl).map((d) => d.code), baseCodes);
+  check('deadline_done: счёт домашек не меняется', withDl.homeworkDone, base.homeworkDone);
+
+  // Загрузка: событие уходит в deadlineDone, а не в kinds и не в homeworkDone
+  const calls = [];
+  let merged = null;
+  const rows = {
+    student_achievements: [],
+    app_events: [{ kind: 'first_login', ref: '' }, { kind: 'homework_done', ref: 'hw-1' }, { kind: 'deadline_done', ref: 'dl-7' }]
+  };
+  sandbox.mergeDeadlineDone = (ids) => { merged = [...ids]; return ['dl-local']; };
+  sandbox.sb = {
+    from: (table) => ({
+      select: () => Promise.resolve({ data: rows[table] }),
+      insert: (row) => { calls.push(['insert', row]); return Promise.resolve({ error: null }); },
+      delete: () => ({ eq: (c1, v1) => ({ eq: (c2, v2) => { calls.push(['delete', v1, v2]); return Promise.resolve({ error: null }); } }) })
+    })
+  };
+  await ach.achLoadMine();
+  check('deadline_done: попал в свой набор', [...ach.achState.deadlineDone], ['dl-7']);
+  check('deadline_done: не попал в виды событий', [...ach.achState.kinds], ['first_login']);
+  check('deadline_done: домашки не затронуты', [...ach.achState.homeworkDone], ['hw-1']);
+  check('deadline_done: серверные отметки отданы устройству', merged, ['dl-7']);
+  await new Promise((r) => setTimeout(r, 0));
+  check('deadline_done: отметка, которой нет на сервере, дописана', calls[0], ['insert', { kind: 'deadline_done', ref: 'dl-local' }]);
+
+  await ach.achSetDeadlineDone('dl-7', false);
+  check('deadline_done: отметку можно снять', [calls[calls.length - 1], ach.achState.deadlineDone.has('dl-7')], [['delete', 'deadline_done', 'dl-7'], false]);
+
+  // Без входа ничего не уходит в сеть
+  sandbox.AppState.auth = 'guest';
+  const n = calls.length;
+  await ach.achSetDeadlineDone('dl-9', true);
+  check('deadline_done: гость в базу не пишет', calls.length, n);
+  sandbox.AppState.auth = 'signed';
+
+  console.log(failed === 0 ? '\nВсе проверки прошли' : `\nПровалено проверок: ${failed}`);
+  process.exit(failed === 0 ? 0 : 1);
+})();
