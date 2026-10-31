@@ -12,6 +12,8 @@
     // data.json начинает грузиться сразу, а не после bootstrap/supabase-js и остальных скриптов страницы:
     // loadData() забирает этот запрос один раз (при ошибке просто запросит заново)
     window.__dataFetch = fetch('./data.json?t=' + Date.now(), { cache: 'no-store' }).catch(function () { return null; });
+    // Соединение с Supabase поднимается заранее: первый запрос личной части не тратит время на TLS
+    var pc = document.createElement('link'); pc.rel = 'preconnect'; pc.href = SUPABASE_URL; pc.crossOrigin = ''; document.head.appendChild(pc);
   </script>
 
   <!-- PWA -->
@@ -4121,16 +4123,10 @@
 
   async function loadData() {
     try {
-      // data.json и личная часть (сессия + journal_private) не зависят друг от друга: грузим вместе.
       // Первый запрос data.json уже идёт с начала страницы (window.__dataFetch в <head>)
       const early = window.__dataFetch; window.__dataFetch = null;
-      const publicP = (async () => {
-        const response = (early && await early) || await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
-        return response.json();
-      })();
-      const privateP = fetchPrivateRow();    // ошибки ловит сама: публичные данные от неё не зависят
-      const [publicData, privateRow] = await Promise.all([publicP, privateP]);
-      appData = publicData;
+      const response = (early && await early) || await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
+      appData = await response.json();
       if (!appData.subjects || appData.subjects.length === 0) {
         appData.subjects = DEFAULT_SUBJECTS;
       }
@@ -4141,23 +4137,58 @@
         appData.deadlines = [];
       }
       rememberLoadedRecords();
-      applyPrivateRow(privateRow);          // студенты и пропуски — из Supabase, только после входа
-      AppState.setData('ready');               // данные есть: разделы могут показывать цифры
-      renderOfflineBar();                      // в плашке «Нет сети» — дата этих данных
-      populateSubjectFilter();
-      updateStats();
-      renderTable();
-      renderExtendedStats();
-      renderAnalyticsChart();
+      // Студенты и пропуски — из Supabase, только после входа. Их ждать нельзя: протухший токен
+      // обновляется по сети с повторами, на плохом интернете это десятки секунд нулей на главной.
+      // Поэтому сначала сохранённая копия (мгновенно), свежие данные догружаются в фоне.
+      const signedIn = hasStoredSession();
+      const cached = signedIn ? lsGetJSON(PRIVATE_CACHE_KEY, null) : null;
+      if (!signedIn) lsRemove(PRIVATE_CACHE_KEY);
+      applyPrivateRow(cached, false);          // копия не свежая: сохранять журнал по ней нельзя
+      if (cached || !signedIn) renderLoaded();   // гость или есть копия: цифры сразу
+      if (signedIn) loadPrivateInBackground(cached);
+      else applyPrivateRow(null, true);
     } catch (err) {
       AppState.setData('error');
       console.error('Ошибка загрузки данных:', err);
       const tbody = document.getElementById('studentsTableBody');
-      if (tbody.querySelector('.skeleton-row')) {
-        tbody.removeAttribute('aria-busy');
-        tbody.innerHTML = '<div class="load-error">Не удалось загрузить данные. Проверьте интернет и обновите страницу.</div>';
-      }
+      if (tbody.querySelector('.skeleton-row')) showLoadError(() => loadData(), 'Не удалось загрузить данные. Проверьте интернет.');
     }
+  }
+
+  // Все разделы, которым нужны данные журнала
+  function renderLoaded() {
+    AppState.setData('ready');               // данные есть: разделы могут показывать цифры
+    renderOfflineBar();                      // в плашке «Нет сети» — дата этих данных
+    populateSubjectFilter();
+    updateStats();
+    renderTable();
+    renderExtendedStats();
+    renderAnalyticsChart();
+  }
+
+  // Ошибка на месте таблицы с кнопкой «Повторить»
+  function showLoadError(retry, text) {
+    const tbody = document.getElementById('studentsTableBody');
+    tbody.removeAttribute('aria-busy');
+    tbody.innerHTML = '<div class="load-error"></div>';
+    const box = tbody.firstChild;
+    box.append(text + ' ');
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn btn-sm btn-outline-secondary'; btn.textContent = 'Повторить';
+    btn.onclick = () => { tbody.innerHTML = ''; tbody.setAttribute('aria-busy', 'true'); AppState.setData('loading'); retry(); };
+    box.append(btn);
+  }
+
+  // Свежая личная часть: без мигания, если она не отличается от показанной копии
+  function loadPrivateInBackground(cached) {
+    fetchPrivateRow().then(({ row, ok }) => {
+      if (!ok) {
+        if (!cached) { AppState.setData('error'); showLoadError(() => loadPrivateInBackground(null), 'Не удалось загрузить журнал.'); }
+        return;                              // есть копия — остаётся она, сохранять по ней нельзя
+      }
+      applyPrivateRow(row, true);
+      if (!cached || JSON.stringify(cached) !== JSON.stringify(row)) renderLoaded();
+    });
   }
 
   // --- Личная часть журнала: студенты (ФИО, роль, Telegram) и пропуски ---
@@ -4167,29 +4198,56 @@
   // пустой список затёр бы настоящий.
   let privateLoaded = false;
 
-  async function fetchPrivateRow() {
-    let row = null;
-    try {
-      const { data: { session } } = sb ? await sb.auth.getSession() : { data: { session: null } };
-      if (session) {
-        const { data, error } = await sb.from('journal_private').select('students, absences').eq('id', 'main').maybeSingle();
-        if (error) throw error;
-        row = data;
-      }
-    } catch (e) {
-      console.error('Личная часть журнала не загрузилась:', e);
-    }
-    return row;
+  const PRIVATE_CACHE_KEY = 'journal_private_cache';   // копия личной части для мгновенного показа; уходит при выходе
+
+  // Есть ли на устройстве сохранённая сессия (без сети и без ожидания обновления токена)
+  function hasStoredSession() {
+    try { return !!localStorage.getItem(SB_STORAGE_KEY); } catch (e) { return false; }
   }
 
-  function applyPrivateRow(row) {
-    privateLoaded = !!row;
+  // Запрос с таймаутом 8 с и одной быстрой повторной попыткой
+  function withRetry(run, ms = 8000) {
+    const once = () => Promise.race([Promise.resolve().then(run), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+    return once().catch(() => new Promise((r) => setTimeout(r, 300)).then(once));
+  }
+
+  // { row, ok }: ok — ответ получен (row === null у вышедшего студента); !ok — сеть или таймаут, копия остаётся.
+  // Пока запрос в пути, повторный вызов (кабинет при запуске) получает тот же ответ
+  let privateInflight = null;
+  function fetchPrivateRow() {
+    if (!privateInflight) privateInflight = requestPrivateRow().finally(() => { privateInflight = null; });
+    return privateInflight;
+  }
+
+  async function requestPrivateRow() {
+    try {
+      if (!sb) return { row: null, ok: true };
+      const { data: { session }, error: sessionError } = await withRetry(() => sb.auth.getSession());
+      if (sessionError) throw sessionError;   // обновить токен не вышло — это не «вышел», копию не трогаем
+      if (!session) { lsRemove(PRIVATE_CACHE_KEY); return { row: null, ok: true }; }
+      const { data } = await withRetry(async () => {
+        const res = await sb.from('journal_private').select('students, absences').eq('id', 'main').maybeSingle();
+        if (res.error) throw res.error;
+        return res;
+      });
+      if (data) lsSetJSON(PRIVATE_CACHE_KEY, data);
+      return { row: data, ok: true };
+    } catch (e) {
+      console.error('Личная часть журнала не загрузилась:', e);
+      return { row: null, ok: false };
+    }
+  }
+
+  // fresh — данные с сервера (по копии из localStorage журнал сохранять нельзя)
+  function applyPrivateRow(row, fresh) {
+    privateLoaded = !!fresh && !!row;
     appData.students = (row && row.students) || [];
     appData.absences = (row && row.absences) || [];
   }
 
   async function loadPrivateData() {
-    applyPrivateRow(await fetchPrivateRow());
+    const { row, ok } = await fetchPrivateRow();
+    applyPrivateRow(ok ? row : null, ok);
   }
 
   // После входа или выхода: загрузить или убрать личную часть и перерисовать журнал

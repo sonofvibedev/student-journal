@@ -292,7 +292,8 @@
     // проверки студент «не найден в журнале» только потому, что список пуст
     if (AppState.data === 'loading') { AppState.onDataSettled(() => enterCabinet(profile)); return; }
     // Только что вошли: список группы до входа не загружается (он закрытый)
-    if (!privateLoaded) await refreshPrivateData();
+    // (сохранённая копия списка годится для проверки: свежие данные подтянутся в фоне)
+    if (!privateLoaded && !appData.students.length) await refreshPrivateData();
     if (!appData.students.find(s => s.id === profile.student_id)) {
       showLoginForm();
       showAlert('Студент не найден в журнале. Обратитесь к старосте.');
@@ -307,7 +308,7 @@
   }
 
   function showLoginForm() {
-    if (privateLoaded) refreshPrivateData();   // вышли: список группы с устройства убираем
+    if (privateLoaded || appData.students.length) refreshPrivateData();   // вышли: список группы (и его копию) с устройства убираем
     AppState.setAuth('guest');                 // вход точно отсутствует: разделы покажут приглашение войти
     document.getElementById('cabinetLoginInput').value = '';
     document.getElementById('cabinetPasswordInput').value = '';
