@@ -542,7 +542,7 @@ function renderWordAdminWords() {
 
 // ----- Автовыбор слова дня: опции и пул (создаётся здесь, в index.html правок нет) -----
 function wordAutoBox() {
-  let box = document.getElementById('wordAutoBox');
+  let box = document.querySelector('#wordAutoBox');
   if (box) return box;
   const state = document.getElementById('wordAdminState');
   if (!state) return null;
