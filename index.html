@@ -4030,6 +4030,19 @@
   let animateRowsNext = true;
   let filtersChangedInSheet = false;
 
+  // Что было в data.json при загрузке: по этому слиянию saveDataToGitHub отличает записи бота и других
+  // админов (появились после) от удалённых админом (были, нет в appData). См. mergeRemoteData в shared.js
+  let loadedIds = new Set();
+  let loadedSnap = new Map();   // id -> JSON записи при загрузке (чтобы подхватить правку текста ботом)
+  let deletedIds = new Set();   // удалено админом в этой сессии: из remote не возвращаем
+
+  function rememberLoadedRecords() {
+    const all = [...(appData.homework || []), ...(appData.deadlines || [])].filter(r => r && r.id);
+    loadedIds = new Set(all.map(r => r.id));
+    loadedSnap = new Map(all.map(r => [r.id, JSON.stringify(r)]));
+    deletedIds = new Set();
+  }
+
   async function loadData() {
     try {
       const response = await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
@@ -4043,7 +4056,8 @@
       if (!appData.deadlines) {
         appData.deadlines = [];
       }
-      await loadPrivateData();                 // студенты и пропуски — из Supabase, только после входа
+      rememberLoadedRecords();
+      await loadPrivateData();              // студенты и пропуски — из Supabase, только после входа
       AppState.setData('ready');               // данные есть: разделы могут показывать цифры
       renderOfflineBar();                      // в плашке «Нет сети» — дата этих данных
       populateSubjectFilter();
@@ -4328,8 +4342,9 @@
     if (!(await showConfirm(`Удалить ${noun} «${d.subject}» ${d.type === 'zachet' ? '' : 'до '}${formatDateShort(deadlineDate(d.dueDate))}?`))) return;
     const backup = JSON.parse(JSON.stringify(appData.deadlines));
     appData.deadlines = appData.deadlines.filter(x => x.id !== id);
+    deletedIds.add(id);
     const ok = await saveDataToGitHub(`Удалён ${noun}: ${d.subject} — ${d.type === 'zachet' ? '' : 'до '}${formatDateShort(deadlineDate(d.dueDate))}`);
-    if (!ok) appData.deadlines = backup;
+    if (!ok) { appData.deadlines = backup; deletedIds.delete(id); }
     renderDeadlinesAdminList();
     renderDeadlines();
   }
@@ -4989,8 +5004,9 @@
     if (!(await showConfirm(`Удалить домашку «${h.subject}»?`))) return;
     const backup = JSON.parse(JSON.stringify(appData.homework));
     appData.homework = appData.homework.filter(x => x.id !== id);
+    deletedIds.add(id);
     const ok = await saveDataToGitHub(`Удалена домашка: ${h.subject}`);
-    if (!ok) { appData.homework = backup; return; }
+    if (!ok) { appData.homework = backup; deletedIds.delete(id); return; }
     document.getElementById('customAlertModal').addEventListener('hidden.bs.modal', () => openHomeworkModal(), { once: true });
     renderHomeworkAdminList();
     renderHomeworkView();
@@ -6276,8 +6292,20 @@
     }
 
     const fileData = await getFileRes.json();
+
+    // Слияние со свежим файлом: пока страница была открыта, бот мог добавить или убрать записи.
+    // Не получилось разобрать файл (например, больше 1 МБ — GitHub не отдаёт content) — как раньше, без слияния.
+    let remote = null;
+    try {
+      const bin = atob(String(fileData.content || '').replace(/s/g, ''));
+      remote = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+    } catch (e) { console.warn('Слияние с data.json пропущено:', e); }
+    const merged = mergeRemoteData(appData, remote, loadedIds, deletedIds, loadedSnap);
+
     appData.lastUpdated = new Date().toISOString();
     const { students, absences, ...publicData } = appData;
+    publicData.deadlines = merged.deadlines;
+    if (appData.homework || merged.homework.length) publicData.homework = merged.homework;
     const updatedJsonStr = JSON.stringify(publicData, null, 2);
     const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
     const base64Content = btoa(String.fromCharCode(...utf8Bytes));
@@ -6296,6 +6324,10 @@
     });
 
     if (putRes.ok) {
+      // В файле теперь слитая версия: подтягиваем записи бота и запоминаем её как «загруженную»
+      appData.deadlines = merged.deadlines;
+      if (publicData.homework) appData.homework = merged.homework;
+      rememberLoadedRecords();
       updateStats();
       renderTable();
       haptic('success');

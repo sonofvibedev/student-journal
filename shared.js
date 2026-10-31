@@ -618,3 +618,43 @@ function staggerTiles(root) {
     });
   });
 }
+
+// ============================================================================
+// Слияние с data.json на GitHub перед сохранением (без DOM, тест: tools/test-data-merge.js).
+// Страница держит копию data.json, загруженную при открытии; пока админ работает, бот может
+// дописать или убрать записи. Перед PUT свежий файл сливается с локальной копией:
+//   • запись есть в remote, но её нет ни у нас, ни в loadedIds (при загрузке её не было),
+//     и админ её не удалял (deletedIds) → её добавил бот или другой админ: добавляем;
+//   • запись бота (source:'bot') была при загрузке (loadedIds), а в remote исчезла → её удалили
+//     в боте или в другой вкладке: из сохраняемого убираем;
+//   • запись, которую админ удалил сам (deletedIds / она есть в loadedIds), не воскресает;
+//   • loadedSnap (необязательно: Map id → JSON записи при загрузке): если админ запись не трогал,
+//     а в remote её текст изменили (бот «Изменить текст»), берём версию из remote.
+// Остальное (локальные правки админа, новые записи админа) остаётся как есть.
+// Чистая функция: входные данные не меняет. Если у remote нет массива — по нему ничего не известно.
+// ============================================================================
+function mergeRemoteData(local, remote, loadedIds, deletedIds, loadedSnap) {
+  const loaded = new Set(loadedIds || []);
+  const deleted = new Set(deletedIds || []);
+  const out = { homework: [], deadlines: [], addedIds: [], removedIds: [] };
+  ['homework', 'deadlines'].forEach((key) => {
+    const mine = Array.isArray(local && local[key]) ? local[key] : [];
+    if (!remote || !Array.isArray(remote[key])) { out[key] = mine.slice(); return; }
+    const theirs = remote[key];
+    const remoteById = new Map(theirs.filter(r => r && r.id).map(r => [r.id, r]));
+    const mineIds = new Set(mine.map(r => r && r.id));
+    const kept = [];
+    mine.forEach((r) => {
+      if (r && r.source === 'bot' && loaded.has(r.id) && !remoteById.has(r.id)) { out.removedIds.push(r.id); return; }
+      const fresh = r && remoteById.get(r.id);
+      const snap = loadedSnap && loadedSnap.get(r && r.id);
+      // Админ запись не менял (совпадает с загрузкой), а в remote её уже поправили
+      kept.push(fresh && snap !== undefined && JSON.stringify(r) === snap && JSON.stringify(fresh) !== snap ? fresh : r);
+    });
+    theirs.forEach((r) => {
+      if (r && r.id && !mineIds.has(r.id) && !loaded.has(r.id) && !deleted.has(r.id)) { kept.push(r); out.addedIds.push(r.id); }
+    });
+    out[key] = kept;
+  });
+  return out;
+}
