@@ -25,28 +25,12 @@
       "createdAt": "2026-10-02T12:49:49.634Z"
     },
     {
-      "id": "dl-1791459972131",
+      "id": "dl-1793301565366",
       "type": "deadline",
       "subject": "Маркетинг услуг",
-      "text": "Выставки по подгруппам",
-      "dueDate": "2026-10-22",
-      "createdAt": "2026-10-08T11:46:12.131Z"
-    },
-    {
-      "id": "dl-1791521021433",
-      "type": "deadline",
-      "subject": "Маркетинг инноваций",
-      "text": "Мудл: https://elearning.bseu.by/mod/assign/view.php?id=81443",
-      "dueDate": "2026-10-21",
-      "createdAt": "2026-10-09T04:43:41.433Z"
-    },
-    {
-      "id": "dl-1792520204359",
-      "type": "deadline",
-      "subject": "Функционально-стоимостный анализ",
-      "text": "Мудл тест: https://elearning.bseu.by/mod/quiz/view.php?id=23415",
-      "dueDate": "2026-10-24",
-      "createdAt": "2026-10-20T18:16:44.359Z"
+      "text": "Гостиницы",
+      "dueDate": "2026-11-04",
+      "createdAt": "2026-10-29T19:19:25.366Z"
     }
   ],
   "subjects": [
@@ -120,7 +104,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-10-26T20:23:42.333Z",
+  "lastUpdated": "2026-10-29T19:26:11.114Z",
   "homework": [
     {
       "id": "hw-1791460174322",
