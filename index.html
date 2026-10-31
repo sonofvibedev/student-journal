@@ -6677,7 +6677,9 @@
   ptrInit();
   initTopBar();
   initOfflineWatch();
-  init();
+  // Запускаем после загрузки всех скриптов страницы: init() вызывает initProfile() из profile.js,
+  // который подключён ниже; на медленной сети data.json успевал прийти раньше него.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
   // Дорисовать после штатной функции страницы (сами функции не меняются)
   function afterCall(name, fn) {
