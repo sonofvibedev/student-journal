@@ -18,6 +18,11 @@ const GITHUB_OWNER = 'sonofvibedev';
 const GITHUB_REPO = 'student-journal';
 const DATA_PATH = 'data.json';
 
+// Замок Mini App (tg-gate.js). Пусто — выключен. Когда в BotFather у нового бота адрес приложения
+// станет https://sonofvibedev.github.io/student-journal/?b=<ключ>, впишите сюда этот ключ:
+// из Telegram без ?b=<ключ> (старый бот) страница ответит «404». Вход студентов не сбрасывается.
+const TG_APP_KEY = 'DE-zuZmdQ2No';
+
 // Рабочий проект Supabase. Ключ publishable — открытый по назначению,
 // что можно читать и менять, решают правила RLS в базе.
 const SUPABASE_URL = 'https://woiqekpuoddxixlrbvkp.supabase.co';
