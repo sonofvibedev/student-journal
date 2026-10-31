@@ -517,6 +517,15 @@
     showLoginForm();
   }
 
+  // «Сменить аккаунт»: тот же выход, после него форма входа с курсором в логине
+  async function switchCabinetAccount() {
+    await logoutCabinet();
+    setAuthTab('login');
+    window.scrollTo(0, 0);
+    const input = document.getElementById('cabinetLoginInput');
+    if (input) input.focus({ preventScroll: true });
+  }
+
   // --- Вход администратора (перенесён с главной) ---
   // Строка «Админ-панель» видна только студентам с isAdmin: true (или если токен уже сохранён на устройстве,
   // чтобы можно было выйти). Токен не проверяется — просто сохраняется в localStorage gh_pat, как раньше.
@@ -818,6 +827,9 @@
       .filter(r => r.total > 0)
       .sort((a, b) => b.unexcused - a.unexcused || b.total - a.total);
 
+    const totalEl = document.getElementById('profileSubjectsTotal');
+    if (totalEl) totalEl.textContent = rows.length ? rows.reduce((n, r) => n + r.total, 0) + ' ч' : '';
+
     if (!rows.length) {
       box.innerHTML = '<div class="row-i"><span class="lbl text-secondary">Пропусков нет</span></div>';
       return;
@@ -839,6 +851,22 @@
     }).join('') +
       '<div class="row-i"><span class="lbl text-secondary">неуважительные / уважительные, часы</span></div>';
   }
+
+  // Аккордеоны профиля (<details class="pf-acc">): по умолчанию свёрнуты,
+  // что раскрыто — помним на устройстве. Без localStorage всё просто свёрнуто.
+  const PF_ACC_KEY = 'profile_acc_open';
+  function initProfileAccordions() {
+    const all = Array.from(document.querySelectorAll('#viewProfile details.pf-acc'));
+    let open = [];
+    try { open = JSON.parse(lsGet(PF_ACC_KEY) || '[]'); } catch (e) {}
+    all.forEach(d => {
+      d.open = Array.isArray(open) && open.includes(d.id);
+      d.addEventListener('toggle', () => {
+        try { lsSet(PF_ACC_KEY, JSON.stringify(all.filter(x => x.open).map(x => x.id))); } catch (e) {}
+      });
+    });
+  }
+  initProfileAccordions();
 
   // Раскрытие строки предмета
   document.addEventListener('click', (e) => {

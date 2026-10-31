@@ -1274,7 +1274,7 @@ body::after {
 .sk-stage { display: flex; justify-content: center; width: 100%; }
 html.sk-lock, html.sk-lock body { overflow: hidden; }
 /* Кнопка «Studak» в шапке кабинета: тонкая градиентная рамка */
-.sk-open-btn { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin-left: auto; padding: 0 12px; border: 0; border-radius: 999px; background: linear-gradient(var(--color-surface-2), var(--color-surface-2)) padding-box, linear-gradient(90deg, #34c759, #0a84ff 50%, #ff4fa3) border-box; border: 1.5px solid transparent; color: #fff; font-size: 14px; font-weight: 600; }
+.sk-open-btn { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-left: auto; padding: 0 12px; border: 0; border-radius: 999px; background: linear-gradient(var(--color-surface-2), var(--color-surface-2)) padding-box, linear-gradient(90deg, #34c759, #0a84ff 50%, #ff4fa3) border-box; border: 1.5px solid transparent; color: var(--color-text); font-size: 14px; font-weight: 600; }
 .sk-open-btn svg { width: 18px; height: 18px; }
 .sk-open-btn:active { transform: scale(.96); }
 /* статичная версия */

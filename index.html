@@ -6,7 +6,7 @@
   <title>Журнал 24ДММ-2</title>
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
-  <script src="env.js?v=35"></script>
+  <script src="env.js?v=36"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -25,15 +25,15 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Общая дизайн-система (токены, шрифты, компоненты, анимации) -->
-  <link href="app.css?v=35" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
+  <link href="app.css?v=36" rel="stylesheet"><!-- ?v= — та же цифра, что CACHE_VERSION в sw.js: новая страница не возьмёт старый файл из кэша -->
   <!-- Тема: светлая/тёмная/системная и цветовая гамма. Сразу после app.css и до отрисовки -->
   <!-- Личные экраны: вход, профиль, зачётка, календарь, пропуск Studak -->
-  <link href="profile.css?v=35" rel="stylesheet">
+  <link href="profile.css?v=36" rel="stylesheet">
   <!-- Достижения: значки и карточки со шкалой выполнения -->
-  <link href="achievements.css?v=35" rel="stylesheet">
+  <link href="achievements.css?v=36" rel="stylesheet">
   <!-- Игры: список, судоку, сапёр, flappy и рейтинг -->
-  <link href="games.css?v=35" rel="stylesheet">
-  <script src="theme.js?v=35"></script>
+  <link href="games.css?v=36" rel="stylesheet">
+  <script src="theme.js?v=36"></script>
   <style>
     /* ===== Журнал: стили только этой страницы (токены и общие компоненты — в app.css) ===== */
     .container { max-width: 1100px; }
@@ -548,7 +548,7 @@
        описания), пропуски 72, неделя ≈132, промежутки 8. Низ страницы даёт body
        (место под таб-бар), поэтому у главной своего нижнего отступа нет. */
     /* Эти разделы лежат вне .container (у него 16px по бокам): без отступа карточки липли к краям экрана */
-    #viewHome, #viewStudy, #viewHomeworkList, #viewExams { padding-left: 16px; padding-right: 16px; }
+    #viewHome, #viewStudy, #viewHomeworkList, #viewExams, #viewProfile { padding-left: 16px; padding-right: 16px; }
     .hm { position: relative; isolation: isolate;
       --hm-card: rgba(255, 255, 255, .05);
       --hm-calm-rgb: 124, 203, 247; --hm-calm-text: var(--color-blue-soft-text);
@@ -1668,7 +1668,7 @@
   </div>
 
 
-  <div id="cabinetContentSection" class="d-none">
+  <div id="cabinetContentSection" class="d-none pf-stack">
     <div id="cabinetGreeting" class="visually-hidden">Привет!</div>
 
       <div class="dash-top">
@@ -1689,70 +1689,62 @@
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" class="d-none" onchange="handleAvatarFile(this)">
 
-    <!-- Достижения — одна плитка: сколько значков получено и три последних.
-         Плитку заполняет renderProfileBadges() из achievements.js, она же
-         прячет группу, пока входа нет. По нажатию открывается отдельное
-         окно со всеми достижениями. -->
-    <div class="group d-none" id="profileAchGroup">
-      <div class="kicker">Достижения</div>
-      <button type="button" class="tile wide ach-tile" id="profileAchTile" onclick="openAchSheet()" aria-label="Все достижения">
-        <span class="d-flex align-items-center gap-2 w-100">
-          <span class="tile-num" id="profileAchCount">0</span>
-          <span class="tile-note" id="profileAchTotal">значков</span>
-          <span class="ach-rank ms-auto" id="profileAchRank"></span>
-          <span class="chev" aria-hidden="true">&rsaquo;</span>
-        </span>
-        <span class="ach-strip" id="profileBadges"></span>
-        <span class="tile-note" id="profileAchNote"></span>
+    <!-- Ближайшее: срок и домашка двумя плитками в ряд. Тексты пишет renderProfileNext() (profile.js) -->
+    <div class="pf-next">
+      <button type="button" class="pf-tile" onclick="goView('deadlines')">
+        <span class="pf-tile-h"><span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span><span class="pf-k">Ближайший дедлайн</span></span>
+        <span class="pf-v" id="profileNextDeadline">—</span>
+      </button>
+      <button type="button" class="pf-tile" onclick="goView('homework')">
+        <span class="pf-tile-h"><span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h11a3 3 0 013 3V21H8a3 3 0 01-3-3z"/><path d="M5 18a3 3 0 013-3h11"/></svg></span><span class="pf-k">Ближайшая домашка</span></span>
+        <span class="pf-v" id="profileNextHomework">—</span>
       </button>
     </div>
 
-    <!-- Четыре блока профиля: ближайший срок, ближайшая домашка,
-         действующие справки и пропуски по предметам -->
-    <div class="group">
-      <div class="kicker">Ближайшее</div>
-      <div class="inset">
-        <button type="button" class="row-i" onclick="goView('deadlines')">
-          <span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/></svg></span>
-          <span class="lbl">Ближайший дедлайн<small class="d-block text-secondary" id="profileNextDeadline">—</small></span>
-          <span class="chev" aria-hidden="true">›</span>
-        </button>
-        <button type="button" class="row-i" onclick="goView('homework')">
-          <span class="ic" style="--ic: #2a9ef1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h11a3 3 0 013 3V21H8a3 3 0 01-3-3z"/><path d="M5 18a3 3 0 013-3h11"/></svg></span>
-          <span class="lbl">Ближайшая домашка<small class="d-block text-secondary" id="profileNextHomework">—</small></span>
-          <span class="chev" aria-hidden="true">›</span>
-        </button>
-      </div>
+    <!-- Достижения — одна строка: сколько значков получено, три последних и «Все».
+         Строку заполняет renderProfileBadges() из achievements.js, она же
+         прячет группу, пока входа нет. Подсказка «что дальше» (profileAchNote)
+         скрыта от глаз, но читается экранным диктором; полный список — в окне openAchSheet. -->
+    <div class="group d-none" id="profileAchGroup">
+      <button type="button" class="tile wide ach-tile" id="profileAchTile" onclick="openAchSheet()" aria-label="Все достижения" aria-describedby="profileAchNote">
+        <span class="ach-main">
+          <span class="ach-line"><span class="tile-num" id="profileAchCount">0</span> <span class="tile-note" id="profileAchTotal">значков</span></span>
+          <span class="ach-place" id="profileAchRank"></span>
+        </span>
+        <span class="ach-strip" id="profileBadges"></span>
+        <span class="ach-all" aria-hidden="true">Все<span class="chev">&rsaquo;</span></span>
+        <span class="visually-hidden" id="profileAchNote"></span>
+      </button>
     </div>
 
-    <!-- Действующие пропуски: уважительные записи со статусом справки -->
-    <div class="group">
-      <div class="kicker">Справки<span class="val" id="cabinetCertsPending">—</span></div>
-      <div class="inset" id="profileActiveCerts"></div>
-    </div>
-
-    <!-- Пропуски по предметам: строка раскрывается в свои записи -->
-    <div class="group">
-      <div class="kicker">Пропуски по предметам</div>
-      <div class="inset" id="profileSubjects"></div>
-      <div class="d-none"><table><tbody id="myAbsSubjectBody"></tbody></table></div>
-    </div>
-
+    <!-- Всё остальное — одним списком. Редкое (справки, пропуски по предметам,
+         оформление, настройки) свёрнуто: настоящие <details>, состояние помним
+         на устройстве (initProfileAccordions в profile.js). -->
+    <div class="inset pf-list">
       <!-- Уведомления: включить можно и позже, окно с объяснением — notify.js -->
-      <div class="group">
-        <div class="kicker">Уведомления</div>
-        <div class="inset">
-          <div class="notify-row">
-            <span class="notify-lbl">Напоминания о сроках<span class="notify-val" id="notifyStateValue">—</span></span>
-            <button type="button" class="btn btn-sm btn-secondary" id="notifyToggleBtn">Включить</button>
-          </div>
-        </div>
+      <div class="notify-row">
+        <span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0112 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 004 0"/></svg></span>
+        <span class="notify-lbl">Напоминания о сроках<span class="notify-val" id="notifyStateValue">—</span></span>
+        <button type="button" class="btn btn-sm btn-secondary" id="notifyToggleBtn">Включить</button>
       </div>
+
+      <!-- Действующие пропуски: уважительные записи со статусом справки -->
+      <details class="pf-acc" id="pfAccCerts">
+        <summary><span class="ic" style="--ic: #34c759"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span><span class="lbl">Справки</span><span class="val" id="cabinetCertsPending">—</span><span class="chev" aria-hidden="true">&rsaquo;</span></summary>
+        <div class="inset pf-body" id="profileActiveCerts"></div>
+      </details>
+
+      <!-- Пропуски по предметам: строка раскрывается в свои записи -->
+      <details class="pf-acc" id="pfAccSubjects">
+        <summary><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span class="lbl">Пропуски по предметам</span><span class="val" id="profileSubjectsTotal"></span><span class="chev" aria-hidden="true">&rsaquo;</span></summary>
+        <div class="inset pf-body" id="profileSubjects"></div>
+        <div class="d-none"><table><tbody id="myAbsSubjectBody"></tbody></table></div>
+      </details>
 
       <!-- Оформление: тема и цветовая гамма (разметку кнопок рисует theme.js) -->
-      <div class="group">
-        <div class="kicker">Оформление</div>
-        <div class="inset theme-box">
+      <details class="pf-acc" id="pfAccTheme">
+        <summary><span class="ic" style="--ic: #ff375f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 100 18c1.4 0 2-1 2-2 0-1.5-1-1.7-1-3 0-1 .8-1.8 2-1.8H17a4 4 0 004-4A8.5 8.5 0 0012 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7" r="1"/></svg></span><span class="lbl">Оформление</span><span class="chev" aria-hidden="true">&rsaquo;</span></summary>
+        <div class="inset theme-box pf-body">
           <div class="theme-line">
             <span class="theme-label">Тема</span>
             <div class="theme-modes" id="themeModeRow"></div>
@@ -1761,12 +1753,15 @@
           <div class="theme-label theme-label-top">Цветовая гамма</div>
           <div class="theme-gammas" id="themeGammaRow"></div>
         </div>
-      </div>
+      </details>
 
-      <div class="group">
-        <div class="inset">
+      <!-- Настройки: Studak, староста, логин и пароль, админ-панель -->
+      <details class="pf-acc" id="pfAccSettings">
+        <summary><span class="ic" style="--ic: #8e8e93"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></span><span class="lbl">Настройки</span><span class="chev" aria-hidden="true">&rsaquo;</span></summary>
+        <div class="inset pf-body">
           <button type="button" class="row-i d-none" id="studakScanRow" onclick="scanStudak()"><span class="ic" style="--ic: #0a84ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg></span><span class="lbl">Сканировать пропуск</span><span class="chev" aria-hidden="true">›</span></button>
           <button type="button" class="row-i" onclick="toggleStarostaPicker()"><span class="ic" style="--ic: #28c9b7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2 2 6 3-4 5 4Z"/></svg></span><span class="lbl">Написать старосте</span><span class="chev" aria-hidden="true">›</span></button>
+          <div id="starostaPickerList" class="account-form d-none"></div>
           <button type="button" class="row-i" onclick="toggleAccountForm('login')"><span class="ic" style="--ic: #ff9f0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="lbl">Сменить логин</span><span class="val" id="cabinetLoginValue">—</span><span class="chev" aria-hidden="true">›</span></button>
           <form id="changeLoginForm" class="account-form d-none" onsubmit="saveNewLogin(); return false;" novalidate>
             <label class="form-label text-secondary small" for="changeLoginInput">Новый логин</label>
@@ -1786,15 +1781,21 @@
             <button type="submit" class="btn btn-primary w-100 fw-bold" id="changePasswordBtn">Сохранить пароль</button>
           </form>
           <button type="button" class="row-i d-none" id="adminPanelRow" onclick="openAdminPanel()"><span class="ic" style="--ic: #5e5ce6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="lbl">Админ-панель</span><span class="val" id="adminPanelState">Войти</span><span class="chev" aria-hidden="true">›</span></button>
-          <button type="button" class="row-i tg-exit" onclick="logoutCabinet()"><span class="ic" style="--ic: #ff453a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></span><span class="lbl">Выйти</span></button>
         </div>
-      </div>
+      </details>
+    </div>
 
-      <div id="starostaPickerList" class="mb-3 d-none"></div>
+    <!-- «Выйти» и «Сменить аккаунт» — в одну строку. Обе завершают сессию (logoutCabinet);
+         вторая сразу ставит курсор в логин, чтобы войти под другим -->
+    <div class="pf-exit">
+      <button type="button" class="pf-btn pf-btn-danger" onclick="logoutCabinet()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg>Выйти</button>
+      <button type="button" class="pf-btn" onclick="switchCabinetAccount()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg>Сменить аккаунт</button>
+    </div>
   </div>
 
-  <!-- «Что нового»: прежний блок с главной. Открывает историю изменений (changelog.js) -->
-  <div class="group">
+  <!-- «Что нового»: прежний блок с главной. Открывает историю изменений (changelog.js).
+       Лежит вне блока вошедшего: строка нужна и гостю -->
+  <div class="group pf-news">
     <div class="inset">
       <button type="button" class="row-i" onclick="openChangelogModal()">
         <span class="ic" style="--ic: #bf5af2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>
@@ -2728,11 +2729,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
-<script src="changelog.js?v=35"></script>
-<script src="schedule.js?v=35"></script>
-<script src="notify.js?v=35"></script>
-<script src="shared.js?v=35"></script>
-<script src="dean-report.js?v=35"></script>
+<script src="changelog.js?v=36"></script>
+<script src="schedule.js?v=36"></script>
+<script src="notify.js?v=36"></script>
+<script src="shared.js?v=36"></script>
+<script src="dean-report.js?v=36"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js
 
@@ -6785,15 +6786,15 @@
      Подключаются ПОСЛЕ основного скрипта страницы: profile.js обращается
      к appData и sb, а они объявлены там через let. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="badges.js?v=35"></script>
-<script src="achievements.js?v=35"></script>
-<script src="studak.js?v=35"></script>
-<script src="profile.js?v=35"></script>
+<script src="badges.js?v=36"></script>
+<script src="achievements.js?v=36"></script>
+<script src="studak.js?v=36"></script>
+<script src="profile.js?v=36"></script>
 <!-- Правила игр: модуль, тот же файл проверяет рекорды в Edge Function -->
-<script type="module" src="games-core.js?v=35"></script>
-<script src="games.js?v=35"></script>
-<script src="snake.js?v=35"></script>
-<script src="words.js?v=35"></script>
+<script type="module" src="games-core.js?v=36"></script>
+<script src="games.js?v=36"></script>
+<script src="snake.js?v=36"></script>
+<script src="words.js?v=36"></script>
 
 <!-- Нижняя панель навигации (моб.) -->
 </body>
