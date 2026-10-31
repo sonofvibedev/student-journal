@@ -13,7 +13,7 @@ import {
   MINES_LEVELS, mineField, minesReplay, mineNeighbors, mineOpen, minesPickLevel,
   FLAPPY, flappyGame, flappySimulate, makeRng,
   SNAKE, snakeGame, snakeSimulate, snakeMoveMs, snakeRun,
-  ASSOC, assocNormalize, assocPoints, assocBarColor, assocBarShare, assocHintRank,
+  ASSOC, assocNormalize, assocPoints, assocDayRanking, assocBarColor, assocBarShare, assocHintRank,
   GAME_BADGES, gameBadgesFor
 } from '../games-core.js';
 
@@ -579,6 +579,43 @@ test('полоса близости тем длиннее, чем ближе с�
   assert.ok(near > far, 'ближнее слово должно иметь полосу длиннее');
   assert.ok(far >= 0.02 && far <= 1, 'полоса не выходит за свои пределы');
   assert.ok(assocBarShare(total, total) >= 0.02);
+});
+
+test('таблица дня: очки, при ничьей раньше записавший, бонусы 3/2/1', () => {
+  const rows = [
+    { student_id: 'c', points: 90, finished_at: '2026-11-01T10:00:00Z' },
+    { student_id: 'b', points: 100, finished_at: '2026-11-01T12:00:00Z' },
+    { student_id: 'a', points: 100, finished_at: '2026-11-01T09:00:00Z' },
+    { student_id: 'd', points: 100, finished_at: '2026-11-01T09:00:00Z' },
+    { student_id: 'z', points: 0, finished_at: '2026-11-01T08:00:00Z' }
+  ];
+  const r = assocDayRanking(rows, [3, 2, 1]);
+  assert.deepEqual(r.map((x) => x.student_id), ['a', 'd', 'b', 'c'], 'ничья: раньше выше, затем по id');
+  assert.deepEqual(r.map((x) => x.bonus), [3, 2, 1, 0]);
+  assert.equal(assocDayRanking([], [3, 2, 1]).length, 0);
+});
+
+test('итоги дня идемпотентны: повторный запуск ничего не дублирует', () => {
+  // Эмуляция уникальных ключей (day, student) и (day, place) с on conflict do nothing
+  const table = new Map();
+  const finalize = (day, rows) => {
+    for (const r of assocDayRanking(rows, [3, 2, 1]).filter((x) => x.bonus > 0)) {
+      const a = day + '|s|' + r.student_id, b = day + '|p|' + r.place;
+      if (table.has(a) || table.has(b)) continue;
+      table.set(a, r); table.set(b, r);
+    }
+  };
+  const rows = [
+    { student_id: 'a', points: 100, finished_at: '2026-11-01T09:00:00Z' },
+    { student_id: 'b', points: 80, finished_at: '2026-11-01T10:00:00Z' },
+    { student_id: 'c', points: 70, finished_at: '2026-11-01T11:00:00Z' },
+    { student_id: 'd', points: 60, finished_at: '2026-11-01T12:00:00Z' }
+  ];
+  finalize('2026-11-01', rows);
+  const size = table.size;
+  finalize('2026-11-01', rows);
+  assert.equal(size, 6, 'три призёра, по два ключа');
+  assert.equal(table.size, size);
 });
 
 console.log(`\nПроверок пройдено: ${passed}`);

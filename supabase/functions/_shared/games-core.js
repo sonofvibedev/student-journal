@@ -606,6 +606,17 @@ export function assocNormalize(input) {
     .trim();
 }
 
+// Таблица дня: rows — [{ student_id, points, finished_at }] угаданных слов,
+// bonuses — бонусы по местам [3, 2, 1]. Больше очков — выше; при равенстве
+// выше тот, кто закончил раньше. Зеркало SQL в finalize_assoc_day.
+export function assocDayRanking(rows, bonuses) {
+  return (rows || [])
+    .filter((r) => r.points > 0)
+    .map((r) => ({ ...r, t: new Date(r.finished_at).getTime() }))
+    .sort((x, y) => y.points - x.points || x.t - y.t || (x.student_id < y.student_id ? -1 : x.student_id > y.student_id ? 1 : 0))
+    .map((r, i) => ({ student_id: r.student_id, points: r.points, finished_at: r.finished_at, place: i + 1, bonus: bonuses[i] || 0 }));
+}
+
 // Очки за угаданное «Слово дня». Чем меньше попыток и подсказок, тем больше,
 // но ниже минимума не опускаемся. Сдался — ноль, это решает вызывающий код.
 export function assocPoints(tries, hints) {
@@ -719,7 +730,7 @@ export const GamesCore = {
   MINES_LEVELS, MINES_MIN_CELL, minesPickLevel, mineField, mineNeighbors, mineOpen, minesReplay,
   FLAPPY, flappyGame, flappySimulate,
   SNAKE, SNAKE_DIRS, snakeMoveMs, snakeGame, snakeRun, snakeSimulate,
-  ASSOC, assocNormalize, assocPoints, assocBarColor, assocBarShare, assocHintRank,
+  ASSOC, assocNormalize, assocPoints, assocDayRanking, assocBarColor, assocBarShare, assocHintRank,
   GAME_BADGES, gameBadgesFor
 };
 

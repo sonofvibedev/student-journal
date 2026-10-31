@@ -524,24 +524,59 @@ async function renderGameRating() {
   renderBoardRows(body, rows.map((r) => ({ id: r.student_id, value: gameScoreText(game, r.score) })));
 }
 
-// «Ассоциации»: сумма очков за текущий месяц. Считает её rpc_assoc_board,
-// и только по текущему месяцу — поэтому 1-го числа рейтинг начинается заново.
+// «Ассоциации»: «Сегодня» — очки за слово дня по Минску, каждый день с нуля
+// (rpc_assoc_day_board), «Общий зачёт» — сумма бонусов за топ-3 прошлых дней
+// (rpc_assoc_total_board). Итоги дня подводит cron в 00:00 по Минску.
+let assocBoardMode = 'day';
+
 async function renderAssocBoard(body) {
+  body.innerHTML = '';
+  const sw = document.createElement('div');
+  sw.className = 'games-diffs';
+  [['day', 'Сегодня'], ['total', 'Общий зачёт']].forEach(([key, title]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'games-diff' + (key === assocBoardMode ? ' active' : '');
+    b.textContent = title;
+    b.addEventListener('click', () => {
+      if (key === assocBoardMode) return;
+      haptic('selection');
+      assocBoardMode = key;
+      renderAssocBoard(body);
+    });
+    sw.appendChild(b);
+  });
+  const list = document.createElement('div');
+  body.append(sw, list);
+  list.innerHTML = '<div class="games-empty">Загружаем…</div>';
+
+  const day = assocBoardMode === 'day';
   let rows = [];
   try {
-    const { data } = await sb.rpc('rpc_assoc_board');
+    const { data, error } = await sb.rpc(day ? 'rpc_assoc_day_board' : 'rpc_assoc_total_board');
+    if (error) throw error;
     rows = data || [];
   } catch (e) {
-    body.innerHTML = '<div class="games-empty">Рейтинг не загрузился</div>';
+    list.innerHTML = '<div class="games-empty">Рейтинг не загрузился</div>';
     return;
   }
-  renderBoardRows(body, rows.map((r) => ({
-    id: r.student_id,
-    value: r.points + ' ' + gamePointsWord(r.points)
-  })));
+  // Пока переключали вкладку, ответ мог устареть
+  if (!list.isConnected) return;
+  if (!rows.length) {
+    list.innerHTML = '<div class="games-empty">' + (day ? 'Сегодня слово ещё никто не угадал' : 'Бонусов пока нет — первые итоги в полночь') + '</div>';
+  } else {
+    renderBoardRows(list, rows.map((r) => ({
+      id: r.student_id,
+      value: day
+        ? r.points + ' ' + gamePointsWord(r.points) + (r.bonus ? ' · +' + r.bonus : '')
+        : r.bonus + ' ' + gamePointsWord(r.bonus)
+    })));
+  }
   const note = document.createElement('p');
   note.className = 'games-note mt-2 mb-0';
-  note.textContent = 'Очки за «Слово дня» с 1-го числа этого месяца. Тренировка в рейтинг не идёт.';
+  note.textContent = day
+    ? 'Очки за «Слово дня» сегодня, по Минску; в полночь таблица обновляется с нуля. «+N» — бонус в общий зачёт за место в топ-3. При равенстве выше тот, кто набрал очки раньше.'
+    : 'Бонусы за места в топ-3 каждого дня, за всё время. Тренировка в зачёт не идёт.';
   body.appendChild(note);
 }
 
