@@ -2343,6 +2343,7 @@
             <option value="ЛК">Лекция</option>
             <option value="ПЗ">Практическое</option>
             <option value="ЛР">Лабораторная</option>
+            <option value="УСР">УСР</option>
           </select>
         </div>
         <div class="mb-3">
@@ -4408,7 +4409,7 @@
     return homeworkList().filter(h =>
       h.subject === lesson.subject &&
       h.dueDate === iso &&
-      (!h.type || h.type === lesson.type) &&
+      (!h.type || h.type === 'УСР' || h.type === lesson.type) &&   // УСР в расписании отдельной парой нет: привязываем к любой паре предмета
       (!h.subgroup || !lesson.subgroup || Number(h.subgroup) === lesson.subgroup));
   }
 
