@@ -1465,6 +1465,14 @@
   </div>
 
   <div class="group">
+    <div class="kicker">Telegram-бот</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="openTgRequests()"><span class="lbl">Заявки<small class="d-block text-secondary">домашка и дедлайны от редакторов</small></span><span class="tg-badge d-none" id="tgReqBadge" role="status"></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+      <button type="button" class="row-i" onclick="openTgEditors()"><span class="lbl">Кто может вносить задачи<small class="d-block text-secondary">право добавлять через бота, с проверкой админом</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
     <div class="kicker">Справки</div>
     <div class="inset">
       <button type="button" class="row-i" onclick="goView('stats')"><span class="lbl">Подтверждение справок<small class="d-block text-secondary">в карточке студента</small></span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
@@ -2401,6 +2409,42 @@
   </div>
 </div>
 
+<!-- Модальное окно: Заявки редакторов (админ). Данные и кнопки — tgRequests* в основном скрипте; функция tg-requests -->
+<div class="modal fade" id="tgRequestsModal" tabindex="-1" aria-labelledby="tgRequestsTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="tgRequestsTitle">Заявки</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small mb-2" id="tgReqStatus" role="status" aria-live="polite"></div>
+        <div class="dl-admin-group">Ждут решения</div>
+        <div id="tgReqPending"></div>
+        <div class="dl-admin-group">Недавно решённые</div>
+        <div id="tgReqRecent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно: кто может вносить задачи через бота (админ). Функция tg-set-task-editor -->
+<div class="modal fade" id="tgEditorsModal" tabindex="-1" aria-labelledby="tgEditorsTitle">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="tgEditorsTitle">Кто может вносить задачи</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-secondary">Студент с правом добавляет домашку и дедлайны через Telegram-бота. Заявка уходит админу на проверку, в журнал попадает только после одобрения.</p>
+        <div class="small mb-2" id="tgEdStatus" role="status" aria-live="polite"></div>
+        <div id="tgEdList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Модальное окно: Добавить / изменить дедлайн -->
 <div class="modal fade" id="deadlineFormModal" tabindex="-1" aria-labelledby="deadlineFormTitle">
   <div class="modal-dialog">
@@ -3020,6 +3064,7 @@
       }
     }
     if (name === 'homework') { renderHomeworkList(); updateAdminUI(); }
+    if (name === 'admin')    { tgReqBadgeRefresh(); }
     if (name === 'exams')    { renderExams(); }
     if (name === 'home')     { renderHome(); }
     // games.js подключён после этого скрипта, поэтому проверяем наличие функций
@@ -4362,6 +4407,241 @@
     if (!ok) { appData.deadlines = backup; deletedIds.delete(id); }
     renderDeadlinesAdminList();
     renderDeadlines();
+  }
+
+
+  // ===== Telegram-бот в админ-панели: «Заявки» и «Кто может вносить задачи» =====
+  // Функции tg-requests и tg-set-task-editor (docs/tg-bot.md) узнают админа по токену GitHub (gh_pat),
+  // JWT студента им не нужен. Состояние заявок общее с ботом: решение здесь видно в Telegram и наоборот,
+  // поэтому после каждого действия список запрашивается заново.
+  async function tgCall(fn, body) {
+    let res;
+    try {
+      res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+        body: JSON.stringify({ ghToken: githubToken, ...body })
+      });
+    } catch (e) {
+      const err = new Error('network'); err.code = 'network'; throw err;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || 'server_error');
+      err.code = data.error || 'server_error';
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  const TG_DECIDED = {
+    approved: 'заявка уже одобрена', rejected: 'заявка уже отклонена', withdrawn: 'автор отозвал заявку',
+    expired: 'срок заявки истёк', approving: 'заявка сейчас вносится, подождите минуту'
+  };
+  function tgErrText(e) {
+    switch (e && e.code) {
+      case 'network': return 'Нет связи с сервером. Проверьте интернет и повторите.';
+      case 'not_admin': return 'Токен GitHub не подходит: нужен токен с правом записи в репозиторий журнала.';
+      case 'not_found': return 'Заявка не найдена: возможно, её уже убрали.';
+      case 'already_decided': return 'Уже решено: ' + (TG_DECIDED[e.data && e.data.status] || 'заявка не ждёт решения') + '.';
+      case 'github_failed': return 'Не удалось внести запись в журнал. Заявка осталась на проверке: нажмите «Одобрить» ещё раз.';
+      case 'no_profile': return 'У студента ещё нет аккаунта в журнале: он не регистрировался.';
+      case 'bad_request': return 'Запрос не принят. Обновите страницу и повторите.';
+      default: return 'Не получилось' + (e && e.code ? ' (' + e.code + ')' : '') + '. Попробуйте ещё раз чуть позже.';
+    }
+  }
+  // Строка статуса внутри окна: kind — 'ok' | 'err' | ''
+  function tgSay(id, text, kind) {
+    const el = document.getElementById(id);
+    el.textContent = text || '';
+    el.className = 'small mb-2 ' + (kind === 'err' ? 'text-danger' : kind === 'ok' ? 'text-success' : 'text-secondary');
+  }
+  const tgDate = (iso) => iso ? new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Minsk' }) : '';
+
+  // --- Заявки ---
+  function tgReqBadgeSet(n) {
+    const b = document.getElementById('tgReqBadge');
+    if (!b) return;
+    b.classList.toggle('d-none', !(n > 0));
+    b.innerHTML = '';
+    b.append(String(n));
+    const sr = document.createElement('span');
+    sr.className = 'visually-hidden';
+    sr.textContent = ' ждут решения';
+    b.append(sr);
+  }
+
+  // Число ожидающих на пункте «Заявки»; без сети или токена бейдж просто не показываем
+  async function tgReqBadgeRefresh() {
+    if (!githubToken) return;
+    try { tgReqBadgeSet(((await tgCall('tg-requests', { action: 'list' })).pending || []).length); } catch (e) { tgReqBadgeSet(0); }
+  }
+
+  const TG_REQ_STATUS = { approved: 'Одобрено', rejected: 'Отклонено', withdrawn: 'Отозвана автором', expired: 'Истекла' };
+
+  function tgReqCard(r, open) {
+    const card = document.createElement('div');
+    card.className = 'dl-admin-item tg-req';
+    card.innerHTML = '<div class="dl-admin-subject"></div><div class="dl-admin-text"></div><div class="dl-admin-meta"></div>';
+    const kind = r.kind === 'deadline' ? 'Дедлайн' : 'Домашка' + (r.subtype ? ' · ' + r.subtype : '');
+    card.querySelector('.dl-admin-subject').textContent = kind + ' · ' + r.subject;
+    const text = card.querySelector('.dl-admin-text');
+    if (r.text) text.textContent = r.text; else text.remove();
+    const author = (r.author && (r.author.name || r.author.student_id)) || 'автор неизвестен';
+    const meta = [author, (r.kind === 'deadline' ? 'срок ' : 'сдать ') + formatDateShort(deadlineDate(r.due_date))];
+    if (open) meta.push('подана ' + tgDate(r.created_at));
+    else meta.unshift((TG_REQ_STATUS[r.status] || r.status) + (r.decided_at ? ' ' + tgDate(r.decided_at) : ''));
+    card.querySelector('.dl-admin-meta').textContent = meta.join(' · ');
+    if (!open) {
+      card.classList.add('is-past');
+      if (r.reject_reason) {
+        const why = document.createElement('div');
+        why.className = 'dl-admin-meta';
+        why.textContent = 'Причина: ' + r.reject_reason;
+        card.append(why);
+      }
+      return card;
+    }
+    if (r.duplicate) {
+      const dup = document.createElement('div');
+      dup.className = 'tg-dup';
+      dup.textContent = r.duplicate === 'request' ? 'Возможный дубль: уже есть похожая заявка' : 'Возможный дубль: похожая запись уже есть в журнале';
+      card.insertBefore(dup, card.querySelector('.dl-admin-meta'));
+    }
+    if (r.status === 'approving') {
+      const busy = document.createElement('div');
+      busy.className = 'dl-admin-meta mt-2';
+      busy.textContent = 'Запись вносится в журнал…';
+      card.append(busy);
+      return card;
+    }
+    card.insertAdjacentHTML('beforeend',
+      '<div class="tg-req-reason"><label class="visually-hidden" for="tgReason-' + r.id + '">Причина отказа</label>' +
+      '<input type="text" class="form-control form-control-sm" id="tgReason-' + r.id + '" maxlength="200" placeholder="Причина отказа (необязательно)" autocomplete="off"></div>' +
+      '<div class="dl-admin-actions"><button type="button" class="btn btn-primary btn-sm fw-bold" data-act="approve">Одобрить</button>' +
+      '<button type="button" class="btn btn-outline-danger btn-sm" data-act="reject">Отклонить</button></div>');
+    card.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => tgReqDecide(r, b.dataset.act, card)));
+    return card;
+  }
+
+  async function tgReqLoad(keepMessage) {
+    if (!keepMessage) tgSay('tgReqStatus', 'Загружаю…', '');
+    try {
+      const d = await tgCall('tg-requests', { action: 'list' });
+      const pending = d.pending || [], recent = d.recent || [];
+      const pl = document.getElementById('tgReqPending'), rl = document.getElementById('tgReqRecent');
+      pl.innerHTML = ''; rl.innerHTML = '';
+      pending.forEach(r => pl.append(tgReqCard(r, true)));
+      recent.forEach(r => rl.append(tgReqCard(r, false)));
+      if (!pending.length) pl.innerHTML = '<div class="text-secondary text-center py-3">Новых заявок нет</div>';
+      if (!recent.length) rl.innerHTML = '<div class="text-secondary text-center py-3">Пока ничего не решено</div>';
+      tgReqBadgeSet(pending.length);
+      if (!keepMessage) tgSay('tgReqStatus', '', '');
+    } catch (e) {
+      tgSay('tgReqStatus', tgErrText(e), 'err');
+    }
+  }
+
+  async function openTgRequests() {
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('tgRequestsModal')).show();
+    await tgReqLoad(false);
+  }
+
+  async function tgReqDecide(r, act, card) {
+    const btns = card.querySelectorAll('button');
+    btns.forEach(b => { b.disabled = true; b.setAttribute('aria-busy', 'true'); });
+    const reason = (card.querySelector('input') || {}).value;
+    try {
+      if (act === 'approve') {
+        await tgCall('tg-requests', { action: 'approve', id: r.id });
+        tgSay('tgReqStatus', 'Одобрено: запись внесена в журнал. На сайте она появится через 1–2 минуты.', 'ok');
+        await tgRefreshAfterApprove();
+      } else {
+        await tgCall('tg-requests', { action: 'reject', id: r.id, reason: (reason || '').trim().slice(0, 200) });
+        tgSay('tgReqStatus', 'Заявка отклонена.', 'ok');
+      }
+      haptic('success');
+    } catch (e) {
+      haptic('error');
+      tgSay('tgReqStatus', tgErrText(e), 'err');
+    }
+    await tgReqLoad(true);   // решение мог принять и бот: показываем общее состояние
+  }
+
+  // Запись внесена в data.json: перечитываем его и перерисовываем открытые списки
+  async function tgRefreshAfterApprove() {
+    try {
+      await loadData();
+      if (currentViewName === 'home') renderHome();
+      if (currentViewName === 'homework') renderHomeworkList();
+      if (currentViewName === 'study') renderStudyTiles();
+    } catch (e) { console.error(e); }
+  }
+
+  // --- Права редакторов ---
+  let tgEditors = new Map();   // student_id -> { student_id, login, linked } — только у тех, у кого право есть
+
+  function tgEdSub(id) {
+    const e = tgEditors.get(id);
+    if (!e) return 'Не может вносить задачи';
+    return 'Может вносить задачи' + (e.linked === true ? ' · Telegram привязан' : e.linked === false ? ' · Telegram не привязан' : '');
+  }
+
+  function tgEdRender() {
+    const list = document.getElementById('tgEdList');
+    list.innerHTML = '';
+    const students = [...(appData.students || [])].sort((a, b) => (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName, 'ru'));
+    if (!students.length) {
+      list.innerHTML = '<div class="text-secondary text-center py-3">Список группы не загружен. Войдите в кабинет и откройте окно снова.</div>';
+      return;
+    }
+    students.forEach((st) => {
+      const name = st.lastName + ' ' + st.firstName;
+      const row = document.createElement('label');
+      row.className = 'tg-ed-row';
+      row.innerHTML = '<span class="tg-ed-name"><span class="tg-ed-n"></span><small class="tg-ed-sub"></small></span>' +
+        '<span class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch"></span>';
+      row.querySelector('.tg-ed-n').textContent = name;
+      const sub = row.querySelector('.tg-ed-sub');
+      sub.textContent = tgEdSub(st.id);
+      const input = row.querySelector('input');
+      input.checked = tgEditors.has(st.id);
+      input.setAttribute('aria-label', 'Может вносить задачи: ' + name);
+      input.addEventListener('change', async () => {
+        const want = input.checked;
+        input.disabled = true;
+        try {
+          await tgCall('tg-set-task-editor', { action: 'set', studentId: st.id, value: want });
+          if (want) tgEditors.set(st.id, { student_id: st.id, login: '', linked: undefined }); else tgEditors.delete(st.id);
+          sub.textContent = tgEdSub(st.id);
+          tgSay('tgEdStatus', name + ': право ' + (want ? 'выдано.' : 'снято.'), 'ok');
+          haptic('success');
+        } catch (e) {
+          input.checked = !want;
+          tgSay('tgEdStatus', name + ': ' + tgErrText(e), 'err');
+          haptic('error');
+        } finally {
+          input.disabled = false;
+        }
+      });
+      list.append(row);
+    });
+  }
+
+  async function openTgEditors() {
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('tgEditorsModal')).show();
+    document.getElementById('tgEdList').innerHTML = '';
+    tgSay('tgEdStatus', 'Загружаю…', '');
+    try {
+      const d = await tgCall('tg-set-task-editor', { action: 'list' });
+      tgEditors = new Map((d.editors || []).map(e => [e.student_id, e]));
+      tgSay('tgEdStatus', '', '');
+      tgEdRender();
+    } catch (e) {
+      // Без списка не знаем, у кого право уже есть: переключатели не показываем
+      tgSay('tgEdStatus', tgErrText(e), 'err');
+    }
   }
 
 
@@ -6312,7 +6592,7 @@
     // Не получилось разобрать файл (например, больше 1 МБ — GitHub не отдаёт content) — как раньше, без слияния.
     let remote = null;
     try {
-      const bin = atob(String(fileData.content || '').replace(/s/g, ''));
+      const bin = atob(String(fileData.content || '').replace(/\s/g, ''));
       remote = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
     } catch (e) { console.warn('Слияние с data.json пропущено:', e); }
     const merged = mergeRemoteData(appData, remote, loadedIds, deletedIds, loadedSnap);

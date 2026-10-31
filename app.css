@@ -1774,3 +1774,16 @@ body::before {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; overflow-wrap: anywhere;
 }
+
+/* Админ-панель: «Заявки» и права редакторов бота */
+.tg-badge { min-width: 24px; height: 24px; padding: 0 8px; border-radius: 12px; background: var(--color-accent); color: #fff; font-size: 14px; font-weight: 700; line-height: 24px; text-align: center; font-variant-numeric: tabular-nums; }
+.tg-req .btn { min-height: 44px; }
+.tg-req .dl-admin-actions .btn { flex: 1; }
+.tg-req-reason { margin-top: 10px; }
+.tg-req-reason .form-control { min-height: 44px; }
+.tg-dup { margin: 2px 0 6px; font-size: 13px; font-weight: 600; color: var(--color-warning); }
+.tg-ed-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 2px; cursor: pointer; border-bottom: 1px solid var(--color-separator); }
+.tg-ed-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tg-ed-n { color: var(--color-text); }
+.tg-ed-sub { color: var(--color-text-secondary); font-size: 13px; }
+.tg-ed-row .form-check-input { width: 3em; height: 1.6em; margin: 0; cursor: pointer; }
