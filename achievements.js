@@ -427,7 +427,6 @@ async function achCheckEarned() {
     achState.periods.get(d.code).add(d.period || '');
   });
   achShowNewBadges();
-  renderHomeAchievements();
   renderProfileBadges();
   if (achSheetOpen()) renderAchievementsView();
 }
@@ -539,50 +538,6 @@ function achLatestCodes(limit) {
   });
   rows.sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0));
   return rows.slice(0, limit).map((r) => r.code);
-}
-
-// ===== Плитка на главной =====
-function renderHomeAchievements() {
-  const tile = document.getElementById('homeAchievementsTile');
-  if (!tile) return;
-  const signed = AppState.auth === 'signed';
-  tile.classList.toggle('d-none', !signed);
-  if (!signed || !achState.loaded) return;
-
-  const stats = achStats();
-  const latest = achLatest();
-  const next = achNextUp(stats);
-
-  // Место в рейтинге группы: подгружаем в фоне и дописываем, когда придёт
-  const rankEl = document.getElementById('homeAchRank');
-  if (rankEl) {
-    const place = achMyPlace(achBoardState.rows);
-    rankEl.textContent = place ? place + '-е место в группе' : '';
-    if (!achBoardState.rows) achLoadBoard().then(() => {
-      const p = achMyPlace(achBoardState.rows);
-      rankEl.textContent = p ? p + '-е место в группе' : '';
-    });
-  }
-
-  // Последние значки: до трёх штук. Пока значков нет — кубок «Чистого
-  // семестра» серым, как цель.
-  const badgeBox = document.getElementById('homeAchBadge');
-  const lastCodes = achLatestCodes(3);
-  badgeBox.innerHTML = lastCodes.length
-    ? lastCodes.map((code) => achBadgeHtml(code, false, 28)).join('')
-    : achBadgeHtml('clean_term', true, 28);
-  document.getElementById('homeAchCount').textContent = stats.badgesCount;
-  document.getElementById('homeAchTotal').textContent = achBadgeWord(stats.badgesCount) + ' из ' + ACH_TOTAL;
-
-  const bar = tile.querySelector('.ach-bar i');
-  const note = document.getElementById('homeAchNext');
-  if (next) {
-    bar.style.setProperty('--ach-fill', String(Math.max(0, Math.min(1, next.p.have / next.p.need))));
-    note.textContent = `${next.a.title}: ${next.p.text}`;
-  } else {
-    bar.style.setProperty('--ach-fill', '1');
-    note.textContent = latest ? `Последний значок: ${ACH_BY_CODE[latest.code].title}` : 'Собирайте значки за учёбу';
-  }
 }
 
 // ===== Раздел «Достижения» =====
@@ -795,6 +750,14 @@ function renderProfileBadges() {
   document.getElementById('profileAchTotal').textContent = achBadgeWord(codes.length) + ' из ' + ACH_TOTAL;
   box.innerHTML = codes.slice(0, 3).map((c) => achBadgeHtml(c, false)).join('');
 
+  // Место в рейтинге группы: подгружаем в фоне и дописываем, когда придёт
+  const rankEl = document.getElementById('profileAchRank');
+  if (rankEl) {
+    const setRank = () => { const p = achMyPlace(achBoardState.rows); rankEl.textContent = p ? p + '-е место в группе' : ''; };
+    setRank();
+    if (!achBoardState.rows) achLoadBoard().then(setRank);
+  }
+
   const next = achNextUp(achStats());
   document.getElementById('profileAchNote').textContent = codes.length
     ? (next ? next.a.title + ': ' + next.p.text : 'Собраны все значки')
@@ -842,7 +805,6 @@ function achNoteServerBadges(codes) {
     achState.periods.get(code).add('');
   });
   achShowNewBadges();
-  renderHomeAchievements();
   renderProfileBadges();
   if (achSheetOpen()) renderAchievementsView();
 }
@@ -867,7 +829,6 @@ async function achInit() {
   await achMigrateLocalHomework();
   await achLoadAll();
   achLogEvent('first_login');
-  renderHomeAchievements();
   renderProfileBadges();
   achShowNewBadges();
   if (achSheetOpen()) renderAchievementsView();
@@ -875,6 +836,6 @@ async function achInit() {
 
 AppState.onChange(() => {
   if (AppState.auth === 'signed' && AppState.data === 'ready') achInit();
-  else { achInitDone = false; renderHomeAchievements(); }
+  else { achInitDone = false; }
 });
 if (AppState.auth === 'signed' && AppState.data === 'ready') achInit();

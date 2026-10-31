@@ -257,7 +257,6 @@ function renderDeadlines() {
   document.getElementById('deadlinesEmpty').classList.toggle('d-none', all.length > 0);
   updateDeadlinesDot();
   renderDeadlineCalendar();
-  if (typeof renderToday === 'function') renderToday();   // «Сегодня» в кабинете
 }
 
 // --- Календарь месяца: дедлайны и зачёты группы (+ события страницы) ---

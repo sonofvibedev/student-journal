@@ -1087,52 +1087,7 @@
     card.querySelector('.dl-rel').textContent = deadlineRelative(n);
     return card;
   }
-  // --- «Сегодня» на первой вкладке: самое срочное + 3 ближайших дедлайна/зачёта ---
-  // Срочнее всего — просроченная справка, дальше — ближайшее по дате (справка, дедлайн или зачёт)
-  function renderToday() {
-    const byDay = deadlineCalendarEvents();
-    const items = [];
-    Object.keys(byDay).forEach(k => byDay[k].forEach(e => { if (e.kind !== 'abs') items.push({ ...e, key: k, n: deadlineDaysLeft(k) }); }));
-    const upcoming = items.filter(e => e.n >= 0).sort((a, b) => a.n - b.n || (a.kind === 'cert' ? -1 : 1));
-    const overCert = items.filter(e => e.kind === 'cert' && e.over).sort((a, b) => a.n - b.n)[0];
-    const next = overCert || upcoming[0];
-    const card = document.getElementById('todayNext');
-    card.className = 'w wide today-next' + (next ? '' : ' d-none');   // широкий виджет дашборда
-    if (next) {
-      const date = formatDateShort(deadlineDate(next.key));
-      if (next.kind === 'cert') {
-        card.classList.add(next.over ? 'is-over' : 'is-cert');
-        const subs = Array.from(new Set(next.list.map(a => a.subject || (a.subjects ? a.subjects.join(', ') : '')).filter(Boolean)));
-        document.getElementById('todayNextKind').textContent = `Справка · ${deadlineRelative(next.n)}`;
-        document.getElementById('todayNextTitle').textContent = `Сдать: ${next.certType}`;
-        document.getElementById('todayNextMeta').textContent = `до ${date}${subs.length ? ' · ' + subs.join(', ') : ''}`;
-      } else {
-        const z = next.kind === 'zachet';
-        card.classList.add(z ? 'is-zachet' : 'is-dl');
-        document.getElementById('todayNextKind').textContent = `${z ? 'Зачёт' : 'Дедлайн'} · ${deadlineRelative(next.n)}`;
-        document.getElementById('todayNextTitle').textContent = z ? next.d.subject : (next.d.text || next.d.subject);
-        document.getElementById('todayNextMeta').textContent = `${z ? '' : 'до '}${date}${z ? (next.d.text ? ' · ' + next.d.text : '') : ' · ' + next.d.subject}`;
-      }
-    }
-    const list = document.getElementById('todayDeadlines');
-    const dls = upcoming.filter(e => e.kind !== 'cert');
-    list.innerHTML = '';
-    if (!dls.length) list.innerHTML = '<div class="today-empty">Ближайших дедлайнов и зачётов нет</div>';
-    dls.slice(0, 3).forEach(e => {
-      const z = e.kind === 'zachet';
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'today-dl' + (z ? ' is-zachet' : e.n <= 3 ? ' is-soon' : '');
-      row.innerHTML = '<i aria-hidden="true"></i><span class="t"><span class="ttl"></span><small></small></span><span class="when num"></span>';
-      row.querySelector('.ttl').textContent = z ? `Зачёт · ${e.d.subject}` : (e.d.text || e.d.subject);
-      row.querySelector('small').textContent = z ? (e.d.text || formatDateShort(deadlineDate(e.key))) : e.d.subject;
-      row.querySelector('.when').textContent = e.n <= 1 ? deadlineRelative(e.n) : formatDateShort(deadlineDate(e.key)).slice(0, 5);
-      row.addEventListener('click', () => { dlCalendarMonth = new Date(deadlineDate(e.key).getFullYear(), deadlineDate(e.key).getMonth(), 1); dlCalendarDay = e.key; setCabinetSection('deadlines'); renderDeadlineCalendar(); });
-      list.appendChild(row);
-    });
-    const more = document.getElementById('todayDeadlinesMore');
-    more.textContent = dls.length > 3 ? `Все ${dls.length} ›` : 'Все ›';
-  }
+  // Блок «Сегодня» (самое срочное + 3 ближайших дедлайна) с главной убран: срочное теперь на карточке «Срочно», список — в разделе «Дедлайны».
   // Плитки со средним баллом и рейтингом на главной больше нет: средний балл
   // и калькулятор живут в зачётке (zachetkaAverage и recalcRating), заметку
   // «средний балл» на вкладке «Учёба» рисует renderStudyTiles() в index.html.
