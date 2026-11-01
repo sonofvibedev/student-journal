@@ -4,7 +4,7 @@
 // Кто может: вошедший студент с isAdmin в списке группы (см. _shared/admin.ts).
 // Читают эти данные вошедшие студенты напрямую из таблицы (RLS), см. миграцию journal_private.
 import { admin, json, cors } from '../_shared/common.ts';
-import { isAdminReq } from '../_shared/admin.ts';
+import { jwtAdmin } from '../_shared/admin.ts';
 
 const MAX_BYTES = 2_000_000;
 
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   let body: Record<string, unknown>;
   try { body = JSON.parse(raw); } catch (_) { return json({ error: 'bad_request' }, 400); }
 
-  if (!await isAdminReq(req, body)) return json({ error: 'not_admin' }, 403);
+  if (!await jwtAdmin(req)) return json({ error: 'not_admin' }, 403);
   if (!isObjArray(body.students, 500) || !isObjArray(body.absences, 50_000)) return json({ error: 'bad_request' }, 400);
   // Без единого админа в списке войти в админку было бы нечем
   if (!(body.students as { isAdmin?: boolean }[]).some((x) => x.isAdmin === true)) return json({ error: 'no_admin_left' }, 400);

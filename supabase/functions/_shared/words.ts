@@ -13,31 +13,6 @@ export function minskDay(at: Date = new Date()): string {
   }).format(at);
 }
 
-// Кто такой администратор: тот, у кого есть токен GitHub с правом записи в
-// репозиторий журнала. Это ровно тот же токен, которым админка сохраняет
-// data.json, поэтому отдельного пароля не нужно. Токен нигде не хранится и
-// не пишется в журнал — функция только спрашивает о нём GitHub.
-const GITHUB_REPO = Deno.env.get('GITHUB_REPO') ?? 'sonofvibedev/student-journal';
-
-export async function isRepoAdmin(token: string): Promise<boolean> {
-  const clean = String(token ?? '').trim();
-  if (!clean || clean.length > 255) return false;
-  try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
-      headers: {
-        Authorization: `Bearer ${clean}`,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'journal-24dmm2',
-      },
-    });
-    if (!res.ok) return false;
-    const repo = await res.json();
-    return !!repo?.permissions?.push;
-  } catch (_) {
-    return false;
-  }
-}
-
 // Записывает значки и возвращает коды тех, что выданы впервые. Повтор не
 // страшен: уникальный индекс не даст второй такой строки, 23505 означает
 // «уже есть» и ошибкой не считается.

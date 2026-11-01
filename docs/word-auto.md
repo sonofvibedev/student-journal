@@ -75,7 +75,7 @@ curl -X POST https://<project>.supabase.co/functions/v1/word-auto   -H "x-cron-s
 | `word-of-day` guess/hint | места названных слов, слово-подсказка (никогда не №1) | оставлено, часть игры |
 | `train_give`, `train_guess` (solved) | слово и `near` тренировочного слова | оставлено, но id теперь только из тренировки (прошлые дни + `train`); слово сегодняшнего дня отсекается |
 | `train` (start) | только `id` и размер словаря | как было |
-| `word-admin` | всё | только `isRepoAdmin` |
+| `word-admin` | всё | только админ (вход, `isAdmin`) |
 | Telegram | слово админу | только опция `notify_admin_telegram`, `TG_ADMIN_IDS` |
 
 Было: `trainRanks` брал любую строку `word_bank` по id, и перебором id через `train_give` можно было получить

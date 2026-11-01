@@ -23,7 +23,7 @@ import {
   minskDay, wordId, ensurePool, ensureDailyWord, dailyRow, setDailyManual,
   pickReplacement, getFlag,
 } from '../_shared/words.ts';
-import { isAdminReq } from '../_shared/admin.ts';
+import { jwtAdmin } from '../_shared/admin.ts';
 import { isAnswered } from '../_shared/wordpick.ts';
 import { assocNormalize, assocWords } from '../_shared/assoc.ts';
 
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   let body: Body;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad_request' }, 400); }
 
-  if (!await isAdminReq(req, body)) return json({ error: 'not_admin' }, 403);
+  if (!await jwtAdmin(req)) return json({ error: 'not_admin' }, 403);
   const who: string = profile.student_id;
   const action = String(body.action ?? 'today');
   const day = minskDay();

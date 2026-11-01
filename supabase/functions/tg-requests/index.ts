@@ -2,15 +2,15 @@
 // Состояние то же, что у бота (tg_task_requests): решение здесь обновляет сообщение админа в
 // Telegram, решение в боте видно здесь. Логика решения — общая (_shared/tgrequests.ts).
 //
-//   { ghToken, action: 'list' }                    → { ok, pending: [...], recent: [...] }
-//   { ghToken, action: 'approve', id }             → { ok, status: 'approved', record_id }
-//   { ghToken, action: 'reject', id, reason? }     → { ok, status: 'rejected' }
+//   { action: 'list' }                    → { ok, pending: [...], recent: [...] }
+//   { action: 'approve', id }             → { ok, status: 'approved', record_id }
+//   { action: 'reject', id, reason? }     → { ok, status: 'rejected' }
 //   action: 'cron-expire' + заголовок x-cron-secret → { ok, expired }   (ежедневное задание pg_cron)
 //
 // Админ — вошедший студент с isAdmin в списке группы (_shared/admin.ts), как у
 // tg-set-task-editor и journal-save.
 import { admin, json, cors, loadStudents, studentName } from '../_shared/common.ts';
-import { isAdminReq } from '../_shared/admin.ts';
+import { jwtAdmin } from '../_shared/admin.ts';
 import { findDuplicate, cleanText } from '../_shared/tgbot.ts';
 import {
   TBL, approveRequest, expireStale, ghRead, rejectRequest, type Req,
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, expired: await expireStale() });
   }
 
-  if (!await isAdminReq(req, body)) return json({ error: 'not_admin' }, 403);
+  if (!await jwtAdmin(req)) return json({ error: 'not_admin' }, 403);
 
   if (action === 'list') {
     await expireStale().catch(() => 0);
