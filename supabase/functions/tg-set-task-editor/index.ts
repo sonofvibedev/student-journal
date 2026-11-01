@@ -2,11 +2,10 @@
 //   { ghToken, action: 'list' }                            → { editors: [{ student_id, login, linked }] }
 //   { ghToken, action: 'set', studentId, value: boolean }  → { ok }
 //
-// Кто может: тот, у кого токен GitHub с правом записи в репозиторий журнала (isRepoAdmin) —
-// ровно тот же токен, которым админка сохраняет data.json. Сам студент флаг не меняет:
+// Кто может: админ (вошедший студент с isAdmin, _shared/admin.ts). Сам студент флаг не меняет:
 // у него нет права записи в profiles, а эта функция — единственный путь.
 import { admin, json, cors } from '../_shared/common.ts';
-import { isRepoAdmin } from '../_shared/words.ts';
+import { isAdminReq } from '../_shared/admin.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -15,7 +14,7 @@ Deno.serve(async (req) => {
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad_request' }, 400); }
 
-  if (!await isRepoAdmin(String(body.ghToken ?? ''))) return json({ error: 'not_admin' }, 403);
+  if (!await isAdminReq(req, body)) return json({ error: 'not_admin' }, 403);
 
   const action = String(body.action ?? 'list');
 

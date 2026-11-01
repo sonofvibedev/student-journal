@@ -1,9 +1,7 @@
 ﻿﻿// Админ-панель «Ассоциаций»: слово на сегодня и набор для тренировки.
 //
-// Кто админ: тот, у кого есть токен GitHub с правом записи в репозиторий
-// журнала — ровно тот же токен, которым админка сохраняет data.json. Функция
-// сама спрашивает о нём GitHub и нигде его не хранит. Без этой проверки
-// слово мог бы задать кто угодно, а вместе с ним и утечь.
+// Кто админ: вошедший студент с isAdmin в списке группы (_shared/admin.ts).
+// Без этой проверки слово мог бы задать кто угодно, а вместе с ним и утечь.
 //
 // Задать можно только слово, для которого уже посчитан рейтинг: файлы лежат
 // в приватном бакете assoc-ranks, их кладёт туда tools/assoc/upload.py.
@@ -22,9 +20,10 @@
 //   reroll_daily заменить слово сегодняшнего дня до первого ответа игроков (нужна опция allow_reroll)
 import { admin, json, cors } from '../_shared/common.ts';
 import {
-  minskDay, isRepoAdmin, wordId, ensurePool, ensureDailyWord, dailyRow, setDailyManual,
+  minskDay, wordId, ensurePool, ensureDailyWord, dailyRow, setDailyManual,
   pickReplacement, getFlag,
 } from '../_shared/words.ts';
+import { isAdminReq } from '../_shared/admin.ts';
 import { isAnswered } from '../_shared/wordpick.ts';
 import { assocNormalize, assocWords } from '../_shared/assoc.ts';
 
@@ -47,7 +46,7 @@ Deno.serve(async (req) => {
   let body: Body;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad_request' }, 400); }
 
-  if (!await isRepoAdmin(String(body.ghToken ?? ''))) return json({ error: 'not_admin' }, 403);
+  if (!await isAdminReq(req, body)) return json({ error: 'not_admin' }, 403);
   const who: string = profile.student_id;
   const action = String(body.action ?? 'today');
   const day = minskDay();

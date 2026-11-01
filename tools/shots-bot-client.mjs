@@ -91,7 +91,7 @@ async function open(role, state) {
           user: { id: UID, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {} }
         }));
       }
-      if (role === 'admin') localStorage.setItem('gh_pat', 'ghp_fake_token_for_emulation_only');
+      if (role === 'admin') localStorage.setItem('admin_mode', '1');
     } catch (e) {}
   }, { role, SB_KEY, UID, FAKE_JWT });
 

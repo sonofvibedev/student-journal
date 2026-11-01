@@ -40,7 +40,7 @@ export const normLogin = (v: unknown) => String(v ?? '').trim().toLowerCase();
 // Студенты группы из закрытой таблицы journal_private (ФИО, роль). Функциям, которые
 // работают без входа (пропуск, первый вход по коду), ФИО теперь отдаёт сервер:
 // в открытом data.json его больше нет.
-export type Student = { id: string; lastName?: string; firstName?: string; role?: string; status?: string };
+export type Student = { id: string; lastName?: string; firstName?: string; role?: string; status?: string; isAdmin?: boolean };
 
 export async function loadStudents(): Promise<Student[]> {
   const { data } = await admin.from('journal_private').select('students').eq('id', 'main').maybeSingle();

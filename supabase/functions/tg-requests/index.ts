@@ -7,10 +7,10 @@
 //   { ghToken, action: 'reject', id, reason? }     → { ok, status: 'rejected' }
 //   action: 'cron-expire' + заголовок x-cron-secret → { ok, expired }   (ежедневное задание pg_cron)
 //
-// Админ — тот, у кого токен GitHub с правом записи в репозиторий журнала (isRepoAdmin), как у
-// tg-set-task-editor и journal-save; JWT студента не нужен и не принимается за доказательство.
+// Админ — вошедший студент с isAdmin в списке группы (_shared/admin.ts), как у
+// tg-set-task-editor и journal-save.
 import { admin, json, cors, loadStudents, studentName } from '../_shared/common.ts';
-import { isRepoAdmin } from '../_shared/words.ts';
+import { isAdminReq } from '../_shared/admin.ts';
 import { findDuplicate, cleanText } from '../_shared/tgbot.ts';
 import {
   TBL, approveRequest, expireStale, ghRead, rejectRequest, type Req,
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, expired: await expireStale() });
   }
 
-  if (!await isRepoAdmin(String(body.ghToken ?? ''))) return json({ error: 'not_admin' }, 403);
+  if (!await isAdminReq(req, body)) return json({ error: 'not_admin' }, 403);
 
   if (action === 'list') {
     await expireStale().catch(() => 0);

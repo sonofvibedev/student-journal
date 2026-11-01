@@ -440,8 +440,7 @@ const WORD_ADMIN_FN = 'word-admin';
 const wordAdminState = { available: [], history: [], pool: [], settings: {}, source: '' };
 
 async function wordAdminCall(payload) {
-  const ghToken = lsGet('gh_pat', '');
-  if (!ghToken) return { error: 'not_admin' };
+  if (!adminModeOn()) return { error: 'not_admin' };
   if (!gamesSigned() || !sb) return { error: 'signed_out' };
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -453,7 +452,7 @@ async function wordAdminCall(payload) {
         apikey: SUPABASE_KEY,
         Authorization: 'Bearer ' + session.access_token
       },
-      body: JSON.stringify(Object.assign({}, payload, { ghToken }))
+      body: JSON.stringify(payload)
     });
     return await res.json().catch(() => ({ error: 'server_error' }));
   } catch (e) {

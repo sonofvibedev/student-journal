@@ -2709,7 +2709,7 @@
 
 <!-- Что нового -->
 <!-- Замена стандартного alert() -->
-<!-- Вход администратора (перенесён с главной). Токен GitHub хранится только в localStorage gh_pat -->
+<!-- Вход администратора (перенесён с главной). Права даёт аккаунт студента с isAdmin; здесь только включается режим -->
 <div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalTitle">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -2720,11 +2720,8 @@
       <div class="modal-body">
         <div id="adminLoginView">
           <p class="small text-secondary mb-2" id="adminLoggedOutNote" role="status"></p>
-          <form onsubmit="saveAdminToken(); return false;" novalidate>
-            <label class="form-label small text-secondary" for="githubTokenInput">Введите ваш Personal Access Token (Classic) с правами <code>repo</code>. Он хранится только на этом устройстве.</label>
-            <input type="password" id="githubTokenInput" class="form-control mb-3" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" autocapitalize="none" spellcheck="false">
-            <button type="submit" class="btn btn-primary w-100 fw-bold">Войти</button>
-          </form>
+          <p class="small text-secondary">Права администратора даёт ваш аккаунт. Отдельный токен не нужен.</p>
+          <button type="button" class="btn btn-primary w-100 fw-bold" onclick="enableAdminMode()">Включить админ-режим</button>
         </div>
         <div id="adminActiveView" class="d-none text-center">
           <div class="admin-ok" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
@@ -2824,7 +2821,24 @@
   }
 
   let appData = { subjects: DEFAULT_SUBJECTS, students: [], absences: [], teachers: [], deadlines: [], homework: [] };
-  let githubToken = lsGet('gh_pat') || '';
+
+  // Админ-режим — флаг в localStorage admin_mode у вошедшего студента с isAdmin. Он лишь показывает инструменты:
+  // права проверяет сервер по входу, подделать флаг ничего не даёт. Объявлена здесь: updateAdminUI зовёт её до загрузки profile.js.
+  function adminModeOn() {
+    const me = appData.students.find(s => s.id === AppState.studentId);
+    try { return lsGet('admin_mode') === '1' && !!(me && me.isAdmin); } catch (e) { return false; }
+  }
+
+  // Вызов админской Edge Function: админа функция узнаёт по входу (JWT студента с isAdmin), токен GitHub не нужен
+  async function adminFetch(fn, body) {
+    const { data: { session } } = sb ? await sb.auth.getSession() : { data: {} };
+    if (!session) throw Object.assign(new Error('signed_out'), { code: 'signed_out' });
+    return fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY, Authorization: 'Bearer ' + session.access_token },
+      body: JSON.stringify(body)
+    });
+  }
   let currentHistoryStudentId = null;
 
   const addAbsenceModal = new bootstrap.Modal(document.getElementById('addAbsenceModal'));
@@ -3872,7 +3886,7 @@
   // Строка «Админ-панель» в профиле: вошедшего админа ведём сразу на экран,
   // остальным показываем окно входа по токену.
   function openAdminPanel() {
-    if (githubToken) goView('admin');
+    if (adminModeOn()) goView('admin');
     else toggleAdminModal();
   }
 
@@ -4240,6 +4254,7 @@
     privateLoaded = !!fresh && !!row;
     appData.students = (row && row.students) || [];
     appData.absences = (row && row.absences) || [];
+    updateAdminUI();   // админ-режим зависит от isAdmin в этом списке
   }
 
   async function loadPrivateData() {
@@ -4448,7 +4463,7 @@
   }
 
   async function saveDeadline() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const subject = document.getElementById('deadlineSubject').value;
     const text = document.getElementById('deadlineText').value.trim();
     const dueDate = document.getElementById('deadlineDueDate').value;
@@ -4509,19 +4524,15 @@
 
 
   // ===== Telegram-бот в админ-панели: «Заявки» и «Кто может вносить задачи» =====
-  // Функции tg-requests и tg-set-task-editor (docs/tg-bot.md) узнают админа по токену GitHub (gh_pat),
-  // JWT студента им не нужен. Состояние заявок общее с ботом: решение здесь видно в Telegram и наоборот,
+  // Функции tg-requests и tg-set-task-editor (docs/tg-bot.md) узнают админа по входу (JWT студента с isAdmin). Состояние заявок общее с ботом: решение здесь видно в Telegram и наоборот,
   // поэтому после каждого действия список запрашивается заново.
   async function tgCall(fn, body) {
     let res;
     try {
-      res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-        body: JSON.stringify({ ghToken: githubToken, ...body })
-      });
+      res = await adminFetch(fn, body);
     } catch (e) {
-      const err = new Error('network'); err.code = 'network'; throw err;
+      const code = e.code === 'signed_out' ? 'not_admin' : 'network';
+      const err = new Error(code); err.code = code; throw err;
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -4572,7 +4583,7 @@
 
   // Число ожидающих на пункте «Заявки»; без сети или токена бейдж просто не показываем
   async function tgReqBadgeRefresh() {
-    if (!githubToken) return;
+    if (!adminModeOn()) return;
     try { tgReqBadgeSet(((await tgCall('tg-requests', { action: 'list' })).pending || []).length); } catch (e) { tgReqBadgeSet(0); }
   }
 
@@ -5353,7 +5364,7 @@
   }
 
   async function saveHomework() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const subject = document.getElementById('homeworkSubject').value;
     const type = document.getElementById('homeworkType').value;
     const text = document.getElementById('homeworkText').value.trim();
@@ -5393,7 +5404,7 @@
   async function deleteHomework(id) {
     const h = homeworkList().find(x => x.id === id);
     if (!h) return;
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     if (!(await showConfirm(`Удалить домашку «${h.subject}»?`))) return;
     const backup = JSON.parse(JSON.stringify(appData.homework));
     appData.homework = appData.homework.filter(x => x.id !== id);
@@ -5510,7 +5521,7 @@
   }
 
   async function saveTeacher() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const id = document.getElementById('editTeacherId').value;
     const subject = document.getElementById('teacherSubject').value;
     const lecture = document.getElementById('teacherLecture').value.trim();
@@ -6151,7 +6162,7 @@
   }
 
   async function submitGroupAbsence() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
 
     const subject = document.getElementById('groupAbsenceSubject').value;
     const date = document.getElementById('groupAbsenceDate').value;
@@ -6290,7 +6301,7 @@
   }
 
   async function submitAbsence() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
 
     const studentId = document.getElementById('absenceStudent').value;
     const date = document.getElementById('absenceDate').value;
@@ -6371,7 +6382,7 @@
     document.getElementById('historyTotalUnexcused').innerText = `${totalUnexcused} ч`;
     document.getElementById('historyTotalExcused').innerText = `${totalExcused} ч`;
 
-    if (githubToken) renderStudentDetails(studentId);
+    if (adminModeOn()) renderStudentDetails(studentId);
     updateAdminUI();
     studentHistoryModal.show();
   }
@@ -6467,7 +6478,7 @@
   // --- Справки по уважительным пропускам (только админ) ---
   // Отметить справку принесённой (submitted = true) или снять отметку (false)
   async function setCertSubmitted(absId, submitted) {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const a = appData.absences.find(x => x.id === absId);
     if (!a) return;
     const question = submitted ? 'Отметить, что справка принесена?' : 'Снять отметку «справка принесена»?';
@@ -6481,7 +6492,7 @@
 
   // Отметить принесёнными сразу все справки студента — одним сохранением
   async function confirmAllCerts() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const pending = appData.absences.filter(a => a.studentId === currentHistoryStudentId && a.isExcused && !a.certSubmitted);
     if (pending.length === 0) return;
     if (!(await showConfirm(`Отметить принесёнными все справки студента (${pending.length})?`))) return;
@@ -6579,7 +6590,7 @@
   }
 
   async function deleteAbsencesByDate() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const studentId = document.getElementById('editStudentId').value;
     const date = document.getElementById('deleteAbsByDateSelect').value;
     if (!studentId || !date) return;
@@ -6593,7 +6604,7 @@
   }
 
   async function deleteAbsencesBySubject() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const studentId = document.getElementById('editStudentId').value;
     const subject = document.getElementById('deleteAbsBySubjectSelect').value;
     if (!studentId || !subject) return;
@@ -6607,7 +6618,7 @@
   }
 
   async function saveStudent() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     const id = document.getElementById('editStudentId').value;
     const lastName = document.getElementById('studentLastName').value.trim();
     const firstName = document.getElementById('studentFirstName').value.trim();
@@ -6687,28 +6698,24 @@
   tgMainProgress(true);
   try {
     // Студенты и пропуски — в Supabase (закрытая таблица), остальное — в открытый data.json
-    const privRes = await fetch(`${SUPABASE_URL}/functions/v1/journal-save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-      body: JSON.stringify({ ghToken: githubToken, students: appData.students, absences: appData.absences })
-    });
+    const privRes = await adminFetch('journal-save', { students: appData.students, absences: appData.absences });
     if (!privRes.ok) {
       const errJson = await privRes.json().catch(() => ({}));
       haptic('error');
       showAlert(errJson.error === 'not_admin'
-        ? 'Токен GitHub не подходит: нужен токен с правом записи в репозиторий журнала.'
-        : 'Ошибка сохранения списка группы: ' + (errJson.error || privRes.statusText));
+        ? 'Нет прав администратора: войдите под своим аккаунтом администратора.'
+        : errJson.error === 'no_admin_left'
+          ? 'В списке группы должен остаться хотя бы один администратор.'
+          : 'Ошибка сохранения списка группы: ' + (errJson.error || privRes.statusText));
       return false;
     }
 
-    const getFileRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
-      headers: { Authorization: `Bearer ${githubToken}` }
-    });
+    const getFileRes = await adminFetch('admin-data', { action: 'read' });
 
     if (!getFileRes.ok) {
-      const errJson = await getFileRes.json();
+      const errJson = await getFileRes.json().catch(() => ({}));
       haptic('error');
-      showAlert('Ошибка получения файла с GitHub: ' + (errJson.message || getFileRes.statusText));
+      showAlert('Ошибка получения файла с GitHub: ' + (errJson.error || getFileRes.statusText));
       return false;
     }
 
@@ -6731,18 +6738,7 @@
     const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
     const base64Content = btoa(String.fromCharCode(...utf8Bytes));
 
-    const putRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${DATA_PATH}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: message,
-        content: base64Content,
-        sha: fileData.sha
-      })
-    });
+    const putRes = await adminFetch('admin-data', { action: 'write', message, content: base64Content, sha: fileData.sha });
 
     if (putRes.ok) {
       // В файле теперь слитая версия: подтягиваем записи бота и запоминаем её как «загруженную»
@@ -6755,9 +6751,11 @@
       showAlert('Изменения успешно сохранены!');
       return true;
     } else {
-      const errorData = await putRes.json();
+      const errorData = await putRes.json().catch(() => ({}));
       haptic('error');
-      showAlert('Ошибка сохранения на GitHub: ' + errorData.message);
+      showAlert(errorData.error === 'conflict'
+        ? 'Файл только что изменили (бот или другой админ). Нажмите «Сохранить» ещё раз.'
+        : 'Ошибка сохранения на GitHub: ' + (errorData.error || putRes.statusText));
       return false;
     }
   } catch (err) {
@@ -7060,7 +7058,7 @@
   const markAbsentPicked = new Map();
 
   function openMarkAbsentSheet() {
-    if (!githubToken || !openLesson) return;
+    if (!adminModeOn() || !openLesson) return;
     markAbsentLesson = openLesson;
     markAbsentPicked.clear();
     document.getElementById('markAbsentSearch').value = '';
@@ -7168,7 +7166,7 @@
   }
 
   async function submitMarkAbsent() {
-    if (!githubToken) return showAlert('Требуется авторизация администратора');
+    if (!adminModeOn()) return showAlert('Требуется авторизация администратора');
     if (!markAbsentLesson) return;
     if (markAbsentPicked.size === 0) return showAlert('Отметьте хотя бы одного студента');
 
@@ -7198,19 +7196,20 @@
 
   // --- Авторизация ---
   // Вход и выход администратора — в личном кабинете (строка «Админ-панель», cabinet.html).
-  // Здесь только читаем токен из localStorage gh_pat и показываем инструменты администратора.
+  // Здесь только смотрим, включён ли админ-режим (adminModeOn в profile.js), и показываем инструменты администратора.
   function updateAdminUI() {
     const adminElements = document.querySelectorAll('.admin-only');
     // Кнопки разделов — только для обычных пользователей
-    document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!githubToken));
+    document.querySelectorAll('.user-only').forEach(el => el.classList.toggle('d-none', !!adminModeOn()));
     // Заголовок шапки принадлежит разделу, а не роли: его ставит renderAppTitle()
-    adminElements.forEach(el => el.classList.toggle('d-none', !githubToken));
+    adminElements.forEach(el => el.classList.toggle('d-none', !adminModeOn()));
   }
 
   // Данные загрузились, студент вошёл или вышел, сессия продлилась — открытый
   // раздел перерисовывается сам. Без этого главная оставалась такой, какой её
   // отрисовали до восстановления сессии.
   AppState.onChange(() => {
+    updateAdminUI();   // вошли или вышли — админ-режим включается или гаснет
     if (currentViewName === 'home') renderHome();
     if (currentViewName === 'study') renderStudyTiles();
   });

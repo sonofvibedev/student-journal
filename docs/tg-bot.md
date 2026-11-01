@@ -6,7 +6,7 @@
 
 ## Как это устроено
 
-- **Права.** Флаг `profiles.can_post_tasks` у обычного пользователя. Выдаёт и снимает только админ, через `tg-set-task-editor` (проверка по токену GitHub, как в `journal-save`). Сам студент флаг не изменит.
+- **Права.** Флаг `profiles.can_post_tasks` у обычного пользователя. Выдаёт и снимает только админ, через `tg-set-task-editor` (админ определяется по входу, как в `journal-save`). Сам студент флаг не изменит.
 - **Админ** — Telegram-id из секрета `TG_ADMIN_IDS` (один или несколько). Решения по заявкам принимаются только от них, проверяется `callback_query.from.id`, а не чат. Чужие нажатия получают «Нет прав». Привязка аккаунта админу для решений не нужна. Чтобы писать записи сразу (без заявки), админ должен быть привязан.
 - **Привязка Telegram.** В кабинете вызывается RPC `tg_create_link_code()` и возвращает код `ABCD-EFGH` (10 минут, одноразовый). Пользователь шлёт код боту (`/start КОД` или просто код). Без привязки бот ничего не делает.
 - **Диалог:** `/start` → Домашка / Дедлайн → предмет → дата (ближайшие занятия + «Другая дата», `ДД.ММ`) → текст → предпросмотр. У редактора кнопка «Отправить на проверку», у админа «Сохранить». Состояние диалога в `tg_dialog_state`, 30 минут.
@@ -39,7 +39,7 @@ pending ──claim──▶ approving ──commit──▶ approved
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | уже есть |
 | `TG_WEBHOOK_SECRET` | длинная случайная строка (`openssl rand -hex 32`), символы `A-Z a-z 0-9 _ -` |
-| `GITHUB_TOKEN` | fine-grained токен, только репозиторий `sonofvibedev/student-journal`, право **Contents: Read and write**. Не ваш `gh_pat` |
+| `GITHUB_TOKEN` | fine-grained токен, только репозиторий `sonofvibedev/student-journal`, право **Contents: Read and write**. Это токен сервера: в браузере админа токена GitHub больше нет |
 | `TG_ADMIN_IDS` | числовые Telegram-id админов через запятую (узнать у @userinfobot). Без них заявки некому одобрять |
 | `CRON_SECRET`, `SITE_URL` | уже есть (их использует `send-reminders`) |
 | `GITHUB_REPO`, `GITHUB_BRANCH` | необязательно; по умолчанию `sonofvibedev/student-journal` и `main` |
@@ -52,7 +52,7 @@ supabase secrets set TG_WEBHOOK_SECRET=<случайная_строка> GITHUB_
 
 1. Применить миграции `20261101130000_tg_bot_tasks.sql` и `20261101140000_tg_task_requests.sql` (`supabase db push`). Вторая ставит cron: в Vault должен лежать `cron_secret` (как для напоминаний), а адрес проекта в `url` внутри файла должен быть вашим.
 2. Задать секреты (выше).
-3. Задеплоить функции (JWT у них выключен: Telegram его не шлёт, админы доказывают права токеном GitHub):
+3. Задеплоить функции (JWT у них выключен: Telegram его не шлёт, админы доказывают права входом: заголовок `Authorization: Bearer <access_token>`):
    ```bash
    supabase functions deploy tg-bot --no-verify-jwt
    supabase functions deploy tg-requests --no-verify-jwt
@@ -79,20 +79,20 @@ supabase secrets set TG_WEBHOOK_SECRET=<случайная_строка> GITHUB_
 ```bash
 curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/tg-set-task-editor" \
   -H "Content-Type: application/json" -H "apikey: <ANON_KEY>" \
-  -d '{"ghToken":"<gh_pat>","action":"set","studentId":"st-...","value":true}'
-# список имеющих право: {"ghToken":"...","action":"list"}
+  -H "Authorization: Bearer <access_token_админа>" -d '{"action":"set","studentId":"st-...","value":true}'
+# список имеющих право: {"action":"list"}
 ```
 
 Либо SQL: `update public.profiles set can_post_tasks = true where student_id = 'st-...';`. Снятый флаг действует сразу. Отвязка: `sb.rpc('tg_unlink')`, статус: своя строка в `tg_links`.
 
 ## Контракт `tg-requests` (для раздела «Заявки» в вебе)
 
-`POST https://<PROJECT_REF>.supabase.co/functions/v1/tg-requests`, заголовки `Content-Type: application/json` и `apikey: <ANON_KEY>`. Админ определяется по `ghToken` (тот же `gh_pat`); JWT студента не используется. Ответы с `error` приходят с HTTP-кодом 4xx/5xx.
+`POST https://<PROJECT_REF>.supabase.co/functions/v1/tg-requests`, заголовки `Content-Type: application/json` и `apikey: <ANON_KEY>`. Админ определяется по заголовку `Authorization: Bearer <access_token>` вошедшего студента с `isAdmin` в списке группы. Ответы с `error` приходят с HTTP-кодом 4xx/5xx.
 
 **Список**
 
 ```jsonc
-// → { "ghToken": "...", "action": "list" }
+// → { "action": "list" }
 // ← 200
 {
   "ok": true,
@@ -115,16 +115,16 @@ curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/tg-set-task-editor"
 }
 ```
 
-**Одобрить** `{ "ghToken": "...", "action": "approve", "id": "uuid" }`
+**Одобрить** `{ "action": "approve", "id": "uuid" }`
 - 200 `{ "ok": true, "status": "approved", "record_id": "hw-…" }` (запись в `data.json` внесена; на сайте появится через 1–2 минуты)
 - 404 `{ "error": "not_found" }`
 - 409 `{ "error": "already_decided", "status": "rejected|withdrawn|expired|approved|approving" }`
 - 502 `{ "error": "github_failed" }`: запись не внесена, заявка снова `pending`, можно повторить
 
-**Отклонить** `{ "ghToken": "...", "action": "reject", "id": "uuid", "reason": "необязательно, до 200 символов" }`
+**Отклонить** `{ "action": "reject", "id": "uuid", "reason": "необязательно, до 200 символов" }`
 - 200 `{ "ok": true, "status": "rejected" }`; 404 и 409 как выше
 
-Общие ошибки: 403 `not_admin` (токен не подходит), 400 `bad_request`. Решение из веба обновляет сообщение админа в Telegram и уведомляет автора; решение из бота видно в следующем `list`. Суточный вызов `{"action":"cron-expire"}` требует заголовок `x-cron-secret`, из браузера его не вызывают.
+Общие ошибки: 403 `not_admin` (нет входа или нет isAdmin), 400 `bad_request`. Решение из веба обновляет сообщение админа в Telegram и уведомляет автора; решение из бота видно в следующем `list`. Суточный вызов `{"action":"cron-expire"}` требует заголовок `x-cron-secret`, из браузера его не вызывают.
 
 ## Как проверить
 

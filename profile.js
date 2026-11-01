@@ -540,7 +540,7 @@
     const hide = () => { tgHideCode(); block.classList.add('d-none'); };
     if (!sb || !myProfile || !myProfile.user_id) { hide(); return; }
     const student = appData.students.find(s => s.id === myStudentId);
-    let can = !!readAdminToken() || !!(student && student.isAdmin);
+    let can = adminModeOn() || !!(student && student.isAdmin);
     try {
       if (!can) {
         const { data, error } = await sb.from('profiles').select('can_post_tasks').eq('user_id', myProfile.user_id).maybeSingle();
@@ -651,8 +651,8 @@
 
   async function logoutCabinet() {
     await signOutQuietly();
-    // Выход из кабинета — выход и из админ-режима: токен не остаётся на общем устройстве
-    try { lsRemove('gh_pat'); } catch (e) {}
+    // Выход из кабинета — выход и из админ-режима
+    try { lsRemove('admin_mode'); } catch (e) {}
     if (typeof closeStudak === 'function') closeStudak(true);
     writeCachedProfile(null);
     writeCachedAvatar(null);
@@ -672,15 +672,11 @@
   }
 
   // --- Вход администратора (перенесён с главной) ---
-  // Строка «Админ-панель» видна только студентам с isAdmin: true (или если токен уже сохранён на устройстве,
-  // чтобы можно было выйти). Токен не проверяется — просто сохраняется в localStorage gh_pat, как раньше.
-  function readAdminToken() {
-    try { return lsGet('gh_pat') || ''; } catch (e) { return ''; }
-  }
+  // Строка «Админ-панель» видна только студентам с isAdmin: true; админ-режим (adminModeOn) — в index.html.
   function updateProfileAdminUI() {
     const student = appData.students.find(s => s.id === myStudentId);
-    const on = !!readAdminToken();
-    document.getElementById('adminPanelRow').classList.toggle('d-none', !(student && student.isAdmin) && !on);
+    const on = adminModeOn();
+    document.getElementById('adminPanelRow').classList.toggle('d-none', !(student && student.isAdmin));
     const state = document.getElementById('adminPanelState');
     state.innerText = on ? 'Включена' : 'Войти';
     state.classList.toggle('on', on);
@@ -688,37 +684,31 @@
     initTgBot();
   }
   function renderAdminModal(title) {
-    const on = !!readAdminToken();
+    const on = adminModeOn();
     document.getElementById('adminLoginView').classList.toggle('d-none', on);
     document.getElementById('adminActiveView').classList.toggle('d-none', !on);
     document.getElementById('adminActiveTitle').innerText = title || 'Админ-режим включён';
   }
   function toggleAdminModal() {
     document.getElementById('adminLoggedOutNote').innerText = '';
-    document.getElementById('githubTokenInput').value = '';
     renderAdminModal();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('adminModal')).show();
   }
-  function saveAdminToken() {
-    const input = document.getElementById('githubTokenInput');
-    const token = input.value.trim();
-    if (!token) { haptic('error'); return showAlert('Введите токен!'); }
-    try { lsSet('gh_pat', token); } catch (e) { return showAlert('Не удалось сохранить токен на этом устройстве'); }
-    input.value = '';
+  function enableAdminMode() {
+    try { lsSet('admin_mode', '1'); } catch (e) { return showAlert('Не удалось включить админ-режим на этом устройстве'); }
     haptic('success');
+    updateAdminUI();
     updateProfileAdminUI();
     renderAdminModal('Вы вошли как администратор');
   }
   function logoutAdmin() {
-    try { lsRemove('gh_pat'); } catch (e) {}
+    try { lsRemove('admin_mode'); } catch (e) {}
     haptic('success');
+    updateAdminUI();
     updateProfileAdminUI();
     renderAdminModal();
     document.getElementById('adminLoggedOutNote').innerText = 'Вы вышли из админ-режима.';
   }
-  document.getElementById('adminModal').addEventListener('shown.bs.modal', () => {
-    if (!readAdminToken()) document.getElementById('githubTokenInput').focus();
-  });
 
   // --- Своя аватарка: Supabase Storage, приватный бакет avatars, путь <user_id>.jpg ---
   // Фото обрезается по центру до квадрата и сжимается до 256×256 JPEG прямо в браузере.
