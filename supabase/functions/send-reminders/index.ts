@@ -3,11 +3,10 @@
 // Запускает pg_cron раз в сутки в 06:00 UTC = 09:00 по Минску
 // (в Беларуси круглый год UTC+3, перевода часов нет).
 //
-// Дедлайны и домашку берём из опубликованного data.json, а не из базы:
-// источник правды у них один — файл в репозитории.
-// В базе только подписки и журнал отправок.
+// Дедлайны и домашку берём из таблицы tasks (источник правды); data.json — только зеркало для сайта.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import webpush from 'npm:web-push@3.6.7';
+import { loadLists } from '../_shared/taskstore.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -54,11 +53,9 @@ Deno.serve(async (req) => {
   // --- Что сегодня напоминать ---
   let data: Record<string, unknown>;
   try {
-    const res = await fetch(`${siteUrl.replace(/\/$/, '')}/data.json?t=${Date.now()}`);
-    if (!res.ok) return json({ error: 'data_fetch_failed', status: res.status }, 502);
-    data = await res.json();
+    data = { ...(await loadLists()) };
   } catch (e) {
-    return json({ error: 'data_fetch_failed', detail: String(e) }, 502);
+    return json({ error: 'tasks_read_failed', detail: String(e) }, 502);
   }
 
   const today = minskDate(0);

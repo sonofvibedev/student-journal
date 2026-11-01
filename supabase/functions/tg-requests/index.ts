@@ -13,7 +13,7 @@ import { admin, json, cors, loadStudents, studentName } from '../_shared/common.
 import { jwtAdmin } from '../_shared/admin.ts';
 import { findDuplicate, cleanText } from '../_shared/tgbot.ts';
 import {
-  TBL, approveRequest, expireStale, ghRead, rejectRequest, type Req,
+  TBL, approveRequest, expireStale, loadLists, rejectRequest, type Req,
 } from '../_shared/tgrequests.ts';
 
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       name: studentName(students.find((s) => s.id === r.author_student_id)) || null,
     });
     let records: Array<Record<string, unknown>> = [];
-    try { const { data } = await ghRead(); records = [...(data.homework ?? []), ...(data.deadlines ?? [])]; } catch (_) { /* подсказка о дубле не обязательна */ }
+    try { const data = await loadLists(); records = [...data.homework, ...data.deadlines]; } catch (_) { /* подсказка о дубле не обязательна */ }
     const pending = (open ?? []) as Req[];
     return json({
       ok: true,

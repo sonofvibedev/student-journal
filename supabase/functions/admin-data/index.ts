@@ -1,29 +1,26 @@
-// Запись открытой части журнала (data.json) в GitHub от имени сервера: админу токен GitHub не нужен.
-//   { action: 'read' }                              → { sha, content }   (content — base64, как отдаёт GitHub)
-//   { action: 'write', message, content, sha }      → { ok }             (409 — файл успели изменить)
-// Только админ (см. _shared/admin.ts). Токен сервера — секрет GITHUB_TOKEN, тот же, что у бота.
+// Сохранение открытой части журнала из админки. Домашка и дедлайны живут в таблице tasks,
+// data.json в GitHub пересобирается из неё сервером (_shared/taskstore.ts): токен GitHub админу не нужен.
+//   { message, patch?, upserts?, deletes? } → { ok, homework, deadlines, mirror }
+//     upserts — [{ kind: 'homework' | 'deadline', rec }] только изменённые и новые записи,
+//     deletes — id удалённых записей, patch — предметы, преподаватели, объявления (заменяются целиком).
+//     homework и deadlines в ответе — свежие списки из таблицы (там же записи бота).
+//     mirror: false — таблица сохранена, а data.json обновить не вышло: догонит следующая запись.
+// Только админ (см. _shared/admin.ts).
 import { json, cors } from '../_shared/common.ts';
 import { jwtAdmin } from '../_shared/admin.ts';
+import { applyOps, loadLists, syncMirrorQuietly } from '../_shared/taskstore.ts';
+import type { Kind, Rec } from '../_shared/taskdiff.ts';
 
-const TOKEN = Deno.env.get('GITHUB_TOKEN');
-const REPO = Deno.env.get('GITHUB_REPO') ?? 'sonofvibedev/student-journal';
-const BRANCH = Deno.env.get('GITHUB_BRANCH') ?? 'main';
-const URL_ = `https://api.github.com/repos/${REPO}/contents/data.json`;
-const MAX_BYTES = 4_000_000;
+const MAX_BYTES = 1_000_000;
+const PATCH_KEYS = ['subjects', 'teachers', 'announcements'];
+const ID_RE = /^(hw|dl)-[0-9a-z-]{1,40}$/;
 
-const gh = (init: RequestInit = {}) => fetch(init.method === 'PUT' ? URL_ : `${URL_}?ref=${encodeURIComponent(BRANCH)}`, {
-  ...init,
-  headers: {
-    Authorization: `Bearer ${TOKEN}`, Accept: 'application/vnd.github+json',
-    'User-Agent': 'journal-24dmm2-admin', 'X-GitHub-Api-Version': '2022-11-28',
-    ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-  },
-});
+const isRec = (v: unknown): v is Rec =>
+  !!v && typeof v === 'object' && !Array.isArray(v) && ID_RE.test(String((v as Rec).id)) && JSON.stringify(v).length <= 5000;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
-  if (!TOKEN) return json({ error: 'github_not_configured' }, 500);
 
   const raw = await req.text();
   if (raw.length > MAX_BYTES) return json({ error: 'too_large' }, 413);
@@ -32,28 +29,28 @@ Deno.serve(async (req) => {
 
   if (!await jwtAdmin(req)) return json({ error: 'not_admin' }, 403);
 
-  try {
-    if (body.action === 'read') {
-      const res = await gh();
-      if (!res.ok) return json({ error: `github_${res.status}` }, 502);
-      const j = await res.json();
-      return json({ sha: j.sha, content: j.content ?? '' });
-    }
-    if (body.action === 'write') {
-      const { message, content, sha } = body;
-      if (typeof message !== 'string' || !message || message.length > 300 ||
-          typeof content !== 'string' || typeof sha !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) {
-        return json({ error: 'bad_request' }, 400);
-      }
-      // Файл должен остаться корректным JSON: битая запись сломала бы сайт для всех
-      try { JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(content), (c) => c.charCodeAt(0)))); }
-      catch (_) { return json({ error: 'bad_json' }, 400); }
-      const res = await gh({ method: 'PUT', body: JSON.stringify({ message, content, sha, branch: BRANCH }) });
-      if (res.ok) return json({ ok: true });
-      return json({ error: res.status === 409 || res.status === 422 ? 'conflict' : `github_${res.status}` }, res.status === 409 || res.status === 422 ? 409 : 502);
-    }
-  } catch (_) {
-    return json({ error: 'network' }, 502);
+  const message = body.message;
+  const upserts = body.upserts ?? [];
+  const deletes = body.deletes ?? [];
+  const patch = (body.patch ?? {}) as Record<string, unknown>;
+  const kindOk = (u: { kind?: unknown; rec?: unknown }) =>
+    (u.kind === 'homework' || u.kind === 'deadline') && isRec(u.rec) &&
+    String(u.rec.id).startsWith(u.kind === 'homework' ? 'hw-' : 'dl-');
+  if (typeof message !== 'string' || !message || message.length > 300 ||
+      !Array.isArray(upserts) || upserts.length > 200 || !upserts.every(kindOk) ||
+      !Array.isArray(deletes) || deletes.length > 200 || !deletes.every((d) => typeof d === 'string' && ID_RE.test(d)) ||
+      !patch || typeof patch !== 'object' || Array.isArray(patch) ||
+      !Object.entries(patch).every(([k, v]) => PATCH_KEYS.includes(k) && Array.isArray(v))) {
+    return json({ error: 'bad_request' }, 400);
   }
-  return json({ error: 'bad_request' }, 400);
+
+  try {
+    await applyOps({ upserts: upserts as Array<{ kind: Kind; rec: Rec }>, deletes: deletes as string[] });
+    const mirror = await syncMirrorQuietly(message, patch);
+    // Предметы и преподаватели живут только в data.json: не записались — это ошибка, а не «догонит позже»
+    if (!mirror && Object.keys(patch).length) return json({ error: 'github_failed' }, 502);
+    return json({ ok: true, mirror, ...(await loadLists()) });
+  } catch (_) {
+    return json({ error: 'server_error' }, 500);
+  }
 });

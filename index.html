@@ -4120,7 +4120,7 @@
   let filtersChangedInSheet = false;
 
   // Что было в data.json при загрузке: по этому слиянию saveDataToGitHub отличает записи бота и других
-  // админов (появились после) от удалённых админом (были, нет в appData). См. mergeRemoteData в shared.js
+  // админов (появились после) от удалённых админом (были, нет в appData). См. taskOps в shared.js
   let loadedIds = new Set();
   let loadedSnap = new Map();   // id -> JSON записи при загрузке (чтобы подхватить правку текста ботом)
   let deletedIds = new Set();   // удалено админом в этой сессии: из remote не возвращаем
@@ -6687,7 +6687,7 @@
   async function saveDataToGitHub(message) {
   if (isOffline()) {
     haptic('error');
-    showAlert('Нет сети — сохранить не получится. Изменения записываются прямо в data.json на GitHub, а без интернета до него не дотянуться. Проверьте связь и нажмите «Сохранить» ещё раз: введённое никуда не денется.');
+    showAlert('Нет сети — сохранить не получится. Изменения уходят на сервер, а без интернета до него не дотянуться. Проверьте связь и нажмите «Сохранить» ещё раз: введённое никуда не денется.');
     return false;
   }
   if (!privateLoaded) {
@@ -6710,58 +6710,39 @@
       return false;
     }
 
-    const getFileRes = await adminFetch('admin-data', { action: 'read' });
+    // Домашка и дедлайны — в таблице на сервере (отправляем разницу), data.json пересобирает сервер.
+    // Предметы, преподаватели и объявления уходят целиком и живут только в data.json.
+    const { upserts, deletes } = taskOps(appData, loadedSnap, deletedIds);
+    const patch = { subjects: appData.subjects, teachers: appData.teachers };
+    if (appData.announcements) patch.announcements = appData.announcements;
+    const res = await adminFetch('admin-data', { message, patch, upserts, deletes });
 
-    if (!getFileRes.ok) {
-      const errJson = await getFileRes.json().catch(() => ({}));
-      haptic('error');
-      showAlert('Ошибка получения файла с GitHub: ' + (errJson.error || getFileRes.statusText));
-      return false;
-    }
-
-    const fileData = await getFileRes.json();
-
-    // Слияние со свежим файлом: пока страница была открыта, бот мог добавить или убрать записи.
-    // Не получилось разобрать файл (например, больше 1 МБ — GitHub не отдаёт content) — как раньше, без слияния.
-    let remote = null;
-    try {
-      const bin = atob(String(fileData.content || '').replace(/\s/g, ''));
-      remote = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
-    } catch (e) { console.warn('Слияние с data.json пропущено:', e); }
-    const merged = mergeRemoteData(appData, remote, loadedIds, deletedIds, loadedSnap);
-
-    appData.lastUpdated = new Date().toISOString();
-    const { students, absences, ...publicData } = appData;
-    publicData.deadlines = merged.deadlines;
-    if (appData.homework || merged.homework.length) publicData.homework = merged.homework;
-    const updatedJsonStr = JSON.stringify(publicData, null, 2);
-    const utf8Bytes = new TextEncoder().encode(updatedJsonStr);
-    const base64Content = btoa(String.fromCharCode(...utf8Bytes));
-
-    const putRes = await adminFetch('admin-data', { action: 'write', message, content: base64Content, sha: fileData.sha });
-
-    if (putRes.ok) {
-      // В файле теперь слитая версия: подтягиваем записи бота и запоминаем её как «загруженную»
-      appData.deadlines = merged.deadlines;
-      if (publicData.homework) appData.homework = merged.homework;
+    if (res.ok) {
+      // Свежие списки с сервера: в них и записи бота. Запоминаем их как «загруженные»
+      const fresh = await res.json();
+      appData.deadlines = fresh.deadlines;
+      appData.homework = fresh.homework;
+      appData.lastUpdated = new Date().toISOString();
       rememberLoadedRecords();
       updateStats();
       renderTable();
       haptic('success');
-      showAlert('Изменения успешно сохранены!');
+      showAlert(fresh.mirror === false
+        ? 'Сохранено. Публичная копия для гостей обновится при следующем сохранении.'
+        : 'Изменения успешно сохранены!');
       return true;
     } else {
-      const errorData = await putRes.json().catch(() => ({}));
+      const errorData = await res.json().catch(() => ({}));
       haptic('error');
-      showAlert(errorData.error === 'conflict'
-        ? 'Файл только что изменили (бот или другой админ). Нажмите «Сохранить» ещё раз.'
-        : 'Ошибка сохранения на GitHub: ' + (errorData.error || putRes.statusText));
+      showAlert(errorData.error === 'github_failed'
+        ? 'Не удалось обновить data.json на GitHub. Нажмите «Сохранить» ещё раз.'
+        : 'Ошибка сохранения: ' + (errorData.error || res.statusText));
       return false;
     }
   } catch (err) {
     console.error(err);
     haptic('error');
-    showAlert('Сетевая ошибка при обращении к GitHub API. Проверьте подключение или VPN.');
+    showAlert('Сетевая ошибка при сохранении. Проверьте подключение или VPN.');
     return false;
   } finally {
     tgMainProgress(false);

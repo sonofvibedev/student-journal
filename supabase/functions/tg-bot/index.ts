@@ -10,7 +10,7 @@
 //      одобряет админ (telegram_id из TG_ADMIN_IDS; проверяется по from.id нажавшего). Записи админа
 //      публикуются сразу. Правит и удаляет готовые записи только админ.
 //
-// Где живут задачи: в data.json в GitHub. Бот правит его через GitHub Contents API (_shared/tgrequests.ts).
+// Где живут задачи: в таблице tasks; data.json в GitHub — публичное зеркало, его пересобирает сервер (_shared/taskstore.ts).
 // Состояние диалога лежит в tg_dialog_state (функция сама ничего не помнит), срок — 30 минут.
 // Токены и тексты задач в логи функции не пишутся.
 import { admin, sha256hex } from '../_shared/common.ts';
@@ -21,7 +21,7 @@ import {
   type Kind, type ReqStatus, type TaskRecord,
 } from '../_shared/tgbot.ts';
 import {
-  ADMIN_IDS, TBL, TOKEN, approveRequest, authorName, expireStale, findRec, ghRead, kindOf, listKey, logAction,
+  ADMIN_IDS, TBL, TOKEN, approveRequest, authorName, expireStale, findRec, ghRead, kindOf, loadLists, listKey, logAction,
   notifyAdmins, refreshAdminMessages, rejectRequest, say, submitRequest, tg, updateData, withdrawRequest,
   type Any, type Button, type Decision, type Req,
 } from '../_shared/tgrequests.ts';
@@ -206,7 +206,7 @@ async function sendRequest(tid: number, chat: number, me: Me, p: Payload, restor
   // Возможный дубль: такая запись уже в data.json или заявка на проверке с тем же предметом и датой
   let dup = '';
   try {
-    const { data } = await ghRead();
+    const data = await loadLists();
     const { data: pending } = await admin.from(TBL).select('subject, due_date, text')
       .in('status', ['pending', 'approving']).eq('subject', p.subject!).eq('due_date', p.dueDate!);
     const found = findDuplicate(
@@ -244,7 +244,7 @@ async function showMine(chat: number, me: Me) {
         [[['Одобрить', `ap:${r.id}`], ['Отклонить', `rj:${r.id}`]], [['Отклонить с причиной', `rr:${r.id}`]]]);
     }
     let data: Any;
-    try { data = (await ghRead()).data; } catch (_) { return say(chat, 'Не удалось получить записи. Попробуйте позже.'); }
+    try { data = await loadLists(); } catch (_) { return say(chat, 'Не удалось получить записи. Попробуйте позже.'); }
     const all: TaskRecord[] = [...(data.homework ?? []), ...(data.deadlines ?? [])].filter((r) => r && r.id);
     const last = all.sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? ''))).slice(0, 5);
     if (!last.length && !(pend ?? []).length) return say(chat, 'Записей и заявок пока нет.');

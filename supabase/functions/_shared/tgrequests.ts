@@ -6,10 +6,10 @@
 //   pending ──claim──▶ approving ──commit──▶ approved
 //      │                  └─rollback (GitHub не ответил)─▶ pending
 //      ├─reject─▶ rejected   ├─withdraw─▶ withdrawn   └─expire (7 суток)─▶ expired
-// Запись в data.json делается только между claim и commit, с id, назначенным при claim:
+// Запись в таблицу tasks делается только между claim и commit, с id, назначенным при claim:
 // повторное внесение (после обрыва) находит запись по id и ничего не дублирует.
-import { Buffer } from 'node:buffer';
 import { admin, loadStudents, studentName } from './common.ts';
+import { updateData } from './taskstore.ts';
 import {
   TRANSITIONS, approvingStale, buildRecord, commitMessage, recordIdFor, requestSummary,
   type Kind, type TaskRecord,
@@ -19,9 +19,6 @@ import {
 export type Any = any;
 
 export const TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const GH_TOKEN = Deno.env.get('GITHUB_TOKEN');
-const GH_REPO = Deno.env.get('GITHUB_REPO') ?? 'sonofvibedev/student-journal';
-const GH_BRANCH = Deno.env.get('GITHUB_BRANCH') ?? 'main';
 export const ADMIN_IDS = new Set((Deno.env.get('TG_ADMIN_IDS') ?? '').split(',').map((s) => s.trim()).filter(Boolean));
 
 export const TBL = 'tg_task_requests';
@@ -52,42 +49,8 @@ export async function say(chat: number, text: string, rows?: Button[][]): Promis
   return r?.result?.message_id ?? null;
 }
 
-// ---------- GitHub: data.json ----------
-const ghUrl = `https://api.github.com/repos/${GH_REPO}/contents/data.json`;
-const ghHeaders = () => ({
-  Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json',
-  'User-Agent': 'journal-24dmm2-bot', 'X-GitHub-Api-Version': '2022-11-28',
-});
-
-export async function ghRead(): Promise<{ data: Any; sha: string }> {
-  if (!GH_TOKEN) throw new Error('github_not_configured');
-  const res = await fetch(`${ghUrl}?ref=${encodeURIComponent(GH_BRANCH)}`, { headers: ghHeaders() });
-  if (!res.ok) throw new Error(`github_read_${res.status}`);
-  const j = await res.json();
-  const text = Buffer.from(String(j.content ?? ''), 'base64').toString('utf8').replace(/^﻿/, '');
-  return { data: JSON.parse(text), sha: j.sha };
-}
-
-// Прочитать свежий data.json → изменить → записать с sha. mutate вернёт null, если менять нечего.
-// При 409/422 (кто-то успел раньше) читаем заново, до трёх попыток. Формат — как у админки.
-export async function updateData<T>(mutate: (data: Any) => { result: T; message: string } | null): Promise<T | null> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const { data, sha } = await ghRead();
-    const out = mutate(data);
-    if (!out) return null;
-    data.lastUpdated = new Date().toISOString();
-    const res = await fetch(ghUrl, {
-      method: 'PUT', headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: out.message, branch: GH_BRANCH, sha,
-        content: Buffer.from(JSON.stringify(data, null, 2), 'utf8').toString('base64'),
-      }),
-    });
-    if (res.ok) return out.result;
-    if (res.status !== 409 && res.status !== 422) throw new Error(`github_write_${res.status}`);
-  }
-  throw new Error('github_conflict');
-}
+// ---------- Задачи: таблица tasks + зеркало data.json (см. taskstore.ts) ----------
+export { ghRead, loadLists, updateData } from './taskstore.ts';
 
 export function findRec(data: Any, id: string) {
   for (const key of ['homework', 'deadlines'] as const) {
@@ -207,7 +170,7 @@ export async function approveRequest(id: string, by: By): Promise<Decision> {
   if (!claimed) return { ok: false, code: 'already', req: (await getReq(id)) ?? cur };
   const req = claimed as Req;
 
-  // 2. Внести в data.json. Запись с этим id уже есть — предыдущая попытка дошла до GitHub
+  // 2. Внести в tasks. Запись с этим id уже есть — предыдущая попытка дошла до таблицы
   try {
     await updateData((data) => {
       const key = listKey(req.kind);
