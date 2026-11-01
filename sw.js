@@ -2,15 +2,14 @@
 // Стратегия: "сначала сеть" для своих страниц (index.html, cabinet.html) — если сеть есть,
 // пользователь всегда видит самую свежую версию сайта, кэш используется только как запасной
 // вариант при отсутствии связи. data.json НИКОГДА не кэшируется — иначе застревали бы
-// старые пропуски. Внешние CDN-скрипты (Bootstrap, Chart.js и т.д.) не трогаем — их кэширует
-// сам браузер через обычный HTTP-кэш.
+// старые пропуски. Библиотеки лежат в vendor/ (свои, не CDN) и кэшируются как остальное.
 //
 // ВАЖНО: при каждом заметном обновлении index.html/cabinet.html стоит поднять CACHE_VERSION —
 // это гарантированно подчистит старый кэш при следующем заходе. Ту же цифру — в ?v= у app.css и
 // shared.js в index.html и cabinet.html, чтобы новая страница никогда не взяла старые стили/скрипт.
 // Свои файлы запрашиваем мимо HTTP-кэша браузера (сервер ответит «не изменилось», если файл тот же):
 // иначе после деплоя телефон мог получить новую страницу со старым app.css.
-const CACHE_VERSION = 'journal-24dmm2-v40';
+const CACHE_VERSION = 'journal-24dmm2-v41';
 
 const PRECACHE_URLS = [
   './env.js',
@@ -40,6 +39,11 @@ const PRECACHE_URLS = [
   './profile.js',
   './studak.js',
   './pass.html',
+  './vendor/bootstrap.min.css',
+  './vendor/bootstrap.bundle.min.js',
+  './vendor/supabase.js',
+  './vendor/qrcode.js',
+  './vendor/chart.umd.min.js',
   './manifest.json'
 ];
 
