@@ -764,6 +764,48 @@
       .hm-row-due .far { display: none; }
       .hm-row-all { display: block; }
     }
+    /* ===== Главная: плитки близки к квадрату (1:1) =============================
+       Телефон: две колонки — «Далее» и «Срочно» квадратами, пропуски, неделя и
+       «Ближайшее» полосами на всю ширину (в них полоса дней и список — не квадрат).
+       От 720px: «Далее», «Срочно» и пропуски — три квадрата в ряд, под ними неделя и
+       «Ближайшее» рядом. Сторона квадрата не больше --hm-s (окно минус шапка, таб-бар
+       и нижний ряд): если не влезает, все квадраты уменьшаются с той же формой.
+       aspect-ratio — нижняя граница: длинный текст может сделать плитку чуть выше,
+       но не растягивает её по вертикали. */
+    .hm { --hm-s: clamp(120px, calc(100dvh - 380px), 560px); }
+    #homeBody:not(.d-none) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--hm-gap); margin-inline: auto; }
+    #homeBody > .hm-card { min-width: 0; }
+    #homeBody > .hm-hours, #homeBody > .hm-week, #homeBody > .hm-lst { grid-column: 1 / -1; }
+    #homeBody .hm-next, #homeBody .hm-urgent { position: relative; aspect-ratio: 1 / 1; gap: 4px; padding: clamp(10px, 3vw, 18px); }
+    #homeBody .hm-next .hm-row { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; }
+    #homeBody .hm-next .hm-cap { text-align: left; }
+    #homeBody .hm-next .hm-line { flex-direction: column; align-items: flex-start; gap: 2px; margin-top: auto; }
+    #homeBody .hm-next .hm-title, #homeBody .hm-urgent .hm-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+      width: 100%; white-space: normal; overflow-wrap: break-word; hyphens: auto; font-size: clamp(15px, 4.2vw, 24px); line-height: 1.2; }
+    #homeBody .hm-next .hm-time { font-size: clamp(16px, 4.4vw, 20px); }
+    #homeBody .hm-next .hm-meta { font-size: 14px; }
+    #homeBody .hm-next .now-bar { position: absolute; left: clamp(10px, 3vw, 18px); right: clamp(10px, 3vw, 18px); bottom: 6px; width: auto; height: 3px; margin: 0; }
+    #homeBody .hm-urgent-main { flex: 1 1 auto; flex-direction: column; align-items: stretch; justify-content: space-between; gap: 4px; }
+    #homeBody .hm-urgent-text { flex: 1 1 auto; gap: 6px; }
+    #homeBody .hm-urgent .hm-check { align-self: flex-end; margin: 0 -8px -8px 0; }
+    #homeBody .hm-urgent .hm-desc { display: none; }
+    @media (min-width: 720px) {
+      #homeBody:not(.d-none) { grid-template-columns: repeat(6, minmax(0, 1fr)); max-width: calc(3 * var(--hm-s) + 2 * var(--hm-gap)); }
+      #homeBody > .hm-next, #homeBody > .hm-urgent, #homeBody > .hm-hours { grid-column: span 2; aspect-ratio: 1 / 1; }
+      #homeBody > .hm-week, #homeBody > .hm-lst { grid-column: span 3; }
+      #homeBody .hm-next, #homeBody .hm-urgent { padding: clamp(14px, 1.6vw, 22px); }
+      #homeBody .hm-next .hm-title, #homeBody .hm-urgent .hm-title { -webkit-line-clamp: 3; font-size: clamp(17px, 2.2vw, 24px); }
+      #homeBody .hm-urgent .hm-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+      /* Пропуски — тоже плитка: кольцо сверху, текст снизу */
+      #homeBody .hm-hours { flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: clamp(14px, 1.6vw, 22px); }
+      #homeBody .hm-hours .ring { width: clamp(64px, 8vw, 96px); height: clamp(64px, 8vw, 96px); }
+      #homeBody .hm-hours .ring-num { font-size: clamp(18px, 2.2vw, 26px); }
+      #homeBody .hm-hours-text { flex: 0 0 auto; width: 100%; }
+      #homeBody .hm-hours .hm-one { white-space: normal; }
+      #homeBody .hm-hours .hm-sub { flex-wrap: wrap; }
+      #homeBody .hm-guest-abs { justify-content: flex-end; }
+      #homeBody .hm-guest-abs .hm-chev { align-self: flex-end; }
+    }
     /* Легенда точек — на экране «Расписание» */
     .wk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0 0; font-size: 13px; color: var(--color-text-secondary); }
     .wk-legend i { margin-right: 5px; vertical-align: 1px; }
