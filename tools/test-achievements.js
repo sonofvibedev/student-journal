@@ -29,7 +29,7 @@ function loadAchievements() {
     sb: null,
     achSheetOpen: () => false,
     renderAchievementsView() {},
-    renderProfileBadges() {},
+    renderProfileAch() {},
     document: { getElementById: () => null, querySelectorAll: () => [], body: null },
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     lsGet: () => null,

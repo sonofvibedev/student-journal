@@ -284,7 +284,8 @@
 .pf-k { min-width: 0; font-size: 13px; line-height: 1.2; color: var(--color-text-secondary); }
 .pf-v { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: 15px; line-height: 1.3; color: var(--color-text); overflow-wrap: anywhere; }
 
-/* Достижения одной строкой: число и место, три последних значка, «Все» */
+/* Достижения одной строкой: число, место в группе и «Все» */
+.ach-kick { font-size: 13px; color: var(--color-text-secondary); }
 #profileAchTile { flex-direction: row; align-items: center; gap: 10px; min-height: 64px; padding: 10px 14px; }
 #profileAchTile .ach-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 #profileAchTile .ach-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
@@ -292,8 +293,6 @@
 #profileAchTile .tile-note { font-size: 13px; }
 .ach-place { font-size: 13px; color: var(--color-text-secondary); }
 .ach-place:empty { display: none; }
-#profileAchTile .ach-strip { flex: none; gap: 6px; padding: 0; }
-#profileAchTile .ach-strip .ach-badge { --ach-size: 40px; }
 .ach-all { flex: none; display: inline-flex; align-items: center; gap: 2px; color: var(--color-accent); font-size: 15px; font-weight: 600; }
 
 /* Единый список: уведомления, аккордеоны (<details>) */
