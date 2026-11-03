@@ -31,6 +31,14 @@
       "dueDate": "2026-11-04",
       "subject": "Маркетинг услуг",
       "createdAt": "2026-10-29T19:19:25.366Z"
+    },
+    {
+      "id": "dl-1793680700516",
+      "text": "УСРС в группах (можно по 4): https://elearning.bseu.by/mod/assign/view.php?id=135965",
+      "type": "deadline",
+      "dueDate": "2026-11-09",
+      "subject": "Интегрированные маркетинговые коммуникации",
+      "createdAt": "2026-11-03T04:38:20.516Z"
     }
   ],
   "subjects": [
@@ -104,7 +112,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-11-03T04:36:04.547Z",
+  "lastUpdated": "2026-11-03T04:38:22.929Z",
   "homework": [
     {
       "id": "hw-1793680539571",
