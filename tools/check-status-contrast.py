@@ -113,3 +113,46 @@ for r in near:
     print('  %-11s %-5s %-7s Δ=%.0f' % (r[0], r[1], r[2], r[5]))
 if not near:
     print('  нет')
+
+# ===== Уведомления (.nt-*): тип -> статус, непрочитанное / прочитанное =====
+# Фон карточки = surface-2 + заливка типа (unread: .10, read: .05).
+# Проверяем: основной текст (unread) и вторичный (read, подпись) на карточке,
+# пометку типа на плашке (.12 unread, .08 read).
+INFO = {
+    'dark': re.search(r':root \{ --status-info-rgb: ([\d, ]+); --status-info-line: (#\w+); --status-info-text: (#\w+); \}', src).groups(),
+    'light': re.search(r'\[data-bs-theme=light\] \{ --status-info-rgb: ([\d, ]+); --status-info-line: (#\w+); --status-info-text: (#\w+); \}', src).groups(),
+}
+SECOND = {'dark': hex2rgb(re.search(r'--color-text-secondary:\s*(#\w+)', src).group(1)),
+          'light': hex2rgb(re.findall(r'--color-text-secondary:\s*(#\w+)', src)[1])}
+NT = {'success': 'done', 'warning': 'soon', 'error': 'hot', 'achievement': 'zachet', 'info': None}
+nt_fails, nt_min = [], {}
+for name in sorted(gamma):
+    for scheme in ('dark', 'light'):
+        p = 'g-d-' if scheme == 'dark' else 'g-l-'
+        g = gamma[name]
+        if not g.get('--' + p + 'surface-2'):
+            continue
+        surf = rgb_of(g['--' + p + 'surface-2'])
+        text = hex2rgb('#ffffff') if scheme == 'dark' else hex2rgb('#1c1c1e')
+        st = dict(STATUS_DARK if scheme == 'dark' else STATUS_LIGHT)
+        st.update(G_STATUS.get(name, {}).get(scheme, {}))
+        for t, s in NT.items():
+            if s:
+                rgbv, tc = rgb_of(st['--status-%s-rgb' % s]), hex2rgb(st['--status-%s-text' % s])
+            else:
+                rgbv, tc = rgb_of(INFO[scheme][0]), hex2rgb(INFO[scheme][2])
+            for state, a_card, a_pill, body in (('unread', 0.10, 0.12, text), ('read', 0.05, 0.08, SECOND[scheme])):
+                card = over(rgbv, a_card, surf)
+                pill = over(rgbv, a_pill, card)
+                for what, r in (('текст', ratio(body, card)), ('подпись', ratio(SECOND[scheme], card)), ('пометка', ratio(tc, pill))):
+                    key = (scheme, t, state, what)
+                    nt_min[key] = min(nt_min.get(key, 99), r)
+                    if r < 4.5:
+                        nt_fails.append((name, scheme, t, state, what, round(r, 2)))
+print()
+print('Уведомления: минимум по всем гаммам')
+for k in sorted(nt_min):
+    print('  %-5s %-11s %-7s %-8s %5.2f%s' % (k + (nt_min[k], '' if nt_min[k] >= 4.5 else '  <<< AA')))
+print('Провалов AA в уведомлениях: %d' % len(nt_fails))
+for f in nt_fails:
+    print('  ', f)

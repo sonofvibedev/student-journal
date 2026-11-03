@@ -959,7 +959,7 @@
         </div>
         <div class="modal-body">
           <div id="notificationsList"></div>
-          <div class="va-empty d-none" id="notificationsEmpty">Новых уведомлений нет</div>
+          <div class="va-empty d-none" id="notificationsEmpty">Уведомлений нет</div>
         </div>
       </div>
     </div>
@@ -3967,10 +3967,12 @@
     haptic('impact');
     const list = document.getElementById('notificationsList');
     const empty = document.getElementById('notificationsEmpty');
-    const items = unreadNotifications();
+    const unread = new Set(unreadNotifications().map((u) => u.group + ':' + u.id));
+    const items = notificationItems().slice(0, 20);   // новые сверху; прочитанные — приглушены
     empty.classList.toggle('d-none', items.length > 0);
     list.innerHTML = items.map((it, i) =>
-      '<button type="button" class="dl-card nt-card" data-i="' + i + '">' +
+      '<button type="button" class="dl-card nt-card nt-' + notificationType(it) +
+      (unread.has(it.group + ':' + it.id) ? ' nt-unread' : ' nt-read') + '" data-i="' + i + '">' +
       '<div class="dl-subject"><span class="dl-kind">' + escapeHtml(it.kind) + '</span>' + escapeHtml(it.sub) + '</div>' +
       '<div class="dl-text">' + escapeHtml(it.title) + '</div>' +
       '<div class="dl-meta"><span class="dl-date">' + escapeHtml(notificationWhen(it)) + '</span></div>' +
