@@ -17,7 +17,7 @@
 //
 // Правила игр берутся из того же файла, что и на странице (_shared/games-core.js),
 // его кладёт туда tools/sync-games-core.js. Две реализации разойтись не могут.
-import { admin, json, cors } from '../_shared/common.ts';
+import { admin, json, cors, maintenanceBlocked } from '../_shared/common.ts';
 import { grantBadges } from '../_shared/words.ts';
 import { rankBadges } from '../_shared/ranks.ts';
 import {
@@ -40,6 +40,7 @@ const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : N
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };

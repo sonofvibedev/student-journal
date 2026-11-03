@@ -1,12 +1,13 @@
 // Проверка пропуска Studak для pass.html (без входа): { token } → действителен ли токен.
 // Отдаёт только то, что видно на пропуске: ФИО, роль, номер в списке, логин и ссылку на фото, которая живёт 5 минут. Секретный ключ — только в окружении функции.
-import { admin, json, cors, loadStudents, studentNumber } from '../_shared/common.ts';
+import { admin, json, cors, loadStudents, studentNumber, maintenanceBlocked } from '../_shared/common.ts';
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return json({ valid: false }, 400); }

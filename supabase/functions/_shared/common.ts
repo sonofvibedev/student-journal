@@ -55,3 +55,21 @@ export function studentNumber(students: Student[], id: string): number | null {
   const i = ordered.findIndex((s) => s.id === id);
   return i < 0 ? null : i + 1;
 }
+
+// Режим технических работ (public.app_settings, ключ maintenance). Пока он включён, пускаем только
+// старосту (студент с isAdmin). Edge Functions ходят секретным ключом в обход RLS, поэтому проверка своя.
+// Вызывать в начале каждой клиентской функции: `const mb = await maintenanceBlocked(req); if (mb) return mb;`
+// Если сам режим прочитать не удалось, не блокируем: сбой базы не должен выглядеть как техработы.
+export async function maintenanceBlocked(req: Request): Promise<Response | null> {
+  const { data: row, error } = await admin.from('app_settings').select('value').eq('key', 'maintenance').maybeSingle();
+  if (error || row?.value?.on !== true) return null;
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (token) {
+    const { data: auth } = await admin.auth.getUser(token);
+    if (auth?.user) {
+      const { data: p } = await admin.from('profiles').select('student_id').eq('user_id', auth.user.id).maybeSingle();
+      if (p?.student_id && (await loadStudents()).find((s) => s.id === p.student_id)?.isAdmin === true) return null;
+    }
+  }
+  return json({ error: 'maintenance' }, 503);
+}
