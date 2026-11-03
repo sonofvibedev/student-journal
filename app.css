@@ -1696,6 +1696,24 @@ body::before {
 }
 .nt-card:active { transform: scale(.985); }
 @media (prefers-reduced-motion: reduce) { .nt-card { transition: none; } }
+/* Цвет уведомления по типу: полоса слева, бледная заливка и цвет пометки.
+   Тип -> статус: success=done, warning=soon, error=hot, achievement=zachet, info=свой.
+   Непрочитанное ярче (заливка, цельная полоса, плотная пометка, основной текст),
+   прочитанное приглушено, но с оттенком типа. Текст везде проходит AA (tools/check-status-contrast.py). */
+:root { --status-info-rgb: 90, 170, 255; --status-info-line: #5aaaff; --status-info-text: #7cb8ff; }
+[data-bs-theme=light] { --status-info-rgb: 10, 88, 190; --status-info-line: #0a58be; --status-info-text: #0a4a9e; }
+.nt-success     { --nt-rgb: var(--status-done-rgb);   --nt-line: var(--status-done-line);   --nt-text: var(--status-done-text); }
+.nt-warning     { --nt-rgb: var(--status-soon-rgb);   --nt-line: var(--status-soon-line);   --nt-text: var(--status-soon-text); }
+.nt-error       { --nt-rgb: var(--status-hot-rgb);    --nt-line: var(--status-hot-line);    --nt-text: var(--status-hot-text); }
+.nt-achievement { --nt-rgb: var(--status-zachet-rgb); --nt-line: var(--status-zachet-line); --nt-text: var(--status-zachet-text); }
+.nt-info        { --nt-rgb: var(--status-info-rgb);   --nt-line: var(--status-info-line);   --nt-text: var(--status-info-text); }
+.nt-card { --nt-a: .05; background: linear-gradient(rgba(var(--nt-rgb), var(--nt-a)), rgba(var(--nt-rgb), var(--nt-a))), var(--color-surface-2); }
+.nt-card::before { background: var(--nt-line); opacity: .5; }
+.nt-card .dl-kind { background: rgba(var(--nt-rgb), .08); color: var(--nt-text); }
+.nt-card.nt-unread { --nt-a: .10; }
+.nt-card.nt-unread::before { opacity: 1; }
+.nt-card.nt-unread .dl-kind { background: rgba(var(--nt-rgb), .12); }
+.nt-card.nt-read .dl-text { color: var(--color-text-secondary); }
 
 /* Домашка, которую студент отметил сделанной в карточке пары */
 .dl-card.is-done { opacity: .65; }

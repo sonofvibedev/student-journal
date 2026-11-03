@@ -404,6 +404,19 @@ function notificationItems() {
   return out.sort((a, b) => b.at - a.at);
 }
 
+// Тип уведомления для цвета в листе (success | achievement | warning | error | info).
+// Явный item.type главнее. Иначе: значок — achievement; версия — info;
+// срок (дедлайн/домашка): прошёл — info (устарело), сегодня-завтра — error,
+// в ближайшие 3 дня — warning, дальше — info. success пока приходит только явно.
+function notificationType(i) {
+  if (i.type) return i.type;
+  if (i.group === 'achievements') return 'achievement';
+  const m = String(i.day || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return 'info';
+  const left = Math.round((new Date(+m[1], +m[2] - 1, +m[3]) - new Date().setHours(0, 0, 0, 0)) / 864e5);
+  return left < 0 ? 'info' : left <= 1 ? 'error' : left <= 3 ? 'warning' : 'info';
+}
+
 function unreadNotifications() {
   const read = notificationsRead();
   if (!read) return [];                        // первый запуск: нового нет по определению
