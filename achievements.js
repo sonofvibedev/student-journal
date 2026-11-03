@@ -142,9 +142,12 @@ const ACHIEVEMENTS = [
     title: 'Пятёрка в пятёрке', about: 'Одновременно в топ-5 всех пяти игр' }
 ];
 
-// Значки за рекорды выдаёт сервер после проверенной партии, поэтому сам
-// клиент их не присуждает — он только показывает то, что уже выдано.
-const ACH_SERVER_GRANTED = (code) => String(code).startsWith('game_');
+// Значки за рекорды выдаёт сервер после проверенной партии, значки посещаемости
+// (серии, чистый месяц, антидостижения…) — база по пропускам (recompute_attendance_badges).
+// Клиент их не присуждает, только показывает: раньше он выдавал серию по ещё
+// не загруженным (пустым) пропускам.
+const ACH_SERVER_GRANTED = (code) => String(code).startsWith('game_') ||
+  ['attendance', 'anti'].includes((ACH_BY_CODE[code] || {}).cat);
 
 const ACH_BY_CODE = {};
 ACHIEVEMENTS.forEach((a) => { ACH_BY_CODE[a.code] = a; });
@@ -439,7 +442,7 @@ function achDeserved(stats) {
 async function achCheckEarned() {
   if (!sb || AppState.auth !== 'signed' || !achState.studyDays) return;
   const stats = achStats();
-  const fresh = achDeserved(stats).filter((d) => !achHasPeriod(d.code, d.period));
+  const fresh = achDeserved(stats).filter((d) => !ACH_SERVER_GRANTED(d.code) && !achHasPeriod(d.code, d.period));
   if (!fresh.length) return;
 
   const now = new Date().toISOString();
@@ -484,7 +487,7 @@ function achProgressOf(code, stats) {
     return { have: stats.monthDaysPassed, need: Math.max(1, stats.monthDaysTotal), earned,
       text: `Доучиться месяц без неуважительных: ${stats.monthDaysPassed} из ${stats.monthDaysTotal} дней` };
   }
-  if (a.group === 'streak')   return { have: Math.min(stats.streak, a.need), need: a.need, earned, text: `Серия ${stats.streak} из ${a.need} дней` };
+  if (a.group === 'streak')   return { have: Math.min(stats.streak, a.need), need: a.need, earned, text: `Серия ${Math.min(stats.streak, a.need)} из ${a.need} дней` };
   if (a.group === 'cert')     return { have: Math.min(stats.certsOnTime, a.need), need: a.need, earned, text: `${stats.certsOnTime} из ${a.need} справок вовремя` };
   if (a.group === 'homework') return { have: Math.min(stats.homeworkDone, a.need), need: a.need, earned, text: `${stats.homeworkDone} из ${a.need} домашек` };
   if (a.group === 'anti') {

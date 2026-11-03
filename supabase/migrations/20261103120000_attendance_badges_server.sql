@@ -1,4 +1,4 @@
-﻿-- Значки посещаемости считает база, а не браузер.
+-- Значки посещаемости считает база, а не браузер.
 --
 -- Раньше их выдавал клиент (achievements.js): если пропуски ещё не успели загрузиться,
 -- вся история считалась «без прогулов» и студенты получали streak_30; отозвать значок
@@ -135,9 +135,10 @@ st as (select distinct s->>'id' as sid from jp, jsonb_array_elements(jp.students
 -- неуважительные пропуски внутри учебного периода (achMyAbsences + !isExcused)
 ab as (
   select a->>'studentId' as sid, (a->>'date')::date as d,
-         coalesce(nullif(a->>'totalHours', '')::numeric, 0) as h
+         case when a->>'totalHours' ~ '^\d+(\.\d+)?$' then (a->>'totalHours')::numeric else 0 end as h
     from jp, jsonb_array_elements(jp.absences) a, bounds b
-   where coalesce((a->>'isExcused')::boolean, false) = false
+   where coalesce(a->>'isExcused', 'false') not in ('true', 't', '1')
+     and a->>'date' ~ '^\d{4}-\d{2}-\d{2}$'
      and (a->>'date')::date between b.first_day and b.last_day
 ),
 bad as (select distinct sid, d from ab),
@@ -220,7 +221,12 @@ revoke execute on function public.attendance_badges_deserved() from public, anon
 create or replace function public.tg_recompute_attendance_badges()
 returns trigger language plpgsql security definer set search_path = public as $fn$
 begin
-  perform public.recompute_attendance_badges();
+  -- Сбой пересчёта не должен откатывать сохранение журнала
+  begin
+    perform public.recompute_attendance_badges();
+  exception when others then
+    raise warning 'recompute_attendance_badges: %', sqlerrm;
+  end;
   return null;
 end
 $fn$;
