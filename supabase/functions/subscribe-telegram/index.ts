@@ -4,6 +4,7 @@
 // без этой проверки кто угодно мог бы подписать на рассылку чужой чат.
 // Токен бота живёт только в секретах функции.
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
+import { maintenanceBlocked } from '../_shared/common.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -56,6 +57,7 @@ async function verifyInitData(initData: string, botToken: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
   if (!botToken) return json({ error: 'bot_not_configured' }, 500);

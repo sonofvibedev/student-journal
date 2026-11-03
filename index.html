@@ -1493,6 +1493,13 @@
   </div>
 
   <div class="group">
+    <div class="kicker">Служебное</div>
+    <div class="inset">
+      <button type="button" class="row-i" onclick="toggleMaintenance()"><span class="lbl">Режим технических работ<small class="d-block text-secondary">пока включён, журнал закрыт для всех, кроме вас</small></span><span class="val" id="maintStateVal">Выключен</span><span class="chev" aria-hidden="true">&rsaquo;</span></button>
+    </div>
+  </div>
+
+  <div class="group">
     <div class="inset">
       <button type="button" class="row-i tg-exit" onclick="logoutAdmin()"><span class="lbl">Выйти из админки</span></button>
     </div>
@@ -2793,6 +2800,7 @@
 <script src="schedule.js?v=38"></script>
 <script src="notify.js?v=38"></script>
 <script src="shared.js?v=38"></script>
+<script src="maintenance.js?v=38"></script><!-- экран техработ; до основного скрипта: обёртка fetch должна встать раньше клиента Supabase -->
 <script src="dean-report.js?v=38"></script>
 <script>
   // GITHUB_OWNER, GITHUB_REPO, DATA_PATH — в env.js

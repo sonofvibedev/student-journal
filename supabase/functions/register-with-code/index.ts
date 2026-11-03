@@ -2,7 +2,7 @@
 //   { action: 'check', code }                    → { student_id, name, has_account, login? }
 //   { action: 'register', code, login, password } → { ok, login }  (создать аккаунт или задать новый пароль)
 // Публичная регистрация в Supabase Auth выключена: аккаунты создаёт только эта функция.
-import { admin, cors, json, sha256hex, loadStudents, studentName, loginToEmail, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX } from '../_shared/common.ts';
+import { admin, cors, json, sha256hex, loadStudents, studentName, loginToEmail, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX, maintenanceBlocked } from '../_shared/common.ts';
 
 const MAX_FAILS = 10;            // неудачных вводов кода с одного IP
 const WINDOW_MIN = 15;           // за 15 минут
@@ -34,6 +34,7 @@ async function findCode(code: string, ipHash: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad_request' }, 400); }

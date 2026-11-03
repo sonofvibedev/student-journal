@@ -18,7 +18,7 @@
 //   pool_toggle  {word, enabled} включить/выключить слово в автовыборе
 //   set_setting  {key, value} опции: notify_admin_telegram, allow_reroll
 //   reroll_daily заменить слово сегодняшнего дня до первого ответа игроков (нужна опция allow_reroll)
-import { admin, json, cors } from '../_shared/common.ts';
+import { admin, json, cors, maintenanceBlocked } from '../_shared/common.ts';
 import {
   minskDay, wordId, ensurePool, ensureDailyWord, dailyRow, setDailyManual,
   pickReplacement, getFlag,
@@ -34,6 +34,7 @@ type Body = Record<string, unknown>;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   // Вход в журнал тоже нужен: по нему видно, кто задал слово
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');

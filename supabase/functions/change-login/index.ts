@@ -1,10 +1,11 @@
 // Смена логина вошедшим студентом: { login } + Authorization: Bearer <access_token>.
 // Логин хранится в двух местах (profiles.login и технический email в Auth) — меняем оба.
-import { admin, json, cors, loginToEmail, normLogin, LOGIN_RE } from '../_shared/common.ts';
+import { admin, json, cors, loginToEmail, normLogin, LOGIN_RE, maintenanceBlocked } from '../_shared/common.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };

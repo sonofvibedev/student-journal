@@ -19,7 +19,7 @@
 //
 // «Слово дня» играется один раз в сутки: у word_attempts уникальный индекс на
 // пару «студент + день», и вторую попытку он не пропустит.
-import { admin, json, cors } from '../_shared/common.ts';
+import { admin, json, cors, maintenanceBlocked } from '../_shared/common.ts';
 import { minskDay, grantBadges, ensureDailyWord } from '../_shared/words.ts';
 import { rankBadges } from '../_shared/ranks.ts';
 import { assocNormalize, assocPoints, assocHint, loadRanks, type Ranks } from '../_shared/assoc.ts';
@@ -39,6 +39,7 @@ const MAX_WORD = 32;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  { const mb = await maintenanceBlocked(req); if (mb) return mb; }
 
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };
