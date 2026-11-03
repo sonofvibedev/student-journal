@@ -99,14 +99,19 @@
 .ach-badge.is-small .ach-rank { display: none; }
 
 /* ===== Карточка достижения ===== */
+.ach-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+@media (min-width: 640px)  { .ach-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .ach-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .ach-card {
-  display: flex; gap: var(--space-3);
-  padding: 14px;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: 12px;
   border-radius: var(--radius-lg);
   background: var(--color-surface-2);
-  margin-bottom: 10px;
 }
-.ach-card .ach-badge { --ach-size: clamp(72px, 23vw, 96px); --ach-sw: 1.6; }
+.ach-card .ach-badge { --ach-size: 64px; --ach-sw: 1.6; }
+/* Не получено — приглушённо, получено — цветом */
+.ach-card:not(.is-earned) .ach-card-title b { color: var(--color-text-secondary); }
+.ach-card:not(.is-earned) .ach-about { color: var(--color-text-tertiary); }
 .ach-card.is-earned { background: var(--color-ok-bg); }
 .ach-card.is-anti.is-earned { background: var(--color-bad-bg); }
 .ach-card-body { flex: 1; min-width: 0; }
@@ -140,19 +145,6 @@
 .ach-check li { display: flex; align-items: center; gap: 6px; }
 .ach-check li.done { color: var(--color-success-text); }
 
-/* Лесенка ступеней: шесть кружков под карточкой серии */
-.ach-steps { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-.ach-step {
-  display: flex; align-items: center; gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-4);
-  color: var(--color-text-tertiary);
-  font-size: var(--fs-small); font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.ach-step.done { background: var(--color-ok-bg); color: var(--color-success-text); }
-
 /* ===== Экран «Достижения» ===== */
 .ach-sum {
   display: flex; align-items: center; gap: var(--space-4);
@@ -166,11 +158,6 @@
 .ach-sum-num { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -1px; color: var(--color-text); }
 .ach-sum-note { font-size: var(--fs-small); color: var(--color-text-secondary); }
 
-/* ===== Плитка «Достижения» в профиле ===== */
-.ach-tile { gap: 10px; }
-.ach-strip { display: flex; gap: 10px; padding: 2px 0; }
-.ach-strip:empty { display: none; }
-.ach-strip .ach-badge { --ach-size: 44px; --ach-sw: 2; }
 /* ===== Всплывашка «Новое достижение» ===== */
 .ach-toast {
   position: fixed; left: 50%; z-index: 1080;

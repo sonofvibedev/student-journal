@@ -1713,17 +1713,17 @@
       </button>
     </div>
 
-    <!-- Достижения — одна строка: сколько значков получено, три последних и «Все».
-         Строку заполняет renderProfileBadges() из achievements.js, она же
+    <!-- Достижения — одна строка-вход: сколько значков получено, место в группе и «Все».
+         Строку заполняет renderProfileAch() из achievements.js, она же
          прячет группу, пока входа нет. Подсказка «что дальше» (profileAchNote)
          скрыта от глаз, но читается экранным диктором; полный список — в окне openAchSheet. -->
     <div class="group d-none" id="profileAchGroup">
       <button type="button" class="tile wide ach-tile" id="profileAchTile" onclick="openAchSheet()" aria-label="Все достижения" aria-describedby="profileAchNote">
         <span class="ach-main">
+          <span class="ach-kick">Достижения</span>
           <span class="ach-line"><span class="tile-num" id="profileAchCount">0</span> <span class="tile-note" id="profileAchTotal">значков</span></span>
           <span class="ach-place" id="profileAchRank"></span>
         </span>
-        <span class="ach-strip" id="profileBadges"></span>
         <span class="ach-all" aria-hidden="true">Все<span class="chev">&rsaquo;</span></span>
         <span class="visually-hidden" id="profileAchNote"></span>
       </button>

@@ -458,7 +458,7 @@ async function achCheckEarned() {
     achState.periods.get(d.code).add(d.period || '');
   });
   achShowNewBadges();
-  renderProfileBadges();
+  renderProfileAch();
   if (achSheetOpen()) renderAchievementsView();
 }
 
@@ -542,13 +542,14 @@ async function achLoadAll() {
 }
 
 // ============================================================================
-// Экраны: плитка на главной, раздел «Достижения», полоска значков в профиле,
+// Экраны: плитка на главной, раздел «Достижения», плитка-вход в профиле,
 // всплывашка о новом значке.
 // ============================================================================
 
+const ACH_MONTHS_SHORT = ['янв.', 'февр.', 'мар.', 'апр.', 'мая', 'июн.', 'июл.', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
 const achFormatDate = (iso) => {
   const d = new Date(iso);
-  return isNaN(d) ? '' : dlFormatDate(d);
+  return isNaN(d) ? '' : d.getDate() + ' ' + ACH_MONTHS_SHORT[d.getMonth()];
 };
 
 // Склонение: 1 значок, 2 значка, 5 значков
@@ -668,52 +669,39 @@ function renderAchSummary() {
     '<div class="ach-sum-note">дней серии</div></div>';
 }
 
-// Карточка достижения со шкалой выполнения
+// Карточка достижения: получено — цветная с датой, нет — приглушена, с условием и прогрессом
 function achCardHtml(a, stats) {
   const p = achProgressOf(a.code, stats) || { have: 0, need: 1, text: '' };
   const row = achState.earned.get(a.code);
+  const isEarned = !!(p.earned || (p.months && p.months.length));
   const fill = p.need ? Math.max(0, Math.min(1, p.have / p.need)) : 0;
   const cls = ['ach-card'];
-  if (p.earned || (p.months && p.months.length)) cls.push('is-earned');
+  if (isEarned) cls.push('is-earned');
   if (a.anti) cls.push('is-anti');
   if (p.blocked) cls.push('is-blocked');
 
   let extra = '';
-  if (p.checklist) {
+  if (p.checklist && !isEarned) {
     extra = '<ul class="ach-check">' + p.checklist.map((c) =>
       '<li class="' + (c.done ? 'done' : '') + '">' + (c.done ? '✓' : '○') + ' ' + escapeHtml(c.text) + '</li>').join('') + '</ul>';
   }
+  // Антидостижение — повторяемое: его шкала нужна и после получения
+  const showBar = !isEarned || a.anti;
+  const when = p.months && p.months.length
+    ? 'Получено: ' + p.months.join(', ')
+    : (row ? 'Получено ' + achFormatDate(row.earned_at) : '');
 
   return '<div class="' + cls.join(' ') + '">' +
-    achBadgeHtml(a.code, !(p.earned || (p.months && p.months.length))) +
+    achBadgeHtml(a.code, !isEarned) +
     '<div class="ach-card-body">' +
       '<div class="ach-card-title"><b>' + escapeHtml(a.title) + '</b></div>' +
       '<div class="ach-about">' + escapeHtml(a.about) + '</div>' +
       extra +
-      '<div class="ach-bar"><i style="--ach-fill:' + fill + '"></i></div>' +
-      '<div class="ach-bar-text">' + escapeHtml(p.text) + '</div>' +
-      (p.months && p.months.length
-        ? '<div class="ach-when">Получено: ' + escapeHtml(p.months.join(', ')) + '</div>'
-        : (row ? '<div class="ach-when">Получено ' + escapeHtml(achFormatDate(row.earned_at)) + '</div>' : '')) +
-    '</div></div>';
-}
-
-// Серия — одна карточка-лесенка из шести ступеней
-function achStreakCardHtml(stats) {
-  const steps = achLadder('streak');
-  const nextStep = steps.find((s) => stats.streak < s.need) || steps[steps.length - 1];
-  const fill = Math.max(0, Math.min(1, stats.streak / nextStep.need));
-  const code = [...steps].reverse().find((s) => achState.earned.has(s.code));
-  return '<div class="ach-card' + (code ? ' is-earned' : '') + '">' +
-    achBadgeHtml(code ? code.code : steps[0].code, !code) +
-    '<div class="ach-card-body">' +
-      '<div class="ach-card-title"><b>Серия без пропусков</b></div>' +
-      '<div class="ach-about">Учебные дни подряд без неуважительных пропусков</div>' +
-      '<div class="ach-bar"><i style="--ach-fill:' + fill + '"></i></div>' +
-      '<div class="ach-bar-text">Серия ' + stats.streak + ' из ' + nextStep.need + ' дней</div>' +
-      '<div class="ach-steps">' + steps.map((s) =>
-        '<span class="ach-step' + (achState.earned.has(s.code) ? ' done' : '') + '">' +
-        s.need + ' · ' + escapeHtml(s.title) + '</span>').join('') + '</div>' +
+      (showBar
+        ? '<div class="ach-bar"><i style="--ach-fill:' + fill + '"></i></div>' +
+          '<div class="ach-bar-text">' + escapeHtml(p.text) + '</div>'
+        : '') +
+      (when ? '<div class="ach-when">' + escapeHtml(when) + '</div>' : '') +
     '</div></div>';
 }
 
@@ -727,11 +715,9 @@ function renderAchMine() {
   const stats = achStats();
   box.innerHTML = ACH_CATEGORIES.map((cat) => {
     const list = ACHIEVEMENTS.filter((a) => a.cat === cat.id);
-    const cards = cat.id === 'attendance'
-      ? [achStreakCardHtml(stats)].concat(list.filter((a) => a.group !== 'streak').map((a) => achCardHtml(a, stats)))
-      : list.map((a) => achCardHtml(a, stats));
+    const cards = list.map((a) => achCardHtml(a, stats));
     const warn = cat.id === 'anti' ? achAntiWarning(stats) : '';
-    return '<div class="kicker mt-3">' + cat.title + '</div>' + warn + cards.join('');
+    return '<div class="kicker mt-3">' + cat.title + '</div>' + warn + '<div class="ach-grid">' + cards.join('') + '</div>';
   }).join('');
 }
 
@@ -761,25 +747,19 @@ function renderAchRules() {
 }
 
 // ===== Плитка «Достижения» в профиле =====
-// Вместо прокручиваемого списка значков — одна плитка: сколько значков
-// получено из общего числа и три последних. Всё остальное — в окне
-// достижений (openAchSheet в index.html).
-function renderProfileBadges() {
-  const box = document.getElementById('profileBadges');
+// Одна плитка-вход: сколько значков получено из общего числа, место в группе
+// и что дальше. Сама коллекция — в окне достижений (openAchSheet в index.html).
+function renderProfileAch() {
   const group = document.getElementById('profileAchGroup');
-  if (!box || !group) return;
+  if (!group) return;
   const signed = AppState.auth === 'signed';
   group.classList.toggle('d-none', !signed);
   if (!signed) return;
 
-  const codes = [...achState.earned.entries()]
-    .filter(([code]) => !(ACH_BY_CODE[code] || {}).anti)
-    .sort((a, b) => String(b[1].earned_at).localeCompare(String(a[1].earned_at)))
-    .map(([code]) => code);
+  const codes = achLatestCodes(Infinity);
 
   document.getElementById('profileAchCount').textContent = codes.length;
   document.getElementById('profileAchTotal').textContent = achBadgeWord(codes.length) + ' из ' + ACH_TOTAL;
-  box.innerHTML = codes.slice(0, 3).map((c) => achBadgeHtml(c, false)).join('');
 
   // Место в рейтинге группы: подгружаем в фоне и дописываем, когда придёт
   const rankEl = document.getElementById('profileAchRank');
@@ -836,7 +816,7 @@ function achNoteServerBadges(codes) {
     achState.periods.get(code).add('');
   });
   achShowNewBadges();
-  renderProfileBadges();
+  renderProfileAch();
   if (achSheetOpen()) renderAchievementsView();
 }
 
@@ -860,7 +840,7 @@ async function achInit() {
   await achMigrateLocalHomework();
   await achLoadAll();
   achLogEvent('first_login');
-  renderProfileBadges();
+  renderProfileAch();
   achShowNewBadges();
   if (achSheetOpen()) renderAchievementsView();
 }
