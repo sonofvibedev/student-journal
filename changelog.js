@@ -10,7 +10,7 @@
 'use strict';
 
 const APP_VERSION = '1.9.1';
-const APP_VERSION_DATE = '01.11.2026, 01:05';
+const APP_VERSION_DATE = '03.11.2026, 20:00';
 
 // Сверху — самая новая версия. date у прошлых версий фиксированная;
 // у текущей берётся APP_VERSION_DATE, которую ставит деплой.
