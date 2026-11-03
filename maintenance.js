@@ -25,9 +25,9 @@
       '#maintScreen .m-card{max-width:360px;text-align:center;padding:28px 24px;border-radius:24px;color:#e5e5ea;' +
       'background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 60px rgba(0,0,0,.45)}' +
       '#maintScreen h1{font-size:1.25rem;margin:0 0 8px;color:#fff}' +
-      '#maintScreen p{margin:0 0 18px;color:#aeaeb2}' +
+      '#maintScreen p{margin:0;color:#aeaeb2}' +
       '#maintScreen button{font:inherit;border:0;border-radius:12px;padding:10px 20px;color:#fff;background:#0a84ff;cursor:pointer}' +
-      '#maintScreen button.m-link{background:none;color:#8e8e93;font-size:.8125rem;margin-top:12px;padding:6px}' +
+      '#maintScreen button.m-link{background:none;color:#8e8e93;font-size:.75rem;margin-top:16px;padding:6px;opacity:.7}' +
       '#maintBanner{position:fixed;top:0;left:0;right:0;z-index:1040;pointer-events:none;text-align:center;' +
       'padding:calc(env(safe-area-inset-top,0px) + 2px) 8px 2px;font-size:.75rem;font-weight:600;color:#1c1400;background:#ffd60a}';
     document.head.appendChild(st);
@@ -43,13 +43,11 @@
     el.setAttribute('aria-labelledby', 'maintTitle');
     el.innerHTML =
       '<div class="m-card"><h1 id="maintTitle">Ведутся технические работы</h1>' +
-      '<p>Журнал скоро вернётся. Загляните чуть позже.</p>' +
-      '<button type="button" id="maintReload">Обновить</button>' +
-      '<div><button type="button" class="m-link" id="maintAdminLogin">Вход для старосты</button></div></div>';
+      '<p>Вернитесь, пожалуйста, позже.</p>' +
+      '<button type="button" class="m-link" id="maintAdminLogin">Вход для старосты</button></div>';
     document.body.appendChild(el);
     // Остальное содержимое недоступно ни мышью, ни клавиатурой, ни экранным диктором
     Array.prototype.forEach.call(document.body.children, (c) => { if (c !== el) c.inert = true; });
-    $('maintReload').onclick = () => location.reload();
     $('maintAdminLogin').onclick = () => { guestBypass = true; apply(); location.hash = '#profile'; };
     $('maintAdminLogin').hidden = typeof AppState !== 'undefined' && AppState.auth === 'signed';
   }
