@@ -39,6 +39,14 @@
       "dueDate": "2026-11-09",
       "subject": "Интегрированные маркетинговые коммуникации",
       "createdAt": "2026-11-03T04:38:20.516Z"
+    },
+    {
+      "id": "dl-1793770936540",
+      "text": "Мудл: https://elearning.bseu.by/mod/quiz/view.php?id=23879",
+      "type": "deadline",
+      "dueDate": "2026-11-05",
+      "subject": "Функционально-стоимостный анализ",
+      "createdAt": "2026-11-04T05:42:16.540Z"
     }
   ],
   "subjects": [
@@ -112,7 +120,7 @@
     }
   ],
   "announcements": [],
-  "lastUpdated": "2026-11-03T18:51:35.474Z",
+  "lastUpdated": "2026-11-04T05:42:18.927Z",
   "homework": [
     {
       "id": "hw-1793680539571",
