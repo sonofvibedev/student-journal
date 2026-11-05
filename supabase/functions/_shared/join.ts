@@ -1,7 +1,7 @@
 // Общее для функций «Журнала 2.0»: вход в группу по коду и регистрация старосты.
-import { admin, json, sha256hex, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX, loginToEmail } from './common.ts';
+import { admin, cors, json, sha256hex, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX, loginToEmail } from './common.ts';
 
-export { admin, json, sha256hex, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX, loginToEmail };
+export { admin, cors, json, sha256hex, normLogin, LOGIN_RE, PASSWORD_MIN, PASSWORD_MAX, loginToEmail };
 
 export const MAX_FAILS = 5;          // неверных кодов группы
 export const WINDOW_MIN = 15;        // за 15 минут с одного адреса, после этого блок на те же 15 минут
