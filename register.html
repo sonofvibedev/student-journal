@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0C11">
+<title>Регистрация старосты</title>
+<link rel="stylesheet" href="j2.css">
+<style>
+  /* Только то, чего нет в j2.css: стрелка у списков, строки студентов, видимый фокус, скрытый для глаз текст */
+  .j2-field select { padding-right: 26px; cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' fill='none' stroke='%239AA0AE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 2px center; }
+  .j2-field select:disabled { opacity: .5; cursor: not-allowed; }
+  .j2-back:focus-visible, .j2-field select:focus-visible, .j2-field textarea:focus-visible, .j2-field input:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+  .j2-h1:focus { outline: none; }
+  .j2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .j2-kicker .j2-back { margin-right: auto; }
+  .j2-hint { color: var(--j-muted); font-size: 14px; margin: 0 0 14px; }
+  .j2-btnrow { display: flex; gap: 10px; }
+  .j2-btnrow .j2-btn { flex: 1; min-width: 0; font-size: 16px; padding: 12px 8px; text-align: center; }
+  .j2-card h2 .j2-ok { color: var(--j-lime); margin-right: 6px; }
+  .j2-card .j2-list { margin: 0; }
+  .j2-list li > div { min-width: 0; overflow-wrap: anywhere; }
+  .j2-list .num { font-weight: 800; white-space: nowrap; }
+  .j2-sum { margin: 0 0 6px; font-size: 17px; color: var(--j-text); font-weight: 700; }
+  .j2-stud li { flex-wrap: wrap; gap: 8px; }
+  .j2-stud .nm { flex: 1 1 140px; font-weight: 600; }
+  .j2-stud .j2-chip { padding: 8px 12px; }
+  .j2-stud .j2-chip.on { background: var(--j-amber); border-color: var(--j-amber); }
+  .j2-stud .rm { flex: none; width: var(--j-tap); height: var(--j-tap); padding: 0; display: grid; place-items: center; font-size: 20px; line-height: 1;
+    border: 1px solid var(--j-card-border); border-radius: 14px; background: none; color: var(--j-muted); cursor: pointer; }
+  .j2-stud .rm:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+  .j2-stud li.dup { border: 1px solid var(--j-coral); border-radius: 14px; padding: 10px; margin: 4px 0; }
+  .j2-stud .dupnote { display: block; color: var(--j-coral); font-size: 13px; font-weight: 500; }
+  .j2-stud li.edit .j2-field { flex: 1 1 200px; margin: 0; }
+  .j2-code-box { text-align: center; }
+  .j2-code-box .j2-code { font-size: 30px; letter-spacing: .1em; overflow-wrap: anywhere; }
+  .j2-link { background: none; border: 0; padding: 0 4px; min-height: var(--j-tap); color: var(--j-text); font: 600 15px 'Onest', sans-serif; text-decoration: underline; cursor: pointer; }
+  .j2-link:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+  .j2-center { text-align: center; }
+</style>
+</head>
+<body class="j2">
+<main class="j2-wrap">
+  <div class="j2-kicker">
+    <button type="button" class="j2-back j2-hidden" id="back"><span aria-hidden="true">‹&nbsp;</span>Назад</button>
+    <span>Регистрация старосты</span>
+  </div>
+
+  <div id="stepsBox">
+    <div class="j2-steps" id="steps" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <p class="j2-sub" id="stepLabel" style="margin:0 0 6px"></p>
+  </div>
+  <h1 class="j2-h1" id="h1" tabindex="-1"></h1>
+  <p class="j2-sub j2-hidden" id="h1sub"></p>
+
+  <!-- Шаг 1: группа -->
+  <form id="s1" class="j2-hidden" novalidate>
+    <label class="j2-field"><span>Факультет</span><select id="fac" disabled></select></label>
+    <div class="j2-row">
+      <label class="j2-field"><span>Форма обучения</span><select id="frm" disabled></select></label>
+      <label class="j2-field"><span>Курс</span><select id="crs" disabled></select></label>
+    </div>
+    <label class="j2-field"><span>Группа</span><select id="grp" disabled></select></label>
+    <div id="manualBox" class="j2-hidden">
+      <div class="j2-card warn">
+        <p id="listErr" style="color:var(--j-text)"></p>
+        <button type="button" class="j2-btn small" id="retry" style="margin-top:10px">Повторить</button>
+      </div>
+      <label class="j2-field"><span>Название группы</span><input id="manual" type="text" maxlength="60" autocomplete="off" placeholder="например, 24ДММ-3"></label>
+      <p class="j2-hint">Если списки не загрузились, введите название группы текстом. Расписание тогда не найдётся, заявку можно отправить без него.</p>
+    </div>
+    <p class="j2-hint" id="s1hint">Поля те же, что на bseu.by: по ним журнал найдёт расписание вашей группы.</p>
+    <p class="j2-msg" id="m1" role="status" aria-live="polite"></p>
+    <button type="submit" class="j2-btn primary" id="next1" disabled>Дальше</button>
+    <div class="j2-center"><button type="button" class="j2-link" id="toLogin1">Уже начинали? Войти</button></div>
+  </form>
+
+  <!-- Шаг 2: вы -->
+  <form id="s2" class="j2-hidden" novalidate>
+    <label class="j2-field"><span>Фамилия и имя</span><input id="name" type="text" maxlength="80" autocomplete="name" placeholder="Козлова Анна"></label>
+    <label class="j2-field"><span>Почта для входа</span><input id="email" type="email" maxlength="254" autocomplete="email" inputmode="email" placeholder="anna@example.com"></label>
+    <label class="j2-field" id="pwBox"><span>Пароль (8–72 символа)</span><input id="pw" type="password" maxlength="72" autocomplete="new-password"></label>
+    <div class="j2-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div><b style="display:block">Telegram для уведомлений</b><span style="color:var(--j-muted);font-size:14px">Код придёт на следующем шаге</span></div>
+      <b style="color:var(--j-muted);font-size:14px;white-space:nowrap">не привязан</b>
+    </div>
+    <p class="j2-hint">Заявку подтвердит администратор журнала. До этого вы сможете подготовить список студентов.</p>
+    <p class="j2-msg" id="m2" role="status" aria-live="polite"></p>
+    <button type="submit" class="j2-btn primary" id="next2">Дальше</button>
+    <div class="j2-center"><button type="button" class="j2-link" id="toLogin2">Уже начинали? Войти</button></div>
+  </form>
+
+  <!-- Вход для тех, кто уже начинал -->
+  <form id="sl" class="j2-hidden" novalidate>
+    <label class="j2-field"><span>Почта для входа</span><input id="lemail" type="email" maxlength="254" autocomplete="email" inputmode="email"></label>
+    <label class="j2-field"><span>Пароль</span><input id="lpw" type="password" maxlength="72" autocomplete="current-password"></label>
+    <p class="j2-msg" id="ml" role="status" aria-live="polite"></p>
+    <button type="submit" class="j2-btn primary" id="loginBtn">Войти</button>
+  </form>
+
+  <!-- Шаг 3: студенты -->
+  <form id="s3" class="j2-hidden" novalidate>
+    <label class="j2-field"><span>Вставьте список, по одному в строке</span>
+      <textarea id="paste" rows="5" autocomplete="off" spellcheck="false" placeholder="Иванова Мария&#10;Петров Дмитрий, платная&#10;Сидоренко Ольга&#10;…"></textarea></label>
+    <div class="j2-btnrow" style="margin-bottom:10px">
+      <button type="button" class="j2-btn primary" id="load" style="margin:0">Загрузить список</button>
+      <button type="button" class="j2-btn" id="addOne" style="margin:0">Добавить по одному</button>
+    </div>
+    <p class="j2-hint">После фамилии и имени через запятую можно указать «платная». Без метки студент считается на бюджете.</p>
+    <div class="j2-card" id="sumCard">
+      <p class="j2-sum" id="sumTitle">Пока никого не добавлено</p>
+      <ul class="j2-list">
+        <li><span>Бюджет</span><span class="j2-num" id="nBudget">0</span></li>
+        <li><span>Платная форма</span><span class="j2-num amber" id="nPaid">0</span></li>
+      </ul>
+    </div>
+    <div class="j2-card j2-hidden" id="listCard"><ul class="j2-list j2-stud" id="studList"></ul></div>
+    <label class="j2-field j2-hidden" id="meBox"><span>Это я (необязательно)</span><select id="me"></select></label>
+    <p class="j2-hint">Форму обучения можно поменять у каждого. Позже студентов можно добавлять и убирать в кабинете старосты.</p>
+    <p class="j2-msg" id="m3" role="status" aria-live="polite"></p>
+    <button type="submit" class="j2-btn primary" id="next3">Дальше</button>
+  </form>
+
+  <!-- Шаг 4: расписание -->
+  <form id="s4" class="j2-hidden" novalidate>
+    <div id="schedBox" aria-live="polite"></div>
+    <p class="j2-msg" id="m4" role="status" aria-live="polite"></p>
+    <button type="submit" class="j2-btn primary" id="submit4">Отправить заявку</button>
+  </form>
+
+  <!-- Заявка отправлена -->
+  <section id="s5" class="j2-hidden" aria-live="polite">
+    <div id="s5body"></div>
+  </section>
+</main>
+<script src="env.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="j2-core.js"></script>
+<script src="register.js"></script>
+</body>
+</html>
