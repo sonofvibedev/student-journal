@@ -11,3 +11,6 @@ package-lock.json
 tools/assoc/model/
 tools/assoc/out/
 tools/assoc/dict.txt
+
+# Тестовое окружение: пароли, ключи, токен тестового бота
+.env.test
