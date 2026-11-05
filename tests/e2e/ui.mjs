@@ -8,6 +8,7 @@ import { createServer } from 'node:http';
 import { join, extname, resolve } from 'node:path';
 import { chromium } from 'playwright-core';
 import { assertTestTarget, PROD_REF } from '../../tools/test/guard.mjs';
+import { findChrome } from '../../tools/test/chrome.mjs';
 
 const env = Object.fromEntries(readFileSync('.env.test', 'utf8').split(/\r?\n/).filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 const TEST = assertTestTarget(env.TEST_PROJECT_REF);
@@ -32,7 +33,7 @@ const shots = resolve(process.env.TEMP ?? '.', 'ui-e2e'); mkdirSync(shots, { rec
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'OK    ' : 'ПРОВАЛ'} ${name}${ok ? '' : ' — ' + detail}`); };
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
+const browser = await chromium.launch({ executablePath: findChrome() });
 async function newCtx() {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU' });
   await ctx.route('**/*', (route) => {

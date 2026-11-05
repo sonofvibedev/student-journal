@@ -106,6 +106,11 @@ const sqlStmts = [
 ];
 testSql(sqlStmts.join('\n'), 'copy');
 
+// Перенос в схему 2.0 (группа 24ДММ-2, студенты, пропуски, членства): тот же вызов, что делает миграция на проде.
+// Под сервисной ролью, потому что функция закрыта для клиентов.
+const imp = await api('/rest/v1/rpc/journal2_import_legacy', { method: 'POST', body: '{}' });
+console.log('journal2_import_legacy:', JSON.stringify(imp).slice(0, 200));
+
 const a = testRows(`select
   (select jsonb_array_length(students) from public.journal_private where id='main') students,
   (select jsonb_array_length(absences) from public.journal_private where id='main') absences,
