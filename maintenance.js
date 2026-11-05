@@ -10,7 +10,6 @@
   let state = { on: false, admin: false };
   let busy = false;
   let lastAt = 0;
-  let guestBypass = false;        // гость открыл вход для старосты: экран не мешает ему войти
 
   const $ = (id) => document.getElementById(id);
   const client = () => (typeof sb !== 'undefined' ? sb : null);
@@ -26,8 +25,6 @@
       'background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 60px rgba(0,0,0,.45)}' +
       '#maintScreen h1{font-size:1.25rem;margin:0 0 8px;color:#fff}' +
       '#maintScreen p{margin:0;color:#aeaeb2}' +
-      '#maintScreen button{font:inherit;border:0;border-radius:12px;padding:10px 20px;color:#fff;background:#0a84ff;cursor:pointer}' +
-      '#maintScreen button.m-link{background:none;color:#8e8e93;font-size:.75rem;margin-top:16px;padding:6px;opacity:.7}' +
       '#maintBanner{position:fixed;top:0;left:0;right:0;z-index:1040;pointer-events:none;text-align:center;' +
       'padding:calc(env(safe-area-inset-top,0px) + 2px) 8px 2px;font-size:.75rem;font-weight:600;color:#1c1400;background:#ffd60a}';
     document.head.appendChild(st);
@@ -43,13 +40,10 @@
     el.setAttribute('aria-labelledby', 'maintTitle');
     el.innerHTML =
       '<div class="m-card"><h1 id="maintTitle">Журнал ушёл на глобальное обновление</h1>' +
-      '<p>Готовится что-то новое…</p>' +
-      '<button type="button" class="m-link" id="maintAdminLogin">Вход для старосты</button></div>';
+      '<p>Готовится что-то новое…</p></div>';
     document.body.appendChild(el);
     // Остальное содержимое недоступно ни мышью, ни клавиатурой, ни экранным диктором
     Array.prototype.forEach.call(document.body.children, (c) => { if (c !== el) c.inert = true; });
-    $('maintAdminLogin').onclick = () => { guestBypass = true; apply(); location.hash = '#profile'; };
-    $('maintAdminLogin').hidden = typeof AppState !== 'undefined' && AppState.auth === 'signed';
   }
 
   function hideScreen() {
@@ -60,10 +54,8 @@
   }
 
   function apply() {
-    const signed = typeof AppState !== 'undefined' && AppState.auth === 'signed';
-    if (signed) guestBypass = false;   // вошёл, но не староста: экран возвращается
     const blocked = state.on && !state.admin;
-    if (blocked && !guestBypass) showScreen(); else hideScreen();
+    if (blocked) showScreen(); else hideScreen();
 
     ensureStyles();
     let banner = $('maintBanner');
