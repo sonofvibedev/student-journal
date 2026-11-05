@@ -1,4 +1,4 @@
-// Поиск расписания группы на bseu.by (шаги 1 и 4 регистрации старосты). Нужен вход.
+// Поиск расписания группы на bseu.by (шаги 1 и 4 регистрации старосты). Списки открыты (с лимитом), «find» требует вход.
 //   { action: 'faculties' }                                   → [{ value, text }]
 //   { action: 'forms',   faculty }                            → [{ value, text }]
 //   { action: 'courses', faculty, form }                      → [{ value, text }]
@@ -85,12 +85,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
-  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
-  const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };
-  if (!auth?.user) return json({ error: 'unauthorized' }, 401);
-
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad_request' }, 400); }
+
+  // Списки (факультеты, формы, курсы, группы) нужны на шаге 1, до создания аккаунта: открыты, но с лимитом по адресу.
+  // «find» пишет в черновик заявки и требует вход.
+  let userId: string | null = null;
+  if (body.action === 'find') {
+    const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+    if (!auth?.user) return json({ error: 'unauthorized' }, 401);
+    userId = auth.user.id;
+  }
 
   const ipHash = await ipHashOf(req, 'journal2-sched');
   const since = new Date(Date.now() - 10 * 60_000).toISOString();
@@ -113,7 +119,7 @@ Deno.serve(async (req) => {
       const rid = typeof body.request_id === 'string' ? body.request_id : null;
       if (rid) {
         const { data: reqRow } = await admin.from('registration_requests').select('id, payload, status, owner_user_id').eq('id', rid).maybeSingle();
-        if (reqRow && reqRow.owner_user_id === auth.user.id && reqRow.status === 'draft') {
+        if (reqRow && reqRow.owner_user_id === userId && reqRow.status === 'draft') {
           const payload = { ...(reqRow.payload ?? {}), schedule: sum.found ? { ...sum, bseu: { faculty, form, course, group }, checked_at: new Date().toISOString() } : null };
           await admin.from('registration_requests').update({ payload, schedule_status, updated_at: new Date().toISOString() }).eq('id', rid);
         }

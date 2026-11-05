@@ -2,6 +2,8 @@
 //   { action: 'lookup', code }                                    → { group: {id, name}, students: [{id, name}] }  (только свободные)
 //   { action: 'claim', code, student_id, login, password,
 //     consent: { accepted: true, version, text_hash } }           → { ok: true, login }
+//   { action: 'release' } + Authorization: Bearer <access_token>   → { ok: true }   «Это не я»: пока студент в ожидании, запись освобождается,
+//                                                                    аккаунт удаляется (терять нечего), вход начинается заново
 // Без входа. Лимит: 5 неверных кодов с одного адреса за 15 минут, потом блок на 15 минут.
 // Аккаунт создаётся здесь (публичная регистрация в Auth выключена); доступ к данным группы
 // студент получит только после подтверждения старостой (membership.status = 'active', RLS).
@@ -15,7 +17,23 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch (_) { return json({ error: 'bad_request' }, 400); }
-  if (body.action !== 'lookup' && body.action !== 'claim') return json({ error: 'bad_request' }, 400);
+  if (body.action !== 'lookup' && body.action !== 'claim' && body.action !== 'release') return json({ error: 'bad_request' }, 400);
+
+  if (body.action === 'release') {
+    const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const { data: auth } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+    if (!auth?.user) return json({ error: 'unauthorized' }, 401);
+    const uid = auth.user.id;
+    // Только пока студент ждёт подтверждения или старый ответ «Не он»: активного студента отпускает только староста (student_reset_binding)
+    const { data: mem } = await admin.from('memberships').select('group_id, student_id, status').eq('user_id', uid).in('status', ['pending', 'rejected']).maybeSingle();
+    if (!mem) return json({ error: 'not_pending' }, 409);
+    if (mem.student_id) {
+      await admin.from('students').update({ claim_status: 'free', claimed_by: null, claimed_at: null }).eq('id', mem.student_id).eq('claimed_by', uid);
+    }
+    await admin.from('audit_log').insert({ actor: uid, group_id: mem.group_id, action: 'join_release', details: { student_id: mem.student_id } });
+    await admin.auth.admin.deleteUser(uid);
+    return json({ ok: true });
+  }
 
   const ipHash = await ipHashOf(req, 'journal2-join');
   if ((await failsInWindow(ipHash, 'join')) >= MAX_FAILS) return json({ error: 'too_many_attempts', retry_after_min: 15 }, 429);
