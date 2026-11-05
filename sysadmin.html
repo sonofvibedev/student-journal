@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<title>Системный администратор</title>
+<link rel="stylesheet" href="j2.css">
+<style>
+  /* Только то, чего нет в j2.css: нижняя панель разделов и мелочи утилиты */
+  .sa-wrap { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+  .sa-nav { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 50; padding: 0 12px; pointer-events: none; }
+  .sa-nav > div { pointer-events: auto; max-width: 456px; margin: 0 auto; display: flex; gap: 4px; padding: 6px; border-radius: 30px;
+    background: rgba(20, 23, 31, .92); border: 1px solid var(--j-card-border); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  .sa-nav button { flex: 1; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    border: 0; border-radius: 24px; background: none; color: var(--j-text); font: 600 12px/1.1 'Onest', system-ui, sans-serif; cursor: pointer; }
+  .sa-nav button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .sa-nav button[aria-current="page"] { background: var(--j-lime); color: var(--j-lime-ink); }
+  .sa-nav button:focus-visible, .sa-link:focus-visible, summary:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+  .sa-link { min-height: var(--j-tap); padding: 0 8px; border: 0; background: none; color: var(--j-muted); font: 600 14px 'Onest', sans-serif; cursor: pointer; text-decoration: underline; }
+  .sa-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 12px; color: var(--j-muted); font-size: 14px; min-height: var(--j-tap); }
+  .sa-top > span { white-space: nowrap; }
+  .sa-pill { flex: none; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 12px; border: 1px solid currentColor; }
+  .sa-pill.ok { color: var(--j-lime); } .sa-pill.wait { color: var(--j-amber); } .sa-pill.off { color: var(--j-muted); }
+  .sa-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .sa-head h2 { overflow-wrap: anywhere; }
+  .sa-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+  .sa-actions .j2-btn { flex: 1 1 140px; margin: 0; }
+  .sa-card-p { margin: 4px 0 0; overflow-wrap: anywhere; }
+  .sa-code-box { margin: 10px 0; }
+  .sa-people { margin: 8px 0 0; padding-left: 22px; color: var(--j-text); font-size: 14px; }
+  .sa-people li { padding: 3px 0; }
+  details > summary { cursor: pointer; min-height: var(--j-tap); display: flex; align-items: center; color: var(--j-lime); font-weight: 600; font-size: 15px; }
+  .sa-mono { font: 500 12px/1.4 ui-monospace, Consolas, monospace; color: var(--j-muted); overflow-wrap: anywhere; word-break: break-word; }
+  .sa-thr { display: flex; gap: 10px; align-items: flex-end; margin-top: 10px; }
+  .sa-thr .j2-field { flex: 1; min-width: 0; margin: 0; }
+  .sa-thr .j2-btn { width: auto; flex: none; margin: 0; }
+  .sa-field-sel { margin-bottom: 12px; }
+  .sa-field-sel select { padding-right: 24px; }
+  .j2-list li.sa-log, .j2-list li.sa-mem { flex-direction: column; align-items: stretch; gap: 4px; }
+  .sa-note { color: var(--j-muted); font-size: 14px; margin: 0 0 12px; }
+  .sa-state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .sa-state-grid .j2-card { margin: 0; min-height: 96px; display: flex; flex-direction: column; justify-content: space-between; }
+  .sa-state-grid .big { font-size: 34px; font-weight: 800; color: var(--j-lime); line-height: 1; }
+  .sa-state-grid .big.amber { color: var(--j-amber); }
+</style>
+</head>
+<body class="j2">
+<main class="j2-wrap sa-wrap" id="app">
+  <div class="sa-top"><span id="clock"></span><span id="who">Системный администратор</span><button type="button" class="sa-link j2-hidden" id="logout">Выйти</button></div>
+
+  <!-- Вход -->
+  <section id="login" class="j2-hidden" aria-labelledby="loginTitle">
+    <h1 class="j2-h1" id="loginTitle">Вход</h1>
+    <p class="j2-sub">Служебная утилита системного администратора журнала.</p>
+    <form id="loginForm" novalidate>
+      <label class="j2-field"><span>Почта</span><input id="email" type="email" autocomplete="username" inputmode="email" required></label>
+      <label class="j2-field"><span>Пароль</span><input id="pass" type="password" autocomplete="current-password" required></label>
+      <button class="j2-btn primary" id="loginBtn" type="submit">Войти</button>
+    </form>
+  </section>
+
+  <!-- Основной экран -->
+  <section id="main" class="j2-hidden">
+    <h1 class="j2-h1" id="title" tabindex="-1"></h1>
+    <p class="j2-sub" id="sub"></p>
+    <div id="view"></div>
+  </section>
+
+  <div class="j2-msg" id="msg" role="status" aria-live="polite"></div>
+</main>
+
+<nav class="sa-nav j2-hidden" id="nav" aria-label="Разделы утилиты">
+  <div>
+    <button type="button" data-tab="state"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Состояние</span></button>
+    <button type="button" data-tab="logs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Логи</span></button>
+    <button type="button" data-tab="roles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L16 9.5"/></svg><span>Роли</span></button>
+    <button type="button" data-tab="groups"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5"/><path d="M16 5a3 3 0 010 6M18 14.8c1.8.7 3 2.3 3 5.2"/></svg><span>Группы</span></button>
+  </div>
+</nav>
+
+<script src="env.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="j2-core.js"></script>
+<script src="sysadmin.js"></script>
+</body>
+</html>
