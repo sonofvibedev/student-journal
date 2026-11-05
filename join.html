@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0C11">
+<title>Вход в группу</title>
+<link rel="stylesheet" href="j2.css">
+<style>
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  h1:focus { outline: none; }
+  .j2-h1, .j2-card, .j2-btn, .j2-sub, .j2-msg { overflow-wrap: anywhere; }
+  .j2-field.invalid { border-color: var(--j-coral); }
+  .j2-field .hint { font-size: 13px; color: var(--j-muted); margin: 2px 0 0; }
+  .j2-field input.codein { font-size: 28px; font-weight: 800; letter-spacing: .12em; min-height: 40px; text-transform: uppercase; }
+  .j2-card h2 { overflow-wrap: anywhere; }
+  .j2-card.check { display: flex; align-items: center; gap: 14px; min-height: 64px; cursor: pointer; color: var(--j-text); font-weight: 600; }
+  .j2-card.check input { flex: none; width: 28px; height: 28px; margin: 0; accent-color: var(--j-lime); }
+  .j2-card.check:focus-within { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+  .j2-btn.pick { justify-content: space-between; text-align: left; margin: 0 0 8px; font-weight: 600; }
+  .j2-btn.pick .chev { color: var(--j-muted); font-size: 22px; flex: none; }
+  .j2-btn.primary:focus-visible, .j2-btn.danger:focus-visible { outline-offset: 3px; }
+  #pick-list { list-style: none; margin: 0 0 12px; padding: 0; }
+  .j2-card .who { display: block; font-weight: 700; font-size: 20px; margin: 2px 0 6px; overflow-wrap: anywhere; }
+  .j2-field b { display: block; font: 700 18px/1.3 'Onest', system-ui, sans-serif; overflow-wrap: anywhere; }
+  .j2-timeline .j2-dot { margin-top: 2px; }
+  .j2-timeline li.todo { opacity: .6; }
+  a.j2-btn.link { margin-bottom: 0; }
+  .nojs { color: var(--j-coral); }
+</style>
+</head>
+<body class="j2">
+<main class="j2-wrap">
+
+  <noscript><p class="nojs">Для работы страницы нужен JavaScript. Включите его в настройках браузера.</p></noscript>
+
+  <!-- 1. Код группы -->
+  <section id="sec-code" aria-labelledby="h-code">
+    <p class="j2-kicker"><span>Шаг 1 из 4</span></p>
+    <div class="j2-steps" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+    <h1 class="j2-h1" id="h-code" tabindex="-1">Вход в группу</h1>
+    <p class="j2-sub">Введите код группы, который дал староста.</p>
+    <form id="f-code" novalidate>
+      <label class="j2-field" id="field-code"><span>Код группы</span>
+        <input id="code" class="codein" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="ABCD EFGH" aria-describedby="hint-code">
+      </label>
+      <p class="j2-sub" id="hint-code" style="font-size:13px;margin:0 0 6px">8 символов, регистр не важен.</p>
+      <div class="j2-msg" id="msg-code" aria-live="polite"></div>
+      <button class="j2-btn primary" type="submit">Дальше</button>
+    </form>
+    <button class="j2-btn link" id="to-login" type="button">Уже есть аккаунт? Войти</button>
+    <a class="j2-btn link" href="register.html">Я староста новой группы</a>
+  </section>
+
+  <!-- Вход в существующий аккаунт -->
+  <section id="sec-login" class="j2-hidden" aria-labelledby="h-login">
+    <p class="j2-kicker"><button class="j2-back" id="login-back" type="button">Назад</button></p>
+    <h1 class="j2-h1" id="h-login" tabindex="-1">Вход в аккаунт</h1>
+    <p class="j2-sub">Введите логин и пароль, которые вы придумали при входе в группу.</p>
+    <form id="f-login" novalidate>
+      <label class="j2-field" id="field-lg-login"><span>Логин</span>
+        <input id="lg-login" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <label class="j2-field" id="field-lg-pw"><span>Пароль</span>
+        <input id="lg-pw" type="password" autocomplete="current-password">
+      </label>
+      <button class="j2-btn small" id="tg-lg" type="button" data-for="lg-pw" style="margin-bottom:10px">Показать пароль</button>
+      <div class="j2-msg" id="msg-login" aria-live="polite"></div>
+      <button class="j2-btn primary" type="submit">Войти</button>
+    </form>
+  </section>
+
+  <!-- 2. Выберите себя -->
+  <section id="sec-pick" class="j2-hidden" aria-labelledby="h-pick">
+    <p class="j2-kicker"><button class="j2-back" id="pick-back" type="button">Назад</button><span>Шаг 2 из 4</span></p>
+    <div class="j2-steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+    <h1 class="j2-h1" id="h-pick" tabindex="-1">Выберите себя</h1>
+    <p class="j2-sub" id="pick-group"></p>
+    <form id="f-search" novalidate>
+      <label class="j2-field" id="field-search"><span>Поиск по фамилии</span>
+        <input id="search" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Начните вводить фамилию">
+      </label>
+    </form>
+    <div class="j2-msg" id="msg-pick" aria-live="polite"></div>
+    <ul id="pick-list"></ul>
+    <div class="j2-card warn j2-hidden" id="pick-empty"><h2 id="pick-empty-t"></h2></div>
+  </section>
+
+  <!-- 2б. Подтверждение выбора -->
+  <section id="sec-confirm" class="j2-hidden" aria-labelledby="h-confirm">
+    <p class="j2-kicker"><span>Шаг 2 из 4</span></p>
+    <div class="j2-steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+    <h1 class="j2-h1" id="h-confirm" tabindex="-1">Это вы?</h1>
+    <div class="j2-card">
+      <p>Вы выбрали:</p>
+      <span class="who" id="confirm-name"></span>
+      <p>Если выбрана чужая запись, нажмите «Назад».</p>
+    </div>
+    <div class="j2-msg" id="msg-confirm" aria-live="polite"></div>
+    <button class="j2-btn primary" id="confirm-yes" type="button">Да, это я</button>
+    <button class="j2-btn" id="confirm-no" type="button">Назад</button>
+  </section>
+
+  <!-- 3. Согласие -->
+  <section id="sec-consent" class="j2-hidden" aria-labelledby="h-consent">
+    <p class="j2-kicker"><span>Шаг 3 из 4</span></p>
+    <div class="j2-steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+    <h1 class="j2-h1" id="h-consent" tabindex="-1">Ваши данные в журнале</h1>
+    <p class="j2-sub">Перед первым входом прочитайте, что хранит журнал и кто это видит.</p>
+    <div id="consent-cards"></div>
+    <label class="j2-card check"><input type="checkbox" id="agree"><span>Согласен на обработку моих данных в журнале</span></label>
+    <div class="j2-msg" id="msg-consent" aria-live="polite"></div>
+    <button class="j2-btn primary" id="consent-ok" type="button" disabled>Принять и продолжить</button>
+    <button class="j2-btn link" id="consent-no" type="button">Не согласен, выйти</button>
+  </section>
+
+  <!-- 4. Логин и пароль -->
+  <section id="sec-account" class="j2-hidden" aria-labelledby="h-account">
+    <p class="j2-kicker"><button class="j2-back" id="account-back" type="button">Назад</button><span>Шаг 4 из 4</span></p>
+    <div class="j2-steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <h1 class="j2-h1" id="h-account" tabindex="-1">Придумайте логин и пароль</h1>
+    <p class="j2-sub">Они понадобятся, чтобы входить в журнал в следующий раз.</p>
+    <form id="f-account" novalidate>
+      <label class="j2-field" id="field-login"><span>Логин</span>
+        <input id="login" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" aria-describedby="hint-login">
+        <p class="hint" id="hint-login">3–32 символа: строчные латинские буквы, цифры, точка и подчёркивание.</p>
+      </label>
+      <label class="j2-field" id="field-pw"><span>Пароль</span>
+        <input id="pw" type="password" autocomplete="new-password" aria-describedby="hint-pw">
+        <p class="hint" id="hint-pw">От 8 до 72 символов.</p>
+      </label>
+      <label class="j2-field" id="field-pw2"><span>Повторите пароль</span>
+        <input id="pw2" type="password" autocomplete="new-password">
+      </label>
+      <button class="j2-btn small" id="tg-pw" type="button" data-for="pw,pw2" style="margin-bottom:10px">Показать пароль</button>
+      <div class="j2-msg" id="msg-account" aria-live="polite"></div>
+      <button class="j2-btn primary" type="submit">Войти в группу</button>
+    </form>
+  </section>
+
+  <!-- 5. Ожидание подтверждения -->
+  <section id="sec-wait" class="j2-hidden" aria-labelledby="h-wait">
+    <h1 class="j2-h1" id="h-wait" tabindex="-1">Ждём подтверждения</h1>
+    <p class="j2-sub" id="wait-group"></p>
+    <div class="j2-field" id="wait-who"><span>Вы выбрали</span><b id="wait-name"></b></div>
+    <div class="j2-card bad j2-hidden" id="wait-bad"><h2>Староста не подтвердил запись</h2><p>Выберите другую фамилию</p></div>
+    <div class="j2-card" id="wait-tl"><ol class="j2-timeline" id="tl" style="margin:0"></ol></div>
+    <div class="j2-msg" id="msg-wait" aria-live="polite"></div>
+    <div id="wait-actions">
+      <button class="j2-btn primary" id="remind" type="button">Напомнить старосте</button>
+      <button class="j2-btn" id="notme" type="button">Это не я, выбрать другую фамилию</button>
+    </div>
+    <div id="wait-rej-actions" class="j2-hidden">
+      <button class="j2-btn primary" id="rej-again" type="button">Выбрать другую фамилию</button>
+    </div>
+    <div class="j2-card warn j2-hidden" id="rel-confirm">
+      <h2 id="rel-h" tabindex="-1">Освободить фамилию?</h2>
+      <p>Аккаунт будет удалён, вы начнёте заново.</p>
+    </div>
+    <div id="rel-actions" class="j2-hidden">
+      <button class="j2-btn danger" id="rel-yes" type="button">Да, освободить</button>
+      <button class="j2-btn" id="rel-no" type="button">Отмена</button>
+    </div>
+  </section>
+
+</main>
+<script src="env.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="j2-core.js"></script>
+<script src="join.js"></script>
+</body>
+</html>
