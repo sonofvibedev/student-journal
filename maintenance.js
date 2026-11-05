@@ -42,8 +42,8 @@
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-labelledby', 'maintTitle');
     el.innerHTML =
-      '<div class="m-card"><h1 id="maintTitle">Ведутся технические работы</h1>' +
-      '<p>Вернитесь, пожалуйста, позже.</p>' +
+      '<div class="m-card"><h1 id="maintTitle">Журнал ушёл на глобальное обновление</h1>' +
+      '<p>Готовится что-то новое…</p>' +
       '<button type="button" class="m-link" id="maintAdminLogin">Вход для старосты</button></div>';
     document.body.appendChild(el);
     // Остальное содержимое недоступно ни мышью, ни клавиатурой, ни экранным диктором
