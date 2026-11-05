@@ -126,7 +126,7 @@ audit_log(id, at, actor, group_id, action, details jsonb)              -- лог
 
 ## 8. Разведка bseu.by/schedule
 
-(Раздел заполняется по итогам разведки; см. `docs/research/bseu-schedule.md`.)
+Подробно: `docs/research/bseu-schedule.md`. Коротко: расписание отдаёт `POST https://bseu.by/schedule/` (поля `faculty`, `form`, `course`, `group`, `period`), списки зависимых полей грузятся тем же URL через `__act`. Без cookie и CSRF. Группа 24ДММ-2: факультет 13, форма 10, курс 3, группа 9457. Ответ в HTML (cp1251), даты в нём нет (только день недели и номер недели). Главный риск: `__act` и разметка могут измениться без предупреждения.
 
 ## 9. Открытые вопросы
 
