@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "test:migrate": "bash tools/test/apply-migrations.sh",
-    "test:reset": "node tools/test/seed-test.mjs"
+    "test:reset": "node tools/test/seed-test.mjs",
+    "test:db": "node tools/test/run-db-tests.mjs",
+    "test:deploy": "bash tools/test/deploy-functions.sh"
   }
 }

@@ -18,9 +18,11 @@ begin
     -- а своих читают
     perform pg_temp.expect_min('своя группа: студент A читает ' || t, pg_temp.u(3),
       format('select 1 from public.%I where group_id = %L', t, ga), 1);
-    -- сисадмин видит обе
+    -- сисадмин видит данные группы (личные события и значки по задумке видны только владельцу: см. docs/stage1-db.md)
+    if t not in ('app_events', 'student_achievements') then
     perform pg_temp.expect_min('сисадмин читает ' || t || ' группы B', pg_temp.u(7),
       format('select 1 from public.%I where group_id = %L', t, gb), 1);
+    end if;
   end loop;
   perform pg_temp.expect_count('изоляция: студент B не читает memberships группы A', pg_temp.u(9),
     format('select 1 from public.memberships where group_id = %L', ga), 0);
@@ -48,8 +50,10 @@ declare
   tbls text[] := array['students', 'absences', 'tasks', 'app_events', 'student_achievements', 'game_records', 'study_days'];
 begin
   foreach t in array tbls loop
-    perform pg_temp.expect_count('pending не читает ' || t || ' своей группы', pg_temp.u(4),
-      format('select 1 from public.%I where group_id = %L', t, 'aaaaaaaa-0000-4000-8000-00000000000a'), 0);
+    -- в students pending видит только свою запись (нужна для экрана ожидания), остальное закрыто
+    perform pg_temp.expect_count('pending читает из ' || t || ' своей группы только допустимое', pg_temp.u(4),
+      format('select 1 from public.%I where group_id = %L', t, 'aaaaaaaa-0000-4000-8000-00000000000a'),
+      case when t = 'students' then 1 else 0 end);
   end loop;
 end $$;
 -- вся таблица целиком (без фильтра): ничего, кроме своей записи
@@ -179,7 +183,8 @@ update public.groups set status = 'active' where id = 'aaaaaaaa-0000-4000-8000-0
 -- ===== 10. Режим техработ =====
 update public.app_settings set value = '{"on": true}'::jsonb where key = 'maintenance';
 select pg_temp.expect_count('техработы: студент B не читает данные', pg_temp.u(9), 'select 1 from public.students', 0);
-select pg_temp.expect_min('техработы: староста группы читает данные', pg_temp.u(1), 'select 1 from public.students', 1);
+-- режим техработ общий: пропускает сисадмина и старосту легаси-группы 24ДММ-2 (is_journal_admin), старосты новых групп закрыты вместе со всеми
+select pg_temp.expect_count('техработы: староста новой группы закрыт', pg_temp.u(1), 'select 1 from public.students', 0);
 select pg_temp.expect_min('техработы: сисадмин читает данные', pg_temp.u(7), 'select 1 from public.students', 1);
 select pg_temp.expect_denied('техработы: студент не пишет', pg_temp.u(9), $$update public.students set subgroup = '1' where id = 't-b2'$$);
 update public.app_settings set value = '{"on": false}'::jsonb where key = 'maintenance';

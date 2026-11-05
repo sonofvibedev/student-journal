@@ -103,6 +103,10 @@ alter table public.student_achievements disable trigger user;
 alter table public.game_records disable trigger user;
 alter table public.tasks disable trigger user;
 
+-- Тестовые аккаунты 1–11 после импорта уже привязаны к студентам 24ДММ-2: освобождаем их на время теста (транзакция откатится)
+update public.students set claimed_by = null, claim_status = 'free' where claimed_by in (select pg_temp.u(i) from generate_series(1, 11) i);
+delete from public.memberships where user_id in (select pg_temp.u(i) from generate_series(1, 11) i);
+
 insert into public.groups (id, name, group_no, course, status) values
   ('aaaaaaaa-0000-4000-8000-00000000000a', 'ТЕСТ-1', 'ТЕСТ-1', 2, 'active'),
   ('bbbbbbbb-0000-4000-8000-00000000000b', 'ТЕСТ-2', 'ТЕСТ-2', 2, 'active')
@@ -140,18 +144,18 @@ insert into public.absences (id, group_id, student_id, date, subject, hours, les
   ('abs-a3', 'aaaaaaaa-0000-4000-8000-00000000000a', 't-a3', '2026-11-04', 'Статистика', 2, 'lecture', pg_temp.u(2)),
   ('abs-b1', 'bbbbbbbb-0000-4000-8000-00000000000b', 't-b2', '2026-11-03', 'Логистика', 2, 'lecture', pg_temp.u(8));
 insert into public.tasks (id, kind, rec, group_id) values
-  ('tk-a1', 'homework', '{"subject":"Статистика"}', 'aaaaaaaa-0000-4000-8000-00000000000a'),
-  ('tk-b1', 'homework', '{"subject":"Логистика"}', 'bbbbbbbb-0000-4000-8000-00000000000b');
+  ('tk-a1', 'homework', '{"id":"tk-a1","subject":"Статистика"}', 'aaaaaaaa-0000-4000-8000-00000000000a'),
+  ('tk-b1', 'homework', '{"id":"tk-b1","subject":"Логистика"}', 'bbbbbbbb-0000-4000-8000-00000000000b');
 insert into public.app_events (user_id, student_id, kind, ref, group_id) values
-  (pg_temp.u(3), 't-a3', 'test', 'a', 'aaaaaaaa-0000-4000-8000-00000000000a'),
-  (pg_temp.u(9), 't-b2', 'test', 'b', 'bbbbbbbb-0000-4000-8000-00000000000b'),
-  (pg_temp.u(10), 't-l1', 'test', 'l', '00000000-0000-4000-8000-000000000024');
+  (pg_temp.u(3), 't-a3', 'first_login', 'a', 'aaaaaaaa-0000-4000-8000-00000000000a'),
+  (pg_temp.u(9), 't-b2', 'first_login', 'b', 'bbbbbbbb-0000-4000-8000-00000000000b'),
+  (pg_temp.u(10), 't-l1', 'first_login', 'l', '00000000-0000-4000-8000-000000000024');
 insert into public.student_achievements (student_id, code, period, semester, group_id) values
   ('t-a3', 'test_a', 'p', 's', 'aaaaaaaa-0000-4000-8000-00000000000a'),
   ('t-b2', 'test_b', 'p', 's', 'bbbbbbbb-0000-4000-8000-00000000000b');
 insert into public.game_records (student_id, game, difficulty, score, proof, group_id) values
-  ('t-a3', 'test', 'e', 1, '{}', 'aaaaaaaa-0000-4000-8000-00000000000a'),
-  ('t-b2', 'test', 'e', 1, '{}', 'bbbbbbbb-0000-4000-8000-00000000000b');
+  ('t-a3', 'sudoku', 'easy', 1, '{}', 'aaaaaaaa-0000-4000-8000-00000000000a'),
+  ('t-b2', 'sudoku', 'easy', 1, '{}', 'bbbbbbbb-0000-4000-8000-00000000000b');
 insert into public.study_days (day, semester, group_id) values
   ('2099-01-01', 'test', 'aaaaaaaa-0000-4000-8000-00000000000a'),
   ('2099-01-02', 'test', 'bbbbbbbb-0000-4000-8000-00000000000b');
