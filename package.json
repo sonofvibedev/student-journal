@@ -1,0 +1,10 @@
+{
+  "name": "student-journal-tests",
+  "private": true,
+  "description": "Только тестовое окружение (проект student-journal-test). Сайт собирается без npm.",
+  "type": "module",
+  "scripts": {
+    "test:migrate": "bash tools/test/apply-migrations.sh",
+    "test:reset": "node tools/test/seed-test.mjs"
+  }
+}
