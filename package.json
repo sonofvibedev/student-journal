@@ -7,6 +7,9 @@
     "test:migrate": "bash tools/test/apply-migrations.sh",
     "test:reset": "node tools/test/seed-test.mjs",
     "test:db": "node tools/test/run-db-tests.mjs",
-    "test:deploy": "bash tools/test/deploy-functions.sh"
+    "test:deploy": "bash tools/test/deploy-functions.sh",
+    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/ui.mjs",
+    "test:all": "npm run test:migrate && npm run test:reset && npm run test:deploy && npm run test:db && npm run test:e2e",
+    "test:ui": "node tests/e2e/ui.mjs"
   }
 }

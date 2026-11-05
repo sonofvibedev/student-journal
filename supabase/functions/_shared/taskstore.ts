@@ -12,8 +12,11 @@ const GH_REPO = Deno.env.get('GITHUB_REPO') ?? 'sonofvibedev/student-journal';
 const GH_BRANCH = Deno.env.get('GITHUB_BRANCH') ?? 'main';
 
 // ---------- Таблица tasks ----------
+const LEGACY_GROUP_ID = '00000000-0000-4000-8000-000000000024';   // 24ДММ-2
 export async function loadLists(): Promise<Lists> {
-  const { data, error } = await admin.from('tasks').select('kind, rec').order('seq');
+  // Зеркало data.json публичное и принадлежит группе 24ДММ-2: задания других групп в него попасть не должны.
+  // Требует колонку tasks.group_id (миграция 20261105200000): выкладывать функцию только после неё.
+  const { data, error } = await admin.from('tasks').select('kind, rec').eq('group_id', LEGACY_GROUP_ID).order('seq');
   if (error) throw new Error('tasks_read');
   const rows = (data ?? []) as Array<{ kind: string; rec: Rec }>;
   return {

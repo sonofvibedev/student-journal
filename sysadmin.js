@@ -298,6 +298,7 @@
       say('Одобряем…');
       const { data, error } = await sb.rpc('sysadmin_approve_registration', { p_request: id });
       if (error) { say(errMsg(error), 'err'); if (/already_approved|not_submitted/.test(error.message || '')) loadReqs(++st.nav); return; }
+      J2.fn('notify-registration', { kind: 'decided', request_id: id });   // староста узнаёт решение (без кода)
       st.code = { reqId: id, code: data && data.code, groupId: data && data.group_id, name };
       say('Заявка одобрена. Запишите код группы: он больше не покажется.', 'ok'); paintReqs();
     });
@@ -309,6 +310,7 @@
       say('Отклоняем…');
       const { error } = await sb.rpc('sysadmin_reject_registration', { p_request: id, p_reason: reason });
       if (error) { say(errMsg(error), 'err'); if (/not_submitted/.test(error.message || '')) loadReqs(++st.nav); return; }
+      J2.fn('notify-registration', { kind: 'decided', request_id: id });
       say('Заявка отклонена.', 'ok'); st.reqs = st.reqs.filter((r) => r.id !== id); paintReqs();
     });
   }

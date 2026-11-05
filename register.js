@@ -496,6 +496,7 @@
       if (err) return say('m4', dbText(err), 'err');
       const r = await J2.sb.rpc('registration_submit', { p_request: S.req.id });
       if (r.error) return say('m4', dbText(r.error), 'err');
+      J2.fn('notify-registration', { kind: 'submitted', request_id: S.req.id });   // письмо и Telegram администратору; сбой не мешает заявке
       say('m4', '');
       S.req.status = 'submitted';
       show(5);
