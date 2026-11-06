@@ -153,14 +153,14 @@ try {
   check('сводка: «Староста, 24ДММ-2» и дата', /Староста, 24ДММ-2/.test(await body()) && /Четверг, 5 ноября/.test(await body()), (await body()).slice(0, 120));
   check('сводка: идёт лекция, «Отметить пропуски», предмет и время', /Сейчас идёт лекция/.test(await body()) && /Отметить пропуски/.test(await body()) && /E2E Эконометрика, 11:15–12:35/.test(await body()));
   check('сводка: плашка ожидающих студентов', await p.locator('a[href="#/summary/requests"]').count() === 1);
-  check('сводка: чат с замком, ссылка на отчёт', /Зашифрован\. Появится в следующей версии/.test(await body()) && await p.locator('a[href="#/summary/report"]').count() === 1);
+  check('сводка: чат с замком, ссылка на отчёт', /Зашифрован/.test(await body()) && !/Появится в следующей версии/.test(await body()) && await p.locator('a[href="#/summary/report"]').count() === 1);
   await noHScroll(p, 'сводка'); await taps(p, 'сводка'); await p.screenshot({ path: join(shots, 'h1-summary.png') });
   await go(p, '#/journal', 'Отметьте отсутствующих');
   await p.locator('.cab-stu').first().waitFor();
   await noHScroll(p, 'журнал'); await taps(p, 'журнал'); await p.screenshot({ path: join(shots, 'h2-journal.png') });
   await go(p, '#/tasks', 'Добавить домашку или дедлайн');
   await noHScroll(p, 'задания'); await taps(p, 'задания'); await p.screenshot({ path: join(shots, 'h3-tasks.png') });
-  await go(p, '#/chat', 'Сквозное шифрование появится в следующей версии журнала');
+  await go(p, '#/chat', 'Защитите переписку');
   await noHScroll(p, 'чат'); await taps(p, 'чат'); await p.screenshot({ path: join(shots, 'h4-chat.png') });
   check('нижняя панель: четыре вкладки', await p.locator('.cab-tab').count() === 4);
 

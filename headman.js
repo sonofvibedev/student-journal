@@ -1,5 +1,5 @@
 // «Журнал 2.0», этап 2: кабинет старосты и заместителя (headman.html). Оболочка и роутер живут в cab-core.js.
-// Здесь только экраны: Сводка (+ заявки, отчёт для деканата), Журнал (пропуски, справки, история), Задания, Чат-заглушка.
+// Здесь только экраны: Сводка (+ заявки, отчёт для деканата), Журнал (пропуски, справки, история), Задания, Чат (экран чата рисует chat-ui.js).
 // Права проверяет сервер (RLS и RPC): страница лишь прячет кнопки, которые всё равно не сработают.
 'use strict';
 (function () {
@@ -82,13 +82,15 @@
   // =====================================================================================================
   async function summary(el, ctx, params, nav) {
     const gid = ctx.group.id, t = Cab.minsk(), day = t.iso;
-    const [pend, lessons, abs, certs, tasks, meta] = await Promise.all([
+    const [pend, lessons, abs, certs, tasks, meta, chatNew] = await Promise.all([
       q(sb.from('students').select('id').eq('group_id', gid).eq('claim_status', 'pending')),
       q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
       q(sb.from('absences').select('subject').eq('group_id', gid).eq('date', day)),
       q(sb.from('certificates').select('id, due_date').eq('group_id', gid).eq('status', 'waiting').order('due_date')),
       q(sb.from('tasks').select('id, kind, rec, created_by').eq('group_id', gid)),
       q(sb.from('schedule_meta').select('semester_end, last_import_at, last_status').eq('group_id', gid).maybeSingle()),
+      // сбой запроса чата не мешает сводке: тогда просто «Зашифрован»
+      window.ChatUI ? ChatUI.unreadTotal(sb).catch(() => 0) : 0,
     ]);
     if (!nav.isCurrent()) return;
     const now = lessons.find((l) => Cab.toMin(l.starts_at) <= t.minutes && t.minutes < Cab.toMin(l.ends_at));
@@ -109,7 +111,7 @@
         <a class="cab-tile t-amber" href="#/journal/certs"><b>Справки</b><span class="big">${certs.length}</span><small>${certs.length ? `ждём${certs[0].due_date ? ', срок до ' + Cab.dateText(certs[0].due_date) : ''}` : 'никто не ждёт'}</small></a>
         <a class="cab-tile t-mint" href="#/tasks"><b class="hm-tt">Задания<span class="cab-ico sm">${icon.plus}</span></b><span class="big">${active.length}</span><small>активных, ваших ${mine}</small></a>
       </div>
-      <a class="cab-row t-violet hm-dim" href="#/chat" style="margin-top:10px"><span><b>Чат с преподавателями</b><small><span class="cab-ico sm">${icon.lock}</span>Зашифрован. Появится в следующей версии</small></span></a>
+      <a class="cab-row t-violet" href="#/chat" style="margin-top:10px"><span><b>Чат с преподавателями</b><small class="ch-sub"><span class="cab-ico sm">${icon.lock}</span>Зашифрован</small></span>${chatNew > 0 ? h`<span class="ch-new">${chatNew} ${plural(chatNew, ['новое', 'новых', 'новых'])}</span>` : ''}</a>
       <a class="cab-row" href="#/summary/report"><span><b>Отчёт для деканата</b><small>Пропуски и справки, выгрузка в Excel</small></span><span class="cab-ico">${icon.chev}</span></a>
       ${ctx.closed ? '' : h`<div class="cab-card"><h3>Расписание</h3><p>${meta && meta.last_import_at ? 'Обновлено с bseu.by ' + Cab.dateText(Cab.minsk(Date.parse(meta.last_import_at)).iso) + (meta.last_status && meta.last_status !== 'ok' ? '. Последняя попытка не удалась.' : '.') : 'Расписание ещё не загружено.'}</p><div class="cab-actions"><button type="button" class="j2-btn" id="hmSched">Обновить с bseu.by</button></div></div>`}
       ${left == null ? '' : h`<p class="cab-note c-amber">${left === 0 ? 'Сегодня журнал закроется до следующего семестра.' : `Через ${left} ${plural(left, ['день', 'дня', 'дней'])} журнал закроется до следующего семестра.`}</p>`}`);
@@ -620,10 +622,10 @@
   // =====================================================================================================
   // Чат: настоящий чат появится на этапе 4
   // =====================================================================================================
+  // Экран чата рисует chat-ui.js (шифрование в chat-crypto.js)
   function chat(el, ctx) {
-    put(el, h`${head({ href: '#/summary', text: 'Сводка' }, 'Чат с преподавателями', 'Чат')}
-      <div class="cab-seg2"><button type="button" aria-pressed="true" disabled>Лекции</button><button type="button" aria-pressed="false" disabled>ПЗ</button></div>
-      <div class="cab-row t-violet hm-dim" style="margin-top:12px;cursor:default"><span class="cab-ico">${icon.lock}</span><span style="flex:1"><b>Скоро</b><small>Сквозное шифрование появится в следующей версии журнала</small></span></div>`);
+    if (!window.ChatUI) { put(el, h`${head({ href: '#/summary', text: 'Сводка' }, ctx.group.name, 'Чат')}<div class="j2-card bad"><h2>Чат недоступен</h2><p>Обновите страницу.</p></div>`); return; }
+    return ChatUI.mount(el, { sb, ctx, role: 'headman' });
   }
 
   // main общий для всех экранов: обработчики прошлого экрана снимаем перед отрисовкой нового

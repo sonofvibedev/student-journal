@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { assertTestTarget, PROD_REF } from './guard.mjs';
+import { seedTeachers } from './seed-teachers.mjs';
 
 const ENV = '.env.test';
 const env = Object.fromEntries(readFileSync(ENV, 'utf8').split(/\r?\n/).filter((l) => /^[A-Z_]+=/.test(l)).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
@@ -112,6 +113,10 @@ testSql(sqlStmts.join('\n'), 'copy');
 // Под сервисной ролью, потому что функция закрыта для клиентов.
 const imp = await api('/rest/v1/rpc/journal2_import_legacy', { method: 'POST', body: '{}' });
 console.log('journal2_import_legacy:', JSON.stringify(imp).slice(0, 200));
+
+// Тестовые преподаватели 24ДММ-2 (этап 4): лекций и ПЗ, «Эконометрика» и «Маркетинг услуг»
+const teachers = await seedTeachers({ ref: TEST, serviceKey: env.TEST_SERVICE_KEY, password: env.TEST_PASSWORD });
+console.log('Преподаватели:', teachers.map((t) => t.email).join(', '));
 
 const a = testRows(`select
   (select jsonb_array_length(students) from public.journal_private where id='main') students,

@@ -96,10 +96,24 @@
     const isSysadmin = sa.length > 0;
     const active = mems.filter((m) => m.status === 'active');
     const mine = active.find((m) => m.base_role === 'student');
+    const teach = active.filter((m) => m.base_role === 'teacher_lecture' || m.base_role === 'teacher_practice');
+    // Преподаватель (тестовый кабинет): своя страница, студенческие страницы ему не нужны
+    if (kind === 'teacher') {
+      if (!teach.length) { location.replace(mine ? 'app.html' : 'join.html'); return null; }
+      const gids = [...new Set(teach.map((m) => m.group_id))];
+      const [groups, asg] = await Promise.all([
+        Cab.q(sb.from('groups').select('id, name, status, warn_hours, dean_hours').in('id', gids)),
+        Cab.q(sb.from('teacher_assignments').select('group_id, subject, lesson_kind').eq('user_id', uid)),
+      ]);
+      const ctx = { uid, email: ses.session.user.email, isTeacher: true, teacherRole: teach[0].base_role === 'teacher_lecture' ? 'lecture' : 'practice', member: teach[0], groups, assignments: asg, isSysadmin,
+        subjects: [...new Set(asg.map((x) => x.subject))] };
+      Cab.ctx = ctx;
+      return ctx;
+    }
+    if (!mine && teach.length) { location.replace('teacher.html'); return null; }
     if (!mine) {
       if (mems.some((m) => m.status === 'pending')) { location.replace('join.html'); return null; }
       if (isSysadmin) { location.replace('sysadmin.html'); return null; }
-      if (active.length) { Cab.fatal('Кабинет преподавателя появится в следующей версии журнала.'); return null; }
       location.replace('join.html'); return null;
     }
     const isStaff = mine.extra_role === 'headman' || mine.extra_role === 'deputy';
