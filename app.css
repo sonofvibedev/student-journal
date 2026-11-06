@@ -1,4 +1,9 @@
-﻿/* Журнал 24ДММ-2 — общая дизайн-система для index.html и cabinet.html.
+﻿/* Касание: Android WebView (Telegram) рисует синий прямоугольник даже на круглых кнопках — гасим везде. */
+* { -webkit-tap-highlight-color: transparent; }
+a, button, summary, label, select, [role="button"], [role="tab"], [role="switch"] { touch-action: manipulation; }
+::selection { background: rgba(var(--color-accent-rgb), .32); color: inherit; }
+
+/* Журнал 24ДММ-2 — общая дизайн-система для index.html и cabinet.html.
    Цвета, радиусы, размеры и шрифты — из Figma (journaldima: design system 10-612,
    главная 0-76, фильтры 0-665, сортировка 0-654, таб-бар 0-382).
    Подключается после Bootstrap 5.3.2, стили конкретной страницы — в её <style>. */

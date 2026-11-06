@@ -1,3 +1,11 @@
+/* Касание: Android WebView (Telegram) рисует синий прямоугольник даже на круглых кнопках — гасим везде, отклик — в :active. */
+* { -webkit-tap-highlight-color: transparent; }
+a, button, summary, label, select, [role="button"], [role="tab"], [role="switch"] { touch-action: manipulation; }
+::selection { background: rgba(198, 244, 50, .32); color: inherit; }
+.cab-tab, .cab-row, .cab-tile, .cab-color, .cab-seg2 button, .j2-btn, .j2-chip, .tg-sw { -webkit-user-select: none; user-select: none; }
+.cab-row, .cab-tile, .cab-color, .cab-seg2 button, .j2-btn, .j2-chip, .tg-sw { transition: opacity .08s, transform .08s; }
+.cab-tab:active, .cab-row:active, .cab-tile:active, .cab-color:active, .cab-seg2 button:active, .j2-btn:active, .j2-chip:active, .tg-sw:active { opacity: .85; transform: scale(.98); }
+
 /* «Журнал 2.0»: общие токены и компоненты новых страниц (регистрация, вход в группу, утилита сисадмина).
    Тёмная тема со стеклом, акцент лайм. Светлая тема не делается (ТЗ). Шрифт Onest, цифры одной ширины. */
 @font-face { font-family: 'Onest'; font-style: normal; font-weight: 400 800; font-display: swap;

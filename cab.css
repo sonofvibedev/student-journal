@@ -11,7 +11,7 @@
   width: min(448px, calc(100% - 32px)); display: flex; gap: 2px; padding: 6px; border-radius: 32px;
   background: rgba(24, 26, 34, .86); border: 1px solid var(--j-card-border); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 .cab-tab { position: relative; z-index: 1; flex: 1; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 26px;
-  color: var(--j-muted); text-decoration: none; font: 600 12px/1.1 'Onest', system-ui, sans-serif; transition: color .25s cubic-bezier(.2, .8, .2, 1); }
+  color: var(--j-muted); text-decoration: none; font: 600 12px/1.1 'Onest', system-ui, sans-serif; transition: color .25s cubic-bezier(.2, .8, .2, 1), opacity .08s, transform .08s; }
 .cab-tab.on { color: var(--j-lime-ink); }
 /* подвижная «таблетка» активной вкладки: ширина одной вкладки (--n штук, зазор 2px), сдвиг на --i вкладок */
 .cab-tab-ind { position: absolute; top: 6px; bottom: 6px; left: 6px; z-index: 0; width: calc((100% - 12px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
