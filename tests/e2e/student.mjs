@@ -66,6 +66,7 @@ const metaBefore = (await api(`/rest/v1/schedule_meta?group_id=eq.${GID}&select=
 const prefBefore = (await api(`/rest/v1/notification_prefs?user_id=eq.${uid}&kind=eq.deadline_soon&select=enabled`))[0] ?? null;
 
 async function cleanup() {
+  await api(`/rest/v1/app_events?user_id=eq.${uid}&kind=in.(first_login,whats_new_read,avatar_set)`, { method: 'DELETE' }).catch(() => {});   // события, которые пишет сам кабинет
   if (prefBefore) await api(`/rest/v1/notification_prefs?user_id=eq.${uid}&kind=eq.deadline_soon`, { method: 'PATCH', body: JSON.stringify({ enabled: prefBefore.enabled }) }).catch(() => {});
   else await api(`/rest/v1/notification_prefs?user_id=eq.${uid}&kind=eq.deadline_soon`, { method: 'DELETE' }).catch(() => {});
   await fetch(`${URL_SB}/auth/v1/admin/users/${uid}`, { method: 'PUT', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: env.TEST_PASSWORD }) }).catch(() => {});   // пароль после проверки смены
@@ -279,6 +280,10 @@ try {
   check('профиль: Studak — плашка внутри карточки, отдельной строки и экрана нет', (await page.locator('.pf-card #pfStu').innerText()).includes('Studak · скоро') && (await page.locator('a[href="#/profile/studak"]').count()) === 0);
   await page.locator('#pfStu').click();
   check('профиль: тап по плашке Studak — короткое сообщение', (await page.locator('#cabToast').innerText()).includes('Пропуск Studak вернётся в ближайшем обновлении'));
+  check('профиль: «Достижения» — неактивная плитка «скоро», ссылки на старый журнал нет', (await page.locator('.st-tri #achSoon').innerText()).includes('скоро') && (await page.locator('#achSoon[aria-disabled="true"]').count()) === 1 && (await page.locator('a[href*="index.html#achievements"]').count()) === 0);
+  await page.locator('#achSoon').click({ force: true });   // aria-disabled: Playwright ждёт «включения», живой тап проходит
+  check('профиль: тап по «Достижения» — короткое сообщение, остаёмся в профиле', (await page.locator('#cabToast').innerText()).includes('Раздел достижений вернётся в ближайшем обновлении') && (await page.evaluate(() => location.hash)) === '#/profile');
+  check('вход в новый кабинет записал событие first_login в app_events (для значка «Добро пожаловать»)', !!(await until(async () => (await api(`/rest/v1/app_events?user_id=eq.${uid}&kind=eq.first_login&select=kind`)).length === 1)));
   await page.locator('#pfAva').click();
   const avs = page.getByRole('dialog', { name: 'Фото профиля' });
   check('профиль: тап по аватарке открывает лист «Выбрать фото» и «Отмена», «Удалить фото» нет, пока нет фото', await avs.getByRole('button', { name: 'Выбрать фото' }).isVisible() && await avs.getByRole('button', { name: 'Отмена' }).isVisible() && (await avs.getByRole('button', { name: 'Удалить фото' }).count()) === 0);
@@ -298,6 +303,8 @@ try {
   const wn = await page.locator('.wn-list').first().locator('li').allInnerTexts();
   check('«Что нового»: текущая версия, короткие пункты в формате «Раздел: что изменилось», прошлые версии свёрнуты', wn.length >= 8 && wn.every((t) => t.includes(':') || t.length < 70) && wn.some((t) => t.startsWith('Telegram: свайп вниз')) && (await page.locator('details.st-det').count()) >= 1 && (await page.locator('details[open]').count()) === 0);
   await noHScroll('что нового');
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  check('«Что нового»: прочитано до конца — событие whats_new_read в app_events (значок «Дотошный технарь»)', !!(await until(async () => (await api(`/rest/v1/app_events?user_id=eq.${uid}&kind=eq.whats_new_read&select=kind`)).length === 1)));
   await page.locator('#cabMain .j2-back').click(); await h1('Профиль');
   check('«Что нового»: после просмотра метки «новое» нет', !(await page.locator('#wnRow').innerText()).includes('новое'));
   check('профиль: «Светлая» отключена, есть пояснение', (await page.getByRole('button', { name: 'Светлая' }).isDisabled()) && pt.includes('Светлая тема появится позже'));

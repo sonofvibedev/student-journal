@@ -320,7 +320,7 @@
         : !certs.length ? h`<p class="cab-note">Справок пока нет.</p>`
         : certs.map((c) => { const st = CERT_ST[c.status] || CERT_ST.none;
           return h`<div class="cab-kv"><span>${CERT[c.kind] || CERT.other}, ${period(c.date_from, c.date_to)}</span><b class="${st[1]} st-s">${st[0]}</b></div>`; })}
-      <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><a href="index.html#achievements"><b>Достижения</b><small>мои значки</small></a></nav>
+      <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><button type="button" class="st-soon" id="achSoon" aria-disabled="true"><b>Достижения</b><small>скоро</small></button></nav>
       <section class="cab-card" aria-labelledby="remT"><h3 id="remT">Напоминания о сроках</h3>
         <div class="st-grp" style="margin:10px 0 8px"><button type="button" class="tg-sw" role="switch" id="remSw" aria-checked="${String(remOn)}"><span><span class="tg-t">Напоминать о горящих заданиях</span><small>За день до срока</small></span><span class="tg-k" aria-hidden="true"></span></button></div>
         ${tg ? h`<p class="cab-note" style="margin:0">Telegram привязан: напоминание придёт в бота и в колокольчик журнала.</p>`
@@ -337,6 +337,7 @@
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
     avatarInit(el, ctx, ini);
+    el.querySelector('#achSoon').onclick = () => Cab.toast('Раздел достижений вернётся в ближайшем обновлении');   // значки по-прежнему копятся в базе
     el.querySelector('#pfStu').onclick = () => Cab.toast('Пропуск Studak вернётся в ближайшем обновлении');
     const rem = el.querySelector('#remSw');
     rem.onclick = async () => {                                                             // запись сразу, при ошибке откат
@@ -409,6 +410,13 @@
       const d = await blobToUrl(data); avStore(ctx.uid, d); avPaint(ini, d);
     } catch (e) { avSynced = null; }
   }
+  // События для значков старого журнала (achievements.js): та же app_events, user_id и student_id ставит база, повтор не страшен (23505).
+  // Сами значки пока записывает клиент старого журнала при следующем открытии: сервер для этих кодов ничего не считает.
+  function logEvent(kind, ref) {
+    const k = `ach_ev_${Cab.ctx.uid}_${kind}_${ref || ''}`;
+    if (lsGet(k)) return;
+    Promise.resolve(sb.from('app_events').insert({ kind, ref: ref || '' })).then(({ error }) => { if (!error || error.code === '23505') lsSet(k, '1'); }, () => {});
+  }
   async function avUpload(ctx, file) {
     if (file.type && !file.type.startsWith('image/')) throw avBad('Выберите фотографию.');
     if (file.size > AV_SRC_MAX) throw avBad('Файл слишком большой. Выберите фото поменьше.');
@@ -416,7 +424,7 @@
     if (blob.size > AV_MAX) throw avBad('Файл слишком большой. Выберите фото поменьше.');
     const { error } = await sb.storage.from('avatars').upload(`${ctx.uid}.jpg`, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '60' });
     if (error) throw error;
-    const d = await blobToUrl(blob); avStore(ctx.uid, d); return d;
+    const d = await blobToUrl(blob); avStore(ctx.uid, d); logEvent('avatar_set'); return d;   // «Первые шаги»
   }
   const avFail = (e) => Cab.toast(e && e.user ? e.message : avNet(e) ? 'Нет связи. Проверьте интернет и повторите.' : 'Не удалось сохранить фото. Повторите.', 'err');
   // Тап по аватарке: лист «Выбрать фото / Удалить фото / Отмена»
@@ -461,6 +469,10 @@
   const wnNew = () => lsGet('whats_new_seen') !== APP_VERSION;
   function whatsNew(el, ctx, nav) {
     lsSet('whats_new_seen', APP_VERSION);
+    // «Дотошный технарь»: список прочитан до конца (если помещается на экран, засчитываем сразу)
+    const atEnd = () => document.documentElement.scrollHeight - window.scrollY - window.innerHeight < 8;
+    const seen = () => { if (atEnd()) { logEvent('whats_new_read', APP_VERSION); window.removeEventListener('scroll', seen); } };
+    window.addEventListener('scroll', seen, { passive: true }); window.addEventListener('hashchange', () => window.removeEventListener('scroll', seen), { once: true }); setTimeout(seen, 700);
     const list = (e) => h`<ul class="wn-list">${e.items.map((t) => h`<li>${t}</li>`)}</ul>`;
     put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Что нового</h1>
       ${CHANGELOG.map((e, i) => i === 0
@@ -486,7 +498,7 @@
 
   // ---------- уведомления ----------
   const ntfTask = (n, byId) => { const t = byId && n.ref && byId.get(n.ref.task_id); return '#/' + (t ? taskRoute(t) : n.ref && n.ref.kind === 'deadline' ? 'study/deadlines' : 'study/homework'); };
-  const NTF_GO = { task: ntfTask, deadline_soon: ntfTask, absence: () => '#/profile/absences', certificate: () => '#/profile', grade: () => '#/study/grades', schedule: () => '#/schedule' };
+  const NTF_GO = { task: ntfTask, deadline_soon: ntfTask, absence: () => '#/profile/absences', certificate: () => '#/profile', grade: () => '#/study/grades', schedule: () => '#/schedule', achievement: () => '#/profile' };
   const NTF_TONE = { task: 'st-coral', schedule: 'st-amber', certificate: 'st-mint', grade: 'st-lime' };
   async function notifications(el, ctx, nav) {
     const [list, tasks] = await Promise.all([q(sb.from('notifications').select('id,kind,title,body,ref,created_at,read_at').eq('user_id', ctx.uid).order('created_at', { ascending: false }).limit(100)), soft(loadTasks(ctx))]);
@@ -760,5 +772,5 @@
     kind: 'student', start: 'home', routes,
     tabs: [{ id: 'home', label: 'Главная', icon: Cab.icon.home, path: 'home' }, { id: 'schedule', label: 'Расписание', icon: Cab.icon.calendar, path: 'schedule' },
       { id: 'study', label: 'Учёба', icon: Cab.icon.study, path: 'study' }, { id: 'profile', label: 'Профиль', icon: Cab.icon.user, path: 'profile' }],
-  }).then((ctx) => { if (ctx) rebindCheck(ctx); }).catch((e) => { console.error('[st]', e); Cab.fatal('Не получилось открыть журнал. Обновите страницу.'); });
+  }).then((ctx) => { if (ctx) { rebindCheck(ctx); logEvent('first_login'); } }).catch((e) => { console.error('[st]', e); Cab.fatal('Не получилось открыть журнал. Обновите страницу.'); });
 })();
