@@ -1,0 +1,186 @@
+// «Журнал 2.0», этап 2: общая оболочка кабинетов студента (app.html) и старосты (headman.html).
+// Подключается после env.js, vendor/supabase.js и j2-core.js. Права проверяет сервер (RLS и RPC), эта страница только показывает.
+// Что здесь: вход и выбор членства, роутер по hash, нижняя панель, экранирование (шаблон Cab.h), даты по Минску, мелкие помощники.
+'use strict';
+(function () {
+  const Cab = (window.Cab = window.Cab || {});
+  const sb = (Cab.sb = J2.sb);
+
+  // ---------- экранирование: интерполяции в Cab.h`…` экранируются, Cab.raw(html) — нет ----------
+  class Raw { constructor(s) { this.s = String(s); } toString() { return this.s; } }
+  Cab.raw = (s) => new Raw(s);
+  const one = (v) => (v instanceof Raw ? v.s : Array.isArray(v) ? v.map(one).join('') : v == null || v === false ? '' : J2.esc(v));
+  Cab.h = (strings, ...vals) => new Raw(strings.reduce((a, s, i) => a + s + (i < vals.length ? one(vals[i]) : ''), ''));
+  Cab.str = (v) => (v instanceof Raw ? v.s : one(v));
+
+  // ---------- время: журнал живёт по Минску (UTC+3 без перехода на летнее время) ----------
+  const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const DOW = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+  const DOW_S = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  Cab.MONTHS = MONTHS; Cab.DOW = DOW; Cab.DOW_S = DOW_S;
+  Cab.testNow = null;                                     // тесты подставляют «сейчас» (мс UTC)
+  Cab.minsk = function (ms) {
+    const t = new Date((ms == null ? (Cab.testNow ?? Date.now()) : ms) + 3 * 3600e3);
+    const p = (n) => String(n).padStart(2, '0');
+    return { y: t.getUTCFullYear(), m: t.getUTCMonth(), d: t.getUTCDate(), hh: t.getUTCHours(), mm: t.getUTCMinutes(), dow: (t.getUTCDay() + 6) % 7,
+      iso: `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())}`, minutes: t.getUTCHours() * 60 + t.getUTCMinutes() };
+  };
+  // 'YYYY-MM-DD' + n дней → 'YYYY-MM-DD'
+  Cab.addDays = (iso, n) => { const t = new Date(iso + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+  Cab.dayDiff = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5);   // b − a в днях
+  Cab.dowOf = (iso) => (new Date(iso + 'T00:00:00Z').getUTCDay() + 6) % 7;                                // 0 = понедельник
+  Cab.mondayOf = (iso) => Cab.addDays(iso, -Cab.dowOf(iso));
+  Cab.dateText = (iso) => { const [, m, d] = iso.split('-').map(Number); return `${d} ${MONTHS[m - 1]}`; };
+  Cab.dateShort = (iso) => { const [, m, d] = iso.split('-').map(Number); return `${d} ${MONTHS[m - 1].slice(0, 3)}`; };
+  Cab.hm = (t) => String(t || '').slice(0, 5);             // '09:35:00' → '09:35'
+  Cab.toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+  Cab.plural = (n, f) => { const a = Math.abs(n) % 100, b = a % 10; return f[a > 10 && a < 20 ? 2 : b === 1 ? 0 : b >= 2 && b <= 4 ? 1 : 2]; };
+  Cab.num = (n) => { const x = Math.round(Number(n) * 10) / 10; return String(x).replace('.', ','); };
+
+  // «завтра», «2 дня»: подпись срока и цвет срочности (текст всегда рядом с цветом)
+  Cab.due = function (iso) {
+    if (!iso) return { text: 'без срока', cls: 'mute', days: 9999 };
+    const n = Cab.dayDiff(Cab.minsk().iso, iso);
+    if (n < 0) return { text: 'просрочено', cls: 'coral', days: n };
+    if (n === 0) return { text: 'сегодня', cls: 'coral', days: n };
+    if (n === 1) return { text: 'завтра', cls: 'coral', days: n };
+    return { text: `${n} ${Cab.plural(n, ['день', 'дня', 'дней'])}`, cls: n <= 3 ? 'amber' : 'mute', days: n };
+  };
+
+  Cab.initials = (s) => (s && s.last_name ? s.last_name + (s.first_name ? ' ' + s.first_name.charAt(0) + '.' : '') : 'Без имени');
+  Cab.fullName = (s) => [s.last_name, s.first_name].filter(Boolean).join(' ') || 'Без имени';
+  Cab.KIND = { lecture: 'Лекция', practice: 'Практическое', lab: 'Лабораторная', other: 'Занятие' };
+  Cab.kindLow = (k) => ({ lecture: 'лекция', practice: 'практическое', lab: 'лабораторная', other: 'занятие' }[k] || 'занятие');
+
+  // Запрос Supabase: ошибка превращается в исключение, данные возвращаются сразу
+  Cab.q = async (p) => { const { data, error } = await p; if (error) { const e = new Error(error.message || 'query'); e.code = error.code; throw e; } return data; };
+  // RPC с понятной ошибкой: код из raise exception (например forbidden) остаётся в e.rpc
+  Cab.rpc = async (name, args) => {
+    const { data, error } = await sb.rpc(name, args || {});
+    if (error) { const e = new Error(error.message || name); e.rpc = (error.message || '').trim(); e.code = error.code; throw e; }
+    return data;
+  };
+  const RPC_ERR = { forbidden: 'Это действие вам недоступно.', not_found: 'Запись не найдена: обновите страницу.', group_closed: 'Журнал закрыт: данные можно только смотреть.',
+    maintenance: 'Ведутся технические работы. Повторите позже.' };
+  Cab.rpcText = (e) => RPC_ERR[e && e.rpc] || (e && e.code === '42501' ? RPC_ERR.forbidden : 'Не получилось. Проверьте связь и повторите.');
+
+  // ---------- иконки ----------
+  const ic = (p) => Cab.raw(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`);
+  Cab.icon = {
+    home: ic('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>'),
+    calendar: ic('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>'),
+    study: ic('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/>'),
+    user: ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>'),
+    journal: ic('<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/>'),
+    tasks: ic('<path d="M4 7l2 2 3-3M4 17l2 2 3-3M13 8h7M13 18h7"/>'),
+    chat: ic('<path d="M4 5h16v11H9l-5 4z"/>'),
+    bell: ic('<path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z"/><path d="M10 21h4"/>'),
+    chev: ic('<path d="M9 6l6 6-6 6"/>'),
+    back: ic('<path d="M15 6l-6 6 6 6"/>'),
+    plus: ic('<path d="M12 5v14M5 12h14"/>'),
+    check: ic('<path d="M5 12l5 5 9-10"/>'),
+    lock: ic('<rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+  };
+
+  // ---------- вход и контекст ----------
+  // Возвращает контекст или null (тогда страница уже уводит пользователя на нужный экран)
+  Cab.load = async function (kind) {
+    if (!sb) { document.body.textContent = 'Нет связи с сервером.'; return null; }
+    const { data: ses } = await sb.auth.getSession();
+    if (!ses || !ses.session) { location.replace('join.html'); return null; }
+    const uid = ses.session.user.id;
+    const [mems, sa] = await Promise.all([
+      Cab.q(sb.from('memberships').select('group_id, student_id, base_role, extra_role, status, consent_at').eq('user_id', uid)),
+      Cab.q(sb.from('sysadmins').select('user_id').eq('user_id', uid)),
+    ]);
+    const isSysadmin = sa.length > 0;
+    const active = mems.filter((m) => m.status === 'active');
+    const mine = active.find((m) => m.base_role === 'student');
+    if (!mine) {
+      if (mems.some((m) => m.status === 'pending')) { location.replace('join.html'); return null; }
+      if (isSysadmin) { location.replace('sysadmin.html'); return null; }
+      if (active.length) { Cab.fatal('Кабинет преподавателя появится в следующей версии журнала.'); return null; }
+      location.replace('join.html'); return null;
+    }
+    const isStaff = mine.extra_role === 'headman' || mine.extra_role === 'deputy';
+    if (kind === 'headman' && !isStaff) { location.replace('app.html'); return null; }
+    const [group, student] = await Promise.all([
+      Cab.q(sb.from('groups').select('id, name, status, warn_hours, dean_hours').eq('id', mine.group_id).single()),
+      Cab.q(sb.from('students').select('id, last_name, first_name, study_form, subgroup').eq('id', mine.student_id).single()),
+    ]);
+    const ctx = { uid, email: ses.session.user.email, group, student, member: mine, isStaff, role: mine.extra_role, isSysadmin, closed: group.status !== 'active' };
+    Cab.ctx = ctx;
+    return ctx;
+  };
+  Cab.fatal = (text) => { document.body.innerHTML = Cab.str(Cab.h`<main class="j2-wrap"><h1 class="j2-h1">Журнал</h1><p class="j2-sub">${text}</p><button class="j2-btn" id="cabOut" type="button">Выйти</button></main>`); document.getElementById('cabOut').onclick = () => Cab.signOut(); };
+  Cab.signOut = async () => { try { await sb.auth.signOut(); } catch (e) { /* уже вышли */ } location.replace('join.html'); };
+
+  // ---------- оболочка и роутер ----------
+  // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
+  // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
+  Cab.start = async function (opts) {
+    const ctx = await Cab.load(opts.kind);
+    if (!ctx) return;
+    const root = document.getElementById('cab');
+    root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap" id="cabMain" tabindex="-1"></main>
+      <nav class="cab-tabbar" aria-label="Разделы">${opts.tabs.map((t) => Cab.h`<a class="cab-tab" href="${'#/' + t.path}" data-tab="${t.id}"><span class="cab-ico">${t.icon}</span><span>${t.label}</span></a>`)}</nav>
+      <div class="cab-toast" id="cabToast" role="status" aria-live="polite"></div>`);
+    const main = document.getElementById('cabMain');
+    let gen = 0;
+    async function go() {
+      const my = ++gen;
+      const hash = location.hash.replace(/^#\/?/, '') || opts.start;
+      const [name, ...rest] = hash.split('/');
+      const key = opts.routes[hash] ? hash : opts.routes[name] ? name : opts.start;
+      const r = opts.routes[key];
+      const params = key === hash ? [] : rest;
+      root.querySelectorAll('.cab-tab').forEach((a) => { const on = a.dataset.tab === (r.tab || name); a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      main.innerHTML = '<p class="cab-load">Загружаем…</p>';
+      try { await r.render(main, ctx, params, { isCurrent: () => my === gen }); }
+      catch (e) {
+        if (my !== gen) return;
+        console.error('[cab]', key, e);
+        main.innerHTML = Cab.str(Cab.h`<div class="j2-card bad"><h2>Не получилось загрузить</h2><p>Проверьте связь и повторите.</p></div><button class="j2-btn" id="cabRetry" type="button">Повторить</button>`);
+        document.getElementById('cabRetry').onclick = go;
+      }
+      if (my === gen) { window.scrollTo(0, 0); }
+    }
+    Cab.rerender = go;
+    window.addEventListener('hashchange', go);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && Cab.autoRefresh && Cab.autoRefresh()) go(); });
+    await go();
+    return ctx;
+  };
+
+  Cab.toast = function (text, kind) {
+    const el = document.getElementById('cabToast'); if (!el) return;
+    el.textContent = text; el.className = 'cab-toast show' + (kind ? ' ' + kind : '');
+    clearTimeout(Cab._tt); Cab._tt = setTimeout(() => { el.className = 'cab-toast'; }, 3500);
+  };
+
+  // Шапка экрана: «назад» слева, подпись справа, заголовок. back: {href, text}
+  Cab.top = (back, right) => Cab.h`<div class="cab-top">${back ? Cab.h`<a class="j2-back" href="${back.href}"><span class="cab-ico sm">${Cab.icon.back}</span>${back.text}</a>` : Cab.raw('<span></span>')}<span class="cab-top-r">${right || ''}</span></div>`;
+
+  // Кольцо прогресса: value из max, цвет по порогам (лайм → янтарь → коралл)
+  Cab.ring = function (value, max, size) {
+    const s = size || 96, r = s / 2 - 8, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, max ? value / max : 0));
+    const col = p >= 1 ? 'var(--j-coral)' : p >= 0.66 ? 'var(--j-amber)' : 'var(--j-lime)';
+    return Cab.h`<svg class="cab-ring" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" role="img" aria-label="${Cab.num(value)} из ${Cab.num(max)} часов"><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8"/><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="${Cab.raw(col)}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p)).toFixed(1)}" transform="rotate(-90 ${s / 2} ${s / 2})"/></svg>`;
+  };
+
+  // Сегменты «Все / Мои / …»: onChange(value)
+  Cab.segmented = function (el, items, value, onChange) {
+    el.className = 'j2-tabs'; el.setAttribute('role', 'tablist');
+    el.innerHTML = Cab.str(Cab.h`${items.map((it) => Cab.h`<button type="button" role="tab" data-v="${it.value}" aria-selected="${it.value === value ? 'true' : 'false'}">${it.label}</button>`)}`);
+    el.onclick = (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-selected', String(x === b))); onChange(b.dataset.v); };
+  };
+
+  // Задание из tasks: { id, kind, rec } → удобный вид
+  Cab.task = (row) => {
+    const r = row.rec || {};
+    return { id: row.id, kind: row.kind, type: r.type || '', subject: r.subject || '', text: r.text || '', due: r.dueDate || null, subgroup: Number(r.subgroup) || 0,
+      createdBy: row.created_by || null, raw: row, isExam: r.type === 'zachet' || r.type === 'exam' };
+  };
+  // Видно ли задание студенту с подгруппой sg (0/null — подгруппа не выбрана, видны все)
+  Cab.taskVisible = (t, sg) => !t.subgroup || !sg || t.subgroup === Number(sg);
+})();

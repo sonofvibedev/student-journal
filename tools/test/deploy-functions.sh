@@ -9,7 +9,7 @@ cd "$(dirname "$0")/../.."
 set -a; . ./.env.test; set +a
 node -e "import('./tools/test/guard.mjs').then(m=>m.assertTestTarget(process.env.TEST_PROJECT_REF))"
 FUNCS=("$@")
-[ ${#FUNCS[@]} -eq 0 ] && FUNCS=(join-group registration-start schedule-lookup notify-registration)
+[ ${#FUNCS[@]} -eq 0 ] && FUNCS=(join-group registration-start schedule-lookup schedule-import notify-registration)
 W=$(mktemp -d)
 mkdir -p "$W/supabase/functions"
 (cd "$W" && npx --yes supabase@latest init --force >/dev/null 2>&1 || true)

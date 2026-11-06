@@ -9,14 +9,8 @@
 // (структурнее и устойчивее таблицы), поэтому разбираем их. Если формат не узнан, ничего не пишем
 // и не выдаём за найденное. Нагрузка: запросов не больше 30 за 10 минут с адреса.
 import { admin, cors, json, ipHashOf, logAttempt } from '../_shared/join.ts';
+import { post, options, ACT, parseSchedule, fetchSemesterHtml } from '../_shared/bseu.ts';
 
-const URL_BSEU = 'https://bseu.by/schedule/';
-const ACT = {
-  forms: '__id.22.main.inpFldsA.GetForms',
-  courses: '__id.23.main.inpFldsA.GetCourse',
-  groups: '__id.23.main.inpFldsA.GetGroups',
-  schedule: '__id.25.main.inpFldsA.GetSchedule__sp.7.results__fp.4.main',
-};
 const FACULTIES = [
   ['450', 'Аспирантура'], ['18', 'ВШУБ'], ['530', 'Деканат по работе с иностранными учащимися'], ['531', 'ИПК и ПЭК (в)'],
   ['497', 'ИПК и ПЭК (о)'], ['129', 'Магистратура'], ['535', 'СБ'], ['432', 'СЭФ'], ['12', 'УЭФ'], ['14', 'ФКТИ'],
@@ -24,38 +18,6 @@ const FACULTIES = [
 ].map(([value, text]) => ({ value, text }));
 
 const digits = (v: unknown) => /^\d{1,6}$/.test(String(v ?? '')) ? String(v) : null;
-
-async function post(fields: Record<string, string>): Promise<Uint8Array> {
-  const r = await fetch(URL_BSEU, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'User-Agent': 'journal-schedule-lookup/1.0' },
-    body: new URLSearchParams(fields).toString(),
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!r.ok) throw new Error(`bseu_${r.status}`);
-  return new Uint8Array(await r.arrayBuffer());
-}
-
-async function options(fields: Record<string, string>) {
-  const text = new TextDecoder('utf-8').decode(await post(fields));
-  const list = JSON.parse(text);
-  if (!Array.isArray(list)) throw new Error('format');
-  return list.filter((x) => x && typeof x.value === 'string' && typeof x.text === 'string').map((x) => ({ value: x.value, text: x.text }));
-}
-
-type Lesson = { week: string; day: string; pair: string; subject: string; kind: string; teacher: string; room: string; subgroup: string };
-
-export function parseSchedule(html: string) {
-  const re = /<!--week:\s*(\([^)]*\)|[^,]*),\s*DayNumber:\s*([^,]*),\s*PairNumber:\s*([^,]*),\s*Discipline:\s*(.*?),\s*ClassType:\s*(.*?),\s*EngClassType:\s*(.*?),\s*Teacher:\s*(.*?),\s*campus:\s*(.*?),\s*numbaudit:\s*(.*?),\s*text:\s*(.*?),\s*semester:\s*(.*?),\s*numbsub:\s*(.*?)-->/g;
-  const lessons: Lesson[] = [];
-  let semester: string | null = null;
-  for (const m of html.matchAll(re)) {
-    if (m[5].trim() === 'null') continue;   // служебная строка с названием группы
-    semester ??= m[11].trim() || null;
-    lessons.push({ week: m[1].trim(), day: m[2].trim(), pair: m[3].trim(), subject: m[4].trim(), kind: m[5].trim(), teacher: m[7].trim(), room: `${m[8].trim()}/${m[9].trim()}`, subgroup: m[12].trim() });
-  }
-  return { lessons, semester };
-}
 
 function summarize(html: string) {
   const { lessons, semester } = parseSchedule(html);
@@ -112,7 +74,7 @@ Deno.serve(async (req) => {
     if (body.action === 'courses' && faculty && form) return json(await options({ __act: ACT.courses, form, faculty }));
     if (body.action === 'groups' && faculty && form && course) return json(await options({ __act: ACT.groups, course, form, faculty }));
     if (body.action === 'find' && faculty && form && course && group) {
-      const html = new TextDecoder('windows-1251').decode(await post({ faculty, form, course, group, period: '3', __act: ACT.schedule }));
+      const html = await fetchSemesterHtml({ faculty, form, course, group });
       const sum = summarize(html);
       const schedule_status = sum.found ? 'found' : 'not_found';
       // Результат кладём в черновик заявки владельца, чтобы сисадмин видел то, что нашла функция, а не то, что прислал клиент

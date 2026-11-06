@@ -56,7 +56,7 @@ async function open(browser, ses) {
   const errs = []; page.on('pageerror', (e) => errs.push(String(e)));
   page.on('console', (m) => { LOGS.push(`${m.type()}: ${m.text()}`.slice(0, 200)); }); page.on('requestfailed', (r) => LOGS.push('failed: ' + r.url().slice(0, 120)));
   LASTPAGE = page;
-  await page.goto(`${BASE}/index.html`);
+  await page.goto(`${BASE}/index.html#games`);   // без хэша index.html уводит в app.html
   return { page, errs, ctx };
 }
 

@@ -7,6 +7,10 @@
 
   <!-- Окружение (тест/рабочая версия): ключи localStorage, репозиторий, Supabase. Первым в <head> -->
   <script src="env.js?v=39"></script>
+  <script>
+    // Журнал 2.0: главная теперь в кабинетах. Вложенные экраны (#games, #achievements, #zachetka …) остаются здесь
+    if (!location.hash) { try { location.replace(localStorage.getItem(LS_PREFIX + SB_STORAGE_KEY) || localStorage.getItem(SB_STORAGE_KEY) ? 'app.html' : 'join.html'); } catch (e) { location.replace('join.html'); } }
+  </script>
   <script src="tg-gate.js?v=1"></script><!-- замок Mini App: без ключа бота из Telegram — 404 -->
   <script>
     // data.json начинает грузиться сразу, а не после bootstrap/supabase-js и остальных скриптов страницы:

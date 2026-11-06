@@ -7,7 +7,7 @@ export const LOGIN_RE = /^[a-z0-9_.]{3,32}$/;
 export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 72;
 
-function secretKey(): string {
+export function secretKey(): string {
   try {
     const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
     if (keys.default) return keys.default;

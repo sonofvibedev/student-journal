@@ -276,7 +276,7 @@
       setMsg('code', 'Вы вошли, но не состоите в группе. Введите код группы.', 'err');
       return;
     }
-    if (st.membership.status === 'active') { redirecting = true; location.replace('index.html'); return; }
+    if (st.membership.status === 'active') { redirecting = true; location.replace('app.html'); return; }
     await showWait(st);
   }
 
@@ -319,7 +319,7 @@
       redirecting = true;
       stopPoll();
       setMsg('wait', 'Открываем журнал…', 'ok');
-      setTimeout(() => location.replace('index.html'), 1500);
+      setTimeout(() => location.replace('app.html'), 1500);
     }
   }
   function hideRelease() {

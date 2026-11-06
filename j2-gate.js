@@ -303,7 +303,7 @@
     if (nc) { showConsent(nc); return; }
     if (g.kind === 'consent') closeMandatory();
     const staff = active.find((r) => r.extra_role === 'headman' || r.extra_role === 'deputy');
-    if (staff) startStaff(staff.group_id); else stopStaff();
+    if (staff && !window.J2_GATE_NO_STAFF) startStaff(staff.group_id); else stopStaff();   // в кабинетах 2.0 заявки живут в кабинете старосты
   }
   function reset() {
     g.timers.forEach(clearInterval); g.timers = [];

@@ -164,7 +164,7 @@ try {
   const pend = await (await fetch(`${URL_SB}/rest/v1/students?claim_status=eq.pending&select=id`, { headers: { apikey: env.TEST_ANON_KEY, Authorization: `Bearer ${tok}` } })).json();
   const ap = await fetch(`${URL_SB}/rest/v1/rpc/membership_approve`, { method: 'POST', headers: { apikey: env.TEST_ANON_KEY, Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_student_id: pend[0]?.id }) });
   check('староста подтвердил студента', ap.status < 300, String(ap.status));
-  await jp.waitForURL(/index\.html/, { timeout: 40000 }).then(() => check('после подтверждения страница ведёт в журнал', true)).catch(() => check('после подтверждения страница ведёт в журнал', false, 'нет перехода за 40 с'));
+  await jp.waitForURL(/(app|index)\.html/, { timeout: 40000 }).then(() => check('после подтверждения страница ведёт в журнал', true)).catch(() => check('после подтверждения страница ведёт в журнал', false, 'нет перехода за 40 с'));
 } catch (e) {
   check('сценарий дошёл до конца без исключений', false, String(e).slice(0, 300));
 } finally {

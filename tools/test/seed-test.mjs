@@ -90,17 +90,19 @@ for (const s of students) {
 const q = (v) => (v === null || v === undefined ? 'null' : `'${String(v).replace(/'/g, "''")}'`);
 const j = (v) => `$seedjson$${JSON.stringify(v)}$seedjson$::jsonb`;
 const rows = (list, f) => list.map(f).join(',\n');
+// Копия прода — это группа 24ДММ-2: group_id передаём явно (триггеры на время копирования выключены, default снят в 20261106100000)
+const G24 = "'00000000-0000-4000-8000-000000000024'";
 const sqlStmts = [
   'begin;',
   'truncate public.app_events, public.student_achievements, public.game_records, public.study_days, public.tasks, public.profiles restart identity cascade;',
   ...['app_events', 'student_achievements', 'game_records', 'tasks', 'profiles'].map((t) => `alter table public.${t} disable trigger user;`),
   `update public.journal_private set students = ${j(students)}, absences = ${j(absences)}, updated_at = now() where id = 'main';`,
   `insert into public.profiles (user_id, student_id, login, can_post_tasks) values\n${rows(src.profiles.filter((p) => uid.has(p.student_id)), (p) => `('${uid.get(p.student_id)}', ${q(p.student_id)}, ${q('student' + num.get(p.student_id))}, ${p.can_post_tasks === true})`)};`,
-  `insert into public.app_events (user_id, student_id, kind, ref, created_at) values\n${rows(src.events.filter((e) => uid.has(e.student_id)), (e) => `('${uid.get(e.student_id)}', ${q(e.student_id)}, ${q(e.kind)}, ${q(e.ref)}, ${q(e.created_at)})`)};`,
-  `insert into public.student_achievements (student_id, code, period, semester, earned_at) values\n${rows(src.ach, (a) => `(${q(a.student_id)}, ${q(a.code)}, ${q(a.period)}, ${q(a.semester)}, ${q(a.earned_at)})`)};`,
-  `insert into public.game_records (student_id, game, difficulty, score, proof, played_at, updated_at) values\n${rows(src.games, (g) => `(${q(g.student_id)}, ${q(g.game)}, ${q(g.difficulty)}, ${Number(g.score)}, ${j(g.proof ?? {})}, ${q(g.played_at)}, ${q(g.updated_at)})`)};`,
-  `insert into public.study_days (day, semester) values\n${rows(src.days, (d) => `(${q(d.day)}, ${q(d.semester)})`)};`,
-  `insert into public.tasks (id, kind, rec, updated_at) values\n${rows(src.tasks, (t) => `(${q(t.id)}, ${q(t.kind)}, ${j(t.rec)}, ${q(t.updated_at)})`)};`,
+  `insert into public.app_events (user_id, student_id, kind, ref, created_at, group_id) values\n${rows(src.events.filter((e) => uid.has(e.student_id)), (e) => `('${uid.get(e.student_id)}', ${q(e.student_id)}, ${q(e.kind)}, ${q(e.ref)}, ${q(e.created_at)}, ${G24})`)};`,
+  `insert into public.student_achievements (student_id, code, period, semester, earned_at, group_id) values\n${rows(src.ach, (a) => `(${q(a.student_id)}, ${q(a.code)}, ${q(a.period)}, ${q(a.semester)}, ${q(a.earned_at)}, ${G24})`)};`,
+  `insert into public.game_records (student_id, game, difficulty, score, proof, played_at, updated_at, group_id) values\n${rows(src.games, (g) => `(${q(g.student_id)}, ${q(g.game)}, ${q(g.difficulty)}, ${Number(g.score)}, ${j(g.proof ?? {})}, ${q(g.played_at)}, ${q(g.updated_at)}, ${G24})`)};`,
+  `insert into public.study_days (day, semester, group_id) values\n${rows(src.days, (d) => `(${q(d.day)}, ${q(d.semester)}, ${G24})`)};`,
+  `insert into public.tasks (id, kind, rec, updated_at, group_id) values\n${rows(src.tasks, (t) => `(${q(t.id)}, ${q(t.kind)}, ${j(t.rec)}, ${q(t.updated_at)}, ${G24})`)};`,
   ...['app_events', 'student_achievements', 'game_records', 'tasks', 'profiles'].map((t) => `alter table public.${t} enable trigger user;`),
   'commit;',
 ];
