@@ -105,6 +105,7 @@
     put(el, h`${Cab.top({ href: 'app.html', text: 'Кабинет студента' }, roleText(ctx))}
       <h1 class="cab-title">Кабинет старосты</h1><p class="cab-sub">${Cab.DOW[t.dow]}, ${t.d} ${Cab.MONTHS[t.m]}</p>
       ${closedNote(ctx)}
+      ${Cab.installCard()}
       ${pend.length ? h`<a class="cab-row t-amber" href="#/summary/requests"><b>${pend.length} ${plural(pend.length, ['студент ждёт', 'студента ждут', 'студентов ждут'])} подтверждения</b><span class="cab-ico">${icon.chev}</span></a>` : ''}
       ${lessonCard}
       <div class="cab-tiles two">
@@ -115,6 +116,7 @@
       <a class="cab-row" href="#/summary/report"><span><b>Отчёт для деканата</b><small>Пропуски и справки, выгрузка в Excel</small></span><span class="cab-ico">${icon.chev}</span></a>
       ${ctx.closed ? '' : h`<div class="cab-card"><h3>Расписание</h3><p>${meta && meta.last_import_at ? 'Обновлено с bseu.by ' + Cab.dateText(Cab.minsk(Date.parse(meta.last_import_at)).iso) + (meta.last_status && meta.last_status !== 'ok' ? '. Последняя попытка не удалась.' : '.') : 'Расписание ещё не загружено.'}</p><div class="cab-actions"><button type="button" class="j2-btn" id="hmSched">Обновить с bseu.by</button></div></div>`}
       ${left == null ? '' : h`<p class="cab-note c-amber">${left === 0 ? 'Сегодня журнал закроется до следующего семестра.' : `Через ${left} ${plural(left, ['день', 'дня', 'дней'])} журнал закроется до следующего семестра.`}</p>`}`);
+    Cab.bindInstall(el);
     const sb2 = $(el, '#hmSched');
     if (sb2) sb2.onclick = () => act(sb2, async () => {
       const r = await J2.fn('schedule-import', { group_id: gid });
@@ -189,10 +191,20 @@
 
   async function marks(el, ctx, nav) {
     const gid = ctx.group.id, t = Cab.minsk(), day = t.iso, ro = ctx.closed;
-    const [stu, lessons] = await Promise.all([
-      q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid)),
-      q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind, subgroup').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
-    ]);
+    // Список группы и пары дня запоминаем на телефоне: без сети журнал открывается из памяти, отметки уходят в очередь (offline-queue.js)
+    const ckey = 'j2.cache.marks.' + gid;
+    let stu, lessons, offline = false;
+    try {
+      [stu, lessons] = await Promise.all([
+        q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid)),
+        q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind, subgroup').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
+      ]);
+      try { localStorage.setItem(ckey, JSON.stringify({ day, stu, lessons })); } catch (_) { /* память переполнена */ }
+    } catch (e) {
+      let c = null; try { c = JSON.parse(localStorage.getItem(ckey)); } catch (_) { /* битый кэш */ }
+      if (!window.OQ || !OQ.isNetError(e) || !c) throw e;
+      stu = c.stu; lessons = c.day === day ? c.lessons : []; offline = true;
+    }
     if (!nav.isCurrent()) return;
     stu.sort(byName);
     const opts = lessons.map((l) => ({ key: [l.pair_no, l.subject, l.kind, l.subgroup || 0].join('|'), subject: l.subject, kind: l.kind, sg: l.subgroup,
@@ -206,6 +218,7 @@
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Журнал')}
       <div id="hmSeg"></div>
       ${closedNote(ctx)}
+      ${offline ? h`<div class="j2-card warn" role="status"><h2>Нет связи</h2><p>Список группы взят из памяти телефона. Отметки сохранятся и отправятся сами, когда появится сеть.</p></div>` : ''}
       ${lessons.length ? '' : h`<div class="cab-card"><h3>Пар сегодня нет</h3><p>Можно отметить пропуски за другое занятие.</p></div>`}
       <label class="j2-field hm-pair"><span>Пара</span><select id="hmSel">${opts.map((o) => h`<option value="${o.key}">${label(o)}</option>`)}<option value="other">Другое занятие…</option></select></label>
       <div id="hmOther" class="j2-hidden">
@@ -243,14 +256,18 @@
     }
     async function loadExisting() {
       const my = ++seq, d = cur().date || day;
-      const rows = await q(sb.from('absences').select('student_id, subject, hours').eq('group_id', gid).eq('date', d));
+      let rows = [];
+      try { rows = await q(sb.from('absences').select('student_id, subject, hours').eq('group_id', gid).eq('date', d)); }
+      catch (e) { if (!window.OQ || !OQ.isNetError(e)) throw e; }      // без сети видим только то, что стоит в очереди
       if (my !== seq || !nav.isCurrent()) return;
+      if (window.OQ) rows = rows.concat(OQ.list(ctx.uid).filter((x) => x.group_id === gid && x.date === d));   // отмеченное без сети тоже «уже внесено»
       existing = new Map();
       rows.forEach((a) => { const k = norm(a.subject); if (!existing.has(k)) existing.set(k, new Map()); existing.get(k).set(a.student_id, a.hours); });
       paint();
     }
     const later = (p) => p.catch((e) => toast(errText(e), 'err'));
     paint(); later(loadExisting());
+    Cab.onFlushed = () => { if (nav.isCurrent()) later(loadExisting()); };       // очередь ушла: показать записи с сервера
 
     list.onclick = (e) => {
       const b = e.target.closest('button.mark'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
@@ -271,14 +288,27 @@
       save.onclick = () => act(save, async () => {
         const c = cur(), d = c.date || day;
         if (!c.subject) { toast('Укажите предмет.', 'err'); return; }
-        // перед записью ещё раз смотрим, не внёс ли кто-то то же самое
-        const fresh = await q(sb.from('absences').select('student_id, subject').eq('group_id', gid).eq('date', d));
-        const have = new Set(fresh.filter((a) => norm(a.subject) === norm(c.subject)).map((a) => a.student_id));
-        const ids = [...S.marks].filter((id) => !have.has(id));
-        if (ids.length) await q(sb.from('absences').insert(ids.map((id) => ({ group_id: gid, student_id: id, date: d, subject: c.subject, hours: S.hours,
-          lesson_kind: c.kind === 'lecture' || c.kind === 'practice' ? c.kind : null, is_excused: false }))));
+        // id у каждой записи свой с самого начала: повторная отправка (обрыв, очередь) вставку не дублирует (ON CONFLICT DO NOTHING)
+        const mk = (sid) => ({ id: OQ.newId(), group_id: gid, student_id: sid, date: d, subject: c.subject, hours: S.hours,
+          lesson_kind: c.kind === 'lecture' || c.kind === 'practice' ? c.kind : null });
+        const all = [...S.marks].map(mk);
+        let n = 0, queued = false;
+        try {
+          // перед записью ещё раз смотрим, не внёс ли кто-то то же самое
+          const fresh = await q(sb.from('absences').select('student_id, subject').eq('group_id', gid).eq('date', d));
+          const have = new Set(fresh.filter((a) => norm(a.subject) === norm(c.subject)).map((a) => a.student_id));
+          const todo = all.filter((r) => !have.has(r.student_id));
+          if (todo.length) await q(sb.from('absences').upsert(todo.map((r) => ({ ...r, is_excused: false })), { onConflict: 'id', ignoreDuplicates: true }));
+          n = todo.length;
+        } catch (e) {
+          if (!OQ.isNetError(e)) throw e;
+          const lk = OQ.pending(ctx.uid, gid, d, c.subject);
+          n = OQ.add(ctx.uid, all.filter((r) => !lk.has(r.student_id))); queued = true;
+          Cab.netBar();
+        }
         S.marks.clear();
-        toast(ids.length ? `Внесено: ${ids.length} ${plural(ids.length, ['пропуск', 'пропуска', 'пропусков'])}.` : 'Эти пропуски уже внесены.', 'ok');
+        toast(queued ? `Нет связи. Сохранено на телефоне: ${n}. Отправится, когда появится сеть.`
+          : n ? `Внесено: ${n} ${plural(n, ['пропуск', 'пропуска', 'пропусков'])}.` : 'Эти пропуски уже внесены.', 'ok');
         await loadExisting();
       }).then(sync);
     }
@@ -547,7 +577,8 @@
       return { from: (meta && meta.semester_start) || `${now.m >= 8 ? now.y : now.y - 1}-09-01`, to: (meta && meta.semester_end) || now.iso };
     };
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Отчёт для деканата')}
-      ${left == null ? '' : h`<div class="j2-card warn"><h2>Конец семестра</h2><p>${left === 0 ? 'Сегодня журнал закроется.' : `Через ${left} ${plural(left, ['день', 'дня', 'дней'])} журнал закроется.`} Выгрузите отчёт заранее.</p></div>`}
+      ${ctx.closed ? h`<div class="j2-card warn" role="status"><h2>Журнал закрыт</h2><p>Данные только для просмотра. Отчёт можно скачать в любой момент. Журнал откроется, когда в расписании появится новый семестр.</p></div>`
+      : left == null ? '' : h`<div class="j2-card warn"><h2>Конец семестра</h2><p>${left === 0 ? 'Сегодня журнал закроется.' : `Через ${left} ${plural(left, ['день', 'дня', 'дней'])} журнал закроется.`} Выгрузите отчёт заранее.</p></div>`}
       <div id="hmSeg"></div>
       <label class="j2-field" id="hmMw"><span>Месяц</span><input id="hmMonth" type="month"></label>
       <div id="hmRep" aria-live="polite"></div>

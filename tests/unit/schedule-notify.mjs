@@ -1,7 +1,7 @@
 // Чистая логика уведомлений: строки расписания, «и ещё N», подгруппа, кнопка и экранирование HTML. Без сети и без Deno.
 // Запуск: node tests/unit/schedule-notify.mjs   (Node 22.6+ читает .ts без сборки)
 import { changeLine, changesFor, scheduleBody, fitsSubgroup, ruDate } from '../../supabase/functions/_shared/schedule-text.ts';
-import { esc, buttonUrl, dispatchText } from '../../supabase/functions/_shared/notify.ts';
+import { esc, buttonUrl, buttonText, dispatchText } from '../../supabase/functions/_shared/notify.ts';
 
 let failed = 0;
 const check = (name, ok, detail = '') => { if (!ok) failed++; console.log(`${ok ? 'OK    ' : 'ПРОВАЛ'} ${name}${ok ? '' : ' — ' + detail}`); };
@@ -29,7 +29,8 @@ check('esc экранирует < > &', esc('<b>&"x"</b>') === '&lt;b&gt;&amp;"x
 check('текст уведомления экранирован', dispatchText('grade', 'Оценка <5>', 'a & b') === '<b>Оценка &lt;5&gt;</b>\na &amp; b');
 check('без текста — только заголовок', dispatchText('task', 'Новая задача', null) === '<b>Новая задача</b>');
 check('чат: фиксированный текст, содержимое строки не попадает', (() => { const t = dispatchText('chat', 'Секретный заголовок', 'секретный текст'); return !t.includes('Секретный') && !t.includes('секретный'); })());
-check('кнопка: приложение, для семестра кабинет старосты', buttonUrl('grade', 'https://x.example') === 'https://x.example/app.html' && buttonUrl('semester', 'https://x.example') === 'https://x.example/headman.html');
+check('кнопка: приложение, для семестра кабинет старосты', buttonUrl('grade', 'https://x.example') === 'https://x.example/app.html' && buttonUrl('semester', 'https://x.example') === 'https://x.example/headman.html#/summary/report');
+check('кнопка семестра: «Скачать отчёт для деканата», у остальных «Открыть журнал»', buttonText('semester') === 'Скачать отчёт для деканата' && buttonText('grade') === 'Открыть журнал');
 check('кнопка: только https', buttonUrl('grade', 'http://localhost:8080') === '' && buttonUrl('grade', '') === '');
 
 console.log(failed ? `\nПровалов: ${failed}` : '\nВсё хорошо');

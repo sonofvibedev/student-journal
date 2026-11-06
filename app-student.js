@@ -290,9 +290,11 @@
         <div class="cab-seg2" role="group" aria-label="Тема"><button type="button" disabled aria-pressed="false" aria-describedby="thNote">Светлая</button><button type="button" aria-pressed="true">Тёмная</button></div>
         <p class="cab-note" id="thNote">Светлая тема появится позже</p>
         <div class="cab-colors" id="stColors" role="group" aria-label="Цвет акцента">${ACCENTS.map(([c, n]) => h`<button type="button" class="cab-color" data-c="${c}" style="background:${c}" aria-label="${n}" aria-pressed="${String(c === accent)}"></button>`)}</div></section>
+      ${Cab.installCard()}
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
       ${ctx.isStaff ? h`<a class="cab-row st-staff" href="headman.html"><b>Кабинет старосты</b><span class="c-mute">только у старост</span></a>` : ''}
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
+    Cab.bindInstall(el);
     const seg = el.querySelector('#sgSeg');
     seg.onclick = async (e) => {
       const b = e.target.closest('button[data-sg]'); if (!b || seg.dataset.busy) return;

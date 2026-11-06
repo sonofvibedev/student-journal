@@ -35,7 +35,7 @@ const check = (name, ok, detail = '') => { results.push({ name, ok }); console.l
 
 const browser = await chromium.launch({ executablePath: findChrome() });
 async function newCtx() {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU' });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU', serviceWorkers: 'block' });
   await ctx.route('**/*', (route) => {
     const u = route.request().url();
     if (u.includes(PROD_REF)) return route.abort();                                 // прод запрещён

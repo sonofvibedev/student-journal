@@ -61,7 +61,7 @@ const initials = (s) => `${s.last_name} ${s.first_name.charAt(0)}.`;
 const re = (s) => new RegExp('^\\s*' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$');
 
 async function open(browser, ses, page0 = 'teacher.html', hash = '') {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU' });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU', serviceWorkers: 'block' });
   await ctx.route('**/*', async (route) => {
     const u = route.request().url();
     if (u.includes(PROD_REF)) return route.abort();

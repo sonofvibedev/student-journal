@@ -97,7 +97,7 @@ const chrome = findChrome();
 const browser = await chromium.launch({ executablePath: chrome });
 const ctxs = [];
 async function newCtx(storage, init) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU' });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU', serviceWorkers: 'block' });
   ctxs.push(ctx);
   await ctx.route('**/*', (route) => {
     const u = route.request().url();

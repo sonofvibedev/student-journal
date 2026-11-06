@@ -3,7 +3,7 @@
 // после отправки результат фиксирует tg_notification_done: ошибка возвращает строку в очередь, после 3 попыток — failed.
 // Тексты уведомлений и токен в логи не пишем; в базу уходит только короткий код ошибки (tg_403, tg_429, ...).
 import { admin, cors, json } from '../_shared/common.ts';
-import { sendTelegram, dispatchText, buttonUrl, siteUrl } from '../_shared/notify.ts';
+import { sendTelegram, dispatchText, buttonUrl, buttonText, siteUrl } from '../_shared/notify.ts';
 import { logServer } from '../_shared/oplog.ts';
 
 const BUDGET_MS = 50_000;   // pg_cron зовёт раз в минуту: к следующему запуску функция должна закончить
@@ -34,10 +34,11 @@ Deno.serve(async (req) => {
       if (!n.telegram_id || left() <= 0) { skipped++; await done(false, n.telegram_id ? 'deadline' : 'no_link'); continue; }
       const url = buttonUrl(n.kind, site);
       const text = dispatchText(n.kind, n.title, n.body);
-      let r = await sendTelegram(n.telegram_id, text, url ? { url } : undefined);
+      const opts = url ? { url, button: buttonText(n.kind) } : undefined;
+      let r = await sendTelegram(n.telegram_id, text, opts);
       if (r.status === 429) {   // Telegram просит подождать: один повтор после паузы (не дольше 5 с)
         await sleep(Math.min(r.retryAfter ?? 1, 5) * 1000);
-        r = await sendTelegram(n.telegram_id, text, url ? { url } : undefined);
+        r = await sendTelegram(n.telegram_id, text, opts);
       }
       const { error: e } = await done(r.ok, r.ok ? null : `tg_${r.status || 'net'}`);
       if (e) { console.error('tg-dispatch done', e.code ?? 'error'); await logServer('tg-dispatch', 'done_failed', e.code ?? 'error'); }

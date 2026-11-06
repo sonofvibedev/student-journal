@@ -84,7 +84,7 @@
 
   // ---------- вход и контекст ----------
   // Возвращает контекст или null (тогда страница уже уводит пользователя на нужный экран)
-  Cab.load = async function (kind) {
+  const loadOnline = async function (kind) {
     if (!sb) { document.body.textContent = 'Нет связи с сервером.'; return null; }
     const { data: ses } = await sb.auth.getSession();
     if (!ses || !ses.session) { location.replace('join.html'); return null; }
@@ -126,8 +126,63 @@
     Cab.ctx = ctx;
     return ctx;
   };
+
+  // Без сети (этап 7): кабинет открывается из контекста, сохранённого при прошлом входе, чтобы староста могла отметить пропуски.
+  // Контекст — только для показа; права по-прежнему проверяет сервер при отправке очереди.
+  const CTX_KEY = 'j2.ctx.';
+  const netErr = (e) => (window.OQ ? OQ.isNetError(e) : navigator.onLine === false);
+  const cachedCtx = (kind) => { try { return JSON.parse(localStorage.getItem(CTX_KEY + kind)); } catch (_) { return null; } };
+  Cab.load = async function (kind) {
+    const off = (c) => { Cab.ctx = Object.assign({}, c, { offline: true }); return Cab.ctx; };
+    if (kind !== 'teacher' && navigator.onLine === false) { const c = cachedCtx(kind); if (c && c.uid) return off(c); }
+    try {
+      const ctx = await loadOnline(kind);
+      if (ctx && kind !== 'teacher') { try { localStorage.setItem(CTX_KEY + kind, JSON.stringify(ctx)); } catch (_) { /* память переполнена: офлайн-вход просто не получится */ } }
+      return ctx;
+    } catch (e) {
+      const c = kind !== 'teacher' && netErr(e) ? cachedCtx(kind) : null;
+      if (c && c.uid) return off(c);
+      throw e;
+    }
+  };
+
+  // ---------- очередь пропусков без сети: полоса состояния и отправка ----------
+  Cab.netBar = function () {
+    const el = document.getElementById('cabNet'); if (!el) return;
+    const n = window.OQ && Cab.ctx && Cab.ctx.uid ? OQ.count(Cab.ctx.uid) : 0, off = navigator.onLine === false;
+    el.hidden = !off && !n;
+    el.textContent = off ? `Нет связи. Отметки сохраняются на телефоне${n ? `, в очереди: ${n}` : ''}.` : n ? `Отправляем отметки: ${n}…` : '';
+  };
+  Cab.flushQueue = async function () {
+    if (!window.OQ || !Cab.ctx || !Cab.ctx.uid || navigator.onLine === false || !OQ.count(Cab.ctx.uid)) return;
+    const { data } = await sb.auth.getSession();
+    if (!data || !data.session || data.session.user.id !== Cab.ctx.uid) return;   // очередь чужая или вход слетел
+    const r = await OQ.flush(sb, Cab.ctx.uid);
+    Cab.netBar();
+    if (r.error === '42501') Cab.toast('Часть отметок не принята: журнал закрыт или нет прав.', 'err');
+    else if (r.sent) Cab.toast(`Отметки отправлены: ${r.sent}.`, 'ok');
+    if (r.sent && Cab.onFlushed) Cab.onFlushed();
+  };
+
+  // ---------- установка на экран телефона ----------
+  Cab.installCard = () => {
+    const st = window.J2PWA ? J2PWA.state() : 'none';
+    if (st !== 'prompt' && st !== 'ios') return '';
+    return Cab.h`<div class="j2-card" id="cabInstallCard"><h2>Установить журнал</h2>${st === 'prompt'
+      ? Cab.h`<p>Значок на экране телефона, запуск без адресной строки, пропуски можно отметить без сети.</p><button type="button" class="j2-btn" id="cabInstall">Установить</button>`
+      : Cab.h`<p>Нажмите «Поделиться» в Safari и выберите «На экран Домой».</p>`}</div>`;
+  };
+  Cab.bindInstall = (el) => {
+    const b = el.querySelector('#cabInstall'); if (!b) return;
+    b.onclick = async () => { await J2PWA.install(); const c = document.getElementById('cabInstallCard'); if (c && J2PWA.state() !== 'prompt') c.remove(); };
+  };
+
   Cab.fatal = (text) => { document.body.innerHTML = Cab.str(Cab.h`<main class="j2-wrap"><h1 class="j2-h1">Журнал</h1><p class="j2-sub">${text}</p><button class="j2-btn" id="cabOut" type="button">Выйти</button></main>`); document.getElementById('cabOut').onclick = () => Cab.signOut(); };
-  Cab.signOut = async () => { try { await sb.auth.signOut(); } catch (e) { /* уже вышли */ } location.replace('join.html'); };
+  Cab.signOut = async () => {
+    try { await sb.auth.signOut(); } catch (e) { /* уже вышли */ }
+    try { ['student', 'headman'].forEach((k) => localStorage.removeItem(CTX_KEY + k)); } catch (e) { /* нет доступа к памяти */ }   // очередь пропусков остаётся: уйдёт при следующем входе
+    location.replace('join.html');
+  };
 
   // ---------- оболочка и роутер ----------
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
@@ -138,12 +193,17 @@
     const root = document.getElementById('cab');
     root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap" id="cabMain" tabindex="-1"></main>
       <nav class="cab-tabbar" aria-label="Разделы">${opts.tabs.map((t) => Cab.h`<a class="cab-tab" href="${'#/' + t.path}" data-tab="${t.id}"><span class="cab-ico">${t.icon}</span><span>${t.label}</span></a>`)}</nav>
-      <div class="cab-toast" id="cabToast" role="status" aria-live="polite"></div>`);
+      <div class="cab-toast" id="cabToast" role="status" aria-live="polite"></div>
+      <div class="cab-net" id="cabNet" role="status" aria-live="polite" hidden></div>`);
     const main = document.getElementById('cabMain');
+    Cab.netBar();
+    const syncNet = () => { Cab.netBar(); Cab.flushQueue().catch((e) => console.error('[queue]', e)); };
+    window.addEventListener('online', syncNet); window.addEventListener('offline', Cab.netBar);
+    syncNet();
     let gen = 0;
     async function go() {
       const my = ++gen;
-      const hash = location.hash.replace(/^#\/?/, '') || opts.start;
+      const hash = location.hash.replace(/^#\/?/, '') || (ctx.offline && opts.routes.journal ? 'journal' : opts.start);
       const [name, ...rest] = hash.split('/');
       const key = opts.routes[hash] ? hash : opts.routes[name] ? name : opts.start;
       const r = opts.routes[key];
@@ -161,7 +221,7 @@
     }
     Cab.rerender = go;
     window.addEventListener('hashchange', go);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && Cab.autoRefresh && Cab.autoRefresh()) go(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { syncNet(); if (Cab.autoRefresh && Cab.autoRefresh()) go(); } });
     await go();
     return ctx;
   };

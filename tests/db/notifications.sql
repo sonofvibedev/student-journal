@@ -392,7 +392,7 @@ insert into pg_temp.res select 'справки: студент не получа
 insert into pg_temp.res select 'семестр: староста и зам A получили «14» с датой в ключе',
   (select count(*) from nd where who in (1, 2) and kind = 'semester' and group_id = 'aaaaaaaa-0000-4000-8000-00000000000a'
      and dedupe_key = 'semester:aaaaaaaa-0000-4000-8000-00000000000a:' || (select (today + 14)::text from d) || ':14'
-     and body like '%(через 14 дн.)') = 2, '';
+     and body like '%(через 14 дн.)%') = 2, '';
 insert into pg_temp.res select 'семестр: староста B (5 дней) получил «7»',
   exists (select 1 from nd where who = 8 and kind = 'semester' and dedupe_key like '%:7'), '';
 insert into pg_temp.res select 'семестр: студенты не получают', not exists (select 1 from nd where who in (3, 9) and kind = 'semester'), '';

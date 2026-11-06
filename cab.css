@@ -124,6 +124,8 @@
 .cab-select { display: block; width: 100%; min-height: 56px; padding: 8px 14px; margin: 0 0 12px; border-radius: 18px; border: 1px solid var(--j-card-border); background: rgba(80, 220, 190, .08); color: var(--j-text); font: 600 17px 'Onest', sans-serif; }
 .cab-select option { color: #111; }
 
+.cab-net { position: sticky; top: 0; z-index: 55; padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px; text-align: center; font-size: 14px; color: var(--j-text); background: #2a2417; border-bottom: 1px solid var(--j-amber); }
+.cab-net[hidden] { display: none; }
 .cab-toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 60; max-width: calc(100% - 32px);
   padding: 12px 18px; border-radius: 16px; background: #232632; color: var(--j-text); border: 1px solid var(--j-card-border); transition: opacity .2s, transform .2s; }
 .cab-toast.show { opacity: 1; transform: translate(-50%, 0); } .cab-toast.err { border-color: var(--j-coral); } .cab-toast.ok { border-color: var(--j-lime); }

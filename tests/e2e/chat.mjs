@@ -66,7 +66,7 @@ const rpcAs = async (ses, name, args = {}) => (await fetch(`${URL_SB}/rest/v1/rp
 const unreadOf = async (ses) => { const r = await rpcAs(ses, 'chat_threads_my'); return Array.isArray(r) ? r.reduce((n, x) => n + (Number(x.unread) || 0), 0) : -1; };
 
 async function open(browser, ses, page, hash) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU' });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU', serviceWorkers: 'block' });
   await ctx.route('**/*', async (route) => {
     const u = route.request().url();
     if (u.includes(PROD_REF)) return route.abort();

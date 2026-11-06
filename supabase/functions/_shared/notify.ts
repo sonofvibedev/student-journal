@@ -11,8 +11,9 @@ export function siteUrl(): string {
   return u.startsWith('https://') ? u : '';
 }
 
-// Куда ведёт кнопка в уведомлении: староста про семестр — в кабинет старосты, остальные — в приложение
-export const buttonUrl = (kind: string, site: string) => (site.startsWith('https://') ? `${site}/${kind === 'semester' ? 'headman' : 'app'}.html` : '');
+// Куда ведёт кнопка в уведомлении: староста про семестр — сразу к отчёту для деканата, остальные — в приложение
+export const buttonUrl = (kind: string, site: string) => (site.startsWith('https://') ? `${site}/${kind === 'semester' ? 'headman.html#/summary/report' : 'app.html'}` : '');
+export const buttonText = (kind: string) => (kind === 'semester' ? 'Скачать отчёт для деканата' : 'Открыть журнал');
 
 // Telegram-сообщение уведомления: заголовок жирным, текст ниже (всё экранировано).
 // Текст сообщений чата в уведомление не попадает никогда: для kind 'chat' берём фиксированную фразу, даже если в строке что-то лежит.
