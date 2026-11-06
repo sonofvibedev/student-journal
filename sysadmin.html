@@ -33,8 +33,8 @@
   .sa-people li { padding: 3px 0; }
   details > summary { cursor: pointer; min-height: var(--j-tap); display: flex; align-items: center; color: var(--j-lime); font-weight: 600; font-size: 15px; }
   .sa-mono { font: 500 12px/1.4 ui-monospace, Consolas, monospace; color: var(--j-muted); overflow-wrap: anywhere; word-break: break-word; }
-  .sa-thr { display: flex; gap: 10px; align-items: flex-end; margin-top: 10px; }
-  .sa-thr .j2-field { flex: 1; min-width: 0; margin: 0; }
+  .sa-thr { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
+  .sa-thr .j2-field { flex: 1 1 100px; min-width: 0; margin: 0; }
   .sa-thr .j2-btn { width: auto; flex: none; margin: 0; }
   .sa-field-sel { margin-bottom: 12px; }
   .sa-field-sel select { padding-right: 24px; }
@@ -44,6 +44,22 @@
   .sa-state-grid .j2-card { margin: 0; min-height: 96px; display: flex; flex-direction: column; justify-content: space-between; }
   .sa-state-grid .big { font-size: 34px; font-weight: 800; color: var(--j-lime); line-height: 1; }
   .sa-state-grid .big.amber { color: var(--j-amber); }
+  .sa-state-grid .sa-sub { font-size: 13px; margin-top: 6px; }
+  .sa-pill.bad { color: var(--j-coral); }
+  .j2-tabs.sa-seg { flex-wrap: wrap; }
+  .j2-tabs.sa-seg button { flex: 1 1 45%; min-width: 0; overflow-wrap: anywhere; }
+  .sa-secret { border: 2px solid var(--j-lime); background: rgba(198, 244, 50, .08); }
+  .sa-secret .j2-code { font-size: clamp(20px, 6.2vw, 28px); letter-spacing: .06em; overflow-wrap: anywhere; word-break: break-all; }
+  .sa-secret .sa-warn { color: var(--j-amber); margin-top: 6px; }
+  .sa-res { min-height: 0; margin: 8px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+  .sa-res:empty { display: none; }
+  .sa-res.ok { color: var(--j-lime); } .sa-res.err { color: var(--j-coral); } .sa-res.warn { color: var(--j-amber); }
+  .sa-pre { white-space: pre-wrap; }
+  .sa-wrap-any { overflow-wrap: anywhere; }
+  .sa-new > summary, .sa-sub-d > summary { margin-bottom: 4px; }
+  .sa-sub-d { margin: 0 0 10px; }
+  .j2-chip { max-width: 100%; overflow-wrap: anywhere; }
+  textarea { max-width: 100%; }
 </style>
 </head>
 <body class="j2">
@@ -82,6 +98,7 @@
 </nav>
 
 <script src="env.js"></script>
+<script src="monitor.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="j2-core.js"></script>
 <script src="sysadmin.js"></script>

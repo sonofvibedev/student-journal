@@ -136,7 +136,7 @@
     const login = $('lg-login').value.trim().toLowerCase(), pw = $('lg-pw').value;
     setMsg('login', '');
     clearInvalid('login');
-    if (!login) { setMsg('login', 'Введите логин.', 'err'); invalid('field-lg-login', 'lg-login'); return; }
+    if (!login) { setMsg('login', 'Введите логин или почту.', 'err'); invalid('field-lg-login', 'lg-login'); return; }
     if (!pw) { setMsg('login', 'Введите пароль.', 'err'); invalid('field-lg-pw', 'lg-pw'); return; }
     const r = await signIn(login, pw);
     if (r.error) {
@@ -272,6 +272,8 @@
     if (st.error) { show('code'); setMsg('code', J2.errText('network'), 'err'); return; }
     if (!st.session) { show('code'); return; }
     if (!st.membership) {
+      // сисадмин без группы: кабинет сам перенаправит на sysadmin.html
+      try { const sa = await J2.sb.rpc('is_sysadmin'); if (sa && sa.data === true) { redirecting = true; location.replace('app.html'); return; } } catch (e) { /* обычный путь */ }
       show('code');
       setMsg('code', 'Вы вошли, но не состоите в группе. Введите код группы.', 'err');
       return;

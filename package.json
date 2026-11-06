@@ -8,9 +8,9 @@
     "test:reset": "node tools/test/seed-test.mjs",
     "test:db": "node tools/test/run-db-tests.mjs",
     "test:deploy": "bash tools/test/deploy-functions.sh",
-    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/ui.mjs && node tests/e2e/gate.mjs && node tests/e2e/student.mjs && node tests/e2e/headman.mjs && node tests/e2e/schedule.mjs && node tests/e2e/telegram.mjs && node tests/e2e/chat-rest.mjs && node tests/e2e/teacher.mjs && node tests/e2e/chat.mjs",
+    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/ui.mjs && node tests/e2e/gate.mjs && node tests/e2e/student.mjs && node tests/e2e/headman.mjs && node tests/e2e/schedule.mjs && node tests/e2e/telegram.mjs && node tests/e2e/chat-rest.mjs && node tests/e2e/ops-rest.mjs && node tests/e2e/teacher.mjs && node tests/e2e/chat.mjs && node tests/e2e/ops.mjs",
     "test:all": "npm run test:unit && npm run test:migrate && npm run test:reset && npm run test:deploy && npm run test:db && npm run test:e2e",
     "test:ui": "node tests/e2e/ui.mjs",
-    "test:unit": "node tests/unit/bseu.mjs && node tests/unit/schedule-notify.mjs && node tests/unit/chat-crypto.mjs"
+    "test:unit": "node tests/unit/bseu.mjs && node tests/unit/schedule-notify.mjs && node tests/unit/ops.mjs && node tests/unit/chat-crypto.mjs"
   }
 }

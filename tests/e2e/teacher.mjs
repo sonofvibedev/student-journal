@@ -236,7 +236,8 @@ try {
   await row(S3).getByRole('button', { name: /Отменить/ }).click();
   await sheetBtn(p, 'Отменить пропуск').click();
   await toastText(p, 'Пропуск отменён');
-  check('запись старосты своей дисциплины отменена преподавателем', (await get(`absences?group_id=eq.${G}&student_id=eq.${S3.id}&date=eq.${TODAY}&select=id`)).length === 0);
+  // тост от прошлой отмены ещё на экране, поэтому ждём саму базу, а не текст
+  check('запись старосты своей дисциплины отменена преподавателем', !!(await pollDb(async () => (await get(`absences?group_id=eq.${G}&student_id=eq.${S3.id}&date=eq.${TODAY}&select=id`)).length === 0 || null)));
   check('пропуск практики (старосты) в базе остался нетронутым', (await get(`absences?group_id=eq.${G}&student_id=eq.${S4.id}&lesson_kind=eq.practice&select=id`)).length === 1);
   check('запись другого преподавателя осталась на месте', (await get(`absences?group_id=eq.${G}&student_id=eq.${S5.id}&date=eq.${TODAY}&select=id`)).length === 1);
 
@@ -303,7 +304,7 @@ try {
   await p.locator('.cab-card', { hasText: 'E2E задание старосты' }).getByRole('button', { name: /Отменить/ }).click();
   await sheetBtn(p, 'Отменить задание').click();
   await toastText(p, 'Задание отменено');
-  check('задание старосты по своему предмету отменено преподавателем', (await get('tasks?id=eq.hw-e2e-hm-1&select=id')).length === 0);
+  check('задание старосты по своему предмету отменено преподавателем', !!(await pollDb(async () => (await get('tasks?id=eq.hw-e2e-hm-1&select=id')).length === 0 || null)));
 
   // ---------- 6. тесты (заглушка) и чат ----------
   await go(p, '#/tests', 'Тесты появятся в следующем обновлении');

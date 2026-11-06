@@ -5,6 +5,7 @@
 import { admin, cors, json } from '../_shared/common.ts';
 import { importGroup, notifySchedule } from '../_shared/schedule.ts';
 import { alertSysadmins } from '../_shared/notify.ts';
+import { logServer } from '../_shared/oplog.ts';
 
 const PAUSE_MS = 2000;
 const BUDGET_MS = 140_000;   // лимит времени Edge Function ~150 с: что не успели, объявляем сбоем, а не теряем молча
@@ -18,7 +19,7 @@ Deno.serve(async (req) => {
 
   const { data: groups, error } = await admin.from('groups').select('id, name')
     .eq('status', 'active').not('bseu_faculty_id', 'is', null).not('bseu_form_id', 'is', null).not('bseu_group_id', 'is', null).not('course', 'is', null).order('name');
-  if (error) { await alertSysadmins('Журнал: сбой импорта расписания', 'Не удалось прочитать список групп'); return json({ error: 'server_error' }, 500); }
+  if (error) { await logServer('schedule-nightly', 'groups_read_failed', error.code ?? 'error'); await alertSysadmins('Журнал: сбой импорта расписания', 'Не удалось прочитать список групп'); return json({ error: 'server_error' }, 500); }
 
   const started = Date.now();
   const failures: string[] = [];
@@ -27,12 +28,13 @@ Deno.serve(async (req) => {
     if (Date.now() - started > BUDGET_MS) {
       const left = (groups ?? []).slice(i).map((x) => x.name).join(', ');
       failures.push(`не хватило времени: ${left}`);
+      await logServer('schedule-nightly', 'budget_exceeded', left);
       await alertSysadmins('Журнал: сбой импорта расписания', `Не хватило времени, не обработаны группы: ${left}`);
       break;
     }
     if (i) await sleep(PAUSE_MS);
     let r;
-    try { r = await importGroup(g.id, null); } catch (_) { r = { ok: false as const, error: 'exception', status: 500 }; }
+    try { r = await importGroup(g.id, null); } catch (e) { await logServer('schedule-nightly', 'exception', `${g.name}: ${e instanceof Error ? e.name : 'unknown'}`); r = { ok: false as const, error: 'exception', status: 500 }; }
     if (!r.ok) {
       failures.push(`${g.name}: ${r.error}`);
       await alertSysadmins('Журнал: сбой импорта расписания', `Группа ${g.name}: ${r.error}`);

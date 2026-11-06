@@ -11,8 +11,9 @@
     : null;
 
   J2.EMAIL_DOMAIN = 'students.journal-24dmm2.app';
-  // Логин студента превращается в «почту» так же, как в Edge Functions (_shared/common.ts)
-  J2.loginToEmail = (login) => `${String(login).trim().toLowerCase()}@${J2.EMAIL_DOMAIN}`;
+  // Логин студента превращается в «почту» так же, как в Edge Functions (_shared/common.ts).
+  // Если ввели почту (есть @: преподаватели, сисадмины), берём её как есть.
+  J2.loginToEmail = (login) => { const v = String(login).trim().toLowerCase(); return v.includes('@') ? v : `${v}@${J2.EMAIL_DOMAIN}`; };
   J2.LOGIN_RE = /^[a-z0-9_.]{3,32}$/;
   J2.PASSWORD_MIN = 8;
   J2.PASSWORD_MAX = 72;

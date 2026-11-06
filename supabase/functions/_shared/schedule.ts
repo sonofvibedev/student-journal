@@ -4,6 +4,7 @@
 // Если разметка не узнана или разница с прошлой версией подозрительно большая, ничего не пишем: остаётся прошлая версия, причина в schedule_meta.last_error.
 // Ограничение «не чаще раза в 10 минут» живёт только в HTTP-обёртке: ночному запуску оно не нужно.
 import { admin } from './common.ts';
+import { logServer } from './oplog.ts';
 import { fetchSemesterHtml, parseSchedule, currentWeek, toRows, mondayOf, addDaysIso, minskToday, unknownTimes, type Row } from './bseu.ts';
 import { changesFor, scheduleBody, type Change } from './schedule-text.ts';
 export type { Change } from './schedule-text.ts';
@@ -32,6 +33,7 @@ async function loadExisting(groupId: string): Promise<Existing[]> {
 async function fail(groupId: string, status: string, detail: string, httpStatus: number): Promise<ImportResult> {
   await admin.from('schedule_meta').upsert({ group_id: groupId, last_status: status, last_error: detail.slice(0, 300) }, { onConflict: 'group_id' });
   await admin.from('audit_log').insert({ group_id: groupId, action: 'schedule_import_failed', details: { status, detail: detail.slice(0, 300) } });
+  await logServer('schedule-import', status, groupId);   // единая точка сбоев для кнопки и ночного запуска; текст ответа bseu.by не передаём
   return { ok: false, error: status, status: httpStatus };
 }
 
@@ -56,7 +58,7 @@ export async function importGroup(groupId: string, actor: string | null): Promis
   if (!rows.length) return fail(groupId, 'format_unrecognized', 'Не удалось получить даты занятий', 502);
 
   let existing: Existing[];
-  try { existing = await loadExisting(groupId); } catch (_) { return { ok: false, error: 'server_error', status: 500 }; }
+  try { existing = await loadExisting(groupId); } catch (_) { await logServer('schedule-import', 'db_read', groupId); return { ok: false, error: 'server_error', status: 500 }; }
   const old = new Map(existing.map((r) => [keyOf(r), r]));
   const fresh = new Map(rows.map((r) => [keyOf(r), r]));
 

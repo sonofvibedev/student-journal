@@ -14,6 +14,7 @@
 // Состояние диалога лежит в tg_dialog_state (функция сама ничего не помнит), срок — 30 минут.
 // Токены и тексты задач в логи функции не пишутся.
 import { admin, sha256hex } from '../_shared/common.ts';
+import { logServer } from '../_shared/oplog.ts';
 import {
   addDaysYmd, buildRecord, canDecide, canModify, checkSecret, cleanText, commitMessage, dialogFresh, dowShort,
   fallbackDates, findDuplicate, fmtDm, fmtDmy, isValidYmd, linkCodeState, looksLikeCode, minskYmd, nextLessonDates,
@@ -535,6 +536,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     // Только тип ошибки: ни токенов, ни текстов задач в журнал не попадает
     console.error('tg-bot error', e instanceof Error ? e.message.slice(0, 80) : 'unknown');
+    await logServer('tg-bot', 'handler_error', e instanceof Error ? e.message.slice(0, 80) : 'unknown');
     const chat = update.message?.chat ?? update.callback_query?.message?.chat;
     if (chat?.type === 'private') await say(chat.id, 'Что-то пошло не так. Попробуйте ещё раз чуть позже.');
   }

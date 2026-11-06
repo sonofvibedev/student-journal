@@ -6,7 +6,8 @@
 // Секреты функции (в репозитории их нет): RESEND_API_KEY, MAIL_FROM, ADMIN_EMAIL, TELEGRAM_BOT_TOKEN, TG_ADMIN_IDS, SITE_URL.
 // Нет секрета — канал пропускается, функция не падает: заявка не должна зависеть от почты.
 import { admin, cors, json } from '../_shared/common.ts';
-import { sendMail } from '../_shared/notify.ts';   // тот же Resend-запрос; sendTelegram тут свой: текст без HTML-разметки
+import { sendMail } from '../_shared/notify.ts';
+import { logServer } from '../_shared/oplog.ts';   // тот же Resend-запрос; sendTelegram тут свой: текст без HTML-разметки
 
 const SITE = () => (Deno.env.get('SITE_URL') ?? '').replace(/\/$/, '');
 
@@ -68,6 +69,9 @@ Deno.serve(async (req) => {
     if (tg?.telegram_id) sent.tg = await sendTelegram(tg.telegram_id, text);
     sent.mail = await sendMail(owner.email ?? '', `Журнал: заявка ${ok ? 'одобрена' : 'отклонена'}`, text);
   }
+
+  // Каналы настроены, но ни один не сработал: сисадмину это видно в логе (в самих секретах и адресах причины нет)
+  if (Object.keys(sent).length && !Object.values(sent).some(Boolean)) await logServer('notify-registration', 'not_sent', kind);
 
   // Отмечаем как «отправлено» только если хоть один канал сработал: без секретов (или при сбое) повтор позже разрешён
   if (Object.values(sent).some(Boolean)) {

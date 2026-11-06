@@ -4,6 +4,7 @@
 // Тексты уведомлений и токен в логи не пишем; в базу уходит только короткий код ошибки (tg_403, tg_429, ...).
 import { admin, cors, json } from '../_shared/common.ts';
 import { sendTelegram, dispatchText, buttonUrl, siteUrl } from '../_shared/notify.ts';
+import { logServer } from '../_shared/oplog.ts';
 
 const BUDGET_MS = 50_000;   // pg_cron зовёт раз в минуту: к следующему запуску функция должна закончить
 const ROUNDS = 5;
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
 
   for (let round = 0; round < ROUNDS && left() > 0; round++) {
     const { data: rows, error } = await admin.rpc('tg_claim_notifications', { p_limit: 100 });
-    if (error) { console.error('tg-dispatch claim', error.code ?? 'error'); return json({ error: 'claim_failed', sent, failed, skipped }, sent || failed ? 200 : 500); }
+    if (error) { console.error('tg-dispatch claim', error.code ?? 'error'); await logServer('tg-dispatch', 'claim_failed', error.code ?? 'error'); return json({ error: 'claim_failed', sent, failed, skipped }, sent || failed ? 200 : 500); }
     if (!rows?.length) break;
 
     for (const n of rows as { id: string; kind: string; title: string; body: string | null; telegram_id: number | null }[]) {
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
         r = await sendTelegram(n.telegram_id, text, url ? { url } : undefined);
       }
       const { error: e } = await done(r.ok, r.ok ? null : `tg_${r.status || 'net'}`);
-      if (e) console.error('tg-dispatch done', e.code ?? 'error');
+      if (e) { console.error('tg-dispatch done', e.code ?? 'error'); await logServer('tg-dispatch', 'done_failed', e.code ?? 'error'); }
       if (r.ok) sent++; else failed++;
       await sleep(40);   // ~25 сообщений в секунду: ниже лимита Telegram (30/с)
     }
