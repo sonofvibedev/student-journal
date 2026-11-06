@@ -272,7 +272,9 @@
   const CERT = { sick: 'Больничный', statement: 'Заявление', other: 'Другое' };
   const CERT_ST = { received: ['подтверждена', 'c-mint'], waiting: ['не подтверждена', 'c-amber'], none: ['не сдана', 'c-coral'] };
   async function profile(el, ctx, nav) {
-    const certs = await soft(q(sb.from('certificates').select('id,kind,date_from,date_to,status').eq('student_id', ctx.student.id).order('date_from', { ascending: false })));
+    const [certs, tg] = await Promise.all([
+      soft(q(sb.from('certificates').select('id,kind,date_from,date_to,status').eq('student_id', ctx.student.id).order('date_from', { ascending: false }))),
+      soft(myLink(ctx))]);                                                                   // ошибка запроса = «не привязан», без шума
     const s = ctx.student, sg = sgOf(ctx);
     const ini = ((s.last_name || '').charAt(0) + (s.first_name || '').charAt(0)).toUpperCase() || '?';
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
@@ -288,7 +290,7 @@
         <div class="cab-seg2" role="group" aria-label="Тема"><button type="button" disabled aria-pressed="false" aria-describedby="thNote">Светлая</button><button type="button" aria-pressed="true">Тёмная</button></div>
         <p class="cab-note" id="thNote">Светлая тема появится позже</p>
         <div class="cab-colors" id="stColors" role="group" aria-label="Цвет акцента">${ACCENTS.map(([c, n]) => h`<button type="button" class="cab-color" data-c="${c}" style="background:${c}" aria-label="${n}" aria-pressed="${String(c === accent)}"></button>`)}</div></section>
-      <div class="st-grp"><a class="st-line" id="tgRow" href="index.html#profile"><span>Telegram-уведомления</span><span class="c-amber">не привязан</span></a></div>
+      <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
       ${ctx.isStaff ? h`<a class="cab-row st-staff" href="headman.html"><b>Кабинет старосты</b><span class="c-mute">только у старост</span></a>` : ''}
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     const seg = el.querySelector('#sgSeg');
@@ -368,20 +370,161 @@
     Cab.autoRefresh = () => true;
   }
 
+  // ---------- Telegram: привязка бота и настройки уведомлений ----------
+  const TG_KINDS = [['deadline_soon', 'Горящие домашки и дедлайны'], ['task', 'Новые домашки и дедлайны'], ['schedule', 'Изменения расписания'], ['grade', 'Новые оценки'],
+    ['absence', 'Внесённые пропуски'], ['dean_threshold', 'Приближение к порогу деканата'], ['certificate', 'Справки: срок и подтверждение']];
+  const TG_STAFF = [['semester', 'Скорое закрытие семестра'], ['chat', 'Сообщения в чате', 'появится позже']];       // чат появится на этапе 4
+  const BOT_RE = /^[A-Za-z0-9_]{3,64}$/;
+  let botName = null, tgDone = false;                                                      // имя бота (кэш успеха), «только что привязали»
+  const plane = h`<span class="cab-ico sm" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></span>`;
+  const myLink = (ctx) => q(sb.from('tg_links').select('user_id,linked_at').eq('user_id', ctx.uid).maybeSingle());
+  async function botUser() {                                                               // имя бота из Edge Function; нет ответа = null (экран покажет текст вместо кнопки)
+    if (botName) return botName;
+    const r = await J2.fn('tg-info', {}, { anon: true });
+    const n = r.ok && r.data ? String(r.data.bot_username || '').replace(/^@/, '') : '';
+    if (BOT_RE.test(n)) botName = n;
+    return botName;
+  }
+  // Подтверждение: нижний лист с двумя кнопками, Esc и тап по фону = «Отмена»
+  function ask(title, text, okText) {
+    return new Promise((res) => {
+      const back = document.activeElement, root = document.getElementById('cab'), m = document.createElement('div');
+      m.className = 'cab-modal';
+      m.innerHTML = str(h`<div class="cab-sheet" role="dialog" aria-modal="true" aria-labelledby="stAskT"><h2 class="st-sh-t" id="stAskT">${title}</h2><p class="cab-note">${text}</p><button class="j2-btn danger" data-a="ok" type="button">${okText}</button><button class="j2-btn" data-a="no" type="button">Отмена</button></div>`);
+      const key = (e) => { if (e.key === 'Escape') fin(false); };
+      const no = () => fin(false);
+      function fin(v) { m.remove(); root.inert = false; document.removeEventListener('keydown', key); window.removeEventListener('hashchange', no); if (back && back.focus) back.focus(); res(v); }
+      m.onclick = (e) => { if (e.target === m) fin(false); const b = e.target.closest('button[data-a]'); if (b) fin(b.dataset.a === 'ok'); };
+      document.body.appendChild(m); root.inert = true;
+      document.addEventListener('keydown', key); window.addEventListener('hashchange', no);
+      m.querySelector('button').focus();
+    });
+  }
+
+  // Блок «код → бот» (общий для профиля и экрана «Журнал обновился»): три шага, код с отсчётом, кнопка бота, опрос tg_links.
+  // o: { pollMs, auto — сразу взять код, onLinked(row) }
+  function linkBlock(box, ctx, nav, o) {
+    let state = 'idle', code = '', end = 0, err = '', last = 0, polling = false, timer = null, bot = botName ? 'ok' : 'wait';
+    const clock = () => { const s = Math.max(0, Math.ceil((end - Date.now()) / 1000)); return `${Math.floor(s / 60)}:${p2(s % 60)}`; };
+    const stop = () => { clearInterval(timer); timer = null; };
+    const step = (n, t, sub) => h`<li><span class="tg-n" aria-hidden="true">${n}</span><div><b>${t}</b><small>${sub}</small></div></li>`;
+    function draw() {
+      const raw10 = code.replace('-', '');
+      box.innerHTML = str(h`<ol class="tg-steps">${step(1, 'Получите код', 'Код действует 10 минут')}
+        ${state === 'code' ? h`<li class="tg-codeli"><span class="j2-code" id="tgCode">${code}</span><small class="tg-left" id="tgLeft">Код действует ${clock()}</small></li>`
+          : state === 'expired' ? h`<li class="tg-codeli"><b class="c-coral" role="status">Код истёк</b></li>` : ''}
+        ${step(2, 'Отправьте код боту', 'Откройте бота журнала и вставьте код')}${step(3, 'Готово', 'Бот ответит, что вы вошли, и включит уведомления')}</ol>
+        ${err ? h`<p class="j2-msg err" role="alert">${err}</p>` : ''}
+        ${state === 'code'
+          ? (bot === 'ok' && /^[A-Z2-9]{8}$/.test(raw10) ? h`<a class="j2-btn primary" id="tgOpen" href="${'https://t.me/' + botName + '?start=' + raw10}" target="_blank" rel="noopener noreferrer">${plane}Открыть бота в Telegram</a>`
+            : bot === 'wait' ? '' : h`<p class="cab-note" id="tgNoBot">Откройте бота журнала в Telegram и отправьте код</p>`)
+          : h`<button class="j2-btn primary" id="tgGet" type="button"${state === 'busy' ? raw(' disabled') : ''}>${state === 'busy' ? 'Получаем код…' : err ? 'Повторить' : 'Получить код'}</button>`}`);
+    }
+    async function request() {
+      if (state === 'busy') return;
+      state = 'busy'; err = ''; draw();
+      try {
+        const x = await rpc('tg_create_link_code'), c = Array.isArray(x) ? x[0] : x;
+        if (typeof c !== 'string' || !c) throw new Error('code');
+        code = c; end = Date.now() + 10 * 60e3; last = Date.now(); state = 'code';
+        if (!timer) timer = setInterval(tick, 1000);
+      } catch (e) { state = 'idle'; err = Cab.rpcText(e); }
+      if (box.isConnected && nav.isCurrent()) draw();
+    }
+    async function tick() {
+      if (!box.isConnected || !nav.isCurrent()) return stop();                              // ушли с экрана
+      if (state !== 'code') return;
+      if (end - Date.now() <= 0) { state = 'expired'; stop(); draw(); return; }
+      const left = box.querySelector('#tgLeft'); if (left) left.textContent = `Код действует ${clock()}`;
+      if (polling || Date.now() - last < o.pollMs) return;
+      polling = true; last = Date.now();
+      let row = null;
+      try { row = await myLink(ctx); } catch (e) { /* связь моргнула: спросим в следующий раз */ }
+      polling = false;
+      if (row && box.isConnected && nav.isCurrent() && state === 'code') { stop(); o.onLinked(row); }
+    }
+    box.onclick = (e) => { if (e.target.closest('#tgGet')) request(); };
+    draw();
+    if (!botName) botUser().then(() => { bot = botName ? 'ok' : 'none'; if (box.isConnected && nav.isCurrent() && state !== 'busy') draw(); });
+    if (o.auto) request();
+  }
+
+  async function telegram(el, ctx, nav) {
+    const [link, rows] = await Promise.all([myLink(ctx), q(sb.from('notification_prefs').select('kind,enabled').eq('user_id', ctx.uid))]);
+    const on = new Map(rows.map((r) => [r.kind, r.enabled !== false]));                     // нет строки = включено
+    const just = tgDone; tgDone = false;
+    const sw = ([k, t, hint]) => h`<button type="button" class="tg-sw" role="switch" data-k="${k}" aria-checked="${String(!hint && (on.has(k) ? on.get(k) : true))}"${hint ? raw(' disabled') : ''}><span><span class="tg-t">${t}</span>${hint ? h`<small>${hint}</small>` : ''}</span><span class="tg-k" aria-hidden="true"></span></button>`;
+    if (!put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title tg-h1">Telegram-уведомления</h1>
+      ${link ? h`<p class="cab-sub">Бот присылает уведомления из журнала.</p>${just ? h`<p class="cab-ok" role="status">Готово: бот ответил, что вы вошли</p>` : ''}
+          <div class="cab-card mint"><h3>Привязан с ${Cab.dateText(Cab.minsk(Date.parse(link.linked_at)).iso)}</h3><p>Уведомления приходят в Telegram</p></div>
+          <button class="j2-btn danger" id="tgOut" type="button">Отвязать</button>`
+        : h`<p class="cab-sub">Привяжите Telegram, чтобы горящие домашки, расписание, оценки и пропуски приходили в бота. Это займёт минуту.</p><div id="tgLink"></div>`}
+      <h2 class="cab-h2"><span>Какие уведомления присылать</span></h2>
+      <div class="st-grp" id="tgPrefs">${(ctx.isStaff ? TG_KINDS.concat(TG_STAFF) : TG_KINDS).map(sw)}</div>
+      <p class="cab-note">В колокольчике внутри журнала события остаются всегда.</p>`)) return;
+    if (link) {
+      const out = el.querySelector('#tgOut');
+      out.onclick = async () => {
+        if (out.disabled) return;
+        if (!(await ask('Отвязать Telegram?', 'Уведомления перестанут приходить в Telegram. В колокольчике журнала они останутся.', 'Отвязать'))) return;
+        out.disabled = true;
+        try { await rpc('tg_unlink'); Cab.toast('Telegram отвязан', 'ok'); Cab.rerender(); }
+        catch (err) { out.disabled = false; Cab.toast(Cab.rpcText(err), 'err'); }
+      };
+    } else linkBlock(el.querySelector('#tgLink'), ctx, nav, { pollMs: 4000, onLinked: () => { tgDone = true; Cab.rerender(); } });
+    el.querySelector('#tgPrefs').onclick = async (e) => {                                 // запись сразу, при ошибке откат
+      const b = e.target.closest('button.tg-sw'); if (!b || b.disabled || b.dataset.busy) return;
+      const prev = b.getAttribute('aria-checked') === 'true';
+      b.setAttribute('aria-checked', String(!prev)); b.dataset.busy = '1';
+      try { await q(sb.from('notification_prefs').upsert({ user_id: ctx.uid, kind: b.dataset.k, enabled: !prev }, { onConflict: 'user_id,kind' })); }
+      catch (err) { b.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
+      finally { delete b.dataset.busy; }
+    };
+  }
+
+  // Экран «Журнал обновился»: после сброса привязок бот просит войти заново (макет s03, средний)
+  async function rebind(el, ctx, nav) {
+    const link = await soft(myLink(ctx));
+    const done = () => put(el, nav, h`<h1 class="cab-title">Журнал обновился</h1>
+      <div class="cab-card mint" role="status"><h3>Готово: бот ответил, что вы вошли</h3><p>Уведомления включены. Настроить их можно в профиле.</p></div><a class="j2-btn primary" href="#/home">В журнал</a>`);
+    if (link) return done();
+    if (!put(el, nav, h`<h1 class="cab-title">Журнал обновился</h1><p class="cab-sub">Чтобы получать уведомления, привяжите Telegram заново. Это один раз.</p>
+      <div id="tgLink"></div><button class="j2-btn link" id="rbSkip" type="button">Пропустить, привяжу позже</button>`)) return;
+    linkBlock(el.querySelector('#tgLink'), ctx, nav, { pollMs: 5000, auto: true, onLinked: done });
+    const skip = el.querySelector('#rbSkip');
+    skip.onclick = async () => {
+      if (skip.disabled) return; skip.disabled = true;
+      try { await rpc('tg_rebind_dismiss'); } catch (err) { Cab.toast('Не удалось запомнить выбор. Спросим в следующий раз.', 'err'); }
+      location.hash = '#/home';
+    };
+  }
+  // После обновления: один раз за сеанс ведём на этот экран, если есть своя строка tg_rebind без dismissed_at и нет привязки
+  async function rebindCheck(ctx) {
+    const KEY = 'j2_rebind';
+    try {
+      if (sessionStorage.getItem(KEY)) return;
+      const [rb, link] = await Promise.all([q(sb.from('tg_rebind').select('user_id').eq('user_id', ctx.uid).is('dismissed_at', null).maybeSingle()), myLink(ctx)]);
+      sessionStorage.setItem(KEY, '1');
+      if (rb && !link && location.hash !== '#/rebind') location.hash = '#/rebind';
+    } catch (e) { /* проверка не должна мешать входу */ }
+  }
+
   // ---------- маршруты ----------
   // Автообновление при возврате во вкладку нужно только главной и уведомлениям; остальные его сбрасывают
-  const route = (tab, fn) => ({ tab, render: async (el, ctx, params, nav) => { Cab.autoRefresh = null; await fn(el, ctx, nav); } });
+  // bare: без нижней панели (экран «Журнал обновился»), класс на body снимается на любом другом экране
+  const route = (tab, fn, bare) => ({ tab, render: async (el, ctx, params, nav) => { Cab.autoRefresh = null; document.body.classList.toggle('cab-bare', !!bare); await fn(el, ctx, nav); } });
   const routes = {
     home: route('home', home), notifications: route('home', notifications),
     schedule: route('schedule', schedule),
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers),
-    profile: route('profile', profile), 'profile/absences': route('profile', absences),
+    profile: route('profile', profile), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram),
+    rebind: route('profile', rebind, true),
   };
   Cab.start({
     kind: 'student', start: 'home', routes,
     tabs: [{ id: 'home', label: 'Главная', icon: Cab.icon.home, path: 'home' }, { id: 'schedule', label: 'Расписание', icon: Cab.icon.calendar, path: 'schedule' },
       { id: 'study', label: 'Учёба', icon: Cab.icon.study, path: 'study' }, { id: 'profile', label: 'Профиль', icon: Cab.icon.user, path: 'profile' }],
-  }).catch((e) => { console.error('[st]', e); Cab.fatal('Не получилось открыть журнал. Обновите страницу.'); });
+  }).then((ctx) => { if (ctx) rebindCheck(ctx); }).catch((e) => { console.error('[st]', e); Cab.fatal('Не получилось открыть журнал. Обновите страницу.'); });
 })();

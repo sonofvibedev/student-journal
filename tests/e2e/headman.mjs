@@ -103,7 +103,7 @@ const orig = [];     // исходные фамилии пятерых студ�
 const wipe = async () => {      // идемпотентно: чистит и остатки прошлых запусков
   await del(`absences?group_id=eq.${G}&subject=like.E2E*`).catch(() => {});
   await del(`certificates?group_id=eq.${G}&note=like.E2E*`).catch(() => {});
-  await del(`schedule_lessons?group_id=eq.${G}&subject=like.E2E*`).catch(() => {});
+  await del(`schedule_lessons?group_id=eq.${G}`).catch(() => {});   // всё расписание группы: настоящее из ручного импорта мешает фикстуре
   await del(`tasks?group_id=eq.${G}&rec-%3E%3Esubject=like.E2E*`).catch(() => {});
 };
 try {

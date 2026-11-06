@@ -3,13 +3,13 @@
 # Папка supabase/ в репозитории привязана к проду, поэтому деплоим из временной папки, привязанной к тесту.
 # Без Docker: --use-api собирает функцию на стороне Supabase. JWT у функций выключен (они сами проверяют токен):
 # публичный ключ sb_publishable_… не JWT, а клиенту нужны вызовы без входа (join-group, registration-start).
-# Использование: bash tools/test/deploy-functions.sh [имя ...]   (без аргументов — все функции этапа 1)
+# Использование: bash tools/test/deploy-functions.sh [имя ...]   (без аргументов — функции этапов 1 и 3; tg-bot по умолчанию не входит: ему нужны TG_WEBHOOK_SECRET и вебхук)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 set -a; . ./.env.test; set +a
 node -e "import('./tools/test/guard.mjs').then(m=>m.assertTestTarget(process.env.TEST_PROJECT_REF))"
 FUNCS=("$@")
-[ ${#FUNCS[@]} -eq 0 ] && FUNCS=(join-group registration-start schedule-lookup schedule-import notify-registration)
+[ ${#FUNCS[@]} -eq 0 ] && FUNCS=(join-group registration-start schedule-lookup schedule-import tg-webhook-setup notify-registration schedule-nightly tg-dispatch tg-info tg-rebind-broadcast)
 W=$(mktemp -d)
 mkdir -p "$W/supabase/functions"
 (cd "$W" && npx --yes supabase@latest init --force >/dev/null 2>&1 || true)

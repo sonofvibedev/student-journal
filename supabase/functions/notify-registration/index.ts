@@ -6,6 +6,7 @@
 // Секреты функции (в репозитории их нет): RESEND_API_KEY, MAIL_FROM, ADMIN_EMAIL, TELEGRAM_BOT_TOKEN, TG_ADMIN_IDS, SITE_URL.
 // Нет секрета — канал пропускается, функция не падает: заявка не должна зависеть от почты.
 import { admin, cors, json } from '../_shared/common.ts';
+import { sendMail } from '../_shared/notify.ts';   // тот же Resend-запрос; sendTelegram тут свой: текст без HTML-разметки
 
 const SITE = () => (Deno.env.get('SITE_URL') ?? '').replace(/\/$/, '');
 
@@ -16,19 +17,6 @@ async function sendTelegram(chatId: string | number, text: string): Promise<bool
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    return r.ok;
-  } catch (_) { return false; }
-}
-
-async function sendMail(to: string, subject: string, text: string): Promise<boolean> {
-  const key = Deno.env.get('RESEND_API_KEY');
-  if (!key || !to) return false;
-  try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: Deno.env.get('MAIL_FROM') ?? 'Журнал <onboarding@resend.dev>', to: [to], subject, text }),
       signal: AbortSignal.timeout(10_000),
     });
     return r.ok;

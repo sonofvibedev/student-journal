@@ -64,7 +64,7 @@ const TEACHER = 'E2E Тестов';
 const metaBefore = (await api(`/rest/v1/schedule_meta?group_id=eq.${GID}&select=*`))[0] ?? null;
 
 async function cleanup() {
-  await api(`/rest/v1/schedule_lessons?teacher=eq.${encodeURIComponent(TEACHER)}`, { method: 'DELETE' }).catch(() => {});
+  await api(`/rest/v1/schedule_lessons?group_id=eq.${GID}`, { method: 'DELETE' }).catch(() => {});   // и настоящее расписание из ручного импорта: оно мешает фикстуре
   await api('/rest/v1/tasks?id=like.e2e-*', { method: 'DELETE' }).catch(() => {});
   await api('/rest/v1/grades?id=like.gr-e2e*', { method: 'DELETE' }).catch(() => {});
   await api('/rest/v1/certificates?id=like.ce-e2e*', { method: 'DELETE' }).catch(() => {});

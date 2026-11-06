@@ -18,6 +18,7 @@
     not_student: 'Старостой или заместителем может быть только студент.',
     bad_thresholds: 'Пороги: целые числа от 1, порог деканата не меньше порога предупреждения.',
     bad_role: 'Неизвестная роль.',
+    maintenance: 'Ведутся технические работы. Повторите позже.',
   };
   function errMsg(e) {
     const m = String((e && e.message) || e || '').trim();
@@ -82,7 +83,7 @@
       if (await checkAccess()) { say(''); showMain(); }
     });
   });
-  $('logout').addEventListener('click', async () => { await sb.auth.signOut().catch(() => {}); st.code = null; say('Вы вышли.', 'ok'); showLogin(); });
+  $('logout').addEventListener('click', async () => { await sb.auth.signOut().catch(() => {}); st.code = null; st.tg = null; say('Вы вышли.', 'ok'); showLogin(); });
 
   // ---------- навигация ----------
   const TABS = {
@@ -90,6 +91,7 @@
     logs: { title: 'Логи', sub: 'Последние 50 записей журнала действий', run: renderLogs },
     roles: { title: 'Роли', sub: '', run: renderRoles },
     groups: { title: 'Группы', sub: '', run: renderGroups },
+    service: { title: 'Служебное', sub: 'Операции сразу для всех пользователей', run: renderService },
   };
   function go(tab) {
     st.tab = tab; const n = ++st.nav, t = TABS[tab];
@@ -264,6 +266,65 @@
     }).join('') || '<div class="j2-card"><p>Групп пока нет. Новая группа появляется после одобрения заявки старосты.</p></div>'));
   }
 
+  // ---------- Служебное: Telegram ----------
+  // st.tg: null | { ask } подтверждение | { res: {reset, sent, failed}, err } итог; err — человеческий текст сбоя, step — что повторять (reset | broadcast)
+  function renderService(n) {
+    if (st.tg && st.tg.ask) st.tg = null;
+    paint(n, '<section class="j2-card" id="tgCard" aria-labelledby="tgT"><h2 id="tgT">Telegram</h2>' +
+      '<p class="sa-card-p">Сброс привязок нужен, если бот сменился или привязки устарели: каждый пользователь привяжет бота заново. Логины и данные журнала остаются.</p>' +
+      '<div id="tgBody"></div></section>');
+    paintTg();
+    return Promise.resolve();
+  }
+  function paintTg() {
+    const box = $('tgBody'); if (!box) return;
+    const t = st.tg || {}, r = t.res;
+    let html = '';
+    if (r) html += '<p class="sa-card-p" role="status"><b style="color:var(--j-text)">Сброшено ' + r.reset + ', разослано ' + r.sent + '</b>' + (r.failed ? '. Не доставлено: ' + r.failed + '.' : '') + '</p>';
+    if (t.err) html += '<p class="j2-msg err" role="alert">' + esc(t.err) + '</p>';
+    if (t.ask) {
+      html += '<section class="j2-card warn" id="tgAsk" tabindex="-1" aria-labelledby="tgAskT"><h2 id="tgAskT">Подтвердите действие</h2><p style="color:var(--j-text)">Все пользователи заново привяжут бота. Логины и данные журнала останутся. Продолжить?</p>' +
+        '<div class="sa-actions"><button type="button" class="j2-btn danger" data-act="tg-yes">Да, сбросить</button><button type="button" class="j2-btn" data-act="tg-no">Отмена</button></div></section>';
+    } else {
+      html += '<div class="sa-actions">' +
+        (t.step === 'broadcast' ? '<button type="button" class="j2-btn primary" data-act="tg-bc">Повторить рассылку</button>' : '') +
+        (t.step === 'reset' ? '<button type="button" class="j2-btn primary" data-act="tg-yes">Повторить</button>' : '') +
+        '<button type="button" class="j2-btn danger" data-act="tg-ask">Сбросить привязки Telegram</button></div>';
+    }
+    box.innerHTML = html;
+    if (t.ask && $('tgAsk')) $('tgAsk').focus();
+  }
+  // Рассылка «Журнал обновился»: функция сама берёт строки tg_rebind без broadcast_at, поэтому повтор безопасен
+  async function tgBroadcast(res) {
+    const r = await J2.fn('tg-rebind-broadcast', {});
+    const d = r.data || {};
+    if (!r.ok) {
+      const why = r.status === 0 ? J2.errText('network') : r.status === 403 ? ERR.forbidden : d.error === 'not_configured' ? 'Бот Telegram не настроен на сервере.' : J2.errText(d.error || 'server_error');
+      st.tg = { res: { reset: res.reset, sent: res.sent, failed: res.failed }, err: 'Привязки сброшены, но рассылка не удалась. ' + why, step: 'broadcast' };
+      return;
+    }
+    const sent = Number(d.sent) || 0, failed = Number(d.failed) || 0;
+    st.tg = { res: { reset: res.reset, sent: res.sent + sent, failed }, err: failed ? 'Не всем удалось отправить сообщение: ' + failed + '. Эти пользователи увидят экран входа в журнале. Можно повторить рассылку.' : '', step: failed ? 'broadcast' : '' };
+  }
+  function tgReset(btn, card) {
+    return act(btn, card, async () => {
+      say('Сбрасываем привязки…');
+      const { data, error } = await sb.rpc('tg_reset_all');
+      if (error) { say(''); st.tg = { err: 'Не удалось сбросить привязки. ' + errMsg(error), step: 'reset' }; paintTg(); return; }
+      const res = { reset: Number(data && data.reset) || 0, sent: 0, failed: 0 };
+      say('Привязки сброшены. Рассылаем сообщения…');
+      await tgBroadcast(res);
+      say(st.tg.err ? '' : 'Готово.', st.tg.err ? '' : 'ok'); paintTg();
+    });
+  }
+  function tgRetryBroadcast(btn, card) {
+    return act(btn, card, async () => {
+      say('Рассылаем сообщения…');
+      await tgBroadcast({ reset: st.tg.res.reset, sent: st.tg.res.sent, failed: 0 });
+      say(st.tg.err ? '' : 'Готово.', st.tg.err ? '' : 'ok'); paintTg();
+    });
+  }
+
   // ---------- действия (делегирование) ----------
   document.addEventListener('toggle', (e) => { const d = e.target; if (d.tagName === 'DETAILS' && d.dataset.id) { if (d.open) st.open.add(d.dataset.id); else st.open.delete(d.dataset.id); } }, true);
   view().addEventListener('change', (e) => {
@@ -289,6 +350,10 @@
     if (a === 'rc-no') { st.rc = null; paintRc(); return; }
     if (a === 'rc-yes') return roleChange(btn, card);
     if (a === 'thr-save') return saveThr(btn, card);
+    if (a === 'tg-ask') { st.tg = { ask: true }; say(''); paintTg(); return; }
+    if (a === 'tg-no') { st.tg = null; paintTg(); return; }
+    if (a === 'tg-yes') return tgReset(btn, $('tgCard'));
+    if (a === 'tg-bc') return tgRetryBroadcast(btn, $('tgCard'));
   });
 
   function approve(btn, card, id) {

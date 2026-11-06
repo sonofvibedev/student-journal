@@ -195,3 +195,32 @@
 .st-home .cab-h2 { margin: 8px 2px 0; } .st-home .cab-tile { min-height: 104px; }
 .st-home .cab-ringcard .ringnum { font-size: 11px; } .st-home .cab-tile { padding: 10px; gap: 6px; }
 .st-home .cab-tile b { font-size: 13.5px; overflow-wrap: break-word; hyphens: auto; } .st-home .cab-tile small { font-size: 12px; }
+
+/* Telegram: привязка, настройки уведомлений, экран «Журнал обновился» (app-student.js) */
+.cab-bare .cab-tabbar { display: none; }
+.cab-bare .cab-wrap { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px); }
+.cab-bare .cab-toast { bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
+.tg-h1 { font-size: 30px; overflow-wrap: anywhere; }
+.tg-st { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.tg-steps { list-style: none; margin: 0 0 12px; padding: 4px 16px; border-radius: 22px; background: var(--j-card); border: 1px solid var(--j-card-border); }
+.tg-steps > li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+.tg-steps > li:first-child { border-top: 0; }
+.tg-steps li > div { min-width: 0; overflow-wrap: anywhere; }
+.tg-steps b { display: block; font-size: 17px; line-height: 1.25; }
+.tg-steps small { display: block; color: var(--j-muted); font-size: 14px; }
+.tg-n { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--j-lime); color: var(--j-lime); display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+.tg-steps > li.tg-codeli { display: block; text-align: center; padding: 8px 0; }
+.tg-codeli .j2-code { margin: 4px 0; max-width: 100%; overflow-wrap: anywhere; }
+.tg-codeli .tg-left { margin-top: 2px; }
+.tg-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 60px; padding: 8px 16px; border: 0; border-top: 1px solid rgba(255, 255, 255, .08);
+  background: none; color: var(--j-text); font: 600 16px/1.25 'Onest', system-ui, sans-serif; text-align: left; cursor: pointer; }
+.tg-sw:first-child { border-top: 0; }
+.tg-sw > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.tg-sw .tg-t { display: block; }
+.tg-sw small { display: block; color: var(--j-muted); font-weight: 500; font-size: 13px; }
+.tg-k { flex: none; position: relative; width: 50px; height: 30px; border-radius: 15px; background: rgba(255, 255, 255, .18); transition: background .15s; }
+.tg-k::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s, background .15s; }
+.tg-sw[aria-checked="true"] .tg-k { background: var(--j-lime); }
+.tg-sw[aria-checked="true"] .tg-k::after { transform: translateX(20px); background: var(--j-lime-ink); }
+.tg-sw:disabled { opacity: .55; cursor: default; }
+.tg-sw:focus-visible { outline: 2px solid var(--j-lime); outline-offset: -2px; }

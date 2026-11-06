@@ -23,6 +23,7 @@ const call = async (token, body) => {
   return { status: r.status, data: await r.json().catch(() => null) };
 };
 const clean = async () => {
+  await fetch(`${URL_SB}/rest/v1/notifications?group_id=eq.${G}&kind=eq.schedule`, { method: 'DELETE', headers: svc });
   await fetch(`${URL_SB}/rest/v1/schedule_lessons?group_id=eq.${G}`, { method: 'DELETE', headers: svc });
   await fetch(`${URL_SB}/rest/v1/schedule_meta?group_id=eq.${G}`, { method: 'DELETE', headers: svc });
 };
@@ -58,6 +59,8 @@ try {
   await fetch(`${URL_SB}/rest/v1/schedule_lessons`, { method: 'POST', headers: svc, body: JSON.stringify({ group_id: G, lesson_date: '2026-12-01', pair_no: 2, starts_at: '09:45', ends_at: '11:05', subject: 'Лишнее занятие', kind: 'lecture' }) });
   const r3 = await call(hs.access_token, { group_id: G });
   check('повторный импорт: одна правка и одно удаление, ничего нового', r3.status === 200 && r3.data?.changed === 1 && r3.data?.removed === 1 && r3.data?.added === 0, JSON.stringify(r3));
+  const ntf = await get(`notifications?group_id=eq.${G}&kind=eq.schedule&select=user_id,body,tg_status&order=created_at.desc&limit=50`);
+  check('об изменении расписания уведомлены студенты (в колокольчик, с текстом про аудиторию)', r3.data?.notified > 0 && ntf.length > 0 && ntf.every((n) => /аудитория/.test(n.body) || /занятие отменено/.test(n.body)), JSON.stringify({ n: r3.data?.notified, c: ntf.length }));
   const back = (await get(`schedule_lessons?group_id=eq.${G}&lesson_date=eq.${fut.lesson_date}&pair_no=eq.${fut.pair_no}&subject=eq.${encodeURIComponent(fut.subject)}&select=room,prev_room,changed_at`))[0];
   check('при смене аудитории запомнена прежняя (prev_room) и время правки', back?.prev_room === '9/999' && !!back.changed_at, JSON.stringify(back));
   const extra = await get(`schedule_lessons?group_id=eq.${G}&subject=eq.${encodeURIComponent('Лишнее занятие')}&select=id`);

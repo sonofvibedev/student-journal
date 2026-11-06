@@ -106,6 +106,8 @@ alter table public.tasks disable trigger user;
 -- Тестовые аккаунты 1–11 после импорта уже привязаны к студентам 24ДММ-2: освобождаем их на время теста (транзакция откатится)
 update public.students set claimed_by = null, claim_status = 'free' where claimed_by in (select pg_temp.u(i) from generate_series(1, 11) i);
 delete from public.memberships where user_id in (select pg_temp.u(i) from generate_series(1, 11) i);
+-- уведомления, оставшиеся у этих аккаунтов от e2e-прогонов (задания 24ДММ-2), мешают счётчикам тестов
+delete from public.notifications where user_id in (select pg_temp.u(i) from generate_series(1, 11) i);
 
 insert into public.groups (id, name, group_no, course, status) values
   ('aaaaaaaa-0000-4000-8000-00000000000a', 'ТЕСТ-1', 'ТЕСТ-1', 2, 'active'),

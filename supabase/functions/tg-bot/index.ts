@@ -70,6 +70,10 @@ async function approverName(tid: number): Promise<string> {
   return me?.studentId || 'admin';
 }
 
+// Привязан, но профиля нет (студенты новых групп): бот им только шлёт уведомления, задачи через бота вносят старосты прежней группы
+const NO_BOT_TASKS = 'Аккаунт привязан, уведомления включены. Задачи через бота вносят только старосты прежней группы, '
+  + 'остальное — в приложении журнала.';
+
 const HOW_TO_LINK = 'Чтобы пользоваться ботом, привяжите аккаунт: в личном кабинете журнала получите код привязки '
   + 'и пришлите его сюда (или команду /start КОД). Код действует 10 минут.';
 
@@ -100,10 +104,35 @@ async function tryLink(tid: number, chat: number, raw: string) {
   const { error } = await admin.from('tg_links').upsert(
     { user_id: row!.user_id, telegram_id: tid, linked_at: new Date().toISOString() }, { onConflict: 'user_id' });
   if (error) { console.error('link', error.code); return say(chat, 'Не удалось привязать. Получите новый код и попробуйте ещё раз.'); }
+  // Привязка закрывает экран «Журнал обновился» (после сброса привязок); таблицы может ещё не быть — ошибку не смотрим
+  await admin.from('tg_rebind').update({ dismissed_at: new Date().toISOString() }).eq('user_id', row!.user_id).is('dismissed_at', null);
   const me = await getMe(tid);
-  return say(chat, 'Аккаунт привязан.' + (me?.canPost
-    ? ' Чтобы добавить задачу, нажмите /start.'
-    : ' Но права вносить задачи у вас пока нет — попросите администратора выдать их.'));
+  const who = await whoIs(row!.user_id);
+  if (!who) {
+    return say(chat, 'Аккаунт привязан.' + (me?.canPost
+      ? ' Чтобы добавить задачу, нажмите /start.'
+      : ' Но права вносить задачи у вас пока нет — попросите администратора выдать их.'));
+  }
+  // Подсказку про задачи показываем только тем, кто их может вносить (профиль + право, как и раньше)
+  await say(chat, `Готово, вы вошли как ${who}. Уведомления включены.` + (me?.canPost ? ' Чтобы добавить задачу, нажмите /start.' : ''));
+  await tg('sendMessage', {
+    chat_id: chat, text: 'Что приходит: горящие домашки, изменения расписания, оценки и пропуски. Выключить можно в профиле.',
+    ...(SITE_URL.startsWith('https://') ? { reply_markup: { inline_keyboard: [[{ text: 'Настройки уведомлений', url: `${SITE_URL}/app.html#/profile/telegram` }]] } } : {}),
+  });
+}
+
+// «Фамилия И., название группы» по активному членству студента; null, если не нашли (тогда ответ как раньше)
+async function whoIs(userId: string): Promise<string | null> {
+  const { data: m } = await admin.from('memberships').select('student_id, group_id')
+    .eq('user_id', userId).eq('status', 'active').eq('base_role', 'student').order('created_at').limit(1).maybeSingle();
+  if (!m?.student_id) return null;
+  const [{ data: s }, { data: g }] = await Promise.all([
+    admin.from('students').select('last_name, first_name').eq('id', m.student_id).maybeSingle(),
+    admin.from('groups').select('name').eq('id', m.group_id).maybeSingle(),
+  ]);
+  if (!s?.last_name || !g?.name) return null;
+  const ini = String(s.first_name ?? '').trim().charAt(0);
+  return `${String(s.last_name).trim()}${ini ? ` ${ini.toUpperCase()}.` : ''}, ${g.name}`;
 }
 
 // ---------- Предметы и расписание ----------
@@ -372,7 +401,8 @@ async function onMessage(msg: Any) {
   if (!me) {
     if (cmd === 'start' && looksLikeCode(arg)) return tryLink(tid, chat, arg);
     if (!cmd && looksLikeCode(text)) return tryLink(tid, chat, text);
-    return say(chat, HOW_TO_LINK);
+    const { data: link } = await admin.from('tg_links').select('user_id').eq('telegram_id', tid).maybeSingle();
+    return say(chat, link ? NO_BOT_TASKS : HOW_TO_LINK);
   }
   if (cmd === 'start' && looksLikeCode(arg)) return tryLink(tid, chat, arg);   // перепривязка
   if (!me.canPost) return say(chat, NO_RIGHTS);
