@@ -134,6 +134,7 @@
     // «расписания нет совсем» отличаем от «сегодня пар нет»
     const noData = !ls.length && !(await soft(q(sb.from('schedule_lessons').select('lesson_date').eq('group_id', ctx.group.id).limit(1))) || []).length;
     const fire = (tasks || []).filter((t) => t.due && t.due >= today && Cab.taskVisible(t, sgOf(ctx))).sort(byDue).slice(0, 3);
+    const urgent = (tasks || []).filter((t) => t.due && !t.isExam && Cab.taskVisible(t, sgOf(ctx)) && Cab.dayDiff(today, t.due) >= 0 && Cab.dayDiff(today, t.due) <= 1).sort(byDue);
     const badge = unread ? (unread > 99 ? '99+' : unread) : '';
     put(el, nav, h`<div class="st-home">${banner(ctx)}
       <div class="cab-head"><div><h1 class="cab-title">${Cab.dateText(today)}</h1><p class="cab-sub">${Cab.DOW[now.dow]}, ${ctx.group.name}</p></div>
@@ -143,6 +144,7 @@
         : noData ? h`<div class="j2-card"><h2>Расписание ещё не загружено</h2><p>Оно появится после загрузки с bseu.by.</p></div>`
         : h`<div class="j2-card"><h2>Сегодня пар нет</h2></div>`}
       ${absCard(stats, true)}
+      ${urgent.length ? h`<a class="st-alert" href="${'#/' + (urgent.length === 1 ? taskRoute(urgent[0]) : 'study')}"><span class="cab-ico" aria-hidden="true">${Cab.icon.bell}</span><span><b>Срок сегодня или завтра</b><small>${urgent.length} ${Cab.plural(urgent.length, ['задание', 'задания', 'заданий'])}: ${urgent.slice(0, 2).map((t) => t.subject || 'Без предмета').join(', ')}${urgent.length > 2 ? ' и ещё ' + (urgent.length - 2) : ''}</small></span>${chev}</a>` : ''}
       <div class="cab-h2"><span>Горит</span><a href="#/study">Все задания ${chev}</a></div>
       ${!tasks ? h`<p class="cab-note">Задания не загрузились. Обновите страницу.</p>`
         : !fire.length ? h`<p class="cab-note">Горящих заданий нет.</p>`
@@ -298,9 +300,11 @@
   const CERT = { sick: 'Больничный', statement: 'Заявление', other: 'Другое' };
   const CERT_ST = { received: ['подтверждена', 'c-mint'], waiting: ['не подтверждена', 'c-amber'], none: ['не сдана', 'c-coral'] };
   async function profile(el, ctx, nav) {
-    const [certs, tg] = await Promise.all([
+    const [certs, tg, pref] = await Promise.all([
       soft(q(sb.from('certificates').select('id,kind,date_from,date_to,status').eq('student_id', ctx.student.id).order('date_from', { ascending: false }))),
-      soft(myLink(ctx))]);                                                                   // ошибка запроса = «не привязан», без шума
+      soft(myLink(ctx)),
+      soft(q(sb.from('notification_prefs').select('enabled').eq('user_id', ctx.uid).eq('kind', 'deadline_soon').maybeSingle()))]);
+    const remOn = !pref || pref.enabled !== false;                                                                   // ошибка запроса = «не привязан», без шума
     const s = ctx.student, sg = sgOf(ctx);
     const ini = ((s.last_name || '').charAt(0) + (s.first_name || '').charAt(0)).toUpperCase() || '?';
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
@@ -313,6 +317,10 @@
         : certs.map((c) => { const st = CERT_ST[c.status] || CERT_ST.none;
           return h`<div class="cab-kv"><span>${CERT[c.kind] || CERT.other}, ${period(c.date_from, c.date_to)}</span><b class="${st[1]} st-s">${st[0]}</b></div>`; })}
       <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><a href="index.html#achievements"><b>Достижения</b><small>мои значки</small></a></nav>
+      <section class="cab-card" aria-labelledby="remT"><h3 id="remT">Напоминания о сроках</h3>
+        <div class="st-grp" style="margin:10px 0 8px"><button type="button" class="tg-sw" role="switch" id="remSw" aria-checked="${String(remOn)}"><span><span class="tg-t">Напоминать о горящих заданиях</span><small>За день до срока</small></span><span class="tg-k" aria-hidden="true"></span></button></div>
+        ${tg ? h`<p class="cab-note" style="margin:0">Telegram привязан: напоминание придёт в бота и в колокольчик журнала.</p>`
+          : h`<p class="cab-note c-amber" style="margin:0">Telegram не привязан: напоминание придёт только в колокольчик журнала. <a class="st-a" id="remTg" href="#/profile/telegram">Привязать Telegram</a></p>`}</section>
       <section class="cab-card" aria-labelledby="thT"><h3 id="thT">Оформление</h3>
         <div class="cab-seg2" role="group" aria-label="Тема"><button type="button" disabled aria-pressed="false" aria-describedby="thNote">Светлая</button><button type="button" aria-pressed="true">Тёмная</button></div>
         <p class="cab-note" id="thNote">Светлая тема появится позже</p>
@@ -324,6 +332,14 @@
       ${ctx.isStaff ? h`<a class="cab-row st-staff" href="headman.html"><b>Кабинет старосты</b><span class="c-mute">только у старост</span></a>` : ''}
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
+    const rem = el.querySelector('#remSw');
+    rem.onclick = async () => {                                                             // запись сразу, при ошибке откат
+      if (rem.dataset.busy) return;
+      const prev = rem.getAttribute('aria-checked') === 'true'; rem.setAttribute('aria-checked', String(!prev)); rem.dataset.busy = '1';
+      try { await setPref(ctx, 'deadline_soon', !prev); }
+      catch (err) { rem.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
+      finally { delete rem.dataset.busy; }
+    };
     const seg = el.querySelector('#sgSeg');
     seg.onclick = async (e) => {
       const b = e.target.closest('button[data-sg]'); if (!b || seg.dataset.busy) return;
@@ -410,6 +426,7 @@
   const BOT_RE = /^[A-Za-z0-9_]{3,64}$/;
   let botName = null, tgDone = false;                                                      // имя бота (кэш успеха), «только что привязали»
   const plane = h`<span class="cab-ico sm" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></span>`;
+  const setPref = (ctx, kind, enabled) => q(sb.from('notification_prefs').upsert({ user_id: ctx.uid, kind, enabled }, { onConflict: 'user_id,kind' }));   // нет строки = включено
   const myLink = (ctx) => q(sb.from('tg_links').select('user_id,linked_at').eq('user_id', ctx.uid).maybeSingle());
   async function botUser() {                                                               // имя бота из Edge Function; нет ответа = null (экран покажет текст вместо кнопки)
     if (botName) return botName;
@@ -584,7 +601,7 @@
       const b = e.target.closest('button.tg-sw'); if (!b || b.disabled || b.dataset.busy) return;
       const prev = b.getAttribute('aria-checked') === 'true';
       b.setAttribute('aria-checked', String(!prev)); b.dataset.busy = '1';
-      try { await q(sb.from('notification_prefs').upsert({ user_id: ctx.uid, kind: b.dataset.k, enabled: !prev }, { onConflict: 'user_id,kind' })); }
+      try { await setPref(ctx, b.dataset.k, !prev); }
       catch (err) { b.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
       finally { delete b.dataset.busy; }
     };
