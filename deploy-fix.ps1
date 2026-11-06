@@ -80,7 +80,11 @@ if (Test-Path (Join-Path $RepoPath "tools\build-study-days.js")) {
 
 # Добавляем изменённые файлы (каждый — только если реально есть в папке)
 git add index.html
-foreach ($name in @("data.json", "study-days.json", "cabinet.html", "pass.html", "app.css", "profile.css", "env.js", "theme.js", "changelog.js", "shared.js", "badges.js", "profile.js", "studak.js", "schedule.js", "notify.js", "achievements.js", "achievements.css", "games.js", "games-core.js", "games.css", "snake.js", "words.js", "manifest.json", "sw.js", "icons", "fonts")) {    $p = Join-Path $RepoPath $name
+foreach ($name in @("data.json", "study-days.json", "cabinet.html", "pass.html", "app.css", "profile.css", "env.js", "theme.js", "changelog.js", "shared.js", "badges.js", "profile.js", "studak.js", "schedule.js", "notify.js", "achievements.js", "achievements.css", "games.js", "games-core.js", "games.css", "snake.js", "words.js", "manifest.json", "sw.js", "icons", "fonts",
+        "app.html", "headman.html", "teacher.html", "sysadmin.html", "join.html", "register.html",
+        "app-student.js", "cab-core.js", "cab.css", "chat-crypto.js", "chat-ui.js", "headman.js", "teacher.js", "sysadmin.js",
+        "join.js", "register.js", "j2-core.js", "j2-gate.js", "j2.css", "monitor.js", "offline-queue.js", "pwa.js", "maintenance.js", "vendor")) {
+    $p = Join-Path $RepoPath $name
     if (Test-Path $p) {
         git add $name
     }

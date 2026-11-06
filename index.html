@@ -3104,6 +3104,8 @@
     // (плитки, всплывашка о значке, уведомления, index.html#achievements)
     // открывают лист поверх текущего экрана.
     if (name === 'achievements') { openAchSheet(); return; }
+    // Журнал 2.0: админка 1.x закрыта (journal-save отвечает 410), староста работает в кабинете
+    if (name === 'admin') { location.href = 'headman.html'; return; }
     if (!VIEWS[name]) name = 'home';
     if (location.hash !== '#' + name) {
       if (isNestedView(name)) history.pushState(null, '', '#' + name);
@@ -3940,8 +3942,7 @@
   // Строка «Админ-панель» в профиле: вошедшего админа ведём сразу на экран,
   // остальным показываем окно входа по токену.
   function openAdminPanel() {
-    if (adminModeOn()) goView('admin');
-    else toggleAdminModal();
+    goView('admin');
   }
 
   // ===== Плавающая кнопка «+» и её быстрое меню =====
