@@ -10,9 +10,20 @@
 .cab-tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 50;
   width: min(448px, calc(100% - 32px)); display: flex; gap: 2px; padding: 6px; border-radius: 32px;
   background: rgba(24, 26, 34, .86); border: 1px solid var(--j-card-border); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
-.cab-tab { flex: 1; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 26px;
-  color: var(--j-muted); text-decoration: none; font: 600 12px/1.1 'Onest', system-ui, sans-serif; }
-.cab-tab.on { background: var(--j-lime); color: var(--j-lime-ink); }
+.cab-tab { position: relative; z-index: 1; flex: 1; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 26px;
+  color: var(--j-muted); text-decoration: none; font: 600 12px/1.1 'Onest', system-ui, sans-serif; transition: color .25s cubic-bezier(.2, .8, .2, 1); }
+.cab-tab.on { color: var(--j-lime-ink); }
+/* подвижная «таблетка» активной вкладки: ширина одной вкладки (--n штук, зазор 2px), сдвиг на --i вкладок */
+.cab-tab-ind { position: absolute; top: 6px; bottom: 6px; left: 6px; z-index: 0; width: calc((100% - 12px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
+  background: var(--j-lime); pointer-events: none; transform: translateX(calc(var(--i, 0) * (100% + 2px))); }
+.cab-tabbar.anim .cab-tab-ind { transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+.cab-tabbar.none .cab-tab-ind { opacity: 0; }
+/* лёгкий фейд содержимого при смене раздела: только opacity, высота не меняется */
+@keyframes cab-fade { from { opacity: 0; } to { opacity: 1; } }
+.cab-wrap.fade { animation: cab-fade .15s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .cab-tab { transition: none; } .cab-tabbar.anim .cab-tab-ind { transition: none; } .cab-wrap.fade { animation: none; }
+}
 .cab-tab:focus-visible, .cab-row:focus-visible, .cab-tile:focus-visible, .cab-bell:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
 
 /* шапка экрана */
@@ -146,7 +157,9 @@
 .hm-step > div { display: flex; align-items: center; gap: 4px; } .hm-step output { min-width: 52px; text-align: center; font-weight: 700; font-size: 17px; }
 .hm-step button { width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--j-card-border); background: rgba(255, 255, 255, .05); color: var(--j-text); font: 700 22px 'Onest', sans-serif; cursor: pointer; }
 .hm-step button:disabled { opacity: .4; cursor: default; }
-.hm-step button:focus-visible, .cab-stu .mark:focus-visible, .cab-chk input:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+.hm-step button:focus-visible, .cab-stu .mark:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+/* поля без обёртки: подсветка рамкой и кольцом, не outline */
+.cab-chk input:focus-visible, .cab-select:focus-visible, .tc-sel:focus-visible { border-color: var(--j-lime); box-shadow: 0 0 0 3px rgba(198, 244, 50, .35); }
 .cab-stu > span { min-width: 0; } .cab-stu.locked .mark { opacity: .85; }
 .hm-lock { display: block; margin-top: 1px; color: var(--j-muted); font-size: 13px; font-weight: 500; } .hm-lock.c-coral { color: var(--j-coral); }
 .hm-sheet-h { margin: 0 0 12px; font-size: 22px; line-height: 1.2; } .hm-sheet-h:focus { outline: none; }
@@ -257,7 +270,7 @@
 .ch-row { display: flex; align-items: flex-end; gap: 8px; }
 .ch-row textarea { flex: 1; min-width: 0; min-height: 52px; max-height: 120px; padding: 14px 18px; border-radius: 26px; border: 1px solid var(--j-card-border); background: #181A22; color: var(--j-text);
   font: 500 16px/1.3 'Onest', system-ui, sans-serif; resize: none; outline: 0; }
-.ch-row textarea:focus { border-color: var(--j-lime); }
+.ch-row textarea:focus { border-color: var(--j-lime); box-shadow: 0 0 0 3px rgba(198, 244, 50, .18); }
 .ch-row textarea:disabled { opacity: .6; }
 .ch-send { flex: none; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; background: var(--j-lime); color: var(--j-lime-ink); cursor: pointer; }
 .ch-send:disabled { opacity: .45; cursor: default; }
@@ -301,7 +314,7 @@
 .tc-gr { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; border-top: 1px solid rgba(255, 255, 255, .08); overflow-wrap: anywhere; }
 .tc-gr:first-child { border-top: 0; } .tc-gr b { font-size: 17px; font-weight: 600; min-width: 0; }
 .tc-sel { flex: none; min-width: 104px; min-height: 48px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--j-card-border); background: rgba(255, 255, 255, .05); color: var(--j-lime); font: 700 17px 'Onest', sans-serif; text-align: center; text-align-last: center; }
-.tc-sel option { color: #111; } .tc-sel:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
+.tc-sel option { color: #111; }
 .cab-card .tc-text { margin-top: 6px; color: var(--j-text); font-size: 15px; white-space: pre-wrap; }
 .tc-old { opacity: .6; }
 .ch-sub { display: flex; align-items: center; gap: 6px; }

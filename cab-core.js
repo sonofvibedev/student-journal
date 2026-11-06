@@ -241,7 +241,7 @@
     if (!ctx) return;
     const root = document.getElementById('cab');
     root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap" id="cabMain" tabindex="-1"></main>
-      <nav class="cab-tabbar" aria-label="Разделы">${opts.tabs.map((t) => Cab.h`<a class="cab-tab" href="${'#/' + t.path}" data-tab="${t.id}"><span class="cab-ico">${t.icon}</span><span>${t.label}</span></a>`)}</nav>
+      <nav class="cab-tabbar none" aria-label="Разделы" style="${'--n:' + opts.tabs.length}"><span class="cab-tab-ind" aria-hidden="true"></span>${opts.tabs.map((t) => Cab.h`<a class="cab-tab" href="${'#/' + t.path}" data-tab="${t.id}"><span class="cab-ico">${t.icon}</span><span>${t.label}</span></a>`)}</nav>
       <div class="cab-toast" id="cabToast" role="status" aria-live="polite"></div>
       <div class="cab-net" id="cabNet" role="status" aria-live="polite" hidden></div>`);
     const main = document.getElementById('cabMain');
@@ -249,7 +249,7 @@
     const syncNet = () => { Cab.netBar(); Cab.flushQueue().catch((e) => console.error('[queue]', e)); };
     window.addEventListener('online', syncNet); window.addEventListener('offline', Cab.netBar);
     syncNet();
-    let gen = 0;
+    let gen = 0, lastTab = null;
     async function go() {
       const my = ++gen;
       const hash = location.hash.replace(/^#\/?/, '') || (ctx.offline && opts.routes.journal ? 'journal' : opts.start);
@@ -257,7 +257,15 @@
       const key = opts.routes[hash] ? hash : opts.routes[name] ? name : opts.start;
       const r = opts.routes[key];
       const params = key === hash ? [] : rest;
-      root.querySelectorAll('.cab-tab').forEach((a) => { const on = a.dataset.tab === (r.tab || name); a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      const bar = root.querySelector('.cab-tabbar'), tabs = [...root.querySelectorAll('.cab-tab')], tabId = r.tab || name;
+      tabs.forEach((a) => { const on = a.dataset.tab === tabId; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      const idx = tabs.findIndex((a) => a.dataset.tab === tabId);
+      bar.classList.toggle('none', idx < 0);
+      if (idx >= 0) bar.style.setProperty('--i', idx);
+      // плавный сдвиг включаем после первой расстановки, чтобы при открытии «таблетка» не ехала с нуля
+      if (!bar.classList.contains('anim')) requestAnimationFrame(() => requestAnimationFrame(() => bar.classList.add('anim')));
+      if (lastTab !== null && lastTab !== tabId) { main.classList.remove('fade'); void main.offsetWidth; main.classList.add('fade'); }
+      lastTab = tabId;
       main.innerHTML = '<p class="cab-load">Загружаем…</p>';
       try { await r.render(main, ctx, params, { isCurrent: () => my === gen }); }
       catch (e) {
