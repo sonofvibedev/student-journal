@@ -184,6 +184,55 @@
     location.replace('join.html');
   };
 
+  // ---------- «Назад» в Telegram Mini App ----------
+  // Стек экранов (страница + hash) лежит в sessionStorage и переживает переходы между app.html, headman.html и teacher.html.
+  // Пишем при загрузке и при hashchange, подряд одинаковые не дублируем. Адрес, равный предпоследнему, — это возврат (pop).
+  // Кнопка Telegram видна, пока в стеке больше одной записи или открыто окно (.cab-modal); на корне скрыта, и Telegram закрывает приложение штатно.
+  const NAV_KEY = 'j2.nav', NAV_MAX = 30;
+  Cab.nav = {
+    max: NAV_MAX,
+    // Чистая логика: стек и новый адрес → новый стек
+    visit(stack, here, max) {
+      const s = (Array.isArray(stack) ? stack : []).filter((x) => typeof x === 'string'), lim = max || NAV_MAX;
+      if (!s.length) return [here];
+      if (s[s.length - 1] === here) return s;                       // тот же адрес (перезагрузка): не дублируем
+      if (s.length >= 2 && s[s.length - 2] === here) return s.slice(0, -1);   // возврат на предыдущий экран
+      s.push(here);
+      return s.length > lim ? s.slice(s.length - lim) : s;
+    },
+    read() { try { const a = JSON.parse(sessionStorage.getItem(NAV_KEY)); return Array.isArray(a) ? a.filter((x) => typeof x === 'string') : []; } catch (e) { return []; } },
+    write(a) { try { sessionStorage.setItem(NAV_KEY, JSON.stringify(a)); } catch (e) { /* нет sessionStorage: кнопки «Назад» просто не будет */ } },
+    page() { return location.pathname.split('/').pop() || 'index.html'; },
+    // адрес экрана: корень страницы (пустой hash) приводим к стартовому маршруту
+    key(start) { return Cab.nav.page() + (location.hash && location.hash !== '#/' ? location.hash : '#/' + start); },
+    // куда вести по «Назад»: { same, hash, href } или null на корне
+    target(stack, start) {
+      if (!stack || stack.length < 2) return null;
+      const t = stack[stack.length - 2], i = t.indexOf('#'), file = i < 0 ? t : t.slice(0, i), hash = i < 0 ? '' : t.slice(i);
+      return { same: file === Cab.nav.page(), hash: hash || '#/' + start, href: t };
+    },
+  };
+  // Подключает BackButton, если приложение открыто из Telegram и версия 6.1+. Возвращает функцию «обновить видимость» (или пустую). Всё в try/catch.
+  Cab.backButton = function (start) {
+    let TG = null;
+    try { const w = window.Telegram && window.Telegram.WebApp; TG = w && w.initData && typeof w.isVersionAtLeast === 'function' && w.isVersionAtLeast('6.1') && w.BackButton ? w : null; } catch (e) { TG = null; }
+    if (!TG) return () => {};
+    const sync = () => { try { if (document.querySelector('.cab-modal') || Cab.nav.read().length > 1) TG.BackButton.show(); else TG.BackButton.hide(); } catch (e) { /* не мешаем журналу */ } };
+    try {
+      TG.BackButton.onClick(() => {
+        try {
+          if (document.querySelector('.cab-modal')) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); sync(); return; }   // сначала закрываем окно
+          const t = Cab.nav.target(Cab.nav.read(), start);
+          if (!t) { sync(); return; }
+          if (t.same) location.hash = t.hash; else location.href = t.href;
+        } catch (e) { /* ignore */ }
+      });
+      new MutationObserver(sync).observe(document.body, { childList: true });          // окно открыли или закрыли
+      if (typeof TG.ready === 'function') TG.ready();
+    } catch (e) { /* ignore */ }
+    return sync;
+  };
+
   // ---------- оболочка и роутер ----------
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
   // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
@@ -221,6 +270,9 @@
     }
     Cab.rerender = go;
     window.addEventListener('hashchange', go);
+    const syncBack = Cab.backButton(opts.start);
+    const record = () => { Cab.nav.write(Cab.nav.visit(Cab.nav.read(), Cab.nav.key(opts.start))); syncBack(); };
+    record(); window.addEventListener('hashchange', record);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { syncNet(); if (Cab.autoRefresh && Cab.autoRefresh()) go(); } });
     await go();
     return ctx;
