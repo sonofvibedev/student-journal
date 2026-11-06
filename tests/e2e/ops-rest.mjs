@@ -181,8 +181,8 @@ try {
   check('sysadmin_set_group_status: снова active', r.ok && r.data?.status === 'active', r.msg);
   r = await req(U.hm.tok, 'POST', '/rest/v1/absences', [{ group_id: G, student_id: st[1].id, date: '2099-03-01', subject: 'Аудит', hours: 2 }], 'return=representation');
   check('открытая группа: староста снова вносит пропуск', r.ok && r.data.length === 1, r.msg);
-  r = await rpc(U.sys.tok, 'sysadmin_set_group_status', { p_group: G, p_status: 'graduated' });
-  check('sysadmin_set_group_status: graduated → bad_status', r.msg === 'bad_status', r.msg);
+  r = await rpc(U.sys.tok, 'sysadmin_set_group_status', { p_group: G, p_status: 'archived' });
+  check('sysadmin_set_group_status: неизвестный статус → bad_status', r.msg === 'bad_status', r.msg);
 
   // ===== новая группа =====
   const NEW = `ОПС-НОВ-${run}`;

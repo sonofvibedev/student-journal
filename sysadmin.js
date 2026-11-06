@@ -322,10 +322,10 @@
   async function renderRoles(n) {
     clearSecrets(); st.rc = null;
     const sub = (id, label) => '<button type="button" role="tab" id="rs-' + id + '" data-sub="' + id + '" aria-selected="' + (st.roleSub === id) + '">' + label + '</button>';
-    paint(n, '<div class="j2-tabs sa-seg" role="tablist" aria-label="Раздел ролей">' + sub('req', 'Заявки') + sub('grp', 'Роли групп') + sub('tch', 'Преподаватели') + sub('adm', 'Сисадмины') + '</div><div id="rolesBody" role="tabpanel">' + loading + '</div>');
-    const SUBT = { req: 'Заявки новых старост', grp: 'Старосты и заместители в группах', tch: 'Преподаватели групп', adm: 'Кто может открывать эту утилиту' };
+    paint(n, '<div class="j2-tabs sa-seg" role="tablist" aria-label="Раздел ролей">' + sub('req', 'Заявки') + sub('grp', 'Роли групп') + sub('tch', 'Преподаватели') + sub('adm', 'Сисадмины') + sub('del', 'Удаление данных') + '</div><div id="rolesBody" role="tabpanel">' + loading + '</div>');
+    const SUBT = { req: 'Заявки новых старост', grp: 'Старосты и заместители в группах', tch: 'Преподаватели групп', adm: 'Кто может открывать эту утилиту', del: 'Просьбы удалить данные' };
     $('sub').textContent = SUBT[st.roleSub];
-    await ({ req: loadReqs, grp: loadMembers, tch: loadTeachers, adm: loadAdmins }[st.roleSub])(n);
+    await ({ req: loadReqs, grp: loadMembers, tch: loadTeachers, adm: loadAdmins, del: loadDel }[st.roleSub])(n);
   }
   async function loadGroups(n) {                                       // список групп и выбранная группа; null, если показывать нечего
     const g = await sb.from('groups').select('*').order('created_at');
@@ -498,6 +498,27 @@
   }
 
   // --- Сисадмины ---
+  // Просьбы удалить данные: сисадмин решает заявки старост и заместителей (заявки студентов решает староста, но сисадмин видит все)
+  async function loadDel(n) {
+    const r = await sb.rpc('data_deletion_requests_list', { p_group: null });
+    if (stale(n)) return;
+    if (r.error) return paint(n, failBox(r.error), $('rolesBody'));
+    const pend = (r.data || []).filter((x) => x.status === 'pending');
+    const card = (x) => '<article class="j2-card warn" data-id="' + esc(x.id) + '"><div class="sa-head"><h2>' + esc(x.student_name) + '</h2>' + pill('wait', 'ждёт решения') + '</div>' +
+      '<p class="sa-card-p">Группа ' + esc(x.group_name) + ', ' + (x.requester_role === 'student' ? 'студент' : 'староста или заместитель') + '. Подана ' + esc(J2.fmtDate(x.created_at)) + '.</p>' +
+      '<div class="sa-actions"><button type="button" class="j2-btn danger" data-act="del-ok">Удалить данные</button><button type="button" class="j2-btn" data-act="del-no">Отклонить</button></div></article>';
+    paint(n, BOXES + (pend.length ? pend.map(card).join('') : '<div class="j2-card"><p>Просьб нет.</p></div>'), $('rolesBody'));
+    paintAsk(); paintSecret();
+  }
+  function delResolve(btn, el, approve) {
+    const id = el.dataset.id, run = async () => {
+      const r = await sb.rpc('resolve_data_deletion', { p_request: id, p_approve: approve, p_note: null });
+      if (r.error) { say(errMsg(r.error), 'err'); return; }
+      say(approve ? 'Данные удалены.' : 'Просьба отклонена.', 'ok'); const n = ++st.nav; await loadDel(n);
+    };
+    if (!approve) return act(btn, el, run);
+    ask({ text: 'Удалить данные навсегда? Аккаунт будет закрыт, имя заменится на «Удалён студент», пропуски и оценки останутся без имени. Вернуть нельзя.', yes: 'Да, удалить навсегда', run });
+  }
   async function loadAdmins(n) {
     const r = await sb.rpc('sysadmin_list_sysadmins');
     if (stale(n)) return;
@@ -551,7 +572,8 @@
       '<p class="sa-card-p">' + esc([x.faculty, x.course ? x.course + ' курс' : '', x.study_form].filter(Boolean).join(', ')) + '</p>' +
       '<p class="sa-card-p">Студентов: ' + (c == null ? '—' : c) + '. Пороги пропусков: предупреждение ' + esc(x.warn_hours) + ' ч, деканат ' + esc(x.dean_hours) + ' ч.</p>' +
       '<p class="sa-card-p">' + esc(impTxt) + '</p><p class="sa-res" role="status"></p>' +
-      '<div class="sa-actions">' + (x.status === 'active' ? '<button type="button" class="j2-btn danger" data-act="grp-off">Отключить</button>' : x.status === 'closed' ? '<button type="button" class="j2-btn" data-act="grp-on">Включить</button>' : '') +
+      '<div class="sa-actions">' + (x.status === 'active' ? '<button type="button" class="j2-btn danger" data-act="grp-off">Отключить</button>' : x.status === 'closed' ? '<button type="button" class="j2-btn" data-act="grp-on">Включить</button>' : x.status === 'graduated' ? '<button type="button" class="j2-btn" data-act="grp-on">Вернуть в работу</button>' : '') +
+      (x.status !== 'graduated' ? '<button type="button" class="j2-btn danger" data-act="grp-grad">Выпуск</button>' : '') +
       '<button type="button" class="j2-btn" data-act="grp-import">Обновить расписание</button></div>' +
       '<div class="sa-thr"><label class="j2-field"><span>Предупр., ч</span><input type="number" min="1" step="1" inputmode="numeric" data-f="warn" value="' + esc(x.warn_hours) + '"></label>' +
       '<label class="j2-field"><span>Деканат, ч</span><input type="number" min="1" step="1" inputmode="numeric" data-f="dean" value="' + esc(x.dean_hours) + '"></label>' +
@@ -580,13 +602,17 @@
     const gid = el.dataset.group, g = st.gl.find((x) => x.id === gid); if (!g) return;
     ask({ text: 'Отключить группу ' + g.name + '? Она станет доступна только для просмотра: пропуски, оценки и другие записи менять будет нельзя, пока вы её не включите.', yes: 'Отключить группу', run: () => setGroupStatus(gid, 'closed') });
   }
+  function groupGrad(btn, el) {
+    const gid = el.dataset.group, g = st.gl.find((x) => x.id === gid); if (!g) return;
+    ask({ text: 'Перевести группу ' + g.name + ' в «выпустилась»? Журнал станет только для просмотра. Через год после этого данные всех студентов группы удалятся навсегда (аккаунты, чат, Telegram); пропуски и оценки останутся без имён. До истечения года группу можно вернуть в работу.', yes: 'Да, выпуск', run: () => setGroupStatus(gid, 'graduated') });
+  }
   async function setGroupStatus(gid, status) {
-    say(status === 'closed' ? 'Отключаем группу…' : 'Включаем группу…');
+    say(status === 'closed' ? 'Отключаем группу…' : status === 'graduated' ? 'Переводим в выпуск…' : 'Включаем группу…');
     const { error } = await sb.rpc('sysadmin_set_group_status', { p_group: gid, p_status: status });
     if (error) { say(errMsg(error), 'err'); return; }
     const g = st.gl.find((x) => x.id === gid); if (g) g.status = status;
-    say('Готово: группа ' + (g ? g.name : '') + (status === 'closed' ? ' отключена (только просмотр).' : ' снова действует.'), 'ok');
-    repaintGroup(gid, status === 'closed' ? 'Группа отключена: только просмотр.' : 'Группа включена.');
+    say('Готово: группа ' + (g ? g.name : '') + (status === 'closed' ? ' отключена (только просмотр).' : status === 'graduated' ? ' выпустилась (только просмотр, данные удалятся через год).' : ' снова действует.'), 'ok');
+    repaintGroup(gid, status === 'closed' ? 'Группа отключена: только просмотр.' : status === 'graduated' ? 'Группа выпустилась. Через год данные студентов удалятся.' : 'Группа включена.');
   }
   function groupImport(btn, el) {
     const gid = el.dataset.group;
@@ -925,11 +951,14 @@
     if (a === 'tch-subj') return addManualSubject();
     if (a === 'tch-add') return tchAdd(btn, card);
     if (a === 'tch-rm') return tchRemove(btn);
+    if (a === 'del-ok') return delResolve(btn, card, true);
+    if (a === 'del-no') return delResolve(btn, card, false);
     if (a === 'adm-add') return admAdd(btn, card);
     if (a === 'adm-rm') return admRemove(btn);
     if (a === 'thr-save') return saveThr(btn, card);
     if (a === 'grp-off') return groupOff(btn, card);
     if (a === 'grp-on') return act(btn, card, () => setGroupStatus(card.dataset.group, 'active'));
+    if (a === 'grp-grad') return groupGrad(btn, card);
     if (a === 'grp-import') return groupImport(btn, card);
     if (a === 'ng-one') return ngAddOne();
     if (a === 'ng-create') return ngCreate(btn);

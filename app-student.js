@@ -291,6 +291,7 @@
         <p class="cab-note" id="thNote">Светлая тема появится позже</p>
         <div class="cab-colors" id="stColors" role="group" aria-label="Цвет акцента">${ACCENTS.map(([c, n]) => h`<button type="button" class="cab-color" data-c="${c}" style="background:${c}" aria-label="${n}" aria-pressed="${String(c === accent)}"></button>`)}</div></section>
       ${Cab.installCard()}
+      <div class="st-grp"><a class="st-line" href="#/profile/privacy"><span>Мои данные и удаление</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
       ${ctx.isStaff ? h`<a class="cab-row st-staff" href="headman.html"><b>Кабинет старосты</b><span class="c-mute">только у старост</span></a>` : ''}
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
@@ -451,6 +452,31 @@
     if (o.auto) request();
   }
 
+  // Удаление данных по просьбе (ТЗ, раздел 5): заявка → староста (или сисадмин, если просит сам староста) решает → стирание на сервере
+  const DEL_ST = { pending: ['Заявка отправлена, ждём решения', 'c-amber'], rejected: ['Заявку отклонили', 'c-coral'], done: ['Данные удалены', 'c-mint'], withdrawn: ['Заявку отозвали', 'c-mute'] };
+  async function privacy(el, ctx, nav) {
+    const r = await soft(rpc('my_data_deletion', {}));
+    const open = r && r.status === 'pending', st = r && DEL_ST[r.status];
+    if (!put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Мои данные</h1>
+      <p class="cab-sub">Вы можете попросить удалить ваши данные из журнала.</p>
+      <div class="cab-card"><h3>Что будет удалено</h3><p>Ваш вход (логин и пароль), согласия, уведомления, привязка Telegram, ключи и переписка в чате, достижения и результаты игр. Ваше имя в журнале заменяется на «Удалён студент».</p></div>
+      <div class="cab-card"><h3>Что останется</h3><p>Пропуски и оценки без имени: они нужны для статистики группы и отчёта деканата. Вернуть удалённое нельзя.</p></div>
+      ${st ? h`<div class="cab-card"><h3 class="${st[1]}">${st[0]}</h3>${r.status === 'rejected' && r.note ? h`<p>${r.note}</p>` : ''}</div>` : ''}
+      ${open ? h`<button class="j2-btn" id="dlWd" type="button">Отозвать заявку</button>`
+        : ctx.closed ? '' : h`<div id="dlA"><button class="j2-btn danger" id="dlAsk" type="button">Попросить удалить мои данные</button></div>
+          <div id="dlB" class="j2-hidden"><p class="cab-note c-amber">${ctx.isStaff ? 'Заявку старосты или заместителя рассматривает системный администратор.' : 'Заявку рассмотрит староста.'} После подтверждения данные удалятся навсегда.</p><button class="j2-btn danger" id="dlOk" type="button">Да, отправить заявку</button><button class="j2-btn" id="dlNo" type="button">Отмена</button></div>`}
+      <div class="j2-msg err" id="dlErr" role="alert"></div>`)) return;
+    const err = el.querySelector('#dlErr'), run = (b, fn) => J2.busy(b, async () => { try { err.textContent = ''; await fn(); Cab.rerender(); } catch (e) { err.textContent = Cab.rpcText(e); } });
+    const ask = el.querySelector('#dlAsk');
+    if (ask) {
+      ask.onclick = () => { el.querySelector('#dlA').classList.add('j2-hidden'); el.querySelector('#dlB').classList.remove('j2-hidden'); el.querySelector('#dlOk').focus(); };
+      el.querySelector('#dlNo').onclick = () => { el.querySelector('#dlB').classList.add('j2-hidden'); el.querySelector('#dlA').classList.remove('j2-hidden'); ask.focus(); };
+      const ok = el.querySelector('#dlOk'); ok.onclick = () => run(ok, async () => { await rpc('request_data_deletion', { p_group: ctx.group.id }); Cab.toast('Заявка отправлена.', 'ok'); });
+    }
+    const wd = el.querySelector('#dlWd');
+    if (wd) wd.onclick = () => run(wd, async () => { await rpc('withdraw_data_deletion', {}); Cab.toast('Заявка отозвана.', 'ok'); });
+  }
+
   async function telegram(el, ctx, nav) {
     const [link, rows] = await Promise.all([myLink(ctx), q(sb.from('notification_prefs').select('kind,enabled').eq('user_id', ctx.uid))]);
     const on = new Map(rows.map((r) => [r.kind, r.enabled !== false]));                     // нет строки = включено
@@ -521,7 +547,7 @@
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers),
-    profile: route('profile', profile), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram),
+    profile: route('profile', profile), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({

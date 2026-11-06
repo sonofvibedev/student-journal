@@ -82,7 +82,7 @@
   // =====================================================================================================
   async function summary(el, ctx, params, nav) {
     const gid = ctx.group.id, t = Cab.minsk(), day = t.iso;
-    const [pend, lessons, abs, certs, tasks, meta, chatNew] = await Promise.all([
+    const [pend, lessons, abs, certs, tasks, meta, chatNew, delRows] = await Promise.all([
       q(sb.from('students').select('id').eq('group_id', gid).eq('claim_status', 'pending')),
       q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
       q(sb.from('absences').select('subject').eq('group_id', gid).eq('date', day)),
@@ -91,8 +91,10 @@
       q(sb.from('schedule_meta').select('semester_end, last_import_at, last_status').eq('group_id', gid).maybeSingle()),
       // сбой запроса чата не мешает сводке: тогда просто «Зашифрован»
       window.ChatUI ? ChatUI.unreadTotal(sb).catch(() => 0) : 0,
+      rpc('data_deletion_requests_list', { p_group: gid }).catch(() => []),      // сбой не мешает сводке
     ]);
     if (!nav.isCurrent()) return;
+    const delN = (delRows || []).filter((r) => r.status === 'pending' && r.can_resolve).length;
     const now = lessons.find((l) => Cab.toMin(l.starts_at) <= t.minutes && t.minutes < Cab.toMin(l.ends_at));
     const next = lessons.find((l) => Cab.toMin(l.starts_at) > t.minutes);
     const marked = now ? abs.filter((a) => norm(a.subject) === norm(now.subject)).length : 0;
@@ -106,6 +108,7 @@
       <h1 class="cab-title">Кабинет старосты</h1><p class="cab-sub">${Cab.DOW[t.dow]}, ${t.d} ${Cab.MONTHS[t.m]}</p>
       ${closedNote(ctx)}
       ${Cab.installCard()}
+      ${delN ? h`<a class="cab-row t-amber" href="#/summary/erasure"><b>${delN} ${plural(delN, ['просьба удалить данные', 'просьбы удалить данные', 'просьб удалить данные'])}</b><span class="cab-ico">${icon.chev}</span></a>` : ''}
       ${pend.length ? h`<a class="cab-row t-amber" href="#/summary/requests"><b>${pend.length} ${plural(pend.length, ['студент ждёт', 'студента ждут', 'студентов ждут'])} подтверждения</b><span class="cab-ico">${icon.chev}</span></a>` : ''}
       ${lessonCard}
       <div class="cab-tiles two">
@@ -125,6 +128,36 @@
       else toast(d.error === 'too_soon' ? 'Обновляли недавно. Повторите через 10 минут.' : d.error === 'bseu_unavailable' ? 'Сайт bseu.by не отвечает. Повторите позже.' : 'Не удалось обновить расписание. Прежнее осталось.', 'err');
       Cab.rerender();
     });
+  }
+
+  // =====================================================================================================
+  // Просьбы удалить данные (ТЗ, раздел 5): решение необратимо, поэтому второй шаг подтверждения
+  // =====================================================================================================
+  async function erasure(el, ctx, params, nav) {
+    const rows = await rpc('data_deletion_requests_list', { p_group: ctx.group.id });
+    if (!nav.isCurrent()) return;
+    const pend = rows.filter((r) => r.status === 'pending');
+    const card = (r) => h`<article class="cab-card amber" data-id="${r.id}"><h3>${r.student_name}</h3><p>${r.requester_role === 'student' ? 'Студент' : 'Староста или заместитель'} просит удалить свои данные. Подана ${Cab.dateText(Cab.minsk(Date.parse(r.created_at)).iso)}.</p>
+      ${r.can_resolve && !ctx.closed ? h`<div class="cab-actions" data-s="a"><button type="button" class="j2-btn primary" data-a="ask" aria-label="Удалить данные: ${r.student_name}">Удалить данные</button><button type="button" class="j2-btn" data-a="no" aria-label="Отклонить: ${r.student_name}">Отклонить</button></div>
+      <div class="cab-actions j2-hidden" data-s="b"><p>Данные студента удалятся навсегда, аккаунт будет закрыт. Пропуски и оценки останутся без имени.</p><button type="button" class="j2-btn danger" data-a="ok">Да, удалить навсегда</button><button type="button" class="j2-btn" data-a="back">Назад</button></div>`
+      : h`<p class="cab-note">Решит системный администратор.</p>`}</article>`;
+    put(el, h`${head({ href: '#/summary', text: 'Сводка' }, roleText(ctx), 'Удаление данных', pend.length ? `${pend.length} ${plural(pend.length, ['просьба', 'просьбы', 'просьб'])}` : 'Новых просьб нет')}
+      ${closedNote(ctx)}
+      ${pend.length ? pend.map(card) : h`<div class="cab-card"><h3>Просьб нет</h3><p>Студент может попросить удалить свои данные в профиле. Вы увидите просьбу здесь.</p></div>`}
+      <p class="cab-note">Отклонить можно без объяснений: студент увидит, что заявку отклонили.</p>`);
+    el.onclick = (e) => {
+      const b = e.target.closest('button[data-a]'); if (!b) return;
+      const c = b.closest('article'), a = b.dataset.a;
+      if (a === 'ask' || a === 'back') {
+        $(c, '[data-s="a"]').classList.toggle('j2-hidden', a === 'ask'); $(c, '[data-s="b"]').classList.toggle('j2-hidden', a === 'back');
+        $(c, a === 'ask' ? '[data-a="back"]' : '[data-a="ask"]').focus(); return;
+      }
+      act(b, async () => {
+        $$(c, 'button').forEach((x) => { x.disabled = true; });
+        try { await rpc('resolve_data_deletion', { p_request: c.dataset.id, p_approve: a === 'ok', p_note: null }); toast(a === 'ok' ? 'Данные удалены.' : 'Просьба отклонена.', 'ok'); }
+        finally { Cab.rerender(); }
+      });
+    };
   }
 
   // =====================================================================================================
@@ -196,7 +229,7 @@
     let stu, lessons, offline = false;
     try {
       [stu, lessons] = await Promise.all([
-        q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid)),
+        q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid).neq('claim_status', 'erased')),
         q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind, subgroup').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
       ]);
       try { localStorage.setItem(ckey, JSON.stringify({ day, stu, lessons })); } catch (_) { /* память переполнена */ }
@@ -666,7 +699,7 @@
     kind: 'headman', start: 'summary',
     tabs: [tab('summary', 'Сводка', icon.home), tab('journal', 'Журнал', icon.journal), tab('tasks', 'Задания', icon.tasks), tab('chat', 'Чат', icon.chat)],
     routes: {
-      summary: R(summary), 'summary/requests': R(requests), 'summary/report': R(report),
+      summary: R(summary), 'summary/requests': R(requests), 'summary/report': R(report), 'summary/erasure': R(erasure),
       journal: R(journal), 'journal/certs': R(certs), 'journal/history': R(history),
       tasks: R(tasks), chat: R(chat),
     },

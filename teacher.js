@@ -219,7 +219,7 @@
     if (!pk) return noPairs(el, ctx, 'journal/attendance');
     const t = Cab.minsk(), day = t.iso, gid = pk.gid, closed = isClosed(ctx, gid), role = ctx.teacherRole;
     const [stu, ls] = await Promise.all([
-      q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid)),
+      q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid).neq('claim_status', 'erased')),
       lessonsIn(ctx, pk, Cab.addDays(day, -14), Cab.addDays(day, 14)),
     ]);
     if (!nav.isCurrent()) return;
@@ -331,7 +331,7 @@
     if (!pk) return noPairs(el, ctx, 'journal/grades');
     const day = day0(), gid = pk.gid, closed = isClosed(ctx, gid), role = ctx.teacherRole;
     if (!S.gdate) S.gdate = day;
-    const stu = await q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid));
+    const stu = await q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid).neq('claim_status', 'erased'));
     if (!nav.isCurrent()) return;
     stu.sort(byName);
     put(el, h`${jhead(ctx)}<div id="tcSeg"></div>${closedNote(ctx, gid)}${pickHtml(ctx)}

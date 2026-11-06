@@ -481,8 +481,8 @@ select pg_temp.expect_allowed('статус: после включения ст�
 select pg_temp.ok('статус: audit_log group_status в обе стороны',
   (select count(*) from public.audit_log where action = 'group_status' and group_id = 'aaaaaaaa-0000-4000-8000-00000000000a'
       and ((details ->> 'from' = 'active' and details ->> 'to' = 'closed') or (details ->> 'from' = 'closed' and details ->> 'to' = 'active'))) = 2);
-select pg_temp.expect_err('статус: graduated через RPC нельзя → bad_status', pg_temp.u(7),
-  $$public.sysadmin_set_group_status('aaaaaaaa-0000-4000-8000-00000000000a', 'graduated')$$, 'bad_status');
+select pg_temp.expect_err('статус: неизвестный статус → bad_status', pg_temp.u(7),
+  $$public.sysadmin_set_group_status('aaaaaaaa-0000-4000-8000-00000000000a', 'archived')$$, 'bad_status');
 select pg_temp.expect_err('статус: неизвестная группа → not_found', pg_temp.u(7),
   $$public.sysadmin_set_group_status('dddddddd-0000-4000-8000-00000000000d', 'closed')$$, 'not_found');
 
