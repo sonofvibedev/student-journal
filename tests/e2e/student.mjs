@@ -293,6 +293,13 @@ try {
   check('профиль: напоминания снова включены', !!(await until(async () => (await prefNow()) === true)) && (await page.locator('#remSw').getAttribute('aria-checked')) === 'true');
   check('профиль: строка «Логин и пароль»', (await page.locator('#acRow[href="#/profile/account"]').count()) === 1);
   check('профиль: строка Telegram с id tgRow', (await page.locator('#tgRow').count()) === 1);
+  check('профиль: «Что нового» внизу, сразу над «Выйти», с меткой «новое»', (await page.locator('#wnRow + #outBtn, .st-grp:has(#wnRow) + #outBtn').count()) === 1 && (await page.locator('#wnRow').innerText()).includes('новое'));
+  await page.locator('#wnRow').click(); await h1('Что нового');
+  const wn = await page.locator('.wn-list').first().locator('li').allInnerTexts();
+  check('«Что нового»: текущая версия, короткие пункты в формате «Раздел: что изменилось», прошлые версии свёрнуты', wn.length >= 8 && wn.every((t) => t.includes(':') || t.length < 70) && wn.some((t) => t.startsWith('Telegram: свайп вниз')) && (await page.locator('details.st-det').count()) >= 1 && (await page.locator('details[open]').count()) === 0);
+  await noHScroll('что нового');
+  await page.locator('#cabMain .j2-back').click(); await h1('Профиль');
+  check('«Что нового»: после просмотра метки «новое» нет', !(await page.locator('#wnRow').innerText()).includes('новое'));
   check('профиль: «Светлая» отключена, есть пояснение', (await page.getByRole('button', { name: 'Светлая' }).isDisabled()) && pt.includes('Светлая тема появится позже'));
   await page.getByRole('button', { name: 'Фиолетовый' }).click();
   const acc = await page.evaluate(() => [getComputedStyle(document.documentElement).getPropertyValue('--j-lime').trim().toUpperCase(), localStorage.getItem('t_j2_accent')]);

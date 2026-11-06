@@ -333,6 +333,7 @@
       <div class="st-grp"><a class="st-line" id="acRow" href="#/profile/account"><span>Логин и пароль</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" href="#/profile/privacy"><span>Мои данные и удаление</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
+      <div class="st-grp"><a class="st-line" id="wnRow" href="#/profile/whatsnew"><span>Что нового</span><span class="tg-st">${wnNew() ? h`<span class="c-lime">новое</span>` : ''}${chev}</span></a></div>
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
     avatarInit(el, ctx, ini);
@@ -454,6 +455,17 @@
       document.addEventListener('keydown', key); window.addEventListener('hashchange', close);
       m.querySelector('button').focus();
     };
+  }
+
+  // ---------- «Что нового»: история версий из changelog.js, метка «новое», пока текущую версию не открыли ----------
+  const wnNew = () => lsGet('whats_new_seen') !== APP_VERSION;
+  function whatsNew(el, ctx, nav) {
+    lsSet('whats_new_seen', APP_VERSION);
+    const list = (e) => h`<ul class="wn-list">${e.items.map((t) => h`<li>${t}</li>`)}</ul>`;
+    put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Что нового</h1>
+      ${CHANGELOG.map((e, i) => i === 0
+        ? h`<section class="cab-card"><h3>Версия ${e.version}</h3><p class="wn-date">${changelogDate(e)}${e.title ? ' · ' + e.title : ''}</p>${list(e)}</section>`
+        : h`<details class="st-det"><summary>Версия ${e.version} · ${changelogDate(e)}</summary>${list(e)}</details>`)}`);
   }
 
   async function absences(el, ctx, nav) {
@@ -741,7 +753,7 @@
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
-    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
+    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/whatsnew': route('profile', whatsNew), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({

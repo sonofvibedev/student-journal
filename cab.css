@@ -354,3 +354,8 @@
 .rc-done-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 14px; border-radius: 16px; border: 1px solid var(--j-card-border); background: var(--j-card); color: var(--j-text); font: 600 16px 'Onest', sans-serif; text-align: left; cursor: pointer; }
 .rc-done-item span { min-width: 0; overflow-wrap: anywhere; } .rc-done-item.now { border-color: var(--j-lime); }
 .rc-t-low { color: var(--j-coral); } .rc-t-mid { color: var(--j-amber); } .rc-t-high { color: var(--j-mint); }
+
+/* «Что нового» (профиль → #/profile/whatsnew) */
+.wn-list { margin: 8px 0 0; padding-left: 20px; } .wn-list li { margin: 6px 0; }
+.wn-date { margin: 2px 0 0; color: var(--j-muted); font-size: 14px; }
+.st-det .wn-list { margin: 0 0 8px 4px; color: var(--j-text); }
