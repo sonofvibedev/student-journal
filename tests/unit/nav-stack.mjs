@@ -106,6 +106,20 @@ t('окно открыли или закрыли (MutationObserver): видим�
   e.ctx.modalOpen = false; e.log.observers[0].cb(); assert.equal(tg.calls.hide, 1);
 });
 
+t('свайп: пороги жеста как в старом журнале (50 px, 1,5 раза горизонталь, 700 мс)', () => {
+  const d = Cab.swipe.dir;
+  assert.equal(d(-60, 5, 200), 1); assert.equal(d(60, 5, 200), -1);        // влево — следующий раздел, вправо — предыдущий
+  assert.equal(d(-49, 0, 100), 0);                                        // короткий сдвиг
+  assert.equal(d(-80, 60, 100), 0); assert.equal(d(-90, 60, 100), 1);     // горизонталь меньше или ровно в 1,5 раза сильнее вертикали
+  assert.equal(d(-80, 0, 701), 0); assert.equal(d(-80, 0, 700), 1);       // слишком медленно
+  assert.equal(d(5, 120, 200), 0);                                        // вертикальный жест
+});
+t('свайп: соседний раздел без зацикливания на краях', () => {
+  const n = Cab.swipe.next;
+  assert.equal(n(0, 1, 4), 1); assert.equal(n(2, -1, 4), 1); assert.equal(n(3, 1, 4), -1); assert.equal(n(0, -1, 4), -1);
+  assert.equal(n(-1, 1, 4), -1); assert.equal(n(1, 0, 4), -1);
+});
+
 const bad = results.filter((r) => !r[1]).length;
 console.log(`\nИтого: ${results.length - bad} из ${results.length}`);
 process.exit(bad ? 1 : 0);

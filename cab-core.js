@@ -233,6 +233,60 @@
     return sync;
   };
 
+  // ---------- свайп влево-вправо: соседний раздел нижней панели ----------
+  // Пороги и условия — как в старом журнале (index.html: enableHorizontalSwipe). Открываем раздел так же, как тап по вкладке: меняем hash,
+  // поэтому стек «Назад» (Cab.nav) и подсветка вкладки работают без отдельного кода.
+  Cab.swipe = {
+    MIN: 50, RATIO: 1.5, MAX_MS: 700, EDGE: 24, SLIDE_PX: 24,
+    // нижняя панель, окна, поля ввода, ленты с горизонтальной прокруткой и всё, что помечено .no-swipe
+    IGNORE: 'input, select, textarea, [contenteditable], [role="slider"], .cab-modal, .cab-tabbar, .cab-days, .ch-chips, .ch-tabs, .no-swipe',
+    // сдвиг пальца → 1 (влево: следующий раздел), -1 (вправо: предыдущий) или 0 (не свайп)
+    dir(dx, dy, dt) {
+      const S = Cab.swipe;
+      if (Math.abs(dx) < S.MIN || Math.abs(dx) < Math.abs(dy) * S.RATIO || dt > S.MAX_MS) return 0;
+      return dx < 0 ? 1 : -1;
+    },
+    // индекс соседнего раздела; на краях списка -1 (без зацикливания)
+    next(i, dir, n) { const j = i + dir; return i < 0 || !dir || j < 0 || j >= n ? -1 : j; },
+    // есть ли у элемента или его родителей горизонтальная прокрутка, которая реально работает
+    scrollsX(el) {
+      for (let e = el; e && e.nodeType === 1 && e !== document.body; e = e.parentElement) {
+        const ox = getComputedStyle(e).overflowX;
+        if ((ox === 'auto' || ox === 'scroll') && e.scrollWidth > e.clientWidth) return true;
+      }
+      return false;
+    },
+    // cur() — индекс раздела на корневом экране или -1 (вложенный экран, загрузка, чат); go(j, dir) — открыть раздел j
+    bind(cur, go) {
+      const S = Cab.swipe;
+      let st = null;
+      document.addEventListener('touchstart', (e) => {
+        st = null;
+        if (e.touches.length !== 1 || cur() < 0 || document.querySelector('.cab-modal, .cab-bare')) return;
+        const t = e.touches[0], el = e.target;
+        if (t.clientX < S.EDGE || t.clientX > window.innerWidth - S.EDGE) return;   // край экрана: системный жест «назад»
+        if (el.closest && (el.closest(S.IGNORE) || S.scrollsX(el))) return;
+        st = { x: t.clientX, y: t.clientY, time: Date.now() };
+      }, { passive: true });
+      // Ось определена по первым ~10 px: вертикальный жест (прокрутка, «потяни, чтобы обновить») дальше не смотрим
+      document.addEventListener('touchmove', (e) => {
+        if (!st || st.axis || e.touches.length !== 1) return;
+        const t = e.touches[0], ax = Math.abs(t.clientX - st.x), ay = Math.abs(t.clientY - st.y);
+        if (Math.max(ax, ay) < 10) return;
+        if (ax < ay * S.RATIO) st = null; else st.axis = 'x';
+      }, { passive: true });
+      document.addEventListener('touchend', (e) => {
+        if (!st) return;
+        const t = e.changedTouches[0], d = S.dir(t.clientX - st.x, t.clientY - st.y, Date.now() - st.time);
+        st = null;
+        if (!d || (window.getSelection && String(window.getSelection())) || document.querySelector('.cab-modal')) return;
+        const j = S.next(cur(), d, document.querySelectorAll('.cab-tab').length);
+        if (j >= 0) go(j, d);
+      }, { passive: true });
+      document.addEventListener('touchcancel', () => { st = null; }, { passive: true });
+    },
+  };
+
   // ---------- оболочка и роутер ----------
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
   // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
@@ -249,9 +303,10 @@
     const syncNet = () => { Cab.netBar(); Cab.flushQueue().catch((e) => console.error('[queue]', e)); };
     window.addEventListener('online', syncNet); window.addEventListener('offline', Cab.netBar);
     syncNet();
-    let gen = 0, lastTab = null;
+    let gen = 0, lastTab = null, rootIdx = -1, swipeDir = null;   // rootIdx: номер раздела на корневом экране (иначе -1: свайп выключен)
     async function go() {
-      const my = ++gen;
+      const my = ++gen, swDir = swipeDir;
+      swipeDir = null; rootIdx = -1;
       const hash = location.hash.replace(/^#\/?/, '') || (ctx.offline && opts.routes.journal ? 'journal' : opts.start);
       const [name, ...rest] = hash.split('/');
       let ok = true;                                                                    // false — экран не загрузился (жест «обновить» покажет ошибку)
@@ -265,7 +320,7 @@
       if (idx >= 0) bar.style.setProperty('--i', idx);
       // плавный сдвиг включаем после первой расстановки, чтобы при открытии «таблетка» не ехала с нуля
       if (!bar.classList.contains('anim')) requestAnimationFrame(() => requestAnimationFrame(() => bar.classList.add('anim')));
-      if (lastTab !== null && lastTab !== tabId) { main.classList.remove('fade'); void main.offsetWidth; main.classList.add('fade'); }
+      if (lastTab !== null && lastTab !== tabId) { main.classList.remove('fade', 'sw-l', 'sw-r'); void main.offsetWidth; main.classList.add(swDir ? 'sw-' + swDir : 'fade'); }
       lastTab = tabId;
       main.innerHTML = '<p class="cab-load">Загружаем…</p>';
       try { await r.render(main, ctx, params, { isCurrent: () => my === gen }); }
@@ -276,12 +331,18 @@
         main.innerHTML = Cab.str(Cab.h`<div class="j2-card bad"><h2>Не получилось загрузить</h2><p>Проверьте связь и повторите.</p></div><button class="j2-btn" id="cabRetry" type="button">Повторить</button>`);
         document.getElementById('cabRetry').onclick = go;
       }
-      if (my === gen) { window.scrollTo(0, 0); }
+      if (my === gen) { window.scrollTo(0, 0); if (ok && key === hash && key !== 'chat' && opts.tabs.some((t) => t.path === key)) rootIdx = idx; }   // корень раздела: адрес = путь вкладки (не вложенный экран) и не чат
       return ok;
     }
     Cab.rerender = go;
     window.addEventListener('j2:refresh', (e) => { if (e.detail && e.detail.tasks) e.detail.tasks.push(go()); });   // жест «потяни, чтобы обновить» (tg-app.js)
     window.addEventListener('hashchange', go);
+    Cab.swipe.bind(() => rootIdx, (j, d) => {
+      try { const w = window.Telegram && window.Telegram.WebApp; if (w && w.initData && w.HapticFeedback && w.isVersionAtLeast('6.1')) w.HapticFeedback.selectionChanged(); } catch (e) { /* без вибрации */ }
+      swipeDir = d > 0 ? 'l' : 'r';
+      window.scrollTo(0, 0);
+      location.hash = '#/' + opts.tabs[j].path;          // как тап по вкладке: hashchange → go и запись в стек «Назад»
+    });
     const syncBack = Cab.backButton(opts.start);
     const record = () => { Cab.nav.write(Cab.nav.visit(Cab.nav.read(), Cab.nav.key(opts.start))); syncBack(); };
     record(); window.addEventListener('hashchange', record);

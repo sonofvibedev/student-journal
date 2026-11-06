@@ -262,7 +262,7 @@
       </div>
       ${ro ? '' : h`<div class="hm-step"><span id="hmHrsL">Часов за пару</span><div><button type="button" id="hmMinus" aria-label="Меньше часов" aria-describedby="hmHrsL">−</button><output id="hmHrs" aria-live="polite"></output><button type="button" id="hmPlus" aria-label="Больше часов" aria-describedby="hmHrsL">+</button></div></div>`}
       <div class="hm-bar"><span>${ro ? 'Кто отсутствовал' : 'Отметьте отсутствующих'}</span><span>${stu.length} ${plural(stu.length, ['человек', 'человека', 'человек'])}</span></div>
-      <div class="cab-pick" id="hmList"></div>
+      <div class="cab-pick no-swipe" id="hmList"></div>
       ${ro ? '' : h`<button type="button" class="j2-btn primary" id="hmSave"></button><p class="cab-note">Отменить можно только свои записи. Записи преподавателя видны, но не меняются.</p>`}
       <a class="cab-row" href="#/journal/history"><span><b>История пропусков</b><small>Последние 30 дней, отмена своих записей</small></span><span class="cab-ico">${icon.chev}</span></a>`);
     jtabs($(el, '#hmSeg'), 'journal');

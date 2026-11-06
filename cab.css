@@ -21,8 +21,12 @@
 /* лёгкий фейд содержимого при смене раздела: только opacity, высота не меняется */
 @keyframes cab-fade { from { opacity: 0; } to { opacity: 1; } }
 .cab-wrap.fade { animation: cab-fade .15s ease-out; }
+/* въезд раздела со стороны жеста: влево — справа (sw-l), вправо — слева (sw-r) */
+@keyframes cab-in-l { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes cab-in-r { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+.cab-wrap.sw-l { animation: cab-in-l .18s ease-out; } .cab-wrap.sw-r { animation: cab-in-r .18s ease-out; }
 @media (prefers-reduced-motion: reduce) {
-  .cab-tab { transition: none; } .cab-tabbar.anim .cab-tab-ind { transition: none; } .cab-wrap.fade { animation: none; }
+  .cab-tab { transition: none; } .cab-tabbar.anim .cab-tab-ind { transition: none; } .cab-wrap.fade, .cab-wrap.sw-l, .cab-wrap.sw-r { animation: none; }
 }
 .cab-tab:focus-visible, .cab-row:focus-visible, .cab-tile:focus-visible, .cab-bell:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
 
