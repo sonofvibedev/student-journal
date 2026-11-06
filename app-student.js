@@ -230,7 +230,7 @@
       ${hubRow('#/study/deadlines', 't-amber', 'Дедлайны и УСР', 'Все сроки и УСР', active(isDl))}
       ${hubRow('#/study/exams', 't-mint', 'Зачёты и экзамены', 'Даты и формы контроля')}
       ${hubRow('#/study/grades', 't-blue', 'Оценки', 'Средний балл появится позже')}
-      ${hubRow('index.html#zachetka', 't-pink', 'Рейтинг', 'Калькулятор')}
+      ${hubRow('#/study/rating', 't-pink', 'Рейтинг', 'Калькулятор')}
       ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и практические')}
       ${hubRow('index.html#games', '', 'Игры', 'Судоку, сапёр, flappy и ещё 2')}`);
   }
@@ -403,21 +403,7 @@
     if (BOT_RE.test(n)) botName = n;
     return botName;
   }
-  // Подтверждение: нижний лист с двумя кнопками, Esc и тап по фону = «Отмена»
-  function ask(title, text, okText) {
-    return new Promise((res) => {
-      const back = document.activeElement, root = document.getElementById('cab'), m = document.createElement('div');
-      m.className = 'cab-modal';
-      m.innerHTML = str(h`<div class="cab-sheet" role="dialog" aria-modal="true" aria-labelledby="stAskT"><h2 class="st-sh-t" id="stAskT">${title}</h2><p class="cab-note">${text}</p><button class="j2-btn danger" data-a="ok" type="button">${okText}</button><button class="j2-btn" data-a="no" type="button">Отмена</button></div>`);
-      const key = (e) => { if (e.key === 'Escape') fin(false); };
-      const no = () => fin(false);
-      function fin(v) { m.remove(); root.inert = false; document.removeEventListener('keydown', key); window.removeEventListener('hashchange', no); if (back && back.focus) back.focus(); res(v); }
-      m.onclick = (e) => { if (e.target === m) fin(false); const b = e.target.closest('button[data-a]'); if (b) fin(b.dataset.a === 'ok'); };
-      document.body.appendChild(m); root.inert = true;
-      document.addEventListener('keydown', key); window.addEventListener('hashchange', no);
-      m.querySelector('button').focus();
-    });
-  }
+  const ask = Cab.ask;                                                                     // подтверждение вынесено в cab-core.js
 
   // Блок «код → бот» (общий для профиля и экрана «Журнал обновился»): три шага, код с отсчётом, кнопка бота, опрос tg_links.
   // o: { pollMs, auto — сразу взять код, onLinked(row) }
@@ -561,7 +547,7 @@
     schedule: route('schedule', schedule),
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
-    'study/grades': route('study', grades), 'study/teachers': route('study', teachers),
+    'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)),
     profile: route('profile', profile), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };

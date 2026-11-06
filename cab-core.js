@@ -249,6 +249,22 @@
     el.onclick = (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-selected', String(x === b))); onChange(b.dataset.v); };
   };
 
+  // Подтверждение: нижний лист с двумя кнопками, Esc и тап по фону = «Отмена»; true, если нажали подтверждающую кнопку
+  Cab.ask = function (title, text, okText) {
+    return new Promise((res) => {
+      const back = document.activeElement, root = document.getElementById('cab'), m = document.createElement('div');
+      m.className = 'cab-modal';
+      m.innerHTML = Cab.str(Cab.h`<div class="cab-sheet" role="dialog" aria-modal="true" aria-labelledby="stAskT"><h2 class="st-sh-t" id="stAskT">${title}</h2><p class="cab-note">${text}</p><button class="j2-btn danger" data-a="ok" type="button">${okText}</button><button class="j2-btn" data-a="no" type="button">Отмена</button></div>`);
+      const key = (e) => { if (e.key === 'Escape') fin(false); };
+      const no = () => fin(false);
+      function fin(v) { m.remove(); root.inert = false; document.removeEventListener('keydown', key); window.removeEventListener('hashchange', no); if (back && back.focus) back.focus(); res(v); }
+      m.onclick = (e) => { if (e.target === m) fin(false); const b = e.target.closest('button[data-a]'); if (b) fin(b.dataset.a === 'ok'); };
+      document.body.appendChild(m); root.inert = true;
+      document.addEventListener('keydown', key); window.addEventListener('hashchange', no);
+      m.querySelector('button').focus();
+    });
+  };
+
   // Задание из tasks: { id, kind, rec } → удобный вид
   Cab.task = (row) => {
     const r = row.rec || {};

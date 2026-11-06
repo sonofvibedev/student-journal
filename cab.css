@@ -305,3 +305,22 @@
 .cab-card .tc-text { margin-top: 6px; color: var(--j-text); font-size: 15px; white-space: pre-wrap; }
 .tc-old { opacity: .6; }
 .ch-sub { display: flex; align-items: center; gap: 6px; }
+/* калькулятор рейтинга (app-rating.js): кнопки оценок 1–10, таблетки, итог по порогам <4 / <7 / ≥7 (цвет и текст) */
+.rc-keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; }
+.rc-keys button { min-height: 44px; border-radius: 14px; border: 1px solid var(--j-card-border); background: var(--j-card); color: var(--j-text); font: 700 18px 'Onest', sans-serif; cursor: pointer; }
+.rc-keys button:active { background: var(--j-lime); color: var(--j-lime-ink); }
+.rc-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 44px; margin: 0 0 6px; }
+.rc-pill { min-width: 44px; min-height: 44px; padding: 0 12px; border-radius: 22px; border: 1px solid var(--j-lime); background: rgba(198, 244, 50, .12); color: var(--j-lime); font: 700 17px 'Onest', sans-serif; cursor: pointer; }
+.rc-avg { font-size: 14px; font-weight: 600; }
+.rc-lab { margin: 6px 2px; }
+.rc-final p { margin: 0; } .rc-final .rc-formula { margin-top: 6px; overflow-wrap: anywhere; }
+.rc-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.rc-big { font-size: 48px; font-weight: 800; line-height: 1.1; }
+.rc-band { font-size: 15px; font-weight: 700; }
+.rc-final.rc-low { border-color: rgba(255, 138, 128, .5); background: rgba(255, 138, 128, .08); } .rc-low .rc-big, .rc-low .rc-band { color: var(--j-coral); }
+.rc-final.rc-mid { border-color: rgba(255, 200, 87, .45); background: rgba(255, 200, 87, .07); } .rc-mid .rc-big, .rc-mid .rc-band { color: var(--j-amber); }
+.rc-final.rc-high { border-color: rgba(110, 231, 183, .4); background: rgba(110, 231, 183, .07); } .rc-high .rc-big, .rc-high .rc-band { color: var(--j-mint); }
+.rc-done { display: flex; flex-direction: column; gap: 6px; }
+.rc-done-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 14px; border-radius: 16px; border: 1px solid var(--j-card-border); background: var(--j-card); color: var(--j-text); font: 600 16px 'Onest', sans-serif; text-align: left; cursor: pointer; }
+.rc-done-item span { min-width: 0; overflow-wrap: anywhere; } .rc-done-item.now { border-color: var(--j-lime); }
+.rc-t-low { color: var(--j-coral); } .rc-t-mid { color: var(--j-amber); } .rc-t-high { color: var(--j-mint); }
