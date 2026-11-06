@@ -47,11 +47,7 @@
 
 ## 4. Миграции (из папки `supabase/`, привязанной к проду)
 
-```
-npx supabase link --project-ref woiqekpuoddxixlrbvkp
-cat supabase/.temp/project-ref        # = woiqekpuoddxixlrbvkp
-npx supabase db push --linked          # покажет список из 7 миграций; подтвердить только его
-```
+**`db push` на проде НЕ работает:** версии 25 старых миграций на проде не совпадают с именами файлов репозитория (и шесть миграций есть только на проде). Применять по одной, в одной транзакции вместе с записью в `schema_migrations` (версия и имя из файла, чтобы `down` нашёл свою строку): `node apply-prod.mjs <версия>` (обёртка: `begin; <файл>; insert into supabase_migrations.schema_migrations(version,name) …; commit;`, запуск `supabase db query --remote=woiqekpuoddxixlrbvkp --yes --file`). Порядок и результат выкладки 2026-11-06: 20261105200000 (импорт 28/276/28), …06, …07, …08, …09, …10, …11 — все прошли.
 
 Миграция 1 идёт одной транзакцией и сама импортирует 24ДММ-2 (`journal2_import_legacy`): ошибка откатывает всё, база остаётся нетронутой.
 
@@ -77,7 +73,7 @@ npx supabase db push --linked          # покажет список из 7 ми
 npx supabase functions deploy <имя> --project-ref woiqekpuoddxixlrbvkp --no-verify-jwt --use-api
 ```
 
-Порядок: сначала `journal-save` (закрывает старую админку; идёт при включённых техработах, правки 1.x больше не нужны), `health-check`, `ops-report`, `backup-run`, `backup-link`, `tg-dispatch`, `schedule-nightly`, `schedule-import`, `schedule-lookup`; затем `join-group`, `registration-start`, `notify-registration`, `tg-info`, `tg-status`, `tg-rebind-broadcast`, `tg-webhook-setup`, `client-report`, `sysadmin-user`; затем `tg-bot`.
+**`tg-bot`, `admin-data`, `send-reminders` (импортируют `taskstore.ts`, которому нужна колонка `tasks.group_id`) выкладывать только ПОСЛЕ миграции 1.** Остальные функции — до миграций. Порядок: сначала `journal-save` (закрывает старую админку; идёт при включённых техработах, правки 1.x больше не нужны), `health-check`, `ops-report`, `backup-run`, `backup-link`, `tg-dispatch`, `schedule-nightly`, `schedule-import`, `schedule-lookup`; затем `join-group`, `registration-start`, `notify-registration`, `tg-info`, `tg-status`, `tg-rebind-broadcast`, `tg-webhook-setup`, `client-report`, `sysadmin-user`; затем `tg-bot`.
 Старые функции, импортирующие `_shared/` (`journal-save`, `tg-requests`, `tg-set-task-editor`, `send-reminders`, `submit-game-score`, `word-*`, `verify-pass`, `admin-data`, `change-login`, `register-with-code`, `subscribe-telegram`): `git diff main..HEAD -- supabase/functions/_shared` и передеплоить те, чей импортируемый файл изменился.
 Проверка: `npx supabase functions list --project-ref woiqekpuoddxixlrbvkp` — все новые со статусом `ACTIVE`.
 
