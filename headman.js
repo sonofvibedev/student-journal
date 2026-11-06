@@ -693,6 +693,8 @@
     return ChatUI.mount(el, { sb, ctx, role: 'headman' });
   }
 
+  // Жест «потяни, чтобы обновить» (tg-app.js) не должен стирать отметки пропусков, которые ещё не сохранены
+  window.J2_NO_REFRESH = () => S.marks.size > 0;
   // main общий для всех экранов: обработчики прошлого экрана снимаем перед отрисовкой нового
   const R = (fn) => ({ render: (el, ...a) => { el.onclick = el.onchange = null; return fn(el, ...a); } });
   const tab = (id, label, ico) => ({ id, label, icon: ico, path: id });

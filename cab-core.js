@@ -254,6 +254,7 @@
       const my = ++gen;
       const hash = location.hash.replace(/^#\/?/, '') || (ctx.offline && opts.routes.journal ? 'journal' : opts.start);
       const [name, ...rest] = hash.split('/');
+      let ok = true;                                                                    // false — экран не загрузился (жест «обновить» покажет ошибку)
       const key = opts.routes[hash] ? hash : opts.routes[name] ? name : opts.start;
       const r = opts.routes[key];
       const params = key === hash ? [] : rest;
@@ -270,13 +271,16 @@
       try { await r.render(main, ctx, params, { isCurrent: () => my === gen }); }
       catch (e) {
         if (my !== gen) return;
+        ok = false;
         console.error('[cab]', key, e);
         main.innerHTML = Cab.str(Cab.h`<div class="j2-card bad"><h2>Не получилось загрузить</h2><p>Проверьте связь и повторите.</p></div><button class="j2-btn" id="cabRetry" type="button">Повторить</button>`);
         document.getElementById('cabRetry').onclick = go;
       }
       if (my === gen) { window.scrollTo(0, 0); }
+      return ok;
     }
     Cab.rerender = go;
+    window.addEventListener('j2:refresh', (e) => { if (e.detail && e.detail.tasks) e.detail.tasks.push(go()); });   // жест «потяни, чтобы обновить» (tg-app.js)
     window.addEventListener('hashchange', go);
     const syncBack = Cab.backButton(opts.start);
     const record = () => { Cab.nav.write(Cab.nav.visit(Cab.nav.read(), Cab.nav.key(opts.start))); syncBack(); };

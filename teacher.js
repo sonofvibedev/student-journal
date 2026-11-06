@@ -497,6 +497,8 @@
   const R = (fn) => ({ render: (el, ...a) => { el.onclick = el.onchange = null; return fn(el, ...a); } });
   const clip = Cab.raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 4h6v2H9zM9 13l2 2 4-4"/></svg>');
   const tab = (id, label, ico) => ({ id, label, icon: ico, path: id });
+  // Жест «потяни, чтобы обновить» (tg-app.js) не должен стирать отметки, которые ещё не сохранены
+  window.J2_NO_REFRESH = () => S.marks.size > 0;
   Cab.start({
     kind: 'teacher', start: 'home',
     tabs: [tab('home', 'Главная', icon.home), tab('journal', 'Журнал', icon.journal), tab('tests', 'Тесты', clip), tab('chat', 'Чат', icon.chat)],

@@ -20,9 +20,19 @@
   --j-radius: 20px;
   --j-tap: 44px;              /* минимальная высота нажимаемого элемента */
   font-synthesis: none;
+  /* Безопасные зоны: те же формулы, что в app.css. Telegram в полноэкранном режиме отдаёт свои отступы в --tg-*-inset-*
+     (системная строка и кнопки «Закрыть», «Свернуть»), iOS и PWA — в env(). Берём большее, чтобы не сложить дважды. */
+  --app-inset-top: max(env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
+  --app-inset-right: max(env(safe-area-inset-right, 0px), calc(var(--tg-safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px)));
+  --app-inset-bottom: max(env(safe-area-inset-bottom, 0px), calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px)));
+  --app-inset-left: max(env(safe-area-inset-left, 0px), calc(var(--tg-safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px)));
 }
+/* Старый Telegram в полноэкранном режиме не сообщает отступы: tg-app.js ставит этот класс, шапку Telegram закладываем вручную */
+:root.tg-fs-fallback { --app-inset-top: max(env(safe-area-inset-top, 0px), 100px); }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+/* Родное «потянуть для обновления» браузера не нужно: обновляет наш жест из tg-app.js */
+html, body { overscroll-behavior-y: contain; }
 body.j2 {
   margin: 0; min-height: 100vh; color: var(--j-text); background: var(--j-bg);
   font: 400 16px/1.4 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums;
@@ -33,7 +43,7 @@ body.j2 {
   background-attachment: fixed;
   overflow-x: hidden;
 }
-.j2-wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+.j2-wrap { max-width: 480px; margin: 0 auto; padding: calc(var(--app-inset-top) + 20px) calc(var(--app-inset-right) + 16px) calc(var(--app-inset-bottom) + 40px) calc(var(--app-inset-left) + 16px); }
 .j2-kicker { color: var(--j-muted); font-size: 14px; margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .j2-h1 { font-size: 30px; line-height: 1.15; font-weight: 800; margin: 4px 0 8px; letter-spacing: -.01em; }
 .j2-sub { color: var(--j-muted); margin: 0 0 16px; font-size: 15px; }
@@ -105,3 +115,14 @@ input:focus, input:focus-visible, textarea:focus, textarea:focus-visible, select
 .j2-tabs button { flex: 1; min-height: var(--j-tap); border: 0; border-radius: 18px; background: none; color: var(--j-text); font: 700 15px 'Onest', sans-serif; cursor: pointer; }
 .j2-tabs button[aria-selected="true"] { background: var(--j-lime); color: var(--j-lime-ink); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* «Потяни, чтобы обновить» (tg-app.js): плашка ниже верхнего отступа, чтобы не уходить под шапку Telegram */
+.j2-ptr { position: fixed; z-index: 90; left: 50%; top: calc(var(--app-inset-top) + 8px); display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 20px;
+  color: var(--j-text); background: rgba(35, 38, 50, .94); border: 1px solid var(--j-card-border); font: 600 14px/1.2 'Onest', system-ui, sans-serif; white-space: nowrap;
+  pointer-events: none; opacity: 0; transform: translate(-50%, -52px); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.j2-ptr:not(.is-busy):not(.is-ready) { transition: opacity .2s, transform .2s; }
+.j2-ptr svg { width: 18px; height: 18px; flex: none; color: var(--j-muted); transition: transform .2s; }
+.j2-ptr.is-ready svg { color: var(--j-lime); transform: rotate(180deg); }
+.j2-ptr.is-busy svg { color: var(--j-lime); animation: j2-ptr-spin .9s linear infinite; }
+@keyframes j2-ptr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .j2-ptr.is-busy svg { animation-duration: 2.4s; } }

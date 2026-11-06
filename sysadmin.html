@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="j2.css">
 <style>
   /* Только то, чего нет в j2.css: нижняя панель разделов и мелочи утилиты */
-  .sa-wrap { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
-  .sa-nav { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 50; padding: 0 12px; pointer-events: none; }
+  .sa-wrap { padding-bottom: calc(110px + var(--app-inset-bottom)); }
+  .sa-nav { position: fixed; left: 0; right: 0; bottom: calc(10px + var(--app-inset-bottom)); z-index: 50; padding: 0 12px; pointer-events: none; }
   .sa-nav > div { pointer-events: auto; max-width: 456px; margin: 0 auto; display: flex; gap: 4px; padding: 6px; border-radius: 30px;
     background: rgba(20, 23, 31, .92); border: 1px solid var(--j-card-border); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
   .sa-nav button { flex: 1; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
@@ -102,6 +102,8 @@
 <script src="monitor.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="j2-core.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="tg-app.js"></script>
 <script src="sysadmin.js"></script>
 </body>
 </html>

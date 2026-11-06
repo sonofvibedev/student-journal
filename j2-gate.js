@@ -27,14 +27,14 @@
     'background-image:radial-gradient(60% 40% at 90% 0%,rgba(198,244,50,.14),transparent 70%),radial-gradient(70% 50% at 0% 70%,rgba(110,80,220,.18),transparent 70%);' +
     "font:400 16px/1.4 'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%;text-align:left}" +
     '.j2g-ov *{box-sizing:border-box}' +
-    '.j2g-in{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 28px) 16px calc(env(safe-area-inset-bottom,0px) + 32px)}' +
+    '.j2g-in{max-width:480px;margin:0 auto;padding:calc(var(--app-inset-top,env(safe-area-inset-top,0px)) + 28px) 16px calc(var(--app-inset-bottom,env(safe-area-inset-bottom,0px)) + 32px)}' +
     '.j2g-ov h1,.j2g-ov h2{font-family:inherit;color:#F2F4F8}.j2g-ov h1:focus{outline:none}' +
     '.j2g-ov button{font-family:inherit}.j2g-ov .j2-card h2{margin:0 0 4px}.j2g-ov .j2-msg{margin-top:8px}' +
     '.j2g-check{display:flex;align-items:center;gap:12px;min-height:44px;margin:0;font:600 16px/1.3 inherit;cursor:pointer;color:#F2F4F8}' +
     '.j2g-check input{flex:none;width:26px;height:26px;margin:0;accent-color:#C6F432}' +
     '.j2g-ov input:focus-visible,.j2g-badge:focus-visible{outline:2px solid #C6F432;outline-offset:2px}' +
     '.j2g-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;color:#9AA0AE;font-size:14px}' +
-    '.j2g-bw{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:1100;display:flex;justify-content:center;pointer-events:none;padding:0 12px}' +
+    '.j2g-bw{position:fixed;left:0;right:0;bottom:calc(var(--app-inset-bottom,env(safe-area-inset-bottom,0px)) + 104px);z-index:1100;display:flex;justify-content:center;pointer-events:none;padding:0 12px}' +
     '.j2g-bw[hidden]{display:none}' +
     '.j2g-badge{pointer-events:auto;display:flex;align-items:center;gap:10px;min-height:48px;max-width:100%;padding:8px 18px;border-radius:26px;cursor:pointer;' +
     "color:#FFE9B0;background:rgba(40,32,12,.96);border:1px solid #FFC857;font:700 15px/1.2 'Onest',system-ui,sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.45)}" +

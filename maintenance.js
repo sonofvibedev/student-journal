@@ -26,7 +26,7 @@
       '#maintScreen h1{font-size:1.25rem;margin:0 0 8px;color:#fff}' +
       '#maintScreen p{margin:0;color:#aeaeb2}' +
       '#maintBanner{position:fixed;top:0;left:0;right:0;z-index:1040;pointer-events:none;text-align:center;' +
-      'padding:calc(env(safe-area-inset-top,0px) + 2px) 8px 2px;font-size:.75rem;font-weight:600;color:#1c1400;background:#ffd60a}';
+      'padding:calc(var(--app-inset-top,env(safe-area-inset-top,0px)) + 2px) 8px 2px;font-size:.75rem;font-weight:600;color:#1c1400;background:#ffd60a}';
     document.head.appendChild(st);
   }
 

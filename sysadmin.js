@@ -189,12 +189,16 @@
     document.querySelectorAll('#nav button').forEach((b) => { if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     $('title').textContent = t.title; $('sub').textContent = t.sub; say('');
     view().innerHTML = loading;
-    t.run(n).catch((e) => paint(n, failBox(e)));
+    return t.run(n).then(() => true, (e) => { paint(n, failBox(e)); return false; });   // результат нужен жесту «потяни, чтобы обновить»
   }
   $('nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) go(b.dataset.tab); });
   function rerun() {
-    if (st.tab === 'roles') { const n = ++st.nav; renderRoles(n).catch((x) => paint(n, failBox(x))); } else go(st.tab);
+    if (st.tab === 'roles') { const n = ++st.nav; return renderRoles(n).then(() => true, (x) => { paint(n, failBox(x)); return false; }); }
+    return go(st.tab);
   }
+  // Жест «потяни, чтобы обновить» (tg-app.js): не обновляем до входа и пока на экране секрет или вопрос «точно?» (их стёрло бы)
+  window.addEventListener('j2:refresh', (e) => { if (st.me && st.tab && e.detail && e.detail.tasks) e.detail.tasks.push(rerun()); });
+  window.J2_NO_REFRESH = () => !st.me || !st.tab || !!st.secret || !!st.ask;
 
   // ---------- Состояние ----------
   const card = (label, val, sub, amber) => '<div class="j2-card"><p>' + label + '</p><span class="big' + (amber ? ' amber' : '') + '">' + esc(val) + '</span>' + (sub ? '<p class="sa-sub">' + esc(sub) + '</p>' : '') + '</div>';

@@ -1254,20 +1254,20 @@ body::after {
 @keyframes sk-appear { from { opacity: 0; transform: translateY(40px) scale(.92); } to { opacity: 1; transform: none; } }
 
 /* Полноэкранный пропуск в кабинете: закрывается крестиком или свайпом вниз */
-.sk-overlay { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: calc(env(safe-area-inset-top) + 56px) 16px calc(env(safe-area-inset-bottom) + 24px); background: var(--color-bg); color: var(--color-text-2); overscroll-behavior: contain; touch-action: none; }
+.sk-overlay { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: calc(var(--app-inset-top) + 56px) 16px calc(var(--app-inset-bottom) + 24px); background: var(--color-bg); color: var(--color-text-2); overscroll-behavior: contain; touch-action: none; }
 .sk-overlay[hidden] { display: none; }
 .sk-overlay.is-open { animation: sk-fade .25s ease-out both; }
 .sk-overlay.is-closing { opacity: 0; transition: opacity .2s ease-in; }
 @keyframes sk-fade { from { opacity: 0; } to { opacity: 1; } }
 .sk-drag { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; transition: transform .25s var(--ease-out, ease-out), opacity .25s; }
-.sk-close { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--color-surface-3); color: var(--color-text); }
+.sk-close { position: absolute; top: calc(var(--app-inset-top) + 10px); right: 12px; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--color-surface-3); color: var(--color-text); }
 .sk-close svg { width: 20px; height: 20px; }
-.sk-grab { position: absolute; top: calc(env(safe-area-inset-top) + 8px); left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--color-border-mid); }
+.sk-grab { position: absolute; top: calc(var(--app-inset-top) + 8px); left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--color-border-mid); }
 .sk-hint { max-width: 420px; margin: 0; font-size: 13px; line-height: 1.4; color: var(--color-text-secondary); text-align: center; }
 .sk-ask { min-height: 44px; padding: 0 18px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-2); color: var(--color-text-2); font-size: 15px; }
 .sk-ask[hidden] { display: none; }
 @media (orientation: landscape) and (max-height: 500px) {
-  .sk-overlay { padding-top: calc(env(safe-area-inset-top) + 12px); padding-bottom: 12px; }
+  .sk-overlay { padding-top: calc(var(--app-inset-top) + 12px); padding-bottom: 12px; }
   .sk-tilt { width: min(560px, 100%, calc((100vh - 70px) * 100 / 63)); }
   .sk-hint { display: none; }
 }
