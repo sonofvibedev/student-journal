@@ -264,6 +264,7 @@
       <div class="cab-card st-stub"><span class="st-stub-ico">${o.icon}</span><h3>${o.head}</h3><p>${o.text}</p></div>
       <a class="j2-btn primary" href="${o.back}">${o.button}</a>`);
   }
+  const studak = (el, ctx, nav) => stub(el, nav, { back: '#/profile', backText: 'Профиль', title: 'Studak, пропуск', icon: STUB_ICO.pass, head: 'Пропуск вернётся в ближайшем обновлении', text: 'Электронный пропуск Studak скоро появится в новом кабинете. Пока он недоступен.', button: 'В профиль' });
   const games = (el, ctx, nav) => stub(el, nav, { back: '#/study', backText: 'Учёба', title: 'Игры', icon: STUB_ICO.games, head: 'Игры вернутся в ближайшем обновлении', text: 'Судоку, сапёр и другие игры скоро появятся в новом кабинете.', button: 'К учёбе' });
 
   async function grades(el, ctx, nav) {
@@ -304,6 +305,7 @@
     const ini = ((s.last_name || '').charAt(0) + (s.first_name || '').charAt(0)).toUpperCase() || '?';
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
       <div class="cab-person"><div class="cab-avatar" aria-hidden="true">${ini}</div><div><b>${Cab.fullName(s)}</b><span>Студент, группа ${ctx.group.name}</span></div></div>
+      <a class="cab-row" href="#/profile/studak"><span><b>Studak, пропуск</b><small>Скоро</small></span><span class="cab-ico" aria-hidden="true">${Cab.icon.chev}</span></a>
       <div class="st-sg"><span id="sgLbl">Подгруппа</span><div class="cab-seg2" id="sgSeg" role="group" aria-labelledby="sgLbl">${[1, 2].map((n) => h`<button type="button" data-sg="${n}" aria-pressed="${String(sg === n)}"${ctx.closed ? raw(' disabled') : ''}>${n}</button>`)}</div></div>
       <h2 class="cab-h2"><span>Мои справки</span></h2>
       ${!certs ? h`<p class="cab-note">Справки не загрузились. Обновите страницу.</p>`
@@ -560,7 +562,7 @@
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
-    profile: route('profile', profile), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
+    profile: route('profile', profile), 'profile/studak': route('profile', studak), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({
