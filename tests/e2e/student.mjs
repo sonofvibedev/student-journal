@@ -268,17 +268,22 @@ try {
   await noHScroll('игры'); await taps('игры');
   await page.screenshot({ path: join(shots, 's-games.png') });
   await page.locator('#cabMain a.j2-btn', { hasText: 'К учёбе' }).click(); await h1('Учёба');
-  await open('#/profile/studak', 'Studak');
-  check('Studak: экран-заглушка, пропуск вернётся в ближайшем обновлении', (await text()).includes('Пропуск вернётся в ближайшем обновлении'));
-  await noHScroll('Studak'); await taps('Studak');
 
   // 4. профиль
   await page.locator('.cab-tab', { hasText: 'Профиль' }).click(); await h1('Профиль');
   const pt = await text();
-  check('профиль: имя и группа', pt.includes('Студент, группа 24ДММ-2'));
+  check('профиль: одна карточка, имя, роль «Студент» и группа «24ДММ-2» отдельными плашками, без слова «группа»',
+    (await page.locator('.pf-card .pf-tag.role').innerText()) === 'Студент' && (await page.locator('.pf-card .pf-tag:not(.role)').innerText()) === '24ДММ-2' && !pt.includes('группа 24ДММ-2') && (await page.locator('.pf-card .pf-name').count()) === 1);
   check('профиль: справки со статусом словами', pt.includes('Больничный, 3–4 ноября') && pt.includes('подтверждена') && pt.includes('Заявление, 28 октября') && pt.includes('не подтверждена'), pt.slice(0, 300));
   check('профиль: кабинета старосты у обычного студента нет', (await page.locator('a[href="headman.html"]').count()) === 0);
-  check('профиль: строка Studak сразу под карточкой с именем, подпись «Скоро»', (await page.locator('.cab-person + a[href="#/profile/studak"]').count()) === 1 && (await page.locator('a[href="#/profile/studak"]').innerText()).includes('Скоро'));
+  check('профиль: Studak — плашка внутри карточки, отдельной строки и экрана нет', (await page.locator('.pf-card #pfStu').innerText()).includes('Studak · скоро') && (await page.locator('a[href="#/profile/studak"]').count()) === 0);
+  await page.locator('#pfStu').click();
+  check('профиль: тап по плашке Studak — короткое сообщение', (await page.locator('#cabToast').innerText()).includes('Пропуск Studak вернётся в ближайшем обновлении'));
+  await page.locator('#pfAva').click();
+  const avs = page.getByRole('dialog', { name: 'Фото профиля' });
+  check('профиль: тап по аватарке открывает лист «Выбрать фото» и «Отмена», «Удалить фото» нет, пока нет фото', await avs.getByRole('button', { name: 'Выбрать фото' }).isVisible() && await avs.getByRole('button', { name: 'Отмена' }).isVisible() && (await avs.getByRole('button', { name: 'Удалить фото' }).count()) === 0);
+  await avs.getByRole('button', { name: 'Отмена' }).click();
+  check('профиль: лист фото закрылся', (await page.locator('.cab-modal').count()) === 0);
   check('профиль: у студента с одной ролью переключателя ролей нет', (await page.locator('.j2-roles').count()) === 0);
   check('профиль: блок «Напоминания о сроках», по умолчанию включён, Telegram не привязан — есть ссылка на привязку', (await page.locator('#remSw').getAttribute('aria-checked')) === 'true' && (await page.locator('#remTg[href="#/profile/telegram"]').count()) === 1);
   const prefNow = async () => (await api(`/rest/v1/notification_prefs?user_id=eq.${uid}&kind=eq.deadline_soon&select=enabled`))[0]?.enabled;

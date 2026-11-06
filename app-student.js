@@ -259,14 +259,12 @@
   // Экран-заглушка: иконка, короткий текст, кнопка назад. Для разделов, которые вернутся в следующих обновлениях
   const STUB_ICO = {
     games: h`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7.5 10.5v4M5.5 12.5h4"/><circle cx="15.5" cy="11.5" r=".9" fill="currentColor"/><circle cx="18" cy="13.5" r=".9" fill="currentColor"/></svg>`,
-    pass: h`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13h3"/></svg>`,
   };
   function stub(el, nav, o) {
     put(el, nav, h`${Cab.top({ href: o.back, text: o.backText })}<h1 class="cab-title">${o.title}</h1>
       <div class="cab-card st-stub"><span class="st-stub-ico">${o.icon}</span><h3>${o.head}</h3><p>${o.text}</p></div>
       <a class="j2-btn primary" href="${o.back}">${o.button}</a>`);
   }
-  const studak = (el, ctx, nav) => stub(el, nav, { back: '#/profile', backText: 'Профиль', title: 'Studak, пропуск', icon: STUB_ICO.pass, head: 'Пропуск вернётся в ближайшем обновлении', text: 'Электронный пропуск Studak скоро появится в новом кабинете. Пока он недоступен.', button: 'В профиль' });
   const games = (el, ctx, nav) => stub(el, nav, { back: '#/study', backText: 'Учёба', title: 'Игры', icon: STUB_ICO.games, head: 'Игры вернутся в ближайшем обновлении', text: 'Судоку, сапёр и другие игры скоро появятся в новом кабинете.', button: 'К учёбе' });
 
   async function grades(el, ctx, nav) {
@@ -306,10 +304,15 @@
       soft(q(sb.from('notification_prefs').select('enabled').eq('user_id', ctx.uid).eq('kind', 'deadline_soon').maybeSingle()))]);
     const remOn = !pref || pref.enabled !== false;                                                                   // ошибка запроса = «не привязан», без шума
     const s = ctx.student, sg = sgOf(ctx);
+    const roleName = ctx.role === 'headman' ? 'Староста' : ctx.role === 'deputy' ? 'Заместитель старосты' : 'Студент';
     const ini = ((s.last_name || '').charAt(0) + (s.first_name || '').charAt(0)).toUpperCase() || '?';
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
-      <div class="cab-person"><div class="cab-avatar" aria-hidden="true">${ini}</div><div><b>${Cab.fullName(s)}</b><span>Студент, группа ${ctx.group.name}</span></div></div>
-      <a class="cab-row" href="#/profile/studak"><span><b>Studak, пропуск</b><small>Скоро</small></span><span class="cab-ico" aria-hidden="true">${Cab.icon.chev}</span></a>
+      <section class="pf-card" aria-label="Мой профиль">
+        <button type="button" class="pf-ava" id="pfAva" aria-haspopup="dialog" aria-label="Фото профиля: изменить"></button>
+        <h2 class="pf-name">${Cab.fullName(s)}</h2>
+        <div class="pf-tags"><span class="pf-tag role">${roleName}</span><span class="pf-tag">${ctx.group.name}</span></div>
+        <button type="button" class="pf-stu" id="pfStu">Studak · скоро</button>
+      </section>
       ${raw(J2.roleSwitch('student', { student: true, staff: ctx.isStaff, sysadmin: ctx.isSysadmin }))}
       <div class="st-sg"><span id="sgLbl">Подгруппа</span><div class="cab-seg2" id="sgSeg" role="group" aria-labelledby="sgLbl">${[1, 2].map((n) => h`<button type="button" data-sg="${n}" aria-pressed="${String(sg === n)}"${ctx.closed ? raw(' disabled') : ''}>${n}</button>`)}</div></div>
       <h2 class="cab-h2"><span>Мои справки</span></h2>
@@ -332,6 +335,8 @@
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
+    avatarInit(el, ctx, ini);
+    el.querySelector('#pfStu').onclick = () => Cab.toast('Пропуск Studak вернётся в ближайшем обновлении');
     const rem = el.querySelector('#remSw');
     rem.onclick = async () => {                                                             // запись сразу, при ошибке откат
       if (rem.dataset.busy) return;
@@ -357,6 +362,98 @@
       box.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     };
     el.querySelector('#outBtn').onclick = () => Cab.signOut();
+  }
+
+  // ---------- фото профиля: приватный бакет avatars, путь <user_id>.jpg (как в старом журнале, старые фото видны) ----------
+  // Квадрат 256×256 JPEG по центру. Копия в localStorage (data-URL): фото видно и без сети.
+  const AV_KEY = 'journal_avatar', AV_SIZE = 256, AV_MAX = 1024 * 1024, AV_SRC_MAX = 25 * 1024 * 1024;
+  let avSynced = null;                                                                      // для какого uid фото уже сверили с хранилищем в эту загрузку
+  const avCache = (uid) => { try { const c = JSON.parse(lsGet(AV_KEY) || 'null'); return c && c.user_id === uid ? c.data : null; } catch (e) { return null; } };
+  const avStore = (uid, data) => { try { if (data) lsSet(AV_KEY, JSON.stringify({ user_id: uid, data })); else lsRemove(AV_KEY); } catch (e) { /* память переполнена: фото покажем из сети */ } };
+  const avBad = (text) => Object.assign(new Error(text), { user: true });
+  const avNet = (e) => navigator.onLine === false || /failed to fetch|network|load failed/i.test(String(e && e.message));
+  const blobToUrl = (b) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(r.error); r.readAsDataURL(b); });
+  // Снимок с учётом ориентации (EXIF): createImageBitmap, а если его нет — через <img>
+  async function decodeImage(file) {
+    if (window.createImageBitmap) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { /* пробуем через <img> */ } }
+    return new Promise((ok, no) => { const u = URL.createObjectURL(file), img = new Image(); img.onload = () => { URL.revokeObjectURL(u); ok(img); }; img.onerror = () => { URL.revokeObjectURL(u); no(new Error('decode')); }; img.src = u; });
+  }
+  async function squareAvatarJpeg(file) {
+    const src = await decodeImage(file), w = src.naturalWidth || src.width, hh = src.naturalHeight || src.height;
+    if (!w || !hh) throw new Error('decode');
+    const side = Math.min(w, hh), cv = document.createElement('canvas'), c2 = cv.getContext('2d');
+    cv.width = cv.height = AV_SIZE;
+    c2.fillStyle = '#ffffff'; c2.fillRect(0, 0, AV_SIZE, AV_SIZE);                          // прозрачный PNG ложится на белое, а не на чёрное
+    c2.imageSmoothingQuality = 'high';
+    c2.drawImage(src, (w - side) / 2, (hh - side) / 2, side, side, 0, 0, AV_SIZE, AV_SIZE);
+    if (src.close) src.close();
+    return new Promise((ok, no) => cv.toBlob((b) => (b ? ok(b) : no(new Error('encode'))), 'image/jpeg', 0.85));
+  }
+  const avPaint = (ini, data) => {
+    const b = document.getElementById('pfAva'); if (!b) return;
+    b.textContent = ''; b.classList.toggle('has-img', !!data);
+    if (data) { const i = document.createElement('img'); i.alt = ''; i.src = data; b.appendChild(i); } else b.appendChild(document.createTextNode(ini));
+    b.insertAdjacentHTML('beforeend', '<span class="pf-cam" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>');
+  };
+  async function avSync(ctx, ini) {
+    if (avSynced === ctx.uid || navigator.onLine === false) return;
+    avSynced = ctx.uid;
+    try {
+      const { data, error } = await sb.storage.from('avatars').download(`${ctx.uid}.jpg`);
+      if (error) {
+        if (avNet(error)) { avSynced = null; return; }
+        if (error.status === 400 || error.status === 404 || /not found/i.test(error.message || '')) { avStore(ctx.uid, null); avPaint(ini, null); }   // своего фото нет
+        return;
+      }
+      const d = await blobToUrl(data); avStore(ctx.uid, d); avPaint(ini, d);
+    } catch (e) { avSynced = null; }
+  }
+  async function avUpload(ctx, file) {
+    if (file.type && !file.type.startsWith('image/')) throw avBad('Выберите фотографию.');
+    if (file.size > AV_SRC_MAX) throw avBad('Файл слишком большой. Выберите фото поменьше.');
+    let blob; try { blob = await squareAvatarJpeg(file); } catch (e) { throw avBad('Не удалось открыть это фото. Выберите другое: JPEG или PNG.'); }
+    if (blob.size > AV_MAX) throw avBad('Файл слишком большой. Выберите фото поменьше.');
+    const { error } = await sb.storage.from('avatars').upload(`${ctx.uid}.jpg`, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '60' });
+    if (error) throw error;
+    const d = await blobToUrl(blob); avStore(ctx.uid, d); return d;
+  }
+  const avFail = (e) => Cab.toast(e && e.user ? e.message : avNet(e) ? 'Нет связи. Проверьте интернет и повторите.' : 'Не удалось сохранить фото. Повторите.', 'err');
+  // Тап по аватарке: лист «Выбрать фото / Удалить фото / Отмена»
+  function avatarInit(el, ctx, ini) {
+    avPaint(ini, avCache(ctx.uid));
+    avSync(ctx, ini);
+    el.querySelector('#pfAva').onclick = () => {
+      if (ctx.offline) { Cab.toast('Нет связи. Фото можно изменить, когда появится интернет.', 'err'); return; }
+      const has = !!avCache(ctx.uid), root = document.getElementById('cab'), back = document.activeElement, m = document.createElement('div');
+      m.className = 'cab-modal';
+      m.innerHTML = str(h`<div class="cab-sheet" role="dialog" aria-modal="true" aria-labelledby="avT"><h2 class="st-sh-t" id="avT">Фото профиля</h2>
+        <button class="j2-btn primary" data-a="pick" type="button">Выбрать фото</button>${has ? h`<button class="j2-btn danger" data-a="del" type="button">Удалить фото</button>` : ''}<button class="j2-btn" data-a="no" type="button">Отмена</button>
+        <input type="file" accept="image/*" hidden></div>`);
+      const file = m.querySelector('input'), key = (e) => { if (e.key === 'Escape') close(); };
+      function close() { m.remove(); root.inert = false; document.removeEventListener('keydown', key); window.removeEventListener('hashchange', close); if (back && back.focus) back.focus(); }
+      const busy = (on) => { const b = document.getElementById('pfAva'); if (b) { b.classList.toggle('busy', on); b.disabled = on; } };
+      file.onchange = async () => {
+        const f = file.files && file.files[0]; close(); if (!f) return;
+        busy(true);
+        try { const d = await avUpload(ctx, f); avPaint(ini, d); Cab.toast('Фото сохранено', 'ok'); } catch (e) { avFail(e); } finally { busy(false); }
+      };
+      m.onclick = async (e) => {
+        if (e.target === m) { close(); return; }
+        const a = e.target.closest('button[data-a]'); if (!a) return;
+        if (a.dataset.a === 'pick') { file.click(); return; }                                // лист закроется, когда выберут файл
+        close();
+        if (a.dataset.a !== 'del') return;
+        busy(true);
+        try {
+          const { error } = await sb.storage.from('avatars').remove([`${ctx.uid}.jpg`]);
+          if (error) throw error;
+          avStore(ctx.uid, null); avPaint(ini, null); Cab.toast('Фото удалено', 'ok');
+        } catch (err) { avFail(err); } finally { busy(false); }
+      };
+      document.body.appendChild(m); root.inert = true;
+      document.addEventListener('keydown', key); window.addEventListener('hashchange', close);
+      m.querySelector('button').focus();
+    };
   }
 
   async function absences(el, ctx, nav) {
@@ -644,7 +741,7 @@
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
-    profile: route('profile', profile), 'profile/studak': route('profile', studak), 'profile/account': route('profile', account), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
+    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({
