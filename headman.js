@@ -106,6 +106,7 @@
       : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${next.subject}, ${Cab.hm(next.starts_at)}` : 'Пропуски можно отметить за любое занятие'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
     put(el, h`${Cab.top({ href: 'app.html', text: 'Кабинет студента' }, roleText(ctx))}
       <h1 class="cab-title">Кабинет старосты</h1><p class="cab-sub">${Cab.DOW[t.dow]}, ${t.d} ${Cab.MONTHS[t.m]}</p>
+      ${Cab.raw(J2.roleSwitch('staff', { student: true, staff: true, sysadmin: ctx.isSysadmin }))}
       ${closedNote(ctx)}
       ${Cab.installCard()}
       ${delN ? h`<a class="cab-row t-amber" href="#/summary/erasure"><b>${delN} ${plural(delN, ['просьба удалить данные', 'просьбы удалить данные', 'просьб удалить данные'])}</b><span class="cab-ico">${icon.chev}</span></a>` : ''}

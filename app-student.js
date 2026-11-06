@@ -310,6 +310,7 @@
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
       <div class="cab-person"><div class="cab-avatar" aria-hidden="true">${ini}</div><div><b>${Cab.fullName(s)}</b><span>Студент, группа ${ctx.group.name}</span></div></div>
       <a class="cab-row" href="#/profile/studak"><span><b>Studak, пропуск</b><small>Скоро</small></span><span class="cab-ico" aria-hidden="true">${Cab.icon.chev}</span></a>
+      ${raw(J2.roleSwitch('student', { student: true, staff: ctx.isStaff, sysadmin: ctx.isSysadmin }))}
       <div class="st-sg"><span id="sgLbl">Подгруппа</span><div class="cab-seg2" id="sgSeg" role="group" aria-labelledby="sgLbl">${[1, 2].map((n) => h`<button type="button" data-sg="${n}" aria-pressed="${String(sg === n)}"${ctx.closed ? raw(' disabled') : ''}>${n}</button>`)}</div></div>
       <h2 class="cab-h2"><span>Мои справки</span></h2>
       ${!certs ? h`<p class="cab-note">Справки не загрузились. Обновите страницу.</p>`
@@ -329,7 +330,6 @@
       <div class="st-grp"><a class="st-line" id="acRow" href="#/profile/account"><span>Логин и пароль</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" href="#/profile/privacy"><span>Мои данные и удаление</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
-      ${ctx.isStaff ? h`<a class="cab-row st-staff" href="headman.html"><b>Кабинет старосты</b><span class="c-mute">только у старост</span></a>` : ''}
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
     const rem = el.querySelector('#remSw');

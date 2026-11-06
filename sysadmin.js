@@ -134,7 +134,18 @@
     $('login').classList.remove('j2-hidden'); $('main').classList.add('j2-hidden'); $('nav').classList.add('j2-hidden'); $('logout').classList.add('j2-hidden');
     $('who').textContent = 'Системный администратор';
   }
+  // Свои роли: студент и староста берутся из собственных членств (RLS отдаёт только свои строки); сисадмин здесь уже проверен
+  async function paintRoleSwitch() {
+    const box = $('roleSw'); box.innerHTML = '';
+    try {
+      const { data, error } = await sb.from('memberships').select('base_role, extra_role, status').eq('user_id', st.me);
+      if (error) return;
+      const act = (data || []).filter((m) => m.status === 'active');
+      box.innerHTML = J2.roleSwitch('sysadmin', { student: act.some((m) => m.base_role === 'student'), staff: act.some((m) => m.extra_role === 'headman' || m.extra_role === 'deputy'), sysadmin: true });
+    } catch (e) { /* без переключателя утилита работает */ }
+  }
   function showMain() {
+    paintRoleSwitch();
     $('login').classList.add('j2-hidden'); $('main').classList.remove('j2-hidden'); $('nav').classList.remove('j2-hidden'); $('logout').classList.remove('j2-hidden');
     go(st.tab);
   }

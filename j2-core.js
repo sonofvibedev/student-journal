@@ -37,6 +37,15 @@
     }
   };
 
+  // Переключатель «Студент / Староста / Сисадмин»: только доступные роли, при одной роли пусто. roles: { student, staff, sysadmin, staffLabel }.
+  // Это обычные ссылки на app.html, headman.html, sysadmin.html: права по-прежнему проверяет сервер, страница роли лишь показывает.
+  J2.roleSwitch = function (current, roles) {
+    const r = roles || {};
+    const all = [['student', 'Студент', 'app.html'], ['staff', r.staffLabel || 'Староста', 'headman.html'], ['sysadmin', 'Сисадмин', 'sysadmin.html']].filter((x) => r[x[0]]);
+    if (all.length < 2) return '';
+    return '<nav class="j2-roles" aria-label="Роль в журнале">' + all.map((x) => '<a href="' + x[2] + '"' + (x[0] === current ? ' aria-current="page"' : '') + '>' + J2.esc(x[1]) + '</a>').join('') + '</nav>';
+  };
+
   // Текст ошибки сервера по коду
   const ERR = {
     network: 'Нет связи с сервером. Проверьте интернет и повторите.',

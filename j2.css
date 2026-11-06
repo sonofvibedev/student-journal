@@ -47,6 +47,10 @@ body.j2 {
 .j2-card.warn { border-color: rgba(255, 200, 87, .45); background: rgba(255, 200, 87, .07); }
 .j2-card.bad { border-color: rgba(255, 138, 128, .5); background: rgba(255, 138, 128, .08); }
 
+.j2-roles { display: flex; gap: 4px; padding: 4px; margin: 0 0 12px; border-radius: 22px; background: var(--j-card); border: 1px solid var(--j-card-border); }
+.j2-roles a { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; padding: 0 6px; border-radius: 18px; color: var(--j-text); text-decoration: none; text-align: center; font: 700 15px/1.1 'Onest', system-ui, sans-serif; }
+.j2-roles a[aria-current="page"] { background: var(--j-lime); color: var(--j-lime-ink); }
+.j2-roles a:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
 .j2-field { display: block; background: var(--j-card); border: 1px solid var(--j-card-border); border-radius: 16px; padding: 8px 14px; margin: 0 0 10px; }
 .j2-field > span { display: block; font-size: 13px; color: var(--j-muted); }
 .j2-field input, .j2-field select, .j2-field textarea {
