@@ -68,7 +68,14 @@ const PRECACHE_URLS = [
   './vendor/supabase.js',
   './vendor/qrcode.js',
   './vendor/chart.umd.min.js',
-  './manifest.json'
+  './manifest.json',
+  './icons/favicon.svg',
+  './icons/favicon-32.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
