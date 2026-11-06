@@ -318,6 +318,7 @@
         <p class="cab-note" id="thNote">Светлая тема появится позже</p>
         <div class="cab-colors" id="stColors" role="group" aria-label="Цвет акцента">${ACCENTS.map(([c, n]) => h`<button type="button" class="cab-color" data-c="${c}" style="background:${c}" aria-label="${n}" aria-pressed="${String(c === accent)}"></button>`)}</div></section>
       ${Cab.installCard()}
+      <div class="st-grp"><a class="st-line" id="acRow" href="#/profile/account"><span>Логин и пароль</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" href="#/profile/privacy"><span>Мои данные и удаление</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
       ${ctx.isStaff ? h`<a class="cab-row st-staff" href="headman.html"><b>Кабинет старосты</b><span class="c-mute">только у старост</span></a>` : ''}
@@ -467,6 +468,70 @@
     if (o.auto) request();
   }
 
+  // ---------- логин и пароль (поведение из profile.js: saveNewLogin, saveNewPassword) ----------
+  // Логин меняет Edge Function change-login: она переписывает почту аккаунта на «логин@домен». Поэтому смена показана только тем, у кого почта уже синтетическая:
+  // у старосты или сисадмина с настоящей почтой функция затёрла бы её. Им доступна смена пароля.
+  const AC_FN = { unauthorized: 'Сессия закончилась. Войдите заново.', no_profile: 'Аккаунт не привязан к студенту. Обратитесь к старосте.', login_taken: 'Этот логин уже занят. Придумайте другой.', bad_login: 'Логин: от 3 до 32 символов — латинские буквы, цифры, «_» и «.».' };
+  const acNet = (e) => navigator.onLine === false || /Failed to fetch|NetworkError|Load failed|network/i.test(String((e && e.message) || ''));
+  function acPwErr(e) {
+    const c = (e && e.code) || '';
+    if (acNet(e)) return J2.errText('network');
+    if (c === 'invalid_credentials') return 'Текущий пароль введён неверно.';
+    if (c === 'same_password') return 'Новый пароль совпадает с текущим.';
+    if (c === 'weak_password') return J2.errText('bad_password');
+    if (c === 'over_request_rate_limit' || (e && e.status === 429)) return 'Слишком много попыток. Подождите несколько минут и попробуйте снова.';
+    if (c === 'session_not_found' || c === 'unauthorized') return 'Сессия закончилась. Войдите заново.';
+    return 'Что-то пошло не так. Попробуйте ещё раз.';
+  }
+  async function account(el, ctx, nav) {
+    const suffix = '@' + J2.EMAIL_DOMAIN, email = String(ctx.email || ''), synth = email.toLowerCase().endsWith(suffix), login = synth ? email.slice(0, -suffix.length) : '';
+    if (!put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Логин и пароль</h1><p class="cab-sub">Данные для входа в журнал</p>
+      ${synth ? h`<form class="cab-card" id="acLg" novalidate><h3>Логин</h3><p>Сейчас: <b>${login}</b></p>
+          <label class="j2-field" style="margin-top:10px"><span>Новый логин</span><input id="acLgIn" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="32" value="${login}"></label>
+          <div class="j2-msg err" id="acLgMsg" role="alert"></div><button class="j2-btn primary" type="submit">Сменить логин</button></form>`
+        : h`<div class="cab-card"><h3>Почта для входа</h3><p>${email}</p><p style="margin-top:6px">Этот аккаунт входит по почте, сменить её здесь нельзя. Пароль менять можно.</p></div>`}
+      <form class="cab-card" id="acPw" novalidate><h3>Пароль</h3>
+        <input type="text" autocomplete="username" value="${email}" hidden>
+        <label class="j2-field" style="margin-top:10px"><span>Текущий пароль</span><input id="acCur" type="password" autocomplete="current-password"></label>
+        <label class="j2-field"><span>Новый пароль (8–72 символа)</span><input id="acNew" type="password" autocomplete="new-password" maxlength="72"></label>
+        <label class="j2-field"><span>Новый пароль ещё раз</span><input id="acRep" type="password" autocomplete="new-password" maxlength="72"></label>
+        <div class="j2-msg err" id="acPwMsg" role="alert"></div><button class="j2-btn primary" type="submit">Сменить пароль</button></form>`)) return;
+    const lg = el.querySelector('#acLg');
+    if (lg) lg.onsubmit = (ev) => {
+      ev.preventDefault();
+      const msg = el.querySelector('#acLgMsg'), v = el.querySelector('#acLgIn').value.trim().toLowerCase(); msg.textContent = '';
+      if (!J2.LOGIN_RE.test(v)) { msg.textContent = AC_FN.bad_login; return; }
+      if (v === login) { msg.textContent = 'Это ваш текущий логин.'; return; }
+      J2.busy(lg.querySelector('button'), async () => {
+        const r = await J2.fn('change-login', { login: v });
+        if (!r.ok) { const c = (r.data && r.data.error) || ''; msg.textContent = r.status === 0 ? J2.errText('network') : r.status === 429 ? J2.errText('too_many_requests') : AC_FN[c] || J2.errText(c); return; }
+        try { await sb.auth.refreshSession(); } catch (e) { /* вход обновится сам при следующем запросе */ }
+        ctx.email = v + suffix;
+        Cab.toast(`Логин изменён. Теперь входите с логином «${v}».`, 'ok'); Cab.rerender();
+      });
+    };
+    const pw = el.querySelector('#acPw');
+    pw.onsubmit = (ev) => {
+      ev.preventDefault();
+      const msg = el.querySelector('#acPwMsg'), cur = el.querySelector('#acCur').value, nw = el.querySelector('#acNew').value, rep = el.querySelector('#acRep').value; msg.textContent = '';
+      if (!cur) { msg.textContent = 'Введите текущий пароль.'; return; }
+      if (nw.length < J2.PASSWORD_MIN || nw.length > J2.PASSWORD_MAX) { msg.textContent = J2.errText('bad_password'); return; }
+      if (nw !== rep) { msg.textContent = 'Новые пароли не совпадают.'; return; }
+      if (nw === cur) { msg.textContent = 'Новый пароль совпадает с текущим.'; return; }
+      J2.busy(pw.querySelector('button'), async () => {
+        try {
+          // сначала подтверждаем текущий пароль: чужой человек с открытым журналом не сменит его
+          const chk = await sb.auth.signInWithPassword({ email: ctx.email, password: cur });
+          if (chk.error) throw chk.error;
+          const { error } = await sb.auth.updateUser({ password: nw });
+          if (error) throw error;
+          ['#acCur', '#acNew', '#acRep'].forEach((s) => { el.querySelector(s).value = ''; });
+          Cab.toast('Пароль изменён.', 'ok');
+        } catch (e) { msg.textContent = acPwErr(e); }
+      });
+    };
+  }
+
   // Удаление данных по просьбе (ТЗ, раздел 5): заявка → староста (или сисадмин, если просит сам староста) решает → стирание на сервере
   const DEL_ST = { pending: ['Заявка отправлена, ждём решения', 'c-amber'], rejected: ['Заявку отклонили', 'c-coral'], done: ['Данные удалены', 'c-mint'], withdrawn: ['Заявку отозвали', 'c-mute'] };
   async function privacy(el, ctx, nav) {
@@ -562,7 +627,7 @@
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
-    profile: route('profile', profile), 'profile/studak': route('profile', studak), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
+    profile: route('profile', profile), 'profile/studak': route('profile', studak), 'profile/account': route('profile', account), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({
