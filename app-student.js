@@ -69,8 +69,19 @@
       warn: Number(r.warn_hours != null ? r.warn_hours : ctx.group.warn_hours), dean: Number(r.dean_hours != null ? r.dean_hours : ctx.group.dean_hours) };
   }
   const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
-  const taskRoute = (t) => (t.isExam ? 'study/exams' : t.kind === 'deadline' ? 'study/deadlines' : 'study/homework');
-  const typeLabel = (t) => ({ zachet: 'Зачёт', exam: 'Экзамен', deadline: 'Дедлайн', '': t.kind === 'deadline' ? 'Дедлайн' : 'Домашка' }[t.type] || t.type);
+  // УСР в данных — задание kind='homework' с rec.type='УСР'. Домашки идут отдельно, дедлайны и УСР вместе, зачёты и экзамены в своём разделе.
+  const isUsr = (t) => t.kind === 'homework' && String(t.type).trim().toUpperCase() === 'УСР';
+  const isHw = (t) => t.kind === 'homework' && !t.isExam && !isUsr(t);
+  const isDl = (t) => (t.kind === 'deadline' || isUsr(t)) && !t.isExam;
+  Object.assign(Cab.st, { isUsr, isHw, isDl });
+  const taskRoute = (t) => (t.isExam ? 'study/exams' : isDl(t) ? 'study/deadlines' : 'study/homework');
+  const typeLabel = (t) => {
+    if (t.type === 'zachet') return 'Зачёт';
+    if (t.type === 'exam') return 'Экзамен';
+    if (isUsr(t)) return 'УСР';
+    const base = t.kind === 'deadline' ? 'Дедлайн' : 'Домашка';
+    return t.type && t.type !== 'deadline' ? base + ', ' + t.type : base;
+  };
 
   // ---------- общие куски разметки ----------
   // Текст под кольцом пропусков
@@ -132,7 +143,7 @@
         : noData ? h`<div class="j2-card"><h2>Расписание ещё не загружено</h2><p>Оно появится после загрузки с bseu.by.</p></div>`
         : h`<div class="j2-card"><h2>Сегодня пар нет</h2></div>`}
       ${absCard(stats, true)}
-      <div class="cab-h2"><span>Горит</span><a href="#/study/homework">Все задания ${chev}</a></div>
+      <div class="cab-h2"><span>Горит</span><a href="#/study">Все задания ${chev}</a></div>
       ${!tasks ? h`<p class="cab-note">Задания не загрузились. Обновите страницу.</p>`
         : !fire.length ? h`<p class="cab-note">Горящих заданий нет.</p>`
         : h`<div class="cab-tiles">${fire.map((t) => { const d = Cab.due(t.due);
@@ -145,8 +156,10 @@
     const now = Cab.minsk(), today = now.iso, sg = sgOf(ctx);
     let mon = Cab.mondayOf(now.dow === 6 ? Cab.addDays(today, 1) : today), sel = null, rows = [], any = true;     // в воскресенье показываем следующую неделю
     const [meta, tasks] = await Promise.all([soft(q(sb.from('schedule_meta').select('last_import_at').eq('group_id', ctx.group.id).maybeSingle())), soft(loadTasks(ctx))]);
-    const hw = (tasks || []).filter((t) => t.kind === 'homework' && !t.isExam && t.due && Cab.taskVisible(t, sg));
-    const hasHw = (l) => hw.some((t) => t.due >= l.lesson_date && one(t.subject).toLowerCase() === one(l.subject).toLowerCase());
+    const dated = (tasks || []).filter((t) => t.due && Cab.taskVisible(t, sg));
+    const hw = dated.filter(isHw), usr = dated.filter((t) => isUsr(t) && !t.isExam);
+    const has = (list) => (l) => list.some((t) => t.due >= l.lesson_date && one(t.subject).toLowerCase() === one(l.subject).toLowerCase());
+    const hasHw = has(hw), hasUsr = has(usr);
     async function load() {
       rows = (await loadLessons(ctx, mon, Cab.addDays(mon, 5))).filter(mine(ctx));
       any = rows.length > 0 || ((await soft(q(sb.from('schedule_lessons').select('lesson_date').eq('group_id', ctx.group.id).limit(1)))) || []).length > 0;
@@ -167,7 +180,7 @@
         const when = !isToday ? '' : st === 'past' ? ', прошла' : st === 'now' ? ', идёт сейчас' : ', дальше';
         return h`<li><button type="button" class="cab-lesson st-btn st-two ${st}" data-i="${i}"><div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
           <div><div class="n">${l.subject}</div><div class="k">${Cab.KIND[l.kind] || 'Занятие'}${l.room ? ', ауд. ' + l.room : ''}${when}</div>
-          ${hasHw(l) ? h`<div class="k st-hw">Есть домашка</div>` : ''}
+          ${hasHw(l) ? h`<div class="k st-hw">Есть домашка</div>` : hasUsr(l) ? h`<div class="k st-hw">Есть УСР</div>` : ''}
           ${l.prev_room && l.prev_room !== l.room ? h`<div class="k warn">Аудитория изменилась, была ${l.prev_room}</div>` : ''}</div></button></li>`;
       });
       el.innerHTML = str(h`${banner(ctx)}
@@ -211,10 +224,10 @@
   const hubRow = (href, cls, title, sub, cnt) => h`<a class="cab-row ${cls}" href="${href}"><span><b>${title}</b><small>${sub}</small></span><span style="display:flex;align-items:center;gap:8px">${cnt == null ? '' : h`<span class="cnt">${cnt}</span>`}<span class="cab-ico" aria-hidden="true">${Cab.icon.chev}</span></span></a>`;
   async function study(el, ctx, nav) {
     const tasks = await soft(loadTasks(ctx)), today = Cab.minsk().iso;
-    const active = (kind) => tasks ? tasks.filter((t) => t.kind === kind && !t.isExam && Cab.taskVisible(t, sgOf(ctx)) && (!t.due || t.due >= today)).length : null;
+    const active = (pick) => tasks ? tasks.filter((t) => pick(t) && Cab.taskVisible(t, sgOf(ctx)) && (!t.due || t.due >= today)).length : null;
     put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Учёба</h1><p class="cab-sub">Предметы, задания, сессия</p>
-      ${hubRow('#/study/homework', 't-lime', 'Домашки и УСР', 'Все задания и архив', active('homework'))}
-      ${hubRow('#/study/deadlines', 't-amber', 'Дедлайны', 'Все сроки', active('deadline'))}
+      ${hubRow('#/study/homework', 't-lime', 'Домашки', 'Все задания и архив', active(isHw))}
+      ${hubRow('#/study/deadlines', 't-amber', 'Дедлайны и УСР', 'Все сроки и УСР', active(isDl))}
       ${hubRow('#/study/exams', 't-mint', 'Зачёты и экзамены', 'Даты и формы контроля')}
       ${hubRow('#/study/grades', 't-blue', 'Оценки', 'Средний балл появится позже')}
       ${hubRow('index.html#zachetka', 't-pink', 'Рейтинг', 'Калькулятор')}
@@ -223,8 +236,8 @@
   }
 
   const TASK_SCREENS = {
-    homework: { title: 'Домашки и УСР', pick: (t) => t.kind === 'homework' && !t.isExam, empty: 'Домашних заданий пока нет' },
-    deadlines: { title: 'Дедлайны', pick: (t) => t.kind === 'deadline' && !t.isExam, empty: 'Дедлайнов пока нет' },
+    homework: { title: 'Домашки', pick: isHw, empty: 'Домашних заданий пока нет' },
+    deadlines: { title: 'Дедлайны и УСР', pick: isDl, empty: 'Дедлайнов и УСР пока нет' },
     exams: { title: 'Зачёты и экзамены', pick: (t) => t.isExam, empty: 'Зачётов и экзаменов пока нет' },
   };
   const taskCard = (t, arch) => {
@@ -332,10 +345,12 @@
   }
 
   // ---------- уведомления ----------
-  const NTF_GO = { task: (n) => (n.ref && n.ref.kind === 'deadline' ? '#/study/deadlines' : '#/study/homework'), absence: () => '#/profile/absences', certificate: () => '#/profile', grade: () => '#/study/grades', schedule: () => '#/schedule' };
+  const ntfTask = (n, byId) => { const t = byId && n.ref && byId.get(n.ref.task_id); return '#/' + (t ? taskRoute(t) : n.ref && n.ref.kind === 'deadline' ? 'study/deadlines' : 'study/homework'); };
+  const NTF_GO = { task: ntfTask, deadline_soon: ntfTask, absence: () => '#/profile/absences', certificate: () => '#/profile', grade: () => '#/study/grades', schedule: () => '#/schedule' };
   const NTF_TONE = { task: 'st-coral', schedule: 'st-amber', certificate: 'st-mint', grade: 'st-lime' };
   async function notifications(el, ctx, nav) {
-    const list = await q(sb.from('notifications').select('id,kind,title,body,ref,created_at,read_at').eq('user_id', ctx.uid).order('created_at', { ascending: false }).limit(100));
+    const [list, tasks] = await Promise.all([q(sb.from('notifications').select('id,kind,title,body,ref,created_at,read_at').eq('user_id', ctx.uid).order('created_at', { ascending: false }).limit(100)), soft(loadTasks(ctx))]);
+    const byId = new Map((tasks || []).map((t) => [t.id, t]));
     const today = Cab.minsk().iso, yest = Cab.addDays(today, -1);
     let mode = 'all';
     if (!put(el, nav, h`${Cab.top({ href: '#/home', text: 'Главная' }, Cab.dateText(today))}<h1 class="cab-title">Уведомления</h1><p class="cab-sub" id="ntfSub" aria-live="polite"></p>
@@ -350,7 +365,7 @@
       box.innerHTML = shown.length ? str(h`${shown.map((n) => {
         const ms = Date.parse(n.created_at), day = isoOf(ms), label = day === today ? 'Сегодня' : day === yest ? 'Вчера' : Cab.dateText(day);
         const head = label !== cur ? h`<h2 class="cab-h2" style="font-size:15px;color:var(--j-muted)"><span>${label}</span></h2>` : ''; cur = label;
-        return h`${head}<a class="cab-ntf ${n.read_at ? '' : 'new ' + (NTF_TONE[n.kind] || '')}" href="${(NTF_GO[n.kind] || (() => '#/home'))(n)}" data-id="${n.id}"><div class="meta"><b>${n.read_at ? '' : h`<span class="sr-only">Новое: </span>`}${n.title}</b><span class="c-mute">${day === today ? hmOf(ms) : Cab.dateShort(day)}</span></div>${n.body ? h`<p>${n.body}</p>` : ''}</a>`;
+        return h`${head}<a class="cab-ntf ${n.read_at ? '' : 'new ' + (NTF_TONE[n.kind] || '')}" href="${(NTF_GO[n.kind] || (() => '#/home'))(n, byId)}" data-id="${n.id}"><div class="meta"><b>${n.read_at ? '' : h`<span class="sr-only">Новое: </span>`}${n.title}</b><span class="c-mute">${day === today ? hmOf(ms) : Cab.dateShort(day)}</span></div>${n.body ? h`<p>${n.body}</p>` : ''}</a>`;
       })}`) : str(h`<div class="cab-empty">${mode === 'new' ? 'Новых уведомлений нет' : 'Уведомлений пока нет'}</div>`);
     }
     Cab.segmented(el.querySelector('#ntfSeg'), [{ value: 'all', label: 'Все' }, { value: 'new', label: 'Новые' }], mode, (v) => { mode = v; fill(); });
