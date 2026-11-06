@@ -306,6 +306,9 @@
 .tc-old { opacity: .6; }
 .ch-sub { display: flex; align-items: center; gap: 6px; }
 /* калькулятор рейтинга (app-rating.js): кнопки оценок 1–10, таблетки, итог по порогам <4 / <7 / ≥7 (цвет и текст) */
+.st-stub { text-align: center; padding: 28px 18px; margin: 8px 0 14px; }
+.st-stub-ico { display: inline-grid; place-items: center; width: 72px; height: 72px; margin: 0 0 12px; border-radius: 22px; background: rgba(198, 244, 50, .12); color: var(--j-lime); }
+.st-stub-ico svg { width: 38px; height: 38px; } .st-stub h3 { margin: 0 0 6px; } .st-stub p { margin: 0 auto; max-width: 30ch; }
 .rc-keys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; }
 .rc-keys button { min-height: 44px; border-radius: 14px; border: 1px solid var(--j-card-border); background: var(--j-card); color: var(--j-text); font: 700 18px 'Onest', sans-serif; cursor: pointer; }
 .rc-keys button:active { background: var(--j-lime); color: var(--j-lime-ink); }

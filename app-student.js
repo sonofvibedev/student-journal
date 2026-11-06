@@ -232,7 +232,7 @@
       ${hubRow('#/study/grades', 't-blue', 'Оценки', 'Средний балл появится позже')}
       ${hubRow('#/study/rating', 't-pink', 'Рейтинг', 'Калькулятор')}
       ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и практические')}
-      ${hubRow('index.html#games', '', 'Игры', 'Судоку, сапёр, flappy и ещё 2')}`);
+      ${hubRow('#/study/games', '', 'Игры', 'Скоро')}`);
   }
 
   const TASK_SCREENS = {
@@ -253,6 +253,18 @@
       ${act.length ? act.map((t) => taskCard(t, false)) : h`<div class="cab-empty">${all.length ? 'Активных заданий нет' : cfg.empty}</div>`}
       ${old.length ? h`<details class="st-det"><summary>Архив: ${old.length}</summary>${old.map((t) => taskCard(t, true))}</details>` : ''}`);
   }
+
+  // Экран-заглушка: иконка, короткий текст, кнопка назад. Для разделов, которые вернутся в следующих обновлениях
+  const STUB_ICO = {
+    games: h`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7.5 10.5v4M5.5 12.5h4"/><circle cx="15.5" cy="11.5" r=".9" fill="currentColor"/><circle cx="18" cy="13.5" r=".9" fill="currentColor"/></svg>`,
+    pass: h`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2.2"/><path d="M5.8 16c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13h3"/></svg>`,
+  };
+  function stub(el, nav, o) {
+    put(el, nav, h`${Cab.top({ href: o.back, text: o.backText })}<h1 class="cab-title">${o.title}</h1>
+      <div class="cab-card st-stub"><span class="st-stub-ico">${o.icon}</span><h3>${o.head}</h3><p>${o.text}</p></div>
+      <a class="j2-btn primary" href="${o.back}">${o.button}</a>`);
+  }
+  const games = (el, ctx, nav) => stub(el, nav, { back: '#/study', backText: 'Учёба', title: 'Игры', icon: STUB_ICO.games, head: 'Игры вернутся в ближайшем обновлении', text: 'Судоку, сапёр и другие игры скоро появятся в новом кабинете.', button: 'К учёбе' });
 
   async function grades(el, ctx, nav) {
     const rows = await q(sb.from('grades').select('id,subject,lesson_kind,value,passed,lesson_date,comment').eq('student_id', ctx.student.id).order('lesson_date', { ascending: false }));
@@ -547,7 +559,7 @@
     schedule: route('schedule', schedule),
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
-    'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)),
+    'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
     profile: route('profile', profile), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
