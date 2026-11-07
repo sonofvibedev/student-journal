@@ -120,6 +120,19 @@ t('свайп: соседний раздел без зацикливания н�
   assert.equal(n(-1, 1, 4), -1); assert.equal(n(1, 0, 4), -1);
 });
 
+t('ФИО преподавателя: сокращённое дополняется из data.json по фамилии, инициалам и предмету, иначе остаётся как есть', () => {
+  const dt = JSON.parse(readFileSync('data.json', 'utf8')).teachers, f = Cab.teacherFull;
+  assert.equal(f('Волонтей А.В.', 'Стратегический маркетинг', dt), 'Волонтей Алексей Викторович');
+  assert.equal(f('Яровская Е.С.', 'Логистика', dt), 'Яровская Екатерина Сергеевна');
+  assert.equal(f('Стасева А.А.', 'Эконометрика', dt), 'Стасева А.А.');                 // в data.json тоже сокращено
+  assert.equal(f('Пушкин С.А.', 'Эконометрика', dt), 'Пушкин С.А.');
+  assert.equal(f('Волонтей А.В.', 'Логистика', dt), 'Волонтей А.В.');                  // другой предмет: не додумываем
+  assert.equal(f('Волонтей Б.В.', 'Стратегический маркетинг', dt), 'Волонтей Б.В.');   // другие инициалы
+  assert.equal(f('Рехтин Виталий Анатольевич', 'Логистика', dt), 'Рехтин Виталий Анатольевич');
+  assert.equal(f('Волонтей А.В.', 'Стратегический маркетинг', []), 'Волонтей А.В.');
+  assert.equal(Cab.isAbbrevName('Стасева А.А.'), true); assert.equal(Cab.isAbbrevName('Синявская Ольга Александровна'), false); assert.equal(Cab.isAbbrevName(null), false);
+});
+
 const bad = results.filter((r) => !r[1]).length;
 console.log(`\nИтого: ${results.length - bad} из ${results.length}`);
 process.exit(bad ? 1 : 0);

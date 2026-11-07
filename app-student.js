@@ -290,19 +290,40 @@
         : h`<div class="cab-empty">Оценок пока нет</div>`}`);
   }
 
+  // Преподаватели: карточки по предметам, по нажатию шторка с полным ФИО по видам занятий.
+  // ФИО берём из schedule_lessons.teacher; сокращённые («Стасева А.А.») для группы 24ДММ-2 дополняем из data.json (Cab.teacherFull).
+  const KIND_ORDER = ['lecture', 'practice', 'lab', 'other'], KIND_PL = { lecture: 'Лекции', practice: 'Практические', lab: 'Лабораторные', other: 'Занятия' };
   async function teachers(el, ctx, nav) {
     const rows = (await q(sb.from('schedule_lessons').select('subject,kind,teacher,subgroup').eq('group_id', ctx.group.id).limit(2000))).filter(mine(ctx));
+    let dt = [];
+    if (ctx.group.name === '24ДММ-2' && rows.some((l) => Cab.isAbbrevName(l.teacher))) {
+      try { dt = (await (await fetch('data.json', { cache: 'no-store' })).json()).teachers || []; } catch (e) { dt = []; }   // нет файла — показываем как в расписании
+    }
+    // предмет → вид занятия → подгруппа (0 — вся группа) → множество преподавателей
     const by = new Map();
     rows.forEach((l) => {
       if (!l.subject) return;
-      const s = by.get(l.subject) || by.set(l.subject, new Map()).get(l.subject);
-      if (l.teacher) (s.get(l.kind) || s.set(l.kind, new Set()).get(l.kind)).add(l.teacher);
+      const kind = KIND_ORDER.includes(l.kind) ? l.kind : 'other', sg = Number(l.subgroup) || 0;
+      const ks = by.get(l.subject) || by.set(l.subject, new Map()).get(l.subject);
+      const sgs = ks.get(kind) || ks.set(kind, new Map()).get(kind);
+      const set = sgs.get(sg) || sgs.set(sg, new Set()).get(sg);
+      if (l.teacher) set.add(Cab.teacherFull(l.teacher, l.subject, dt));
     });
-    const KL = { lecture: 'Лекции', practice: 'Практические', lab: 'Лабораторные', other: 'Занятия' };
-    put(el, nav, h`${Cab.top({ href: '#/study', text: 'Учёба' })}<h1 class="cab-title">Преподаватели</h1><p class="cab-sub">Лекции и практические</p>
-      ${by.size ? [...by].sort((a, b) => a[0].localeCompare(b[0], 'ru')).map(([subj, ks]) => h`<div class="cab-card"><h3>${subj}</h3>
-        <p>${ks.size ? [...ks].map(([k, set]) => `${KL[k] || KL.other}: ${[...set].join(', ')}`).join(' · ') : 'Преподаватель не указан'}</p></div>`)
+    const names = (set) => (set.size ? [...set].join(', ') : 'не указан');
+    const block = (kind, sgs) => {
+      const e = [...sgs].sort((a, b) => a[0] - b[0]), same = new Set(e.map(([, set]) => [...set].sort().join('|'))).size === 1;
+      return same ? h`<p class="st-tl"><b>${KIND_PL[kind]}</b> — ${names(e[0][1])}</p>`
+        : h`<p class="st-tl"><b>${KIND_PL[kind]}:</b> ${e.map(([sg, set]) => `${sg ? sg + ' подгруппа' : 'все подгруппы'} — ${names(set)}`).join(', ')}</p>`;
+    };
+    const list = [...by].sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+    put(el, nav, h`${Cab.top({ href: '#/study', text: 'Учёба' })}<h1 class="cab-title">Преподаватели</h1><p class="cab-sub">Нажмите на предмет</p>
+      ${list.length ? list.map(([subj, ks], i) => h`<button type="button" class="cab-row" data-i="${i}"><span><b>${subj}</b><small>${ks.size} ${Cab.plural(ks.size, ['вид занятий', 'вида занятий', 'видов занятий'])}</small></span><span class="cab-ico">${Cab.icon.chev}</span></button>`)
         : h`<div class="cab-empty">Список появится после загрузки расписания</div>`}`);
+    el.onclick = (e) => {
+      const b = e.target.closest('button[data-i]'); if (!b) return;
+      const [subj, ks] = list[+b.dataset.i];
+      sheet(subj, h`${KIND_ORDER.filter((k) => ks.has(k)).map((k) => block(k, ks.get(k)))}`);
+    };
   }
 
   // ---------- профиль ----------

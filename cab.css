@@ -211,6 +211,7 @@
 .st-det summary:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
 .st-sg { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 6px; font-weight: 600; } .st-sg .cab-seg2 { width: 200px; }
 .st-s { text-align: right; }
+.st-tl { margin: 0 0 10px; overflow-wrap: anywhere; } .st-tl b { color: var(--j-text); }   /* шторка преподавателей: «Лекции — ФИО» */
 .st-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 12px; overflow: hidden; border-radius: 20px; border: 1px solid var(--j-card-border); background: var(--j-card); }
 .st-tri a, .st-tri button { display: flex; flex-direction: column; justify-content: center; min-height: 64px; padding: 10px; color: var(--j-text); text-decoration: none; border-left: 1px solid rgba(255, 255, 255, .08); overflow-wrap: anywhere; }
 .st-tri a:first-child { border-left: 0; } .st-tri button { margin: 0; border: 0; border-left: 1px solid rgba(255, 255, 255, .08); background: none; font: inherit; text-align: left; cursor: pointer; }

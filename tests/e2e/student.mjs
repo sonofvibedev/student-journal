@@ -219,7 +219,11 @@ try {
   await open('#/study/exams', 'Зачёты и экзамены'); check('экзамены: видно время и аудиторию, зачёт рядом', (await text()).includes('Экзамен 12:00, ауд. 310') && (await text()).includes('Зачёт 10:00'));
   await open('#/study/grades', 'Оценки'); const gt = await text();
   check('оценки: балл и «зачтено», без среднего', gt.includes(subj.mkt) && /\b9\b/.test(gt) && gt.includes('зачтено') && !/средн/i.test(gt), gt.slice(0, 200));
-  await open('#/study/teachers', 'Преподаватели'); check('преподаватели: из расписания', (await text()).includes(`Лекции: ${TEACHER}`) || (await text()).includes(TEACHER));
+  await open('#/study/teachers', 'Преподаватели');
+  check('преподаватели: карточки по предметам, без списка преподавателей на странице', (await page.locator('#cabMain button.cab-row').count()) === 4 && !(await text()).includes(TEACHER) && !(await text()).includes('Лекции:'));
+  await page.locator('#cabMain button.cab-row', { hasText: subj.eco }).click();
+  check('преподаватели: по нажатию шторка с предметом и преподавателем', await page.getByRole('dialog').getByText(TEACHER).isVisible() && (await page.getByRole('dialog').innerText()).includes(subj.eco));
+  await page.keyboard.press('Escape');
   await noHScroll('оценки и преподаватели'); await taps('преподаватели');
   // 3б. рейтинг: калькулятор внутри кабинета, формулы и формат хранения прежние
   const OLD_PSY = { control: [5, 5], oral: [5], exam: '4', k1: 0.6, w1: 0.5 };

@@ -47,6 +47,18 @@
     return { text: `${n} ${Cab.plural(n, ['день', 'дня', 'дней'])}`, cls: n <= 3 ? 'amber' : 'mute', days: n };
   };
 
+  // «Волонтей А.В.» из расписания bseu.by → полное ФИО из data.json (только для группы 24ДММ-2, решает вызывающий код).
+  // Ищем по фамилии, инициалам и предмету; не нашли или нашли двоих — возвращаем как пришло, без додумывания.
+  Cab.isAbbrevName = (n) => /^[А-ЯЁа-яё-]+\s+[А-ЯЁ]\.\s*[А-ЯЁ]?\.?$/.test(String(n || '').trim());
+  Cab.teacherFull = (name, subject, list) => {
+    const m = /^([А-ЯЁа-яё-]+)\s+([А-ЯЁ])\.\s*([А-ЯЁ])?\.?$/.exec(String(name || '').trim());
+    if (!m) return name;
+    const subj = String(subject || '').trim().toLowerCase(), full = new Set();
+    (list || []).filter((t) => String(t.subject || '').trim().toLowerCase() === subj)
+      .forEach((t) => [t.lecture, t.practice, t.lab].forEach((txt) => (String(txt || '').match(/[А-ЯЁ][а-яё-]+ [А-ЯЁ][а-яё]+ [А-ЯЁ][а-яё]+/g) || []).forEach((n) => full.add(n))));
+    const hit = [...full].filter((n) => { const [f, a, b] = n.split(' '); return f.toLowerCase() === m[1].toLowerCase() && a[0] === m[2] && (!m[3] || b[0] === m[3]); });
+    return hit.length === 1 ? hit[0] : name;
+  };
   Cab.initials = (s) => (s && s.last_name ? s.last_name + (s.first_name ? ' ' + s.first_name.charAt(0) + '.' : '') : 'Без имени');
   Cab.fullName = (s) => [s.last_name, s.first_name].filter(Boolean).join(' ') || 'Без имени';
   Cab.KIND = { lecture: 'Лекция', practice: 'Практическое', lab: 'Лабораторная', other: 'Занятие' };
