@@ -1,5 +1,5 @@
 ﻿// Сервис-воркер журнала 24ДММ-2.
-// Стратегия: "сначала сеть" для своих страниц (index.html, cabinet.html) — если сеть есть,
+// Стратегия: "сначала сеть" (но не дольше NET_WAIT, потом кэш) для своих страниц и файлов — если сеть есть,
 // пользователь всегда видит самую свежую версию сайта, кэш используется только как запасной
 // вариант при отсутствии связи. data.json НИКОГДА не кэшируется — иначе застревали бы
 // старые пропуски. Библиотеки лежат в vendor/ (свои, не CDN) и кэшируются как остальное.
@@ -10,7 +10,11 @@
 // Свои файлы запрашиваем мимо HTTP-кэша браузера (сервер ответит «не изменилось», если файл тот же):
 // иначе после деплоя телефон мог получить новую страницу со старым app.css.
 const CACHE_VERSION = 'journal-24dmm2-v60';
+const NET_WAIT = 3000;          // сколько ждать сеть для своих файлов и страниц, прежде чем отдать кэш
 
+// Тяжёлые библиотеки старого журнала (exceljs, chart, bootstrap, qrcode) заранее не качаем: при выкате нового воркера это
+// ~1,3 МБ в момент первого запуска. Новому кабинету они не нужны (exceljs грузит только выгрузка отчёта старосты, ей и так нужна сеть);
+// при первом использовании их кладёт в кэш общий обработчик fetch ниже.
 const PRECACHE_URLS = [
   './env.js',
   './tg-gate.js',
@@ -57,17 +61,12 @@ const PRECACHE_URLS = [
   './sysadmin.html',
   './sysadmin.js',
   './monitor.js',
-  './vendor/exceljs.min.js',
   './j2.css',
   './dean-report.js',
   './profile.js',
   './studak.js',
   './pass.html',
-  './vendor/bootstrap.min.css',
-  './vendor/bootstrap.bundle.min.js',
   './vendor/supabase.js',
-  './vendor/qrcode.js',
-  './vendor/chart.umd.min.js',
   './manifest.json',
   './icons/favicon.svg',
   './icons/favicon-32.png',
@@ -112,17 +111,23 @@ self.addEventListener('fetch', (event) => {
   const fresh = event.request.mode === 'navigate'
     ? fetch(event.request)
     : fetch(event.request.url, { cache: 'no-cache', credentials: 'same-origin' });
-  event.respondWith(
-    fresh
-      .then((response) => {
-        const copy = response.clone();
-        // pass.html?t=<токен> — кладём в кэш без токена: одна копия страницы, токены в кэше не копятся
-        const key = url.pathname.endsWith('/pass.html') ? new URL('./pass.html', self.location.href).href : event.request;
-        caches.open(CACHE_VERSION).then((cache) => cache.put(key, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request, { ignoreSearch: true }))
-  );
+  // pass.html?t=<токен> — кладём в кэш без токена: одна копия страницы, токены в кэше не копятся
+  const key = url.pathname.endsWith('/pass.html') ? new URL('./pass.html', self.location.href).href : event.request;
+  let saved = null;
+  const net = fresh.then((response) => {
+    if (response.ok) { const copy = response.clone(); saved = caches.open(CACHE_VERSION).then((cache) => cache.put(key, copy)); }   // ошибки сервера в кэш не кладём
+    return response;
+  });
+  event.waitUntil(net.then(() => saved).catch(() => {}));      // ответили из кэша — запрос всё равно дозагрузится и обновит кэш
+  // «Сначала сеть», но не дольше NET_WAIT: медленная или «висящая» сеть не держит запуск, отдаём кэш (если он есть)
+  const fromCache = () => caches.match(event.request, { ignoreSearch: true });
+  event.respondWith(new Promise((resolve) => {
+    let done = false;
+    const give = (r) => { if (!done && r) { done = true; resolve(r); } };
+    const timer = setTimeout(() => fromCache().then(give), NET_WAIT);
+    net.then((r) => { clearTimeout(timer); give(r); },
+      () => { clearTimeout(timer); fromCache().then((c) => give(c || Response.error())); });
+  }));
 });
 
 // --- Напоминания о дедлайнах и домашке ---
