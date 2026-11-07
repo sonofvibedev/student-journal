@@ -384,7 +384,7 @@
       const n = +b.dataset.sg, prev = sgOf(ctx); if (n === prev) return;
       const mark = (v) => seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.sg === v)));
       mark(n); ctx.student.subgroup = String(n); seg.dataset.busy = '1';                // сразу показываем, при ошибке откатываем
-      try { await rpc('student_set_subgroup', { p_subgroup: n }); Cab.toast('Подгруппа сохранена', 'ok'); }
+      try { await rpc('student_set_subgroup', { p_subgroup: n }); Cab.keepCtx(); Cab.toast('Подгруппа сохранена', 'ok'); }
       catch (err) { ctx.student.subgroup = prev ? String(prev) : null; mark(prev); Cab.toast(Cab.rpcText(err), 'err'); }
       finally { delete seg.dataset.busy; }
     };
@@ -675,7 +675,7 @@
         const r = await J2.fn('change-login', { login: v });
         if (!r.ok) { const c = (r.data && r.data.error) || ''; msg.textContent = r.status === 0 ? J2.errText('network') : r.status === 429 ? J2.errText('too_many_requests') : AC_FN[c] || J2.errText(c); return; }
         try { await sb.auth.refreshSession(); } catch (e) { /* вход обновится сам при следующем запросе */ }
-        ctx.email = v + suffix;
+        ctx.email = v + suffix; Cab.keepCtx();
         Cab.toast(`Логин изменён. Теперь входите с логином «${v}».`, 'ok'); Cab.rerender();
       });
     };

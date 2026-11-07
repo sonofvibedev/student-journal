@@ -101,7 +101,9 @@
   // Возвращает контекст или null (тогда страница уже уводит пользователя на нужный экран)
   const loadOnline = async function (kind) {
     if (!sb) { document.body.textContent = 'Нет связи с сервером.'; return null; }
-    const { data: ses } = await sb.auth.getSession();
+    const { data: ses, error: sesErr } = await sb.auth.getSession();
+    // токен не обновился из-за сети — это не «вход слетел»: не уводим на join.html, а считаем ошибкой связи
+    if (sesErr && (sesErr.name === 'AuthRetryableFetchError' || netErr(sesErr))) throw sesErr;
     if (!ses || !ses.session) { location.replace('join.html'); return null; }
     const uid = ses.session.user.id;
     const [mems, sa] = await Promise.all([
@@ -123,7 +125,6 @@
       ]);
       const ctx = { uid, email: ses.session.user.email, isTeacher: true, teacherRole: teach[0].base_role === 'teacher_lecture' ? 'lecture' : 'practice', member: teach[0], groups, assignments: asg, isSysadmin,
         subjects: [...new Set(asg.map((x) => x.subject))] };
-      Cab.ctx = ctx;
       return ctx;
     }
     if (!mine && teach.length) { location.replace('teacher.html'); return null; }
@@ -138,29 +139,31 @@
       Cab.q(sb.from('groups').select('id, name, status, warn_hours, dean_hours').eq('id', mine.group_id).single()),
       Cab.q(sb.from('students').select('id, last_name, first_name, study_form, subgroup').eq('id', mine.student_id).single()),
     ]);
-    const ctx = { uid, email: ses.session.user.email, group, student, member: mine, isStaff, role: mine.extra_role, isSysadmin, closed: group.status !== 'active' };
-    Cab.ctx = ctx;
-    return ctx;
+    return { uid, email: ses.session.user.email, group, student, member: mine, isStaff, role: mine.extra_role, isSysadmin, closed: group.status !== 'active' };
   };
 
-  // Без сети (этап 7): кабинет открывается из контекста, сохранённого при прошлом входе, чтобы староста могла отметить пропуски.
-  // Контекст — только для показа; права по-прежнему проверяет сервер при отправке очереди.
+  // Сохранённый контекст (этап 7 и быстрый старт): кабинет открывается по контексту прошлого входа сразу, без сети или пока сервер отвечает.
+  // Контекст — только для показа; права по-прежнему проверяет сервер (RLS) при каждом запросе и при отправке очереди.
+  // Ключ у каждого кабинета свой; для преподавателя не сохраняем. Годится, только если в памяти телефона лежит сессия того же пользователя:
+  // вышли (Cab.signOut, j2-gate) или вошли другим — сохранённый контекст не используется.
   const CTX_KEY = 'j2.ctx.';
   const netErr = (e) => (window.OQ ? OQ.isNetError(e) : navigator.onLine === false);
-  const cachedCtx = (kind) => { try { return JSON.parse(localStorage.getItem(CTX_KEY + kind)); } catch (_) { return null; } };
+  const sessionUid = () => { try { const s = JSON.parse(localStorage.getItem(SB_STORAGE_KEY)); return (s && s.user && s.user.id) || null; } catch (_) { return null; } };
+  const cachedCtx = (kind) => {
+    if (kind === 'teacher') return null;
+    try { const raw = localStorage.getItem(CTX_KEY + kind), c = JSON.parse(raw), uid = sessionUid(); return c && c.uid && uid && c.uid === uid ? raw : null; } catch (_) { return null; }
+  };
+  // null от loadOnline — пускать в этот кабинет больше нельзя (страница уже уходит): сохранённый контекст стираем
+  const saveCtx = (kind, ctx) => { if (kind !== 'teacher') { try { if (ctx) localStorage.setItem(CTX_KEY + kind, JSON.stringify(ctx)); else localStorage.removeItem(CTX_KEY + kind); } catch (_) { /* память переполнена: быстрый и офлайн-вход просто не получатся */ } } return ctx; };
   Cab.load = async function (kind) {
-    const off = (c) => { Cab.ctx = Object.assign({}, c, { offline: true }); return Cab.ctx; };
-    if (kind !== 'teacher' && navigator.onLine === false) { const c = cachedCtx(kind); if (c && c.uid) return off(c); }
-    try {
-      const ctx = await loadOnline(kind);
-      if (ctx && kind !== 'teacher') { try { localStorage.setItem(CTX_KEY + kind, JSON.stringify(ctx)); } catch (_) { /* память переполнена: офлайн-вход просто не получится */ } }
-      return ctx;
-    } catch (e) {
-      memsDone(null);
-      const c = kind !== 'teacher' && netErr(e) ? cachedCtx(kind) : null;
-      if (c && c.uid) return off(c);
-      throw e;
-    }
+    const raw = cachedCtx(kind);
+    if (raw && navigator.onLine === false) { memsDone(null); return (Cab.ctx = Object.assign(JSON.parse(raw), { offline: true })); }
+    const online = loadOnline(kind).then((ctx) => saveCtx(kind, ctx), (e) => { memsDone(null); throw e; });
+    // Быстрый старт: рисуем по сохранённому контексту, а вход, роль и группу сверяем в фоне (Cab.start, Cab.fresh)
+    // экран сам поменял контекст (подгруппа, логин) и сервер это принял: запоминаем, чтобы быстрый старт не показал старое
+    Cab.keepCtx = () => { if (Cab.ctx && !Cab.ctx.offline) saveCtx(kind, Cab.ctx); };
+    if (raw) { online.catch(() => {}); Cab.fresh = { online, raw }; return (Cab.ctx = JSON.parse(raw)); }
+    return (Cab.ctx = await online);
   };
 
   // ---------- очередь пропусков без сети: полоса состояния и отправка ----------
@@ -312,7 +315,7 @@
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
   // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
   Cab.start = async function (opts) {
-    const ctx = await Cab.load(opts.kind);
+    let ctx = await Cab.load(opts.kind);
     if (!ctx) return;
     const root = document.getElementById('cab');
     root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap" id="cabMain" tabindex="-1"></main>
@@ -370,6 +373,19 @@
     const syncBack = Cab.backButton(opts.start);
     const record = () => { Cab.nav.write(Cab.nav.visit(Cab.nav.read(), Cab.nav.key(opts.start))); syncBack(); };
     record(); window.addEventListener('hashchange', record);
+    // Сверка после быстрого старта. Совпало — ничего не меняем; изменилось (роль, подгруппа, статус группы) — новый контекст и перерисовка;
+    // пускать нельзя (членство снято, ждёт подтверждения, вход слетел) — loadOnline уже уводит на join.html и т. п.;
+    // нет сети — остаёмся на сохранённом, как раньше без сети (журнал старосты открывается сам), и пишем это в полосе.
+    const fresh = Cab.fresh; Cab.fresh = null;
+    if (fresh) fresh.online.then((c) => {
+      if (!c || JSON.stringify(c) === fresh.raw) return;
+      ctx = Cab.ctx = c; go();
+    }, (e) => {
+      console.error('[cab] сверка входа', e);
+      if (!netErr(e)) return;
+      ctx = Cab.ctx = Object.assign({}, ctx, { offline: true }); Cab.netBar();
+      if (!location.hash.replace(/^#\/?/, '')) go();                       // без адреса: офлайн открывается журнал (если он есть)
+    });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { syncNet(); if (Cab.autoRefresh && Cab.autoRefresh()) go(); } });
     await go();
     return ctx;
