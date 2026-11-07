@@ -37,6 +37,18 @@
     }
   };
 
+  // Вход без пароля из Telegram Mini App (функция tg-auth): работает, только если Telegram уже привязан к аккаунту.
+  // Возвращает true, если сессия создана. Любая неудача (не в Telegram, не привязан, нет связи) — false: остаётся обычный вход.
+  J2.tgLogin = async function () {
+    const initData = window.Telegram && Telegram.WebApp && Telegram.WebApp.initData;
+    if (!initData || !J2.sb) return false;
+    try { if (localStorage.getItem('j2.tg_off')) return false; } catch (e) { /* нет памяти: входим как обычно */ }   // студент вышел сам: ставит Cab.signOut, снимает вход по паролю
+    const r = await J2.fn('tg-auth', { initData }, { anon: true });
+    if (!r.ok || !r.data || !r.data.token_hash) return false;
+    const { error } = await J2.sb.auth.verifyOtp({ token_hash: r.data.token_hash, type: 'magiclink' });
+    return !error;
+  };
+
   // Переключатель «Студент / Староста / Сисадмин»: только доступные роли, при одной роли пусто. roles: { student, staff, sysadmin, staffLabel }.
   // Это обычные ссылки на app.html, headman.html, sysadmin.html: права по-прежнему проверяет сервер, страница роли лишь показывает.
   J2.roleSwitch = function (current, roles) {
@@ -51,6 +63,8 @@
     network: 'Нет связи с сервером. Проверьте интернет и повторите.',
     maintenance: 'Ведутся технические работы. Вернитесь позже.',
     invalid_code: 'Такого кода нет. Проверьте код у старосты.',
+    code_used: 'Этот код уже использован. Попросите у старосты новый.',
+    code_expired: 'Код просрочен. Попросите у старосты новый.',
     too_many_attempts: 'Слишком много попыток. Подождите 15 минут.',
     too_many_requests: 'Слишком много запросов. Подождите немного.',
     student_taken: 'Эту фамилию уже выбрал другой человек. Выберите другую или обратитесь к старосте.',

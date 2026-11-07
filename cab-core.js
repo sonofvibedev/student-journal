@@ -204,6 +204,7 @@
   Cab.fatal = (text) => { document.body.innerHTML = Cab.str(Cab.h`<main class="j2-wrap"><h1 class="j2-h1">Журнал</h1><p class="j2-sub">${text}</p><button class="j2-btn" id="cabOut" type="button">Выйти</button></main>`); document.getElementById('cabOut').onclick = () => Cab.signOut(); };
   Cab.signOut = async () => {
     try { await sb.auth.signOut(); } catch (e) { /* уже вышли */ }
+    try { localStorage.setItem('j2.tg_off', '1'); } catch (e) { /* без памяти вход из Telegram просто вернётся */ }   // вышли сами: join.html не должен тут же войти по Telegram
     try { ['student', 'headman'].forEach((k) => localStorage.removeItem(CTX_KEY + k)); } catch (e) { /* нет доступа к памяти */ }   // очередь пропусков остаётся: уйдёт при следующем входе
     location.replace('join.html');
   };

@@ -187,7 +187,10 @@
       ${pend.length ? pend.map(card) : h`<div class="cab-card"><h3>Заявок нет</h3><p>Когда студент войдёт по коду группы, он появится здесь.</p></div>`}
       <div class="cab-card"><div class="meta"><span><b>Подтверждены</b><p>вход открыт</p></span><span class="j2-num">${act0} из ${stu.length}</span></div></div>
       <p class="cab-note">Подтверждайте только тех, кого знаете. Пока вы не подтвердили, студент не видит данные группы.</p>
-      ${ctx.closed ? '' : h`<div class="cab-card"><h3>Код группы</h3><p>Если код попал не туда, выпустите новый: старый перестанет работать.</p><div class="cab-actions"><button type="button" class="j2-btn" id="hmRot">Новый код группы</button></div></div>`}`);
+      ${ctx.closed ? '' : h`<div class="cab-card"><h3>Код группы</h3><p>Если код попал не туда, выпустите новый: старый перестанет работать.</p><div class="cab-actions"><button type="button" class="j2-btn" id="hmRot">Новый код группы</button></div></div>
+      <div class="cab-card"><h3>Забыл пароль</h3><p>Выпустите студенту одноразовый код: на странице входа («Забыли пароль?») он сам задаст новый пароль. Код действует сутки.</p>
+        <label class="j2-field"><span>Студент</span><select id="hmRsS"><option value="">Выберите студента</option>${stu.filter((s) => s.claim_status === 'active').map((s) => h`<option value="${s.id}">${Cab.fullName(s)}</option>`)}</select></label>
+        <div class="cab-actions"><button type="button" class="j2-btn" id="hmRs">Выпустить код сброса</button></div></div>`}`);
     el.onclick = (e) => {
       const b = e.target.closest('button[data-a]'); if (!b) return;
       const c = b.closest('article'), a = b.dataset.a;
@@ -201,6 +204,24 @@
         finally { Cab.rerender(); }
       });
     };
+    const rs = $(el, '#hmRs');
+    if (rs) rs.onclick = () => act(rs, async () => {
+      const sid = $(el, '#hmRsS').value;
+      if (!sid) { toast('Выберите студента.'); return; }
+      const r = await J2.fn('password-reset-issue', { student_id: sid });
+      const d = r.data || {};
+      if (!r.ok || !d.code) {
+        const why = { self: 'Свой пароль меняется в настройках кабинета.', no_account: 'У студента нет действующего аккаунта.', forbidden_target: 'Для этого человека код выпускает системный администратор.', forbidden: 'Нет прав на этого студента.', maintenance: 'Ведутся технические работы.' };
+        toast(why[d.error] || 'Не удалось выпустить код. Повторите позже.', 'err');
+        return;
+      }
+      const s = sheet('Код сброса пароля', h`<p class="cab-note c-amber">Код виден только сейчас и действует сутки. Передайте его студенту лично: с ним можно сменить пароль.</p><div class="j2-code" role="status">${d.code}</div><button class="j2-btn primary" type="button" data-a="copy">Скопировать</button><button class="j2-btn" type="button" data-a="close">Готово</button>`);
+      s.el.addEventListener('click', async (e) => {
+        const x = e.target.closest('button[data-a]'); if (!x) return;
+        if (x.dataset.a === 'close') { s.close(); return; }
+        try { await navigator.clipboard.writeText(String(d.code)); toast('Код скопирован.', 'ok'); } catch (err) { toast('Выделите код и скопируйте вручную.'); }
+      });
+    });
     const rot = $(el, '#hmRot');
     if (rot) rot.onclick = () => act(rot, async () => {
       if (!(await confirmSheet('Новый код группы?', 'Старый код перестанет работать. Новый покажем один раз.', 'Выпустить новый код'))) return;

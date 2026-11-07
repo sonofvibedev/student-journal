@@ -4,7 +4,7 @@
 'use strict';
 (function () {
   const $ = (id) => document.getElementById(id);
-  const SECS = ['code', 'login', 'pick', 'confirm', 'consent', 'account', 'wait'];
+  const SECS = ['code', 'login', 'reset', 'pick', 'confirm', 'consent', 'account', 'wait'];
   const POLL_MS = 15000;
   let cur = 'code';
   let S = { code: '', group: null, students: [], student: null };
@@ -75,6 +75,7 @@
   }
   ['login', 'pw', 'pw2'].forEach((id) => $(id).addEventListener('input', () => clearInvalid('account')));
   ['lg-login', 'lg-pw'].forEach((id) => $(id).addEventListener('input', () => clearInvalid('login')));
+  ['rs-code', 'rs-pw', 'rs-pw2'].forEach((id) => $(id).addEventListener('input', () => clearInvalid('reset')));
   $('code').addEventListener('input', () => {
     clearInvalid('code');
     const f = fmtCode(normCode($('code').value));
@@ -91,7 +92,7 @@
 
   function resetAll() {
     S = { code: '', group: null, students: [], student: null };
-    ['code', 'search', 'login', 'pw', 'pw2', 'lg-login', 'lg-pw'].forEach((id) => { $(id).value = ''; });
+    ['code', 'search', 'login', 'pw', 'pw2', 'lg-login', 'lg-pw', 'rs-code', 'rs-pw', 'rs-pw2'].forEach((id) => { $(id).value = ''; });
     $('agree').checked = false;
     $('consent-ok').disabled = true;
     SECS.forEach((n) => { setMsg(n, ''); clearInvalid(n); });
@@ -129,6 +130,7 @@
   async function signIn(login, password) {
     try {
       const { error } = await J2.sb.auth.signInWithPassword({ email: J2.loginToEmail(login), password });
+      if (!error) { try { localStorage.removeItem('j2.tg_off'); } catch (e) { /* не страшно */ } }
       return error ? { error } : {};
     } catch (e) { return { error: { status: 0 } }; }
   }
@@ -146,6 +148,36 @@
       return;
     }
     $('lg-pw').value = '';
+    await route(true);
+  });
+
+  // ---------- Забыли пароль: код сброса от старосты (функция password-reset) ----------
+  $('to-reset').addEventListener('click', () => { setMsg('reset', ''); show('reset'); });
+  $('reset-back').addEventListener('click', () => show('login'));
+  onSubmit('f-reset', 'reset', async () => {
+    const code = $('rs-code').value.trim(), pw = $('rs-pw').value, pw2 = $('rs-pw2').value;
+    setMsg('reset', '');
+    clearInvalid('reset');
+    if (!code) { setMsg('reset', 'Введите код сброса.', 'err'); invalid('field-rs-code', 'rs-code'); return; }
+    if (pw.length < J2.PASSWORD_MIN || pw.length > J2.PASSWORD_MAX) { setMsg('reset', J2.errText('bad_password'), 'err'); invalid('field-rs-pw', 'rs-pw'); return; }
+    if (pw !== pw2) { setMsg('reset', 'Пароли не совпадают.', 'err'); invalid('field-rs-pw2', 'rs-pw2'); return; }
+    const r = await J2.fn('password-reset', { code, password: pw }, { anon: true });
+    if (!r.ok || !r.data || !r.data.ok) {
+      const e = errCode(r);
+      setMsg('reset', J2.errText(e), 'err');
+      invalid(e === 'bad_password' ? 'field-rs-pw' : 'field-rs-code', e === 'bad_password' ? 'rs-pw' : 'rs-code');
+      return;
+    }
+    $('rs-code').value = ''; $('rs-pw2').value = '';
+    const login = r.data.login;
+    const si = login ? await signIn(login, pw) : { error: true };
+    $('rs-pw').value = '';
+    if (si.error) {   // пароль уже сменён, но войти автоматически не вышло: просим войти вручную
+      $('lg-login').value = login || ''; $('lg-pw').value = '';
+      show('login');
+      setMsg('login', 'Пароль изменён. Войдите с новым паролем.', 'ok');
+      return;
+    }
     await route(true);
   });
 
@@ -247,12 +279,14 @@
   });
 
   // ---------- Состояние из базы ----------
+  let tgTried = false;   // вход из Telegram пробуем один раз за открытие страницы, чтобы выход не возвращал вход сам
   async function loadState() {
     try {
-      const { data } = await J2.sb.auth.getSession();
+      let { data } = await J2.sb.auth.getSession();
+      if (!(data && data.session) && !tgTried) { tgTried = true; if (await J2.tgLogin()) ({ data } = await J2.sb.auth.getSession()); }   // Mini App: привязанный Telegram входит без пароля
       const session = data && data.session;
       if (!session) return { session: null };
-      const m = await J2.sb.from('memberships').select('group_id,student_id,status,created_at').limit(1);
+      const m =await J2.sb.from('memberships').select('group_id,student_id,status,created_at').limit(1);
       if (m.error) return { error: true };
       const membership = (m.data || [])[0] || null;
       if (!membership) return { session, membership: null };

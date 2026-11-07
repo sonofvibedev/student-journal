@@ -110,7 +110,7 @@
     return J2.busy(btn, async () => { all.forEach((b) => { b.disabled = true; }); try { return await fn(); } finally { all.forEach((b) => { b.disabled = false; }); } });
   }
   function closeMandatory() { if (g.ov) { drop(g.ov); g.ov = null; g.kind = null; unlock(); } }
-  async function leave() { try { await sb.auth.signOut(); } catch (e) { dbg('signOut', e); } location.reload(); }
+  async function leave() { try { await sb.auth.signOut(); } catch (e) { dbg('signOut', e); } try { localStorage.setItem('j2.tg_off', '1'); } catch (e) { /* без памяти вход из Telegram вернётся */ } location.reload(); }
 
   // ---------- «Ждём подтверждения старосты» ----------
   async function showPending(m, mode) {
