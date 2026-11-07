@@ -54,7 +54,7 @@
   // ---------- данные ----------
   const loadLessons = (ctx, from, to) => q(sb.from('schedule_lessons')
     .select('lesson_date,pair_no,starts_at,ends_at,subject,kind,teacher,room,subgroup,prev_room,changed_at')
-    .eq('group_id', ctx.group.id).gte('lesson_date', from).lte('lesson_date', to).order('lesson_date').order('starts_at'));
+    .eq('group_id', ctx.group.id).gte('lesson_date', from).lte('lesson_date', to).order('lesson_date').order('starts_at').order('subgroup', { nullsFirst: true }));   // в одной паре сначала вся группа, потом 1 и 2 подгруппа
   const loadTasks = async (ctx) => (await q(sb.from('tasks').select('id,kind,rec,created_by').eq('group_id', ctx.group.id))).map(Cab.task);
   const unreadCount = async (ctx) => {
     const { count, error } = await sb.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', ctx.uid).is('read_at', null);
@@ -152,8 +152,7 @@
     const badge = unread ? (unread > 99 ? '99+' : unread) : '';
     put(el, nav, h`<div class="st-home">${banner(ctx)}
       <div class="cab-head"><div><h1 class="cab-title">${Cab.dateText(today)}</h1><p class="cab-sub">${Cab.DOW[now.dow]}, ${ctx.group.name}</p></div>
-        <div class="st-hr"><a class="cab-bell" href="#/notifications" aria-label="${unread ? `Уведомления, новых: ${unread}` : 'Уведомления'}"><span class="cab-ico">${Cab.icon.bell}</span>${badge ? h`<span class="cab-badge" aria-hidden="true">${badge}</span>` : ''}</a>
-        <a class="cab-link" href="#/schedule">Вся неделя ${chev}</a></div></div>
+        <div class="st-hr"><a class="cab-bell" href="#/notifications" aria-label="${unread ? `Уведомления, новых: ${unread}` : 'Уведомления'}"><span class="cab-ico">${Cab.icon.bell}</span>${badge ? h`<span class="cab-badge" aria-hidden="true">${badge}</span>` : ''}</a></div></div>
       ${ls.length ? h`<ul class="cab-lessons">${lessonItems(ls, now.minutes)}</ul>`
         : noData ? h`<div class="j2-card"><h2>Расписание ещё не загружено</h2><p>Оно появится после загрузки с bseu.by.</p></div>`
         : h`<div class="j2-card"><h2>Сегодня пар нет</h2></div>`}

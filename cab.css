@@ -41,7 +41,6 @@
 .cab-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .cab-bell { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--j-card-border); background: var(--j-card); color: var(--j-text); text-decoration: none; }
 .cab-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--j-lime); color: var(--j-lime-ink); font: 800 12px/20px 'Onest', sans-serif; text-align: center; }
-.cab-link { color: var(--j-lime); text-decoration: none; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
 
 /* строки-ссылки и плитки */
 .cab-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; margin: 0 0 10px; padding: 12px 16px; border-radius: 22px; width: 100%;
@@ -196,7 +195,6 @@
 
 /* кабинет студента (app-student.js) */
 .st-hr { display: flex; align-items: center; gap: 4px; flex: none; }
-.st-hr .cab-link { gap: 2px; padding-left: 8px; white-space: nowrap; }
 .cab-lesson.st-btn { width: 100%; text-align: left; font: inherit; cursor: pointer; }
 .cab-lesson.st-btn:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
 .cab-lesson.st-two { grid-template-columns: 54px minmax(0, 1fr); }
