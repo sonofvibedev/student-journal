@@ -155,6 +155,10 @@
   };
   // null от loadOnline — пускать в этот кабинет больше нельзя (страница уже уходит): сохранённый контекст стираем
   const saveCtx = (kind, ctx) => { if (kind !== 'teacher') { try { if (ctx) localStorage.setItem(CTX_KEY + kind, JSON.stringify(ctx)); else localStorage.removeItem(CTX_KEY + kind); } catch (_) { /* память переполнена: быстрый и офлайн-вход просто не получатся */ } } return ctx; };
+  // Старт не ждёт сервер дольше START_MS: дальше — сохранённый контекст с полосой «Связь слабая» или экран «Повторить» (Cab.start).
+  // Только чтение при входе; записи (отметки и т. п.) идут своим путём и очередью offline-queue.js, их это не касается.
+  const START_MS = 10000;
+  const timeout = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => { const e = new Error('timeout'); e.code = 'timeout'; no(e); }, ms))]);
   Cab.load = async function (kind) {
     const raw = cachedCtx(kind);
     if (raw && navigator.onLine === false) { memsDone(null); return (Cab.ctx = Object.assign(JSON.parse(raw), { offline: true })); }
@@ -163,15 +167,15 @@
     // экран сам поменял контекст (подгруппа, логин) и сервер это принял: запоминаем, чтобы быстрый старт не показал старое
     Cab.keepCtx = () => { if (Cab.ctx && !Cab.ctx.offline) saveCtx(kind, Cab.ctx); };
     if (raw) { online.catch(() => {}); Cab.fresh = { online, raw }; return (Cab.ctx = JSON.parse(raw)); }
-    return (Cab.ctx = await online);
+    return (Cab.ctx = await timeout(online, START_MS));
   };
 
   // ---------- очередь пропусков без сети: полоса состояния и отправка ----------
   Cab.netBar = function () {
     const el = document.getElementById('cabNet'); if (!el) return;
     const n = window.OQ && Cab.ctx && Cab.ctx.uid ? OQ.count(Cab.ctx.uid) : 0, off = navigator.onLine === false;
-    el.hidden = !off && !n;
-    el.textContent = off ? `Нет связи. Отметки сохраняются на телефоне${n ? `, в очереди: ${n}` : ''}.` : n ? `Отправляем отметки: ${n}…` : '';
+    el.hidden = !off && !n && !Cab.weak;
+    el.textContent = off ? `Нет связи. Отметки сохраняются на телефоне${n ? `, в очереди: ${n}` : ''}.` : n ? `Отправляем отметки: ${n}…` : Cab.weak ? 'Связь слабая, данные могут быть старыми.' : '';
   };
   Cab.flushQueue = async function () {
     if (!window.OQ || !Cab.ctx || !Cab.ctx.uid || navigator.onLine === false || !OQ.count(Cab.ctx.uid)) return;
@@ -315,9 +319,17 @@
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
   // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
   Cab.start = async function (opts) {
-    let ctx = await Cab.load(opts.kind);
-    if (!ctx) return;
     const root = document.getElementById('cab');
+    let ctx;
+    try { ctx = await Cab.load(opts.kind); }
+    catch (e) {
+      if (e.code !== 'timeout' && !netErr(e)) throw e;                     // остальное — как раньше (Cab.fatal на странице)
+      console.error('[cab] вход', e);
+      root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap"><div class="j2-card bad"><h2>Не получилось загрузить</h2><p>Проверьте связь и повторите.</p></div><button class="j2-btn" id="cabRetry" type="button">Повторить</button></main>`);
+      document.getElementById('cabRetry').onclick = () => location.reload();
+      return null;
+    }
+    if (!ctx) return;
     root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap" id="cabMain" tabindex="-1"></main>
       <nav class="cab-tabbar none" aria-label="Разделы" style="${'--n:' + opts.tabs.length}"><span class="cab-tab-ind" aria-hidden="true"></span>${opts.tabs.map((t) => Cab.h`<a class="cab-tab" href="${'#/' + t.path}" data-tab="${t.id}"><span class="cab-ico">${t.icon}</span><span>${t.label}</span></a>`)}</nav>
       <div class="cab-toast" id="cabToast" role="status" aria-live="polite"></div>
@@ -376,16 +388,29 @@
     // Сверка после быстрого старта. Совпало — ничего не меняем; изменилось (роль, подгруппа, статус группы) — новый контекст и перерисовка;
     // пускать нельзя (членство снято, ждёт подтверждения, вход слетел) — loadOnline уже уводит на join.html и т. п.;
     // нет сети — остаёмся на сохранённом, как раньше без сети (журнал старосты открывается сам), и пишем это в полосе.
+    // Сервер молчит дольше START_MS или ответил ошибкой — полоса «Связь слабая, данные могут быть старыми»; связь вернулась — сверяем ещё раз.
+    function revalidate(online, raw) {
+      const slow = setTimeout(() => { Cab.weak = true; Cab.netBar(); }, START_MS);
+      online.then((c) => {
+        clearTimeout(slow); Cab.weak = false; Cab.netBar();
+        if (!c) return;
+        if (JSON.stringify(c) === raw) { if (ctx.offline) ctx = Cab.ctx = c; return; }   // совпало: тот же объект (экраны держат ссылку), только снять «офлайн»
+        ctx = Cab.ctx = c; go();
+      }, (e) => {
+        clearTimeout(slow); Cab.weak = true;
+        console.error('[cab] сверка входа', e);
+        if (netErr(e) && !ctx.offline) {
+          ctx = Cab.ctx = Object.assign({}, ctx, { offline: true });
+          if (!location.hash.replace(/^#\/?/, '')) go();                     // без адреса: офлайн открывается журнал (если он есть)
+        }
+        Cab.netBar();
+      });
+    }
     const fresh = Cab.fresh; Cab.fresh = null;
-    if (fresh) fresh.online.then((c) => {
-      if (!c || JSON.stringify(c) === fresh.raw) return;
-      ctx = Cab.ctx = c; go();
-    }, (e) => {
-      console.error('[cab] сверка входа', e);
-      if (!netErr(e)) return;
-      ctx = Cab.ctx = Object.assign({}, ctx, { offline: true }); Cab.netBar();
-      if (!location.hash.replace(/^#\/?/, '')) go();                       // без адреса: офлайн открывается журнал (если он есть)
-    });
+    if (fresh) {
+      revalidate(fresh.online, fresh.raw);
+      window.addEventListener('online', () => { if (Cab.weak) { const raw = JSON.stringify(Object.assign({}, ctx, { offline: undefined })); revalidate(loadOnline(opts.kind).then((c) => saveCtx(opts.kind, c)), raw); } });
+    }
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { syncNet(); if (Cab.autoRefresh && Cab.autoRefresh()) go(); } });
     await go();
     return ctx;
