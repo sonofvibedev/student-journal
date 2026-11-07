@@ -111,6 +111,7 @@
       ${Cab.installCard()}
       ${delN ? h`<a class="cab-row t-amber" href="#/summary/erasure"><b>${delN} ${plural(delN, ['просьба удалить данные', 'просьбы удалить данные', 'просьб удалить данные'])}</b><span class="cab-ico">${icon.chev}</span></a>` : ''}
       ${pend.length ? h`<a class="cab-row t-amber" href="#/summary/requests"><b>${pend.length} ${plural(pend.length, ['студент ждёт', 'студента ждут', 'студентов ждут'])} подтверждения</b><span class="cab-ico">${icon.chev}</span></a>` : ''}
+      ${pend.length ? '' : h`<a class="cab-row" href="#/summary/requests"><span><b>Студенты</b><small>Заявки, код группы, сброс пароля</small></span><span class="cab-ico">${icon.chev}</span></a>`}
       ${lessonCard}
       <div class="cab-tiles two">
         <a class="cab-tile t-amber" href="#/journal/certs"><b>Справки</b><span class="big">${certs.length}</span><small>${certs.length ? `ждём${certs[0].due_date ? ', срок до ' + Cab.dateText(certs[0].due_date) : ''}` : 'никто не ждёт'}</small></a>
