@@ -86,8 +86,9 @@ try {
   const routeAll = async (route) => {
     const u = route.request().url();
     if (u.includes(PROD_REF)) return route.abort();
-    if (u.endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS });
-    if (u.endsWith('/cab-core.js')) return route.fulfill({ contentType: 'text/javascript', body: readFileSync('cab-core.js', 'utf8').replace('Cab.testNow = null;', `Cab.testNow = ${NOW};`) });
+    if (u.split('?')[0].endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS });
+    if (u.split('?')[0].endsWith('/cab-core.js')) return route.fulfill({ contentType: 'text/javascript', body: readFileSync('cab-core.js', 'utf8').replace('Cab.testNow = null;', `Cab.testNow = ${NOW};`) });
+    if (u.includes('/vendor/telegram-web-app.js')) return route.abort();   // в тестах Telegram подделан, настоящий скрипт его бы затёр
     if (u.startsWith(BASE) || u.startsWith(URL_SB)) return route.continue();
     return route.abort();
   };
@@ -164,7 +165,7 @@ try {
   check('сервис-воркер кэширует pwa.js и offline-queue.js', sw.includes("'./pwa.js'") && sw.includes("'./offline-queue.js'"));
   for (const f of ['app.html', 'headman.html', 'teacher.html']) {
     const s = readFileSync(f, 'utf8');
-    check(`${f}: манифест, pwa.js, apple-touch-icon`, s.includes('rel="manifest"') && s.includes('src="pwa.js"') && s.includes('rel="apple-touch-icon"'));
+    check(`${f}: манифест, pwa.js, apple-touch-icon`, s.includes('rel="manifest"') && s.includes('src="pwa.js') && s.includes('rel="apple-touch-icon"'));
   }
   // воркер в основном контексте заблокирован (его запросы идут мимо route и вернули бы прод-env.js): регистрацию проверяем в отдельном
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ru-RU' });

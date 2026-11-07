@@ -63,11 +63,12 @@ async function open(browser, ses, hash = '') {
   await ctx.route('**/*', async (route) => {
     const u = route.request().url();
     if (u.includes(PROD_REF)) return route.abort();
-    if (u.endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS });
-    if (u.endsWith('/cab-core.js')) {     // «сейчас» = 5 ноября 11:40: cab-core сам сбрасывает testNow в null, поэтому подменяем строку
+    if (u.split('?')[0].endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS });
+    if (u.split('?')[0].endsWith('/cab-core.js')) {     // «сейчас» = 5 ноября 11:40: cab-core сам сбрасывает testNow в null, поэтому подменяем строку
       const src = readFileSync('cab-core.js', 'utf8').replace('Cab.testNow = null;', `Cab.testNow = ${NOW};`);
       return route.fulfill({ contentType: 'text/javascript', body: src });
     }
+    if (u.includes('/vendor/telegram-web-app.js')) return route.abort();   // в тестах Telegram подделан, настоящий скрипт его бы затёр
     if (u.startsWith(BASE) || u.startsWith(URL_SB)) return route.continue();
     return route.abort();
   });

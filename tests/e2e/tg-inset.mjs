@@ -60,7 +60,8 @@ async function open(ses, { zone = true } = {}) {
   await ctx.route('**/*', (route) => {
     const u = route.request().url();
     if (u.includes(PROD_REF)) return route.abort();
-    if (u.endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS });
+    if (u.split('?')[0].endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS });
+    if (u.includes('/vendor/telegram-web-app.js')) return route.abort();   // в тестах Telegram подделан, настоящий скрипт его бы затёр
     if (u.startsWith(BASE) || u.startsWith(URL_SB)) return route.continue();
     return route.abort();
   });
@@ -143,7 +144,7 @@ try {
   // вне Telegram: ничего не меняется (нет initData, нет класса, нет плашки)
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block', hasTouch: true });
-    await ctx.route('**/*', (route) => { const u = route.request().url(); if (u.endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS }); if (u.startsWith(BASE) || u.startsWith(URL_SB)) return route.continue(); return route.abort(); });
+    await ctx.route('**/*', (route) => { const u = route.request().url(); if (u.split('?')[0].endsWith('/env.js') || u.includes('/env.js?')) return route.fulfill({ contentType: 'text/javascript', body: ENV_JS }); if (u.startsWith(BASE) || u.startsWith(URL_SB)) return route.continue(); return route.abort(); });
     await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch (e) {} }, [KEY, JSON.stringify(stu)]);
     const page = await ctx.newPage(); await page.goto(`${BASE}/app.html#/home`); await page.waitForSelector('#cabMain h1');
     const r = await page.evaluate(() => [document.documentElement.classList.contains('tg-fs-fallback'), !!window.TGApp && TGApp.inTelegram, getComputedStyle(document.documentElement).getPropertyValue('--app-inset-top').length > 0]);
