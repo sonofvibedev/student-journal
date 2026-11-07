@@ -2,6 +2,15 @@
 .cab-wrap { max-width: 480px; margin: 0 auto; padding: calc(var(--app-inset-top) + 16px) calc(var(--app-inset-right) + 16px) calc(var(--app-inset-bottom) + 112px) calc(var(--app-inset-left) + 16px); }
 .cab-wrap:focus { outline: none; }
 .cab-load { color: var(--j-muted); padding: 24px 4px; }
+/* каркас экрана, пока он грузится (cab-core.js, SKEL): шапка и три плитки с мягким мерцанием; без анимации при reduced motion (j2.css) */
+.cab-load.cab-skel { display: grid; gap: 12px; padding: 0; }
+.cab-skel > i, .cab-skel > b { display: block; border-radius: 12px; background: linear-gradient(90deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .10) 50%, rgba(255, 255, 255, .05) 70%);
+  background-size: 300% 100%; animation: cab-shim 1.6s ease-in-out infinite; }
+.cab-skel > i.h { width: 55%; height: 34px; margin-top: 2px; }
+.cab-skel > i.s { width: 40%; height: 16px; margin-bottom: 10px; }
+.cab-skel > b { height: 76px; border-radius: var(--j-radius); }
+@keyframes cab-shim { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.cab-slow { margin-top: 8px; }
 .cab-ico { display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none; }
 .cab-ico svg { width: 24px; height: 24px; }
 .cab-ico.sm, .cab-ico.sm svg { width: 18px; height: 18px; }

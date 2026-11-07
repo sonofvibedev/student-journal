@@ -300,6 +300,10 @@
   };
 
   // ---------- оболочка и роутер ----------
+  // Каркас экрана на время загрузки: шапка и три плитки без данных (текст «Загружаем…» — только для экранного диктора)
+  const SKEL = '<div class="cab-load cab-skel" role="status"><span class="sr-only">Загружаем…</span><i class="h" aria-hidden="true"></i><i class="s" aria-hidden="true"></i>' +
+    '<b aria-hidden="true"></b><b aria-hidden="true"></b><b aria-hidden="true"></b>' +
+    '<div class="cab-slow" hidden><p class="cab-note">Долго грузится. Проверьте связь</p><button class="j2-btn" type="button">Повторить</button></div></div>';
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
   // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
   Cab.start = async function (opts) {
@@ -334,7 +338,10 @@
       if (!bar.classList.contains('anim')) requestAnimationFrame(() => requestAnimationFrame(() => bar.classList.add('anim')));
       if (lastTab !== null && lastTab !== tabId) { main.classList.remove('fade', 'sw-l', 'sw-r'); void main.offsetWidth; main.classList.add(swDir ? 'sw-' + swDir : 'fade'); }
       lastTab = tabId;
-      main.innerHTML = '<p class="cab-load">Загружаем…</p>';
+      main.innerHTML = SKEL;
+      main.querySelector('.cab-slow button').onclick = go;
+      // экран всё ещё грузится через 8 с: объясняем и даём повторить, а не оставляем пустой каркас
+      const slow = setTimeout(() => { const s = my === gen && main.querySelector('.cab-load .cab-slow'); if (s) s.hidden = false; }, 8000);
       try { await r.render(main, ctx, params, { isCurrent: () => my === gen }); }
       catch (e) {
         if (my !== gen) return;
@@ -342,7 +349,7 @@
         console.error('[cab]', key, e);
         main.innerHTML = Cab.str(Cab.h`<div class="j2-card bad"><h2>Не получилось загрузить</h2><p>Проверьте связь и повторите.</p></div><button class="j2-btn" id="cabRetry" type="button">Повторить</button>`);
         document.getElementById('cabRetry').onclick = go;
-      }
+      } finally { clearTimeout(slow); }
       if (my === gen) { window.scrollTo(0, 0); if (ok && key === hash && key !== 'chat' && opts.tabs.some((t) => t.path === key)) rootIdx = idx; }   // корень раздела: адрес = путь вкладки (не вложенный экран) и не чат
       return ok;
     }

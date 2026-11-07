@@ -13,25 +13,47 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="j2.css?v=59">
-<link rel="stylesheet" href="cab.css?v=59">
+<style>
+/* Заставка: рисуется сразу, до стилей и скриптов (стили кабинета подключены в body после неё). Cab.start заменяет её кабинетом.
+   Тема у кабинета одна, тёмная. Отступы — как в j2.css (--app-inset-*), до его загрузки — env() и переменные Telegram. */
+html, body { margin: 0; background: #0A0C11; }
+.boot { --bt: var(--app-inset-top, max(env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px))));
+  --bb: var(--app-inset-bottom, max(env(safe-area-inset-bottom, 0px), calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px))));
+  position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+  padding: calc(var(--bt) + 16px) 24px calc(var(--bb) + 100px); box-sizing: border-box;
+  color: #9AA0AE; font: 400 15px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; text-align: center; }
+.boot svg { width: 72px; height: 72px; animation: boot-pulse 1.6s ease-in-out infinite; }
+@keyframes boot-pulse { 50% { opacity: .45; } }
+.boot-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.boot-slow[hidden] { display: none; }
+.boot-slow p { margin: 0 0 12px; color: #F2F4F8; }
+.boot-slow button { min-height: 48px; padding: 0 24px; border: 0; border-radius: 24px; background: #C6F432; color: #0A0C11; font: 700 16px/1 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor: pointer; }
+.boot-slow button:focus-visible { outline: 2px solid #C6F432; outline-offset: 3px; }
+.boot-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)) + 14px);
+  width: min(448px, calc(100% - 32px)); height: 70px; box-sizing: border-box; border-radius: 32px; background: rgba(24, 26, 34, .86); border: 1px solid rgba(255, 255, 255, .10); }
+@media (prefers-reduced-motion: reduce) { .boot svg { animation: none; } }
+</style>
 </head>
 <body class="j2">
 <noscript><p style="padding:16px">Для работы журнала нужен JavaScript.</p></noscript>
-<div id="cab"></div>
-<script src="env.js?v=59"></script>
-<script src="monitor.js?v=59"></script>
-<script src="vendor/supabase.js?v=59"></script>
-<script src="j2-core.js?v=59"></script>
-<script src="pwa.js?v=59"></script>
-<script src="offline-queue.js?v=59"></script>
-<script src="vendor/telegram-web-app.js?v=59"></script>
-<script src="tg-app.js?v=59"></script>
-<script src="cab-core.js?v=59"></script>
+<div id="cab"><div class="boot" role="status"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M42 24H66M58 24V54Q58 70 44 70Q32 70 30 58" fill="none" stroke="#C6F432" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="boot-sr">Журнал загружается</span>
+<div class="boot-slow" id="bootSlow" hidden><p>Долго грузится. Проверьте связь</p><button type="button" onclick="location.reload()">Повторить</button></div></div><div class="boot-bar" aria-hidden="true"></div></div>
+<script>setTimeout(function () { var s = document.getElementById('bootSlow'); if (s) s.hidden = false; }, 8000);</script>
+<link rel="stylesheet" href="j2.css?v=60">
+<link rel="stylesheet" href="cab.css?v=60">
+<script src="env.js?v=60"></script>
+<script src="monitor.js?v=60"></script>
+<script src="vendor/supabase.js?v=60"></script>
+<script src="j2-core.js?v=60"></script>
+<script src="pwa.js?v=60"></script>
+<script src="offline-queue.js?v=60"></script>
+<script src="vendor/telegram-web-app.js?v=60"></script>
+<script src="tg-app.js?v=60"></script>
+<script src="cab-core.js?v=60"></script>
 <script>window.J2_GATE_NO_STAFF = true;</script>
-<script src="j2-gate.js?v=59"></script>
-<script src="chat-crypto.js?v=59"></script>
-<script src="chat-ui.js?v=59"></script>
-<script src="teacher.js?v=59"></script>
+<script src="j2-gate.js?v=60"></script>
+<script src="chat-crypto.js?v=60"></script>
+<script src="chat-ui.js?v=60"></script>
+<script src="teacher.js?v=60"></script>
 </body>
 </html>
