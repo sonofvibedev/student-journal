@@ -143,10 +143,11 @@
   // ---------- главная ----------
   async function home(el, ctx, nav) {
     const now = Cab.minsk(), today = now.iso;
-    const [lessons, stats, tasks, unread] = await Promise.all([loadLessons(ctx, today, today), absStats(ctx), soft(loadTasks(ctx)), soft(unreadCount(ctx))]);
+    // «расписания нет совсем» отличаем от «сегодня пар нет»: проверка (одна строка) идёт вместе с остальными, а не лишним кругом после них
+    const [lessons, stats, tasks, unread, any] = await Promise.all([loadLessons(ctx, today, today), absStats(ctx), soft(loadTasks(ctx)), soft(unreadCount(ctx)),
+      soft(q(sb.from('schedule_lessons').select('lesson_date').eq('group_id', ctx.group.id).limit(1)))]);
     const ls = lessons.filter(mine(ctx));
-    // «расписания нет совсем» отличаем от «сегодня пар нет»
-    const noData = !ls.length && !(await soft(q(sb.from('schedule_lessons').select('lesson_date').eq('group_id', ctx.group.id).limit(1))) || []).length;
+    const noData = !ls.length && !(any || []).length;
     const fire = (tasks || []).filter((t) => t.due && t.due >= today && Cab.taskVisible(t, sgOf(ctx))).sort(byDue).slice(0, 3);
     const urgent = (tasks || []).filter((t) => t.due && !t.isExam && Cab.taskVisible(t, sgOf(ctx)) && Cab.dayDiff(today, t.due) >= 0 && Cab.dayDiff(today, t.due) <= 1).sort(byDue);
     const badge = unread ? (unread > 99 ? '99+' : unread) : '';
