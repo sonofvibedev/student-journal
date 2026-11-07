@@ -286,8 +286,14 @@
   async function evaluate() {
     const uid = g.uid; if (!uid) return;
     g.lastEval = Date.now();
-    let rows;
-    try {
+    let rows = null;
+    // В кабинетах 2.0 те же членства уже читает Cab.load: первый разбор берёт их оттуда, без второго такого же запроса на старте
+    if (!g.cabUsed && window.Cab && Cab.memsReady) {
+      g.cabUsed = true;
+      const pre = await Promise.race([Cab.memsReady, new Promise((r) => setTimeout(r, 15000, null))]);
+      if (pre && pre.uid === uid) rows = pre.rows;
+    }
+    if (!rows) try {
       const r = await sb.from('memberships').select('group_id,student_id,status,extra_role,base_role,consent_at').eq('user_id', uid);
       if (r.error) { dbg('memberships недоступны:', r.error.message); return; }       // старая база: молчим
       rows = r.data || [];

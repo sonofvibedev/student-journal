@@ -95,6 +95,9 @@
   };
 
   // ---------- вход и контекст ----------
+  // Членства, прочитанные при входе, — для j2-gate.js: он разбирает их сам и не повторяет тот же запрос на старте (null — не прочитали)
+  let memsDone;
+  Cab.memsReady = new Promise((r) => { memsDone = r; });
   // Возвращает контекст или null (тогда страница уже уводит пользователя на нужный экран)
   const loadOnline = async function (kind) {
     if (!sb) { document.body.textContent = 'Нет связи с сервером.'; return null; }
@@ -105,6 +108,7 @@
       Cab.q(sb.from('memberships').select('group_id, student_id, base_role, extra_role, status, consent_at').eq('user_id', uid)),
       Cab.q(sb.from('sysadmins').select('user_id').eq('user_id', uid)),
     ]);
+    memsDone({ uid, rows: mems });
     const isSysadmin = sa.length > 0;
     const active = mems.filter((m) => m.status === 'active');
     const mine = active.find((m) => m.base_role === 'student');
@@ -152,6 +156,7 @@
       if (ctx && kind !== 'teacher') { try { localStorage.setItem(CTX_KEY + kind, JSON.stringify(ctx)); } catch (_) { /* память переполнена: офлайн-вход просто не получится */ } }
       return ctx;
     } catch (e) {
+      memsDone(null);
       const c = kind !== 'teacher' && netErr(e) ? cachedCtx(kind) : null;
       if (c && c.uid) return off(c);
       throw e;
