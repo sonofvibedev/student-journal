@@ -363,10 +363,11 @@
     return ctx;
   };
 
-  Cab.toast = function (text, kind) {
+  // ms — сколько показывать (по умолчанию 3500; для заглушек короче). Ошибки (kind 'err') всегда 3500, повторный вызов перезапускает таймер
+  Cab.toast = function (text, kind, ms) {
     const el = document.getElementById('cabToast'); if (!el) return;
     el.textContent = text; el.className = 'cab-toast show' + (kind ? ' ' + kind : '');
-    clearTimeout(Cab._tt); Cab._tt = setTimeout(() => { el.className = 'cab-toast'; }, 3500);
+    clearTimeout(Cab._tt); Cab._tt = setTimeout(() => { el.className = 'cab-toast'; }, kind === 'err' ? 3500 : ms || 3500);
   };
 
   // Шапка экрана: «назад» слева, подпись справа, заголовок. back: {href, text}

@@ -369,8 +369,8 @@
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
     avatarInit(el, ctx, ini);
-    el.querySelector('#achSoon').onclick = () => Cab.toast('Раздел достижений вернётся в ближайшем обновлении');   // значки по-прежнему копятся в базе
-    el.querySelector('#pfStu').onclick = () => Cab.toast('Пропуск Studak вернётся в ближайшем обновлении');
+    el.querySelector('#achSoon').onclick = () => Cab.toast('Раздел достижений вернётся в ближайшем обновлении', '', 1800);   // значки по-прежнему копятся в базе
+    el.querySelector('#pfStu').onclick = () => Cab.toast('Пропуск Studak вернётся в ближайшем обновлении', '', 1800);
     const rem = el.querySelector('#remSw');
     rem.onclick = async () => {                                                             // запись сразу, при ошибке откат
       if (rem.dataset.busy) return;
