@@ -96,6 +96,24 @@
     return h`${open}<div class="ringwrap">${Cab.ring(s.v, s.dean, 84)}<div class="ringnum" aria-hidden="true"><b>${Cab.num(s.v)}</b>из ${Cab.num(s.dean)} ч</div></div>
       <div style="flex:1;min-width:0"><h3>Пропуски</h3><p>${absText(s)}</p></div>${link ? chev : ''}${end}`;
   }
+  // Плитка пары: одна разметка для главной и расписания, чтобы они не расходились.
+  // o: { st: ''|'past'|'now', note: ', прошла', button: номер пары (кнопка, открывает шторку) или undefined (просто строка),
+  //      room: 'col' (крупно справа) | 'line' (в строке под названием), hints: ['Есть домашка', …], bar: процент идущей пары или null }
+  function lessonTile(l, o) {
+    const kind = Cab.KIND[l.kind] || 'Занятие', sg = Number(l.subgroup) || 0, kd = ['lecture', 'practice', 'lab'].includes(l.kind) ? l.kind : 'other';
+    const hints = (o.hints || []).slice();
+    const moved = l.prev_room && l.prev_room !== l.room;
+    if (moved && o.room !== 'col') hints.push(`Аудитория изменилась, была ${l.prev_room}`);   // на главной места мало: там пометка в строке
+    const line = h`${kind}${sg ? h` · <span class="sg">${sg} подгр.<span class="sr-only">, подгруппа ${sg}</span></span>` : ''}${o.room === 'line' && l.room ? ` · ауд. ${l.room}` : ''}${o.note || ''}${moved && o.room === 'col' ? h`, <span class="warn">аудитория сменилась</span>` : ''}`;
+    const inner = h`<div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
+      <div><div class="n">${l.subject}</div><div class="k">${line}</div>${hints.map((x, i) => h`<div class="k ${/^Аудитория/.test(x) ? 'warn' : 'st-hw'}">${x}</div>`)}</div>
+      ${o.room === 'col' ? (l.room ? h`<div class="r"><small>ауд.</small> ${l.room}</div>` : raw('<div></div>')) : ''}
+      ${o.bar != null ? h`<div class="bar" role="progressbar" aria-label="Прошло ${o.bar}% пары" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.bar}"><i style="width:${o.bar}%"></i></div>` : ''}`;
+    const cls = `cab-lesson kd-${kd} ${o.st || ''}`;
+    if (o.button == null) return h`<li class="${cls}">${inner}</li>`;
+    const label = [l.subject, Cab.kindLow(l.kind), sg ? `подгруппа ${sg}` : '', `${Cab.hm(l.starts_at)}–${Cab.hm(l.ends_at)}`, l.room ? `аудитория ${l.room}` : '', (o.note || '').replace(/^, /, ''), ...hints].filter(Boolean).join(', ');
+    return h`<li><button type="button" class="${cls} st-btn st-two" data-i="${o.button}" aria-label="${label}">${inner}</button></li>`;
+  }
   // Лента пар дня. nowMin — минуты «сейчас» для сегодняшнего дня, иначе null
   function lessonItems(ls, nowMin) {
     let end = null;
@@ -104,12 +122,8 @@
       const st = nowMin == null ? '' : nowMin >= e ? 'past' : nowMin >= s ? 'now' : '';
       const gap = end == null ? 0 : s - end; end = Math.max(end == null ? 0 : end, e);
       const pct = Math.max(0, Math.min(100, Math.round(((nowMin - s) / (e - s)) * 100)));
-      const kind = Cab.KIND[l.kind] || 'Занятие';
       const note = st === 'past' ? ', прошла' : st === 'now' ? `, идёт, ещё ${mins(e - nowMin)}` : '';
-      return h`${gap > 0 ? h`<li class="cab-break">перемена ${mins(gap)}</li>` : ''}<li class="cab-lesson ${st}"><div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
-        <div><div class="n">${l.subject}</div><div class="k">${kind}${note}${l.prev_room && l.prev_room !== l.room ? h`, <span class="warn">аудитория сменилась</span>` : ''}</div></div>
-        ${l.room ? h`<div class="r"><small>ауд.</small> ${l.room}</div>` : raw('<div></div>')}
-        ${st === 'now' ? h`<div class="bar" role="progressbar" aria-label="Прошло ${pct}% пары" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>` : ''}</li>`;
+      return h`${gap > 0 ? h`<li class="cab-break">перемена ${mins(gap)}</li>` : ''}${lessonTile(l, { st, note, room: 'col', bar: st === 'now' ? pct : null })}`;
     });
   }
   // Нижний лист с подробностями (преподаватель): фон страницы закрыт inert, Esc и тап по фону закрывают
@@ -180,10 +194,7 @@
         const s = Cab.toMin(l.starts_at), e = Cab.toMin(l.ends_at), n = now.minutes;
         const st = !isToday ? '' : n >= e ? 'past' : n >= s ? 'now' : '';
         const when = !isToday ? '' : st === 'past' ? ', прошла' : st === 'now' ? ', идёт сейчас' : ', дальше';
-        return h`<li><button type="button" class="cab-lesson st-btn st-two ${st}" data-i="${i}"><div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
-          <div><div class="n">${l.subject}</div><div class="k">${Cab.KIND[l.kind] || 'Занятие'}${l.room ? ', ауд. ' + l.room : ''}${when}</div>
-          ${hasHw(l) ? h`<div class="k st-hw">Есть домашка</div>` : hasUsr(l) ? h`<div class="k st-hw">Есть УСР</div>` : ''}
-          ${l.prev_room && l.prev_room !== l.room ? h`<div class="k warn">Аудитория изменилась, была ${l.prev_room}</div>` : ''}</div></button></li>`;
+        return lessonTile(l, { st, note: when, button: i, room: 'line', hints: hasHw(l) ? ['Есть домашка'] : hasUsr(l) ? ['Есть УСР'] : [] });
       });
       el.innerHTML = str(h`${banner(ctx)}
         <div class="cab-head"><h1 class="cab-title">Расписание</h1></div>

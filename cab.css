@@ -81,6 +81,15 @@
 .cab-lesson .t { font-weight: 700; line-height: 1.15; } .cab-lesson .t small { display: block; color: var(--j-muted); font-weight: 500; font-size: 13px; }
 .cab-lesson .n { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; } .cab-lesson .k { color: var(--j-muted); font-size: 14px; overflow-wrap: anywhere; }
 .cab-lesson .r { font-weight: 800; font-size: 17px; white-space: nowrap; } .cab-lesson .r small { font-weight: 500; font-size: 13px; color: var(--j-muted); }
+/* бейдж времени цветной по виду занятия (текст на фоне ≥ 6:1, тема одна — тёмная); на идущей паре (лайм) — тёмный */
+.cab-lesson { --kc: var(--j-text); --kb: transparent; }
+.cab-lesson.kd-lecture { --kc: #9DB8FF; --kb: rgba(157, 184, 255, .16); } .cab-lesson.kd-practice { --kc: #6EE7B7; --kb: rgba(110, 231, 183, .16); }
+.cab-lesson.kd-lab { --kc: #C4B0FF; --kb: rgba(196, 176, 255, .16); } .cab-lesson.kd-other { --kc: #FFC857; --kb: rgba(255, 200, 87, .16); }
+.cab-lesson .t { padding: 6px 2px; border-radius: 12px; text-align: center; color: var(--kc); background: var(--kb); } .cab-lesson .t small { color: inherit; }
+.cab-lesson.now .t { color: var(--j-lime-ink); background: rgba(10, 12, 17, .14); } .cab-lesson.now .t small { color: var(--j-lime-ink); }
+/* подгруппа: плашка в строке под названием */
+.cab-lesson .sg { display: inline-block; padding: 0 7px; border-radius: 9px; background: rgba(255, 255, 255, .12); color: var(--j-text); font-weight: 700; font-size: 12px; line-height: 18px; }
+.cab-lesson.now .sg { background: rgba(10, 12, 17, .14); color: var(--j-lime-ink); }
 .cab-lesson.past { opacity: .55; }
 .cab-lesson.now { background: var(--j-lime); color: var(--j-lime-ink); border-color: var(--j-lime); }
 .cab-lesson.now .t small, .cab-lesson.now .k, .cab-lesson.now .r small { color: rgba(10, 12, 17, .75); }
@@ -220,7 +229,7 @@
 .cab-ntf:focus-visible { outline: 2px solid var(--j-lime); outline-offset: 2px; }
 /* главная студента: плотнее, чтобы 4 пары и 3 плитки помещались на 390×844 без прокрутки */
 .st-home .cab-title { font-size: 30px; } .st-home .cab-sub { margin-bottom: 8px; }
-.st-home .cab-lesson { padding: 7px 12px; margin-bottom: 4px; row-gap: 2px; } .st-home .cab-lessons { margin-bottom: 8px; }
+.st-home .cab-lesson .t { padding: 3px 2px; } .st-home .cab-lesson { padding: 7px 12px; margin-bottom: 4px; row-gap: 2px; } .st-home .cab-lessons { margin-bottom: 8px; }
 .st-home .cab-lesson.now .r { font-size: 20px; padding: 2px 8px; }
 .st-home .cab-break { margin: 0 0 2px 66px; line-height: 1.2; }
 .st-home .cab-ringcard { padding: 10px 16px; margin-bottom: 4px; gap: 14px; } .st-home .cab-ringcard .ringnum b { font-size: 24px; }
