@@ -582,7 +582,7 @@
       ${absCard(s, false)}
       <p class="cab-note">Кольцо и итоги: за текущий месяц. Ниже все пропуски по предметам.</p>
       <div class="cab-card"><div class="cab-kv"><span>Неуважительные</span><b class="c-coral">${hrs(s.unexcused)}</b></div><div class="cab-kv"><span>Уважительные</span><b class="c-mint">${hrs(s.excused)}</b></div>
-        <div class="cab-kv"><span>Предупреждение с</span><b>${hrs(s.warn)}</b></div><div class="cab-kv"><span>Деканат с</span><b>${hrs(s.dean)}</b></div></div>
+        <div class="cab-kv"><span>Деканат с</span><b>${hrs(s.dean)}</b></div></div>
       ${rows.length ? [...by].sort((a, b) => b[1].h - a[1].h).map(([subj, g]) => h`<h2 class="cab-h2"><span>${subj}</span><span class="c-mute">${hrs(g.h)}</span></h2><div class="cab-card">${g.rows.map((r) =>
         h`<div class="cab-kv"><span>${r.date ? Cab.dateText(r.date) : 'без даты'}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</span><b class="${r.is_excused ? 'c-mint' : 'c-coral'} st-s">${hrs(r.hours || 0)}, ${r.is_excused ? 'уважительная' : 'неуважительная'}</b></div>${r.is_excused && r.cert_type ? h`<div class="cab-kv"><span class="c-mute">${r.cert_type}</span><b class="st-s ${docState(r, Cab.minsk().iso).cls}">${docState(r, Cab.minsk().iso).text}</b></div>` : ''}`)}</div>`)
         : h`<div class="cab-empty">Пропусков нет</div>`}`);
