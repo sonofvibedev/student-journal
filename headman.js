@@ -39,8 +39,8 @@
     return n >= 0 && n <= 14 ? n : null;
   };
 
-  // Состояние живёт, пока открыта страница: выбор пары, отметки (id студента → отметка), тип заданий, поиск по студентам, период отчёта
-  const S = { sel: null, other: { subject: '', kind: 'lecture', date: null }, marks: new Map(), taskType: 'hw', stu: { q: '', sort: 'name', month: null }, rep: { mode: 'month', month: null } };
+  // Состояние живёт, пока открыта страница: дата и выбор пары, отметки (id студента → отметка), тип заданий, поиск по студентам, период отчёта
+  const S = { docs: { f: 'all', q: '' }, card: { period: 'month' }, sel: null, date: null, dirty: false, marks: new Map(), taskType: 'hw', stu: { q: '', sort: 'name', month: null }, rep: { mode: 'month', month: null } };
 
   // ---------- нижний лист и подтверждение ----------
   let opened = null;
@@ -86,7 +86,7 @@
       q(sb.from('students').select('id').eq('group_id', gid).eq('claim_status', 'pending')),
       q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
       q(sb.from('absences').select('subject').eq('group_id', gid).eq('date', day)),
-      q(sb.from('certificates').select('id, due_date').eq('group_id', gid).eq('status', 'waiting').order('due_date')),
+      fetchAll(() => sb.from('absences').select('id, date, cert_due_date').eq('group_id', gid).eq('is_excused', true).not('cert_type', 'is', null).eq('cert_submitted', false).order('id')),   // документы, которых ещё ждём (экран «Справки»)
       q(sb.from('tasks').select('id, kind, rec, created_by').eq('group_id', gid)),
       q(sb.from('schedule_meta').select('semester_end, last_import_at, last_status').eq('group_id', gid).maybeSingle()),
       // сбой запроса чата не мешает сводке: тогда просто «Зашифрован»
@@ -101,6 +101,8 @@
     const active = tasks.map(Cab.task).filter((x) => !x.due || x.due >= day);
     const mine = active.filter((x) => !x.createdBy || x.createdBy === ctx.uid).length;
     const left = semEndNote(meta && meta.semester_end);
+    const rng = semRange(meta, t), waiting = certs.filter((a) => inSem(a, rng)), late = waiting.filter((a) => Cab.docKind(a, day) === 'late').length;
+    const nextDue = waiting.map((a) => a.cert_due_date).filter((d) => d && d >= day).sort()[0];
     const lessonCard = now
       ? h`<a class="cab-row t-lime" href="#/journal"><span><small>Сейчас идёт ${Cab.kindLow(now.kind)}</small><b>${ctx.closed ? 'Пропуски' : 'Отметить пропуски'}</b><small>${now.subject}, ${Cab.hm(now.starts_at)}–${Cab.hm(now.ends_at)}</small></span><span class="hm-count"><b>${marked}</b><small>отмечено</small></span></a>`
       : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${next.subject}, ${Cab.hm(next.starts_at)}` : 'Пропуски можно отметить за любое занятие'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
@@ -115,7 +117,7 @@
       ${lessonCard}
       <a class="cab-row" href="#/summary/access"><span><b>Доступы</b><small>Кто из студентов может вносить домашки</small></span><span class="cab-ico">${icon.chev}</span></a>
       <div class="cab-tiles two">
-        <a class="cab-tile t-amber" href="#/journal/certs"><b>Справки</b><span class="big">${certs.length}</span><small>${certs.length ? `ждём${certs[0].due_date ? ', срок до ' + Cab.dateText(certs[0].due_date) : ''}` : 'никто не ждёт'}</small></a>
+        <a class="cab-tile ${late ? 't-coral' : 't-amber'}" href="#/journal/certs"><b>Справки</b><span class="big">${waiting.length}</span><small>${late ? `просрочено ${late}` : waiting.length ? `ждём${nextDue ? ', срок до ' + Cab.dateText(nextDue) : ''}` : 'никто не ждёт'}</small></a>
         <a class="cab-tile t-mint" href="#/tasks"><b class="hm-tt">Задания<span class="cab-ico sm">${icon.plus}</span></b><span class="big">${active.length}</span><small>активных, ваших ${mine}</small></a>
       </div>
       <a class="cab-row t-violet" href="#/chat" style="margin-top:10px"><span><b>Чат с преподавателями</b><small class="ch-sub"><span class="cab-ico sm">${icon.lock}</span>Зашифрован</small></span>${chatNew > 0 ? h`<span class="ch-new">${chatNew} ${plural(chatNew, ['новое', 'новых', 'новых'])}</span>` : ''}</a>
@@ -243,153 +245,235 @@
   const jtabs = (el, v) => Cab.segmented(el, [{ value: 'journal', label: 'Отметки' }, { value: 'journal/students', label: 'Студенты' }, { value: 'journal/certs', label: 'Справки' }], v, (x) => { location.hash = '#/' + x; });
 
   function journal(el, ctx, params, nav) {
-    if (params[0] === 'cert' && params[1]) return certDetail(el, ctx, decodeURIComponent(params[1]), nav);
-    if (params[0] === 'student' && params[1]) return studentCard(el, ctx, decodeURIComponent(params[1]), nav);
+        if (params[0] === 'student' && params[1]) return studentCard(el, ctx, decodeURIComponent(params[1]), nav);
     return marks(el, ctx, nav);
   }
 
-  // За пару всегда 2 часа (регулятора часов больше нет). Уважительная: причина и срок сдачи документа или «уже сдал».
+  // За пару всегда 2 часа. Пары берём из расписания на выбранную дату: предмет и вид подставляются сами, вручную их не вводят.
+  // Уважительная: причина и срок сдачи документа или «уже сдал».
   const HOURS = 2, DOCS = ['Справка', 'Освобождение', 'Заявление'], DOC_DAYS = 3, LESSON_KINDS = ['lecture', 'practice', 'lab'];
   const MARK_TXT = { a: 'неуважительная', e: 'уважительная', p: 'был' };
+  const pairKey = (l) => [l.pair_no, l.subject, l.kind, l.subgroup || 0].join('|');
+  // Запись absences относится к паре: тот же предмет и вид занятия. У записи без вида или без номера пары
+  // (до 2.0.2, преподавателя) подходит любая пара этого предмета в этот день.
+  const ofPair = (a, p) => norm(a.subject) === norm(p.subject)
+    && (p.kind === 'other' ? !a.lesson_kind : !a.lesson_kind || a.lesson_kind === p.kind) && (a.pair_no == null || a.pair_no === p.pair_no);
+  // Почему запись нельзя править из журнала ('' = можно): закрыта справкой, ждёт отправки, внёс преподаватель
+  const lockWhy = (a, uid) => (a.certificate_id ? 'закрыто справкой' : a.queued ? 'ждёт отправки' : a.created_by && a.created_by !== uid ? 'внёс преподаватель' : '');
+  // Что отличается от записи в базе (и нужно ли её менять)
+  const markChanged = (m) => m.s !== m.orig.s || (m.s === 'e' && (m.doc !== m.orig.doc || !!m.done !== m.orig.done || (!m.done && m.due !== m.orig.due)));
 
   async function marks(el, ctx, nav) {
     const gid = ctx.group.id, t = Cab.minsk(), day = t.iso, ro = ctx.closed;
-    // Список группы и пары дня запоминаем на телефоне: без сети журнал открывается из памяти, отметки уходят в очередь (offline-queue.js)
+    // Список группы и пары последних дней запоминаем на телефоне: без сети журнал открывается из памяти, новые отметки уходят в очередь (offline-queue.js)
     const ckey = 'j2.cache.marks.' + gid;
-    let stu, lessons, offline = false;
+    const readCache = () => { try { return JSON.parse(localStorage.getItem(ckey)) || {}; } catch (_) { return {}; } };
+    const writeCache = (patch) => { try { const c = readCache(); const by = { ...(c.by || {}), ...(patch.by || {}) }; Object.keys(by).sort().slice(0, -5).forEach((k) => delete by[k]); localStorage.setItem(ckey, JSON.stringify({ ...c, ...patch, by })); } catch (_) { /* память переполнена */ } };
+    let stu, offline = false;
     try {
-      [stu, lessons] = await Promise.all([
-        q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid).neq('claim_status', 'erased')),
-        q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind, subgroup').eq('group_id', gid).eq('lesson_date', day).order('pair_no')),
-      ]);
-      try { localStorage.setItem(ckey, JSON.stringify({ day, stu, lessons })); } catch (_) { /* память переполнена */ }
+      stu = await q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid).neq('claim_status', 'erased'));
+      writeCache({ stu });
     } catch (e) {
-      let c = null; try { c = JSON.parse(localStorage.getItem(ckey)); } catch (_) { /* битый кэш */ }
-      if (!window.OQ || !OQ.isNetError(e) || !c) throw e;
-      stu = c.stu; lessons = c.day === day ? c.lessons : []; offline = true;
+      const c = readCache();
+      if (!window.OQ || !OQ.isNetError(e) || !c.stu) throw e;
+      stu = c.stu; offline = true;
     }
     if (!nav.isCurrent()) return;
     stu.sort(byName);
-    const opts = lessons.map((l) => ({ key: [l.pair_no, l.subject, l.kind, l.subgroup || 0].join('|'), subject: l.subject, kind: l.kind, sg: l.subgroup,
-      now: Cab.toMin(l.starts_at) <= t.minutes && t.minutes < Cab.toMin(l.ends_at) }));
-    if (!opts.some((o) => o.key === S.sel) && S.sel !== 'other') S.sel = (opts.find((o) => o.now) || opts[0] || { key: 'other' }).key;
-    S.marks.clear();
-    if (!S.other.date) S.other.date = day;
-    const cur = () => (S.sel === 'other' ? { subject: S.other.subject.trim(), kind: S.other.kind, date: S.other.date || day } : { ...opts.find((o) => o.key === S.sel), date: day });
-    const label = (o) => `${o.now ? 'Идёт сейчас: ' : ''}${o.subject}, ${Cab.kindLow(o.kind)}, ${HOURS} ч${o.sg ? `, ${o.sg} подгр.` : ''}`;
+    if (!S.date || S.date > day) S.date = day;
+    let lessons = [], rows = [], state = 'load', seq = 0;            // state: load | ok | err
+    const pairs = () => lessons.map((l) => ({ ...l, key: pairKey(l), now: S.date === day && !!l.starts_at && !!l.ends_at && Cab.toMin(l.starts_at) <= t.minutes && t.minutes < Cab.toMin(l.ends_at) }));
+    const cur = () => pairs().find((p) => p.key === S.sel) || null;
 
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Журнал')}
       <div id="hmSeg"></div>
       ${closedNote(ctx)}
-      ${offline ? h`<div class="j2-card warn" role="status"><h2>Нет связи</h2><p>Список группы взят из памяти телефона. Отметки сохранятся и отправятся сами, когда появится сеть.</p></div>` : ''}
-      ${lessons.length ? '' : h`<div class="cab-card"><h3>Пар сегодня нет</h3><p>Можно отметить пропуски за другое занятие.</p></div>`}
-      <label class="j2-field hm-pair"><span>Пара</span><select id="hmSel">${opts.map((o) => h`<option value="${o.key}">${label(o)}</option>`)}<option value="other">Другое занятие…</option></select></label>
-      <div id="hmOther" class="j2-hidden">
-        <label class="j2-field"><span>Предмет</span><input id="hmSubj" type="text" maxlength="120" autocomplete="off"></label>
-        <div class="j2-row"><label class="j2-field"><span>Вид</span><select id="hmKind"><option value="lecture">Лекция</option><option value="practice">Практическое</option><option value="lab">Лабораторная</option></select></label>
-        <label class="j2-field"><span>Дата</span><input id="hmDate" type="date" max="${day}"></label></div>
+      <div id="hmOff"></div>
+      <label class="j2-field hm-pair"><span>Дата</span><input id="hmDate" type="date" max="${day}"></label>
+      <div id="hmPairs" aria-live="polite"></div>
+      <div id="hmWho" class="j2-hidden">
+        <div class="hm-bar"><span id="hmBarL"></span><span>${stu.length} ${plural(stu.length, ['человек', 'человека', 'человек'])}</span></div>
+        <div class="cab-pick no-swipe" id="hmList"></div>
+        ${ro ? '' : h`<button type="button" class="j2-btn primary" id="hmSave"></button><p class="cab-note">Отменить можно только свои записи. Записи преподавателя видны, но не меняются.</p>`}
       </div>
-      <div class="hm-bar"><span>${ro ? 'Кто отсутствовал' : `Отметьте каждого, за пару ${HOURS} ч`}</span><span>${stu.length} ${plural(stu.length, ['человек', 'человека', 'человек'])}</span></div>
-      <div class="cab-pick no-swipe" id="hmList"></div>
-      ${ro ? '' : h`<button type="button" class="j2-btn primary" id="hmSave"></button><p class="cab-note">Отменить можно только свои записи. Записи преподавателя видны, но не меняются.</p>`}
       <a class="cab-row" href="#/journal/history"><span><b>История пропусков</b><small>Последние 30 дней, отмена своих записей</small></span><span class="cab-ico">${icon.chev}</span></a>`);
     jtabs($(el, '#hmSeg'), 'journal');
-    const sel = $(el, '#hmSel'), other = $(el, '#hmOther'), list = $(el, '#hmList'), save = $(el, '#hmSave');
-    sel.value = S.sel;
-    $(el, '#hmSubj').value = S.other.subject; $(el, '#hmKind').value = S.other.kind; $(el, '#hmDate').value = S.other.date;
-    other.classList.toggle('j2-hidden', S.sel !== 'other');
+    const dateIn = $(el, '#hmDate'), boxP = $(el, '#hmPairs'), who = $(el, '#hmWho'), list = $(el, '#hmList'), save = $(el, '#hmSave');
+    dateIn.value = S.date;
+    if (offline) put($(el, '#hmOff'), h`<div class="j2-card warn" role="status"><h2>Нет связи</h2><p>Список группы взят из памяти телефона. Новые отметки сохранятся и отправятся сами, когда появится сеть. Менять и убирать уже внесённое без сети нельзя.</p></div>`);
 
-    let existing = new Map(), seq = 0;           // предмет → student_id → { hours, is_excused } уже внесённого пропуска по выбранному дню
-    const mine = () => { const c = cur(); return new Map(existing.get(norm(c.subject)) || []); };
+    const locks = () => { const p = cur(), m = new Map(); if (p) rows.filter((a) => ofPair(a, p)).forEach((a) => { const w = lockWhy(a, ctx.uid); if (w && !m.has(a.student_id)) m.set(a.student_id, { a, w }); }); return m; };
+    const marked = (p) => new Set(rows.filter((a) => ofPair(a, p)).map((a) => a.student_id)).size;
+
+    // Отметки по выбранной паре начинаются с того, что уже внесено: правка меняет те же записи, а не плодит новые
+    function initMarks() {
+      S.marks.clear(); S.dirty = false;
+      const p = cur(); if (!p) return;
+      rows.filter((a) => ofPair(a, p) && !lockWhy(a, ctx.uid)).forEach((a) => {
+        if (S.marks.has(a.student_id)) return;
+        const m = { id: a.id, s: a.is_excused ? 'e' : 'a', doc: a.cert_type || DOCS[0], due: a.cert_due_date || Cab.addDays(S.date, DOC_DAYS), done: !!a.cert_submitted };
+        m.orig = { s: m.s, doc: m.doc, due: m.due, done: m.done };
+        S.marks.set(a.student_id, m);
+      });
+    }
+
+    function paintPairs() {
+      if (state === 'load') { put(boxP, h`<p class="cab-load">Загружаем расписание…</p>`); return; }
+      if (state === 'err') {
+        put(boxP, h`<div class="j2-card bad" role="alert"><h2>Расписание не загрузилось</h2><p>Пары на эту дату не показываем, пока не получим их из расписания. Проверьте связь и повторите.</p></div><button type="button" class="j2-btn" id="hmRetry">Повторить</button>`);
+        $(boxP, '#hmRetry').onclick = () => loadDay();
+        return;
+      }
+      if (!lessons.length) { put(boxP, h`<div class="cab-card"><h3>На эту дату пар нет по расписанию</h3><p>Выберите другую дату.</p></div>`); return; }
+      put(boxP, h`<h2 class="cab-h2"><span>Пары</span></h2><div class="mk-pairs" role="group" aria-label="Пары на ${Cab.dateText(S.date)}">${pairs().map((p) => {
+        const n = marked(p), on = p.key === S.sel, sg = Number(p.subgroup) || 0;
+        return h`<button type="button" class="mk-pair${on ? ' on' : ''}" data-k="${p.key}" aria-pressed="${String(on)}"><span class="mk-t">${Cab.hm(p.starts_at)}<small>${Cab.hm(p.ends_at)}</small></span>
+          <span class="mk-p"><b>${p.subject}</b><small>${Cab.KIND[p.kind] || 'Занятие'}${sg ? ` · ${sg} подгр.` : ''}${p.room ? ` · ауд. ${p.room}` : ''}</small>
+          ${p.now ? h`<small class="c-lime">Идёт сейчас</small>` : ''}${n ? h`<small class="c-mint">Отмечена: ${n} ${plural(n, ['пропуск', 'пропуска', 'пропусков'])}</small>` : ''}</span></button>`;
+      })}</div>`);
+    }
     // Строка студента: «был / Н / Ув.»; у «Ув.» ниже причина и срок сдачи документа (или «уже сдал»)
     const rowHtml = (s, lk) => {
       const lo = lk.get(s.id), m = S.marks.get(s.id), st = m ? m.s : 'p', nm = Cab.initials(s);
-      if (lo) return h`<div class="mk-row locked ${lo.is_excused ? 'st-exc' : 'st-abs'}" data-id="${s.id}"><div class="mk-main"><span><b>${nm}</b><small class="hm-lock">уже внесено: ${lo.is_excused ? 'уважительная' : 'неуважительная'}, ${num(lo.hours)} ч</small></span></div></div>`;
+      if (lo) return h`<div class="mk-row locked ${lo.a.is_excused ? 'st-exc' : 'st-abs'}" data-id="${s.id}"><div class="mk-main"><span><b>${nm}</b><small class="hm-lock">${lo.a.is_excused ? 'уважительная' : 'неуважительная'}, ${num(lo.a.hours)} ч, ${lo.w}</small></span></div></div>`;
       const btn = (k, txt) => h`<button type="button" data-s="${k}" aria-pressed="${String(st === k)}" aria-label="${nm}: ${MARK_TXT[k]}"${ro ? raw(' disabled') : ''}>${txt}</button>`;
-      return h`<div class="mk-row ${st === 'a' ? 'st-abs' : st === 'e' ? 'st-exc' : ''}" data-id="${s.id}"><div class="mk-main"><span><b>${nm}</b></span><div class="mk-seg" role="group" aria-label="${nm}">${btn('p', 'Был')}${btn('a', 'Н')}${btn('e', 'Ув.')}</div></div>
-        ${st === 'e' ? h`<div class="mk-ex"><label><span>Причина</span><select data-f="doc" aria-label="Причина: ${nm}">${DOCS.map((d) => h`<option value="${d}"${m.doc === d ? raw(' selected') : ''}>${d}</option>`)}</select></label>
-          <label class="mk-chk"><input type="checkbox" data-f="done"${m.done ? raw(' checked') : ''}> Уже сдал</label>
-          <label class="mk-due${m.done ? ' j2-hidden' : ''}"><span>Срок сдачи документа</span><input type="date" data-f="due" value="${m.due || ''}"></label></div>` : ''}</div>`;
+      const docs = m && !DOCS.includes(m.doc) ? [...DOCS, m.doc] : DOCS;
+      return h`<div class="mk-row ${st === 'a' ? 'st-abs' : st === 'e' ? 'st-exc' : ''}" data-id="${s.id}"><div class="mk-main"><span><b>${nm}</b>${m && m.id ? h`<small class="hm-lock">внесено, можно изменить</small>` : ''}</span><div class="mk-seg" role="group" aria-label="${nm}">${btn('p', 'Был')}${btn('a', 'Н')}${btn('e', 'Ув.')}</div></div>
+        ${st === 'e' ? h`<div class="mk-ex"><label><span>Причина</span><select data-f="doc" aria-label="Причина: ${nm}"${ro ? raw(' disabled') : ''}>${docs.map((d) => h`<option value="${d}"${m.doc === d ? raw(' selected') : ''}>${d}</option>`)}</select></label>
+          <label class="mk-chk"><input type="checkbox" data-f="done"${m.done ? raw(' checked') : ''}${ro ? raw(' disabled') : ''}> Уже сдал</label>
+          <label class="mk-due${m.done ? ' j2-hidden' : ''}"><span>Срок сдачи документа</span><input type="date" data-f="due" value="${m.due || ''}"${ro ? raw(' disabled') : ''}></label></div>` : ''}</div>`;
     };
-    function sync() {
-      const a = [...S.marks.values()].filter((m) => m.s === 'a').length, e = S.marks.size - a;
-      if (save) { save.textContent = S.marks.size ? `Сохранить: Н ${a}, уважительных ${e}` : 'Сохранить'; save.disabled = S.marks.size === 0; }
-      opts.forEach((x, i) => { sel.options[i].text = label(x); });
+    // Что изменится при сохранении: новые, изменённые, убираемые (был вместо Н/Ув.)
+    function plan() {
+      const p = cur(), add = [], upd = [], del = [];
+      if (!p) return { add, upd, del };
+      const lk = locks(), have = new Map(rows.filter((a) => ofPair(a, p) && !lockWhy(a, ctx.uid)).map((a) => [a.student_id, a]));
+      stu.forEach((s) => {
+        if (lk.has(s.id)) return;
+        const m = S.marks.get(s.id), ex = have.get(s.id);
+        if (m && !m.id) add.push(s.id);
+        else if (m && m.id && markChanged(m)) upd.push(s.id);
+        else if (!m && ex) del.push(s.id);
+      });
+      return { add, upd, del };
     }
-    function paint() {
-      const lk = mine();
-      [...S.marks.keys()].forEach((id) => { if (lk.has(id)) S.marks.delete(id); });
+    function sync() {
+      if (!save) return;
+      const { add, upd, del } = plan(), parts = [];
+      if (add.length) parts.push(`новых ${add.length}`); if (upd.length) parts.push(`изменить ${upd.length}`); if (del.length) parts.push(`убрать ${del.length}`);
+      save.textContent = parts.length ? 'Сохранить: ' + parts.join(', ') : 'Сохранить'; save.disabled = !parts.length;
+    }
+    function paintWho() {
+      const p = cur();
+      who.classList.toggle('j2-hidden', state !== 'ok' || !p);
+      if (state !== 'ok' || !p) { list.innerHTML = ''; return; }
+      $(el, '#hmBarL').textContent = ro ? 'Кто отсутствовал' : marked(p) ? 'Пара уже отмечена: правка меняет те же записи' : `Отметьте каждого, за пару ${HOURS} ч`;
+      const lk = locks();
       put(list, h`${stu.map((s) => rowHtml(s, lk))}`);
       sync();
     }
-    async function loadExisting() {
-      const my = ++seq, d = cur().date || day;
-      let rows = [];
-      try { rows = await q(sb.from('absences').select('student_id, subject, hours, is_excused').eq('group_id', gid).eq('date', d)); }
-      catch (e) { if (!window.OQ || !OQ.isNetError(e)) throw e; }      // без сети видим только то, что стоит в очереди
-      if (my !== seq || !nav.isCurrent()) return;
-      if (window.OQ) rows = rows.concat(OQ.list(ctx.uid).filter((x) => x.group_id === gid && x.date === d));   // отмеченное без сети тоже «уже внесено»
-      existing = new Map();
-      rows.forEach((a) => { const k = norm(a.subject); if (!existing.has(k)) existing.set(k, new Map()); existing.get(k).set(a.student_id, { hours: a.hours, is_excused: !!a.is_excused }); });
-      paint();
-    }
-    const later = (p) => p.catch((e) => toast(errText(e), 'err'));
-    paint(); later(loadExisting());
-    Cab.onFlushed = () => { if (nav.isCurrent()) later(loadExisting()); };       // очередь ушла: показать записи с сервера
+    const paint = () => { paintPairs(); paintWho(); };
 
+    async function loadDay() {
+      const my = ++seq, d = S.date;
+      state = 'load'; lessons = []; rows = []; S.sel = null; S.marks.clear(); S.dirty = false; paint();
+      try {
+        const [ls, ab] = await Promise.all([
+          q(sb.from('schedule_lessons').select('pair_no, starts_at, ends_at, subject, kind, subgroup, room').eq('group_id', gid).eq('lesson_date', d).order('pair_no').order('subject')),
+          q(sb.from('absences').select('id, student_id, subject, hours, is_excused, lesson_kind, pair_no, certificate_id, created_by, cert_type, cert_submitted, cert_due_date').eq('group_id', gid).eq('date', d)),
+        ]);
+        if (my !== seq || !nav.isCurrent()) return;
+        lessons = ls; rows = ab; state = 'ok'; writeCache({ by: { [d]: ls } });
+      } catch (e) {
+        if (my !== seq || !nav.isCurrent()) return;
+        const c = (readCache().by || {})[d];
+        if (window.OQ && OQ.isNetError(e) && c) { lessons = c; rows = []; state = 'ok'; offline = true; }        // расписание из памяти телефона, а не придуманное
+        else { console.error('[headman] пары дня', e); state = 'err'; }
+      }
+      if (window.OQ) rows = rows.concat(OQ.list(ctx.uid).filter((x) => x.group_id === gid && x.date === d).map((x) => ({ ...x, queued: true })));   // отмеченное без сети: видно, но не правится
+      const first = pairs().find((p) => p.now);
+      if (first) S.sel = first.key;
+      initMarks(); paint();
+    }
+    Cab.onFlushed = () => { if (nav.isCurrent() && !S.dirty) loadDay(); };       // очередь ушла: показать записи с сервера
+
+    boxP.onclick = (e) => {
+      const b = e.target.closest('button.mk-pair'); if (!b) return;
+      S.sel = b.dataset.k; initMarks(); paint();
+      who.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
     list.onclick = (e) => {
       const b = e.target.closest('.mk-seg button'); if (!b || b.disabled) return;
-      const row = b.closest('.mk-row'), id = row.dataset.id, k = b.dataset.s, s = stu.find((x) => x.id === id);
+      const row = b.closest('.mk-row'), id = row.dataset.id, k = b.dataset.s, s = stu.find((x) => x.id === id), old = S.marks.get(id);
+      S.dirty = true;
       if (k === 'p') S.marks.delete(id);
-      else { const old = S.marks.get(id); S.marks.set(id, { s: k, doc: (old && old.doc) || DOCS[0], due: (old && old.due) || Cab.addDays(day, DOC_DAYS), done: !!(old && old.done) }); }
-      row.outerHTML = str(rowHtml(s, mine()));
+      else {
+        const m = { s: k, doc: (old && old.doc) || DOCS[0], due: (old && old.due) || Cab.addDays(S.date, DOC_DAYS), done: !!(old && old.done) };
+        if (old) { m.id = old.id; m.orig = old.orig; }
+        S.marks.set(id, m);
+      }
+      row.outerHTML = str(rowHtml(s, locks()));
       const nb = $(list, `.mk-row[data-id="${id}"] button[data-s="${k}"]`); if (nb) nb.focus();
       sync();
     };
     list.onchange = (e) => {
       const f = e.target.dataset.f, row = e.target.closest('.mk-row'); if (!f || !row) return;
       const m = S.marks.get(row.dataset.id); if (!m) return;
+      S.dirty = true;
       if (f === 'doc') m.doc = e.target.value;
       else if (f === 'due') m.due = e.target.value;
       else if (f === 'done') { m.done = e.target.checked; $(row, '.mk-due').classList.toggle('j2-hidden', m.done); }
+      sync();
     };
-    sel.onchange = () => { S.sel = sel.value; S.marks.clear(); other.classList.toggle('j2-hidden', S.sel !== 'other'); paint(); later(loadExisting()); };
-    $(el, '#hmSubj').oninput = (e) => { S.other.subject = e.target.value; paint(); };
-    $(el, '#hmKind').onchange = (e) => { S.other.kind = e.target.value; };
-    $(el, '#hmDate').onchange = (e) => { S.other.date = e.target.value || day; S.marks.clear(); paint(); later(loadExisting()); };
+    dateIn.onchange = () => { S.date = dateIn.value && dateIn.value <= day ? dateIn.value : day; dateIn.value = S.date; loadDay(); };
+
     if (!ro) {
       save.onclick = () => act(save, async () => {
-        const c = cur(), d = c.date || day;
-        if (!c.subject) { toast('Укажите предмет.', 'err'); return; }
+        const p = cur(); if (!p) return;
         const bad = [...S.marks].find(([, m]) => m.s === 'e' && !m.done && !m.due);
         if (bad) { toast('У уважительной укажите срок сдачи документа или отметьте «Уже сдал».', 'err'); const r = $(list, `.mk-row[data-id="${bad[0]}"]`); if (r) r.scrollIntoView({ block: 'center' }); return; }
-        // id у каждой записи свой с самого начала: повторная отправка (обрыв, очередь) вставку не дублирует (ON CONFLICT DO NOTHING)
+        const d = S.date, pl = plan();
+        if (pl.del.length && !(await confirmSheet('Убрать пропуски?', `${pl.del.length} ${plural(pl.del.length, ['студент отмечен', 'студента отмечены', 'студентов отмечены'])} как «Был»: их пропуски за эту пару отменятся. Записи сохранятся в истории отмен.`, 'Убрать пропуски'))) return;
+        // id у каждой новой записи свой с самого начала: повторная отправка (обрыв, очередь) вставку не дублирует (ON CONFLICT DO NOTHING)
         const mk = (sid) => {
           const m = S.marks.get(sid), ex = m.s === 'e';
-          return { id: OQ.newId(), group_id: gid, student_id: sid, date: d, subject: c.subject, hours: HOURS, lesson_kind: LESSON_KINDS.includes(c.kind) ? c.kind : null,
+          return { id: OQ.newId(), group_id: gid, student_id: sid, date: d, subject: p.subject, hours: HOURS, lesson_kind: LESSON_KINDS.includes(p.kind) ? p.kind : null, pair_no: p.pair_no,
             ...(ex ? { is_excused: true, cert_type: m.doc, cert_submitted: !!m.done, cert_due_date: m.done ? null : m.due } : {}) };
         };
-        const all = [...S.marks.keys()].map(mk);
-        let n = 0, queued = false;
+        const body = (m) => (m.s === 'e' ? { is_excused: true, cert_type: m.doc, cert_submitted: !!m.done, cert_due_date: m.done ? null : m.due } : { is_excused: false, cert_type: null, cert_submitted: false, cert_due_date: null });
+        let nAdd = 0, nUpd = 0, nDel = 0, skipped = 0, queued = false;
         try {
-          // перед записью ещё раз смотрим, не внёс ли кто-то то же самое
-          const fresh = await q(sb.from('absences').select('student_id, subject').eq('group_id', gid).eq('date', d));
-          const have = new Set(fresh.filter((a) => norm(a.subject) === norm(c.subject)).map((a) => a.student_id));
-          const todo = all.filter((r) => !have.has(r.student_id));
-          if (todo.length) await q(sb.from('absences').upsert(todo.map((r) => ({ is_excused: false, ...r })), { onConflict: 'id', ignoreDuplicates: true }));
-          n = todo.length;
+          // перед записью ещё раз смотрим, что уже внесено: то, что внёс кто-то другой, не дублируем
+          const fresh = await q(sb.from('absences').select('id, student_id, subject, lesson_kind, pair_no, certificate_id, created_by').eq('group_id', gid).eq('date', d));
+          const mine = new Map(fresh.filter((a) => ofPair(a, p) && !lockWhy(a, ctx.uid)).map((a) => [a.student_id, a]));
+          const taken = new Set(fresh.filter((a) => ofPair(a, p)).map((a) => a.student_id));
+          const todo = pl.add.filter((sid) => !taken.has(sid)); skipped = pl.add.length - todo.length;
+          if (todo.length) await q(sb.from('absences').upsert(todo.map((sid) => ({ is_excused: false, ...mk(sid) })), { onConflict: 'id', ignoreDuplicates: true }));
+          nAdd = todo.length;
+          for (const sid of pl.upd) {                                  // правка той же записи
+            const ex = mine.get(sid), m = S.marks.get(sid); if (!ex) { skipped++; continue; }
+            const r = await q(sb.from('absences').update(body(m)).eq('id', ex.id).select('id')); if (r.length) nUpd++; else skipped++;
+          }
+          for (const sid of pl.del) {                                  // «Был» вместо Н: отмена записи (след остаётся в истории отмен)
+            const ex = mine.get(sid); if (!ex) { skipped++; continue; }
+            const r = await q(sb.from('absences').delete().eq('id', ex.id).select('id')); if (r.length) nDel++; else skipped++;
+          }
         } catch (e) {
           if (!OQ.isNetError(e)) throw e;
-          const lk = OQ.pending(ctx.uid, gid, d, c.subject);
-          n = OQ.add(ctx.uid, all.filter((r) => !lk.has(r.student_id))); queued = true;
+          if (pl.upd.length || pl.del.length) { toast('Нет связи: изменить или убрать внесённое без сети нельзя. Повторите, когда появится сеть.', 'err'); return; }
+          const lk = new Set(OQ.list(ctx.uid).filter((x) => x.group_id === gid && x.date === d && ofPair(x, p)).map((x) => x.student_id));
+          nAdd = OQ.add(ctx.uid, pl.add.filter((sid) => !lk.has(sid)).map(mk)); queued = true;
           Cab.netBar();
         }
-        S.marks.clear();
-        toast(queued ? `Нет связи. Сохранено на телефоне: ${n}. Отправится, когда появится сеть.`
-          : n ? `Внесено: ${n} ${plural(n, ['пропуск', 'пропуска', 'пропусков'])}.` : 'Эти пропуски уже внесены.', 'ok');
-        await loadExisting();
+        S.dirty = false;
+        const out = [nAdd && `внесено ${nAdd}`, nUpd && `изменено ${nUpd}`, nDel && `убрано ${nDel}`].filter(Boolean).join(', ');
+        toast(queued ? `Нет связи. Сохранено на телефоне: ${nAdd}. Отправится, когда появится сеть.`
+          : (out ? out[0].toUpperCase() + out.slice(1) + '.' : 'Эти пропуски уже внесены.') + (skipped ? ` Пропущено: ${skipped} (запись уже изменена).` : ''), 'ok');
+        await loadDay();
+        S.sel = p.key; initMarks(); paint();
       }).then(sync);
     }
+    loadDay();
   }
 
   // ---------- история ----------
@@ -422,116 +506,64 @@
   }
 
   // =====================================================================================================
-  // Журнал: справки
+  // Справки (2.0.2): все документы по уважительным пропускам за семестр. Данные те же, что в карточке студента и у самого студента:
+  // это записи absences (cert_type, cert_due_date, cert_submitted), отдельной таблицы справок нет, копий нет.
   // =====================================================================================================
-  const KIND = { sick: 'больничный', statement: 'заявление', other: 'другое' };
-  const dueWords = (iso) => { const d = Cab.due(iso); return d.days < 0 ? 'просрочен' : d.days <= 1 ? d.text : 'через ' + d.text; };
+  const DOC_ST = { wait: { t: 'ждём', cls: 'amber' }, late: { t: 'просрочена', cls: 'coral' }, done: { t: 'сдана', cls: 'mint' } };
+  const ddmm = (iso) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}` : '');
+  const docText = (a, today) => { const k = Cab.docKind(a, today); return k === 'done' ? 'сдана' : k === 'late' ? 'просрочена, срок был ' + ddmm(a.cert_due_date) : a.cert_due_date ? 'ждём до ' + ddmm(a.cert_due_date) : 'ждём, срок не указан'; };
+  // Границы семестра: настройка расписания (schedule_meta.semester_start/end, её заполняет импорт); нет её — осенний или весенний семестр по календарю
+  const semRange = (meta, now) => {
+    const y = now.y, m = now.m;                          // m с нуля
+    const from = (meta && meta.semester_start) || (m >= 8 ? `${y}-09-01` : m >= 1 ? `${y}-02-01` : `${y - 1}-09-01`);
+    return { from, to: (meta && meta.semester_end) || null };
+  };
+  const inSem = (a, r) => a.date >= r.from && (!r.to || a.date <= r.to);
 
-  async function certs(el, ctx, params, nav) {
-    const gid = ctx.group.id;
-    const [cs, stu] = await Promise.all([
-      q(sb.from('certificates').select('id, student_id, kind, date_from, date_to, due_date, status, received_at').eq('group_id', gid).order('due_date')),
+  async function docs(el, ctx, params, nav) {
+    const gid = ctx.group.id, today = day0();
+    const [meta, ab, stu] = await Promise.all([
+      q(sb.from('schedule_meta').select('semester_start, semester_end').eq('group_id', gid).maybeSingle()),
+      fetchAll(() => sb.from('absences').select('id, student_id, date, subject, hours, lesson_kind, cert_type, cert_submitted, cert_due_date').eq('group_id', gid).eq('is_excused', true).not('cert_type', 'is', null).order('id')),
       q(sb.from('students').select('id, last_name, first_name').eq('group_id', gid)),
     ]);
     if (!nav.isCurrent()) return;
-    stu.sort(byName);
-    const name = new Map(stu.map((s) => [s.id, s]));
-    const wait = cs.filter((c) => c.status === 'waiting');
-    const done = cs.filter((c) => c.status !== 'waiting').sort((a, b) => String(b.received_at || b.date_to).localeCompare(String(a.received_at || a.date_to))).slice(0, 10);
-    const shown = [...wait, ...done];
-    let ab = [];
-    if (shown.length) {            // часы справки: неуважительные пропуски периода, у полученной — закрытые ею
-      const f = shown.map((c) => c.date_from).filter(Boolean).sort()[0], t = shown.map((c) => c.date_to).filter(Boolean).sort().pop();
-      if (f && t) ab = await q(sb.from('absences').select('student_id, date, hours, is_excused, certificate_id').eq('group_id', gid).gte('date', f).lte('date', t));
-      if (!nav.isCurrent()) return;
-    }
-    const hours = (c) => sum(ab.filter((a) => (c.status === 'received' ? a.certificate_id === c.id
-      : a.student_id === c.student_id && !a.is_excused && a.date >= c.date_from && a.date <= c.date_to)), (a) => a.hours);
-    const nm = (c) => Cab.initials(name.get(c.student_id) || {});
-    const wcard = (c) => { const d = Cab.due(c.due_date); return h`<article class="cab-card"><div class="meta"><h3>${nm(c)}</h3><span class="st c-${d.cls}">${d.text}</span></div>
-      <p>${period(c.date_from, c.date_to)}, ${num(hours(c))} ч${c.due_date ? ', срок до ' + Cab.dateText(c.due_date) : ''}</p>
-      ${ctx.closed ? '' : h`<div class="cab-actions"><a class="j2-btn primary" href="${'#/journal/cert/' + encodeURIComponent(c.id)}" aria-label="Справка получена: ${nm(c)}">Справка получена</a><button type="button" class="j2-btn" data-no="${c.id}" aria-label="Нет справки: ${nm(c)}">Нет справки</button></div>`}</article>`; };
-    const dcard = (c) => h`<article class="cab-card"><div class="meta"><h3>${nm(c)}</h3><span class="st ${c.status === 'received' ? 'c-lime' : 'c-coral'}">${c.status === 'received' ? 'получена' : 'не сдана'}</span></div><p>${period(c.date_from, c.date_to)}, ${num(hours(c))} ч, ${KIND[c.kind] || 'справка'}</p></article>`;
-    put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Журнал')}
+    const rng = semRange(meta, Cab.minsk()), name = new Map(stu.map((s) => [s.id, s]));
+    const all = ab.filter((a) => inSem(a, rng)).map((a) => ({ ...a, k: Cab.docKind(a, today), nm: Cab.initials(name.get(a.student_id) || {}) }));
+    const cnt = (k) => all.filter((a) => a.k === k).length;
+    const ORDER = ['late', 'wait', 'done'], HEAD = { late: 'Просрочены', wait: 'Ждём', done: 'Сданы' };
+    const card = (a) => h`<article class="cab-card dc dc-${a.k}" data-id="${a.id}"><div class="meta"><h3>${a.nm}</h3><span class="st c-${DOC_ST[a.k].cls}">${docText(a, today)}</span></div>
+      <p class="cs-subj">${a.subject || 'Без предмета'}${a.lesson_kind ? ' · ' + Cab.KIND[a.lesson_kind].toLowerCase() : ''}</p>
+      <p>Пропуск ${ddmm(a.date)}, ${num(a.hours)} ч · ${a.cert_type}</p>
+      ${a.k !== 'done' && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small primary" data-a="ok" data-id="${a.id}" aria-label="Подтвердить документ: ${a.nm}, ${a.subject || ''}">Подтвердить</button></div>` : ''}</article>`;
+    put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Журнал', `Семестр: ${Cab.dateText(rng.from)}${rng.to ? ' – ' + Cab.dateText(rng.to) : ''}`)}
       <div id="hmSeg"></div>
       ${closedNote(ctx)}
-      ${wait.length ? h`<div class="j2-card warn"><h2>Ждём ${wait.length} ${plural(wait.length, ['справку', 'справки', 'справок'])}</h2><p>Ближайший срок: ${wait[0].due_date ? dueWords(wait[0].due_date) : 'не указан'}</p></div>` : ''}
-      ${ctx.closed ? '' : h`<button type="button" class="j2-btn" id="hmNew"><span class="cab-ico sm">${icon.plus}</span>Новая справка</button>`}
-      ${cs.length ? '' : h`<p class="cab-empty">Нет справок</p>`}
-      ${wait.map(wcard)}
-      ${done.length ? h`<h2 class="cab-h2">Закрытые</h2>${done.map(dcard)}` : ''}`);
+      <div class="cab-tiles two dc-cnt"><div class="cab-tile t-coral"><b>Просрочены</b><span class="big">${cnt('late')}</span></div><div class="cab-tile t-amber"><b>Ждём</b><span class="big">${cnt('wait')}</span></div></div>
+      <div class="cab-card dc-done-cnt"><div class="meta"><b>Сданы и подтверждены</b><span class="j2-num">${cnt('done')}</span></div></div>
+      <div class="sl-tools"><input type="search" id="dcQ" placeholder="Поиск по фамилии" aria-label="Поиск студента" autocomplete="off" maxlength="60"></div>
+      <div id="dcF"></div><div id="dcList"></div>
+      <p class="cab-note">Подтвердить документ можно здесь или в карточке студента: это одна и та же запись пропуска.</p>`);
     jtabs($(el, '#hmSeg'), 'journal/certs');
-    const nb = $(el, '#hmNew');
-    if (nb) nb.onclick = () => newCert(ctx, stu);
+    const qi = $(el, '#dcQ'); qi.value = S.docs.q;
+    Cab.segmented($(el, '#dcF'), [{ value: 'all', label: 'Все' }, { value: 'wait', label: 'Ждём' }, { value: 'late', label: 'Просрочены' }, { value: 'done', label: 'Сданы' }], S.docs.f, (v) => { S.docs.f = v; paint(); });
+    function paint() {
+      const qs = norm(S.docs.q);
+      const rows = all.filter((a) => (S.docs.f === 'all' || a.k === S.docs.f) && (!qs || norm(a.nm).includes(qs) || norm(Cab.fullName(name.get(a.student_id) || {})).includes(qs)));
+      const by = (k) => rows.filter((a) => a.k === k).sort((a, b) => (k === 'done' ? b.date.localeCompare(a.date) : (a.cert_due_date || '9999').localeCompare(b.cert_due_date || '9999')) || a.nm.localeCompare(b.nm, 'ru'));
+      put($(el, '#dcList'), rows.length ? h`${ORDER.map((k) => { const g = by(k); return g.length ? h`<h2 class="cab-h2"><span>${HEAD[k]}</span><span class="c-mute">${g.length}</span></h2>${g.map(card)}` : ''; })}`
+        : h`<p class="cab-empty">${all.length ? 'Ничего не нашли' : 'В этом семестре документов нет'}</p>`);
+    }
+    qi.oninput = () => { S.docs.q = qi.value; paint(); };
+    paint();
     el.onclick = (e) => {
-      const b = e.target.closest('button[data-no]'); if (!b) return;
+      const b = e.target.closest('button[data-a="ok"]'); if (!b) return;
       act(b, async () => {
-        const c = wait.find((x) => x.id === b.dataset.no);
-        if (!(await confirmSheet('Справки нет?', `${nm(c)}: пропуски ${period(c.date_from, c.date_to)} останутся неуважительными.`, 'Да, справки нет'))) return;
-        await rpc('certificate_resolve', { p_certificate: c.id, p_status: 'none', p_absence_ids: [] });
-        toast('Отмечено: справки нет.', 'ok'); Cab.rerender();
+        const r = await q(sb.from('absences').update({ cert_submitted: true }).eq('id', b.dataset.id).select('id'));
+        toast(r.length ? 'Документ подтверждён.' : 'Не получилось сохранить: запись уже изменена.', r.length ? 'ok' : 'err');
+        Cab.rerender();
       });
     };
-  }
-
-  function newCert(ctx, stu) {
-    const day = day0();
-    const s = sheet('Новая справка', h`<label class="j2-field"><span>Студент</span><select id="ncS"><option value="">Выберите студента</option>${stu.map((x) => h`<option value="${x.id}">${Cab.initials(x)}</option>`)}</select></label>
-      <label class="j2-field"><span>Вид</span><select id="ncK"><option value="sick">Больничный</option><option value="statement">Заявление</option><option value="other">Другое</option></select></label>
-      <div class="j2-row"><label class="j2-field"><span>С</span><input id="ncF" type="date" value="${day}"></label><label class="j2-field"><span>По</span><input id="ncT" type="date" value="${day}"></label></div>
-      <label class="j2-field"><span>Срок сдачи</span><input id="ncD" type="date" value="${Cab.addDays(day, 3)}"></label>
-      <label class="j2-field"><span>Заметка</span><textarea id="ncN" maxlength="300" rows="2"></textarea></label>
-      <div class="j2-msg err" id="ncM" role="alert"></div>
-      <button class="j2-btn primary" type="button" id="ncOk">Добавить справку</button><button class="j2-btn" type="button" id="ncNo">Отмена</button>`);
-    const v = (id) => $(s.el, id).value;
-    let dueSet = false;
-    $(s.el, '#ncD').oninput = () => { dueSet = true; };
-    $(s.el, '#ncF').onchange = () => { if (v('#ncT') < v('#ncF')) $(s.el, '#ncT').value = v('#ncF'); $(s.el, '#ncT').onchange(); };
-    $(s.el, '#ncT').onchange = () => { if (!dueSet && v('#ncT')) $(s.el, '#ncD').value = Cab.addDays(v('#ncT'), 3); };
-    $(s.el, '#ncNo').onclick = s.close;
-    const ok = $(s.el, '#ncOk');
-    ok.onclick = () => act(ok, async () => {
-      const m = $(s.el, '#ncM'); m.textContent = '';
-      if (!v('#ncS')) { m.textContent = 'Выберите студента.'; return; }
-      if (!v('#ncF') || !v('#ncT') || !v('#ncD')) { m.textContent = 'Заполните даты.'; return; }
-      if (v('#ncT') < v('#ncF')) { m.textContent = 'Дата «по» раньше даты «с».'; return; }
-      await rpc('certificate_create', { p_student_id: v('#ncS'), p_kind: v('#ncK'), p_from: v('#ncF'), p_to: v('#ncT'), p_due: v('#ncD'), p_note: v('#ncN').trim() || null });
-      s.close(); toast('Справка добавлена.', 'ok'); Cab.rerender();
-    });
-  }
-
-  // ---------- «Справка получена»: какие пропуски она закрывает ----------
-  async function certDetail(el, ctx, id, nav) {
-    const c = await q(sb.from('certificates').select('id, student_id, kind, date_from, date_to, due_date, status, note').eq('id', id).eq('group_id', ctx.group.id).maybeSingle());
-    if (!c) { put(el, h`${head({ href: '#/journal/certs', text: 'Справки' }, roleText(ctx), 'Справка')}<p class="cab-empty">Справка не найдена. Возможно, её уже убрали.</p>`); return; }
-    const [stu, ab] = await Promise.all([
-      q(sb.from('students').select('id, last_name, first_name').eq('id', c.student_id).single()),
-      q(sb.from('absences').select('id, date, subject, hours, lesson_kind').eq('group_id', ctx.group.id).eq('student_id', c.student_id).eq('is_excused', false).gte('date', c.date_from).lte('date', c.date_to).order('date').order('created_at')),
-    ]);
-    if (!nav.isCurrent()) return;
-    const can = c.status === 'waiting' && !ctx.closed;
-    put(el, h`${head({ href: '#/journal/certs', text: 'Справки' }, roleText(ctx), 'Справка ' + Cab.initials(stu))}
-      ${closedNote(ctx)}
-      <div class="j2-field" style="cursor:default"><span>Справка</span><b style="font-size:17px">${period(c.date_from, c.date_to)}, ${KIND[c.kind] || 'справка'}</b>${c.note ? h`<span>${c.note}</span>` : ''}</div>
-      ${c.status === 'waiting' ? '' : h`<div class="j2-card"><h2>${c.status === 'received' ? 'Справка получена' : 'Справки нет'}</h2><p>Эта справка уже обработана.</p></div>`}
-      <div class="cab-card"><h3>Какие пропуски она закрывает</h3>
-        ${ab.length ? ab.map((a) => h`<label class="cab-chk"><input type="checkbox" value="${a.id}" ${can ? 'checked' : 'disabled'}><span>${Cab.dateText(a.date)}<small>${a.subject || 'Без предмета'}${a.lesson_kind ? ', ' + Cab.kindLow(a.lesson_kind) : ''}</small></span><b>${num(a.hours)} ч</b></label>`) : h`<p>В этот период неуважительных пропусков нет.</p>`}</div>
-      <div class="cab-card"><div class="meta"><b>Станут уважительными</b><span class="j2-num" id="cdSum"></span></div><p>Студент и преподаватели увидят новый статус</p></div>
-      ${can ? h`<button class="j2-btn primary" type="button" id="cdOk"></button><a class="j2-btn" href="#/journal/certs">Отмена</a>` : ''}`);
-    if (!can) { $(el, '#cdSum').textContent = '—'; return; }
-    const ok = $(el, '#cdOk');
-    const ids = () => $$(el, 'input:checked').map((x) => x.value);
-    const sync = () => {
-      const on = new Set(ids()), n = sum(ab.filter((a) => on.has(a.id)), (a) => a.hours);
-      $(el, '#cdSum').textContent = `${num(n)} ч`;
-      ok.textContent = on.size ? `Закрыть ${num(n)} ч справкой` : 'Отметить справку полученной';
-    };
-    el.onchange = sync; sync();
-    ok.onclick = () => act(ok, async () => {
-      const r = await rpc('certificate_resolve', { p_certificate: c.id, p_status: 'received', p_absence_ids: ids() });
-      toast(`Закрыто ${num(r && r.hours != null ? r.hours : 0)} ч справкой.`, 'ok');
-      location.hash = '#/journal/certs';
-    });
   }
 
   // =====================================================================================================
@@ -587,19 +619,32 @@
     paint();
   }
 
-  const KIND_ROWS = [['lecture', 'Лекции'], ['practice', 'Практические'], ['lab', 'Лабораторные'], [null, 'Без вида']];
+  // Таблица «по предметам»: строка = предмет, в ячейке часы вида занятия: красным неуважительные, зелёным уважительные.
+  // Лабораторные и «без вида» — колонки только если есть у кого-то из показанных предметов. Предметы без пропусков не показываем.
+  const dash = (why) => h`<td class="c-mute"><span aria-hidden="true">—</span><span class="sr-only">${why}</span></td>`;
+  const hrCell = (c) => (c.un || c.ex ? h`<td><b class="${c.un ? 'c-coral' : 'c-mute'}">${num(c.un)}</b><i aria-hidden="true">/</i><b class="${c.ex ? 'c-mint' : 'c-mute'}">${num(c.ex)}</b><span class="sr-only">неуважительных ${num(c.un)}, уважительных ${num(c.ex)}</span></td>` : dash('нет'));
+  function subjTable(st) {
+    const cols = [['lecture', 'Лекции'], ['practice', 'Практ.'], ...(st.lab ? [['lab', 'Лаб.']] : []), ...(st.none ? [['none', 'Без вида']] : [])];
+    // название предмета занимает всю ширину своей группы строк: слово остаётся целым даже на узком экране
+    const grp = (title, vals, tag) => h`<${raw(tag)} class="cs-g"><tr><th scope="rowgroup" colspan="${cols.length + 1}" class="cs-subj">${title}</th></tr><tr>${vals}</tr></${raw(tag)}>`;
+    return h`<table class="sc-tbl sc-subj"><thead><tr>${cols.map(([, t]) => h`<th scope="col">${t}</th>`)}<th scope="col">Всего</th></tr></thead>
+      ${st.list.map((r) => grp(r.subject, h`${cols.map(([k]) => (k === 'lab' && !r.hasLab ? dash('нет лабораторных') : hrCell(r[k])))}${hrCell({ un: r.un, ex: r.ex })}`, 'tbody'))}
+      ${grp('Итого', h`${cols.map(([k]) => hrCell(st.total[k]))}${hrCell({ un: st.total.un, ex: st.total.ex })}`, 'tfoot')}</table>`;
+  }
+
   async function studentCard(el, ctx, id, nav) {
     const gid = ctx.group.id, today = day0(), lim = limitOf(ctx);
-    const [s, ab, canc] = await Promise.all([
+    const [s, ab, canc, labs] = await Promise.all([
       q(sb.from('students').select('id, last_name, first_name').eq('id', id).eq('group_id', gid).maybeSingle()),
       q(sb.from('absences').select('id, date, subject, hours, is_excused, lesson_kind, created_by, comment, cert_type, cert_submitted, cert_due_date').eq('student_id', id).eq('group_id', gid).order('date', { ascending: false }).order('created_at', { ascending: false })),
       q(sb.from('absence_cancellations').select('id, absence, cancelled_by, cancelled_at').eq('student_id', id).eq('group_id', gid).order('cancelled_at', { ascending: false }).limit(30)).catch(() => []),   // история отмен: таблица есть с миграции 2.0.1
+      q(sb.from('schedule_lessons').select('subject').eq('group_id', gid).eq('kind', 'lab').limit(1000)).catch(() => []),   // у каких предметов есть лабораторные
     ]);
     if (!nav.isCurrent()) return;
     const back = { href: '#/journal/students', text: 'Студенты' };
     if (!s) { put(el, h`${head(back, roleText(ctx), 'Студент')}<p class="cab-empty">Студент не найден.</p>`); return; }
     const mon = statOf(ab.filter((a) => (a.date || '').slice(0, 7) === today.slice(0, 7)), today), tot = statOf(ab, today);
-    const rows = KIND_ROWS.map(([k, t]) => ({ t, ...statOf(ab.filter((a) => (a.lesson_kind || null) === k), today) })).filter((r, i) => i < 3 || r.tot > 0);
+    const labSubj = new Set(labs.map((x) => norm(x.subject)));
     const can = (a) => !ctx.closed && (!a.created_by || a.created_by === ctx.uid);       // свои и легаси; записи преподавателя не отменяются
     const kindTxt = (a) => (a.lesson_kind ? Cab.KIND[a.lesson_kind] : 'вид не указан');
     const item = (a) => { const ds = a.is_excused && a.cert_type ? Cab.docState(a, today) : null;
@@ -612,13 +657,19 @@
       ${closedNote(ctx)}
       <div class="cab-card"><div class="meta"><b>Этот месяц</b><span class="sl-num abs-${Cab.absTone(mon.un).cls}">${num(mon.un)} из ${lim} ч</span></div><p>Уважительных ${num(mon.ex)} ч, неуважительных ${num(mon.un)} ч</p>
         ${tot.late ? h`<p class="c-coral">Документов просрочено: ${tot.late}</p>` : tot.wait ? h`<p class="c-amber">Ждём документов: ${tot.wait}</p>` : ''}</div>
-      <div class="cab-card"><h3>Пропуски по видам занятий</h3><table class="sc-tbl"><thead><tr><th scope="col">Вид</th><th scope="col">Ув., ч</th><th scope="col">Неув., ч</th><th scope="col">Всего</th></tr></thead>
-        <tbody>${rows.map((r) => h`<tr><td>${r.t}</td><td>${num(r.ex)}</td><td>${num(r.un)}</td><td>${num(r.tot)}</td></tr>`)}</tbody>
-        <tfoot><tr><td>Итого</td><td>${num(tot.ex)}</td><td>${num(tot.un)}</td><td>${num(tot.tot)}</td></tr></tfoot></table></div>
+      <div class="cab-card"><h3>Пропуски по предметам</h3><div id="scSeg"></div><div id="scTbl"></div></div>
       <h2 class="cab-h2"><span>Все пропуски</span><span class="c-mute">${ab.length}</span></h2>
       ${ab.length ? h`<div class="cab-card">${ab.map(item)}</div>` : h`<p class="cab-empty">Пропусков нет.</p>`}
       ${canc.length ? h`<details class="st-det"><summary>История отмен: ${canc.length}</summary>${canc.map((c) => { const a = c.absence || {}, m = Cab.minsk(Date.parse(c.cancelled_at));
         return h`<div class="cab-kv"><span>${a.date ? Cab.dateText(a.date) : 'без даты'}, ${a.subject || 'без предмета'}, ${num(a.hours || 0)} ч<small class="c-mute" style="display:block">${c.cancelled_by === ctx.uid ? 'отменили вы' : 'отменил староста или заместитель'}, ${Cab.dateText(m.iso)} в ${String(m.hh).padStart(2, '0')}:${String(m.mm).padStart(2, '0')}</small></span></div>`; })}</details>` : ''}`);
+    const paintTbl = () => {
+      const m = S.card.period === 'month', st = Cab.subjStats(m ? ab.filter((a) => (a.date || '').slice(0, 7) === today.slice(0, 7)) : ab, labSubj);
+      put($(el, '#scTbl'), st.list.length ? h`${subjTable(st)}
+        <p class="cab-note"><b class="c-coral">Красный</b> — неуважительные часы, <b class="c-mint">зелёный</b> — уважительные.</p>
+        <div class="meta"><b>${m ? 'Неуважительных за месяц' : 'Неуважительных всего'}</b><span class="sl-num abs-${Cab.absTone(st.total.un).cls}">${num(st.total.un)}${m ? ` из ${lim}` : ''} ч</span></div>` : h`<p class="cab-empty">${m ? 'В этом месяце пропусков нет.' : 'Пропусков нет.'}</p>`);
+    };
+    Cab.segmented($(el, '#scSeg'), [{ value: 'month', label: 'Этот месяц' }, { value: 'all', label: 'Всё время' }], S.card.period, (v) => { S.card.period = v; paintTbl(); });
+    paintTbl();
     el.onclick = (e) => {
       const b = e.target.closest('button[data-a]'); if (!b) return;
       const a = ab.find((x) => x.id === b.dataset.id); if (!a) return;
@@ -683,7 +734,7 @@
   // Та же запись уже есть? Зачёт и экзамен — по предмету и дате, остальное ещё и по тексту. self — id правимой записи.
   const dupOf = (rows, fk, subject, due, text, self) => rows.find((x) => x.id !== self && formOf(x) === fk && norm(x.subject) === norm(subject) && x.due === due
     && (fk === 'zachet' || fk === 'exam' || norm(x.text) === norm(text)));
-  Cab.hm = { formOf, dupOf, FORMS };                                          // для проверок
+  Cab.hmTest = { formOf, dupOf, FORMS };                                       // для проверок
   const AUD = ['Вся группа', 'Подгруппа 1', 'Подгруппа 2'];
   let subjCache = null;
   async function subjects(gid) {
@@ -887,7 +938,7 @@
   }
 
   // Жест «потяни, чтобы обновить» (tg-app.js) не должен стирать отметки пропусков, которые ещё не сохранены
-  window.J2_NO_REFRESH = () => S.marks.size > 0;
+  window.J2_NO_REFRESH = () => S.dirty;
   // main общий для всех экранов: обработчики прошлого экрана снимаем перед отрисовкой нового
   const R = (fn) => ({ render: (el, ...a) => { el.onclick = el.onchange = null; return fn(el, ...a); } });
   const tab = (id, label, ico) => ({ id, label, icon: ico, path: id });
@@ -896,7 +947,7 @@
     tabs: [tab('summary', 'Сводка', icon.home), tab('journal', 'Журнал', icon.journal), tab('tasks', 'Задания', icon.tasks), tab('chat', 'Чат', icon.chat)],
     routes: {
       summary: R(summary), 'summary/requests': R(requests), 'summary/report': R(report), 'summary/erasure': R(erasure), 'summary/access': R(access),
-      journal: R(journal), 'journal/students': R(studentsList), 'journal/certs': R(certs), 'journal/history': R(history),
+      journal: R(journal), 'journal/students': R(studentsList), 'journal/certs': R(docs), 'journal/history': R(history),
       tasks: R(tasks), chat: R(chat),
     },
   });

@@ -319,7 +319,56 @@
     '<div class="cab-slow" hidden><p class="cab-note">Долго грузится. Проверьте связь</p><button class="j2-btn" type="button">Повторить</button></div></div>';
   // opts: { kind, tabs: [{id, label, icon, path}], routes: { 'home': {tab:'home', render(el, ctx, params)} }, start }
   // Адрес: #/home, #/study/homework, #/journal/certs. Вкладка = первый сегмент, если не указано иное.
+  // 2.0.2: название предмета не рвётся ни по слогам, ни посреди слова (CSS: cab.css, блок «целые слова»).
+  // Не влезает самое длинное слово — уменьшаем шрифт этого названия (не меньше 9px), слово остаётся целым.
+  // Дефис внутри слова («Функционально-стоимостный») заменяем неразрывным, иначе строка рвётся по нему.
+  const FIT = '.cab-lesson .n, .cab-lesson .k, .cab-tile b, .cab-card h3, .cab-h2 > span, .tc-head > span:first-child, .tc-top b, .st-sh-t, .hm-sheet-h, .sc-ab p, .sc-tbl th[scope="row"], .st-alert small, .cab-row b, .cab-row small, .cab-kv > span, .cab-chk small, .sl-row b, .mk-main b, .mk-p b, .cs-subj';
+  Cab.fitWords = (root, reset) => {
+    if (reset) (root || document).querySelectorAll('.fw-wide').forEach((x) => x.classList.remove('fw-wide'));   // ширина экрана изменилась: решаем заново
+    const hy = /(?<=\p{L})-(?=\p{L})/u, hyAll = /(?<=\p{L})-(?=\p{L})/gu;
+    (root || document).querySelectorAll(FIT).forEach((el) => {
+      const w = el.clientWidth; if (!w) return;
+      const key = w + ':' + el.textContent.length; if (el.dataset.fw === key) return;
+      const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) if (hy.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(hyAll, String.fromCharCode(0x2011));
+      el.style.fontSize = '';
+      const host = el.closest('.cab-tile, .cab-lesson');                         // слово не влезло даже в 11px: блок перестраивается на всю ширину (fw-wide)
+      const over = () => el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().right > document.documentElement.clientWidth;
+      const shrink = (min) => { let fs = parseFloat(getComputedStyle(el).fontSize), i = 0; while (over() && fs > min && i++ < 40) { fs -= 0.5; el.style.fontSize = fs + 'px'; } return !over(); };
+      if (!shrink(11)) { if (host) { host.classList.add('fw-wide'); el.style.fontSize = ''; } shrink(9); }
+      el.dataset.fw = el.clientWidth + ':' + el.textContent.length;
+    });
+  };
+  const fitInit = () => { try {
+    let raf = 0, reset = false;
+    const run = () => { const r = reset; raf = 0; reset = false; try { Cab.fitWords(null, r); } catch (e) { /* подбор шрифта не должен мешать экрану */ } };
+    const go = (r) => { if (r === true) reset = true; if (!raf) raf = requestAnimationFrame(run); };
+    new MutationObserver(() => go()).observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', () => go(true));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => go(true));
+  } catch (e) { /* старый движок: названия просто переносятся по словам */ } };
+
+  // 2.0.2: пропуски по предметам и видам занятий. rows — записи absences, labSubj — Set предметов (в нижнем регистре), у которых есть лабораторные в расписании.
+  // Часы каждой записи идут в одну ячейку: неуважительные (un) или уважительные (ex); none — запись без вида занятия.
+  const SK = ['lecture', 'practice', 'lab', 'none'];
+  Cab.subjStats = (rows, labSubj) => {
+    const by = new Map(), key = (x) => String(x || '').trim().toLowerCase();
+    (rows || []).forEach((a) => {
+      const n = Number(a.hours) || 0; if (!n) return;
+      const k = key(a.subject) || '-';
+      let r = by.get(k);
+      if (!r) { r = { subject: String(a.subject || '').trim() || 'Без предмета', un: 0, ex: 0, tot: 0, hasLab: !!(labSubj && labSubj.has(k)) }; SK.forEach((x) => { r[x] = { un: 0, ex: 0 }; }); by.set(k, r); }
+      const kind = SK.includes(a.lesson_kind) ? a.lesson_kind : 'none', f = a.is_excused ? 'ex' : 'un';
+      r[kind][f] += n; r[f] += n; r.tot += n; if (kind === 'lab') r.hasLab = true;
+    });
+    const list = [...by.values()].sort((a, b) => b.tot - a.tot || a.subject.localeCompare(b.subject, 'ru'));
+    const total = { un: 0, ex: 0, tot: 0 }; SK.forEach((x) => { total[x] = { un: 0, ex: 0 }; });
+    list.forEach((r) => { total.un += r.un; total.ex += r.ex; total.tot += r.tot; SK.forEach((x) => { total[x].un += r[x].un; total[x].ex += r[x].ex; }); });
+    return { list, total, lab: list.some((r) => r.hasLab), none: total.none.un + total.none.ex > 0 };
+  };
+
   Cab.start = async function (opts) {
+    fitInit();
     const root = document.getElementById('cab');
     let ctx;
     try { ctx = await Cab.load(opts.kind); }
@@ -451,6 +500,9 @@
     : !r.cert_due_date ? { text: 'срок не указан', cls: 'c-amber' }
     : r.cert_due_date < today ? { text: 'просрочен, ждали до ' + Cab.dateText(r.cert_due_date), cls: 'c-coral' }
     : { text: 'ждём до ' + Cab.dateText(r.cert_due_date), cls: 'c-amber' };
+
+  // Состояние документа по сроку: сдан (done), срок прошёл (late), ждём (wait). Просрочка — срок строго раньше сегодняшнего дня.
+  Cab.docKind = (r, today) => (r.cert_submitted ? 'done' : r.cert_due_date && r.cert_due_date < today ? 'late' : 'wait');
 
   // Цвет часов неуважительных пропусков: до 3 ч включительно зелёный (0–2 ч), 4–7 ч жёлтый (4–6 ч), от 8 ч красный
   Cab.absTone = (hours) => { const v = Number(hours) || 0; return v >= 8 ? { cls: 'r', color: 'var(--abs-r)' } : v >= 4 ? { cls: 'y', color: 'var(--abs-y)' } : { cls: 'g', color: 'var(--abs-g)' }; };

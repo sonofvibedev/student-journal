@@ -1,4 +1,4 @@
-// Экраны 2.0.1 (app.html и headman.html) в настоящем браузере БЕЗ сети: Supabase подменён заглушкой, ни тест, ни прод не затрагиваются.
+// Экраны 2.0.1 и 2.0.2 (app.html и headman.html) в настоящем браузере БЕЗ сети: Supabase подменён заглушкой, ни тест, ни прод не затрагиваются.
 // Запуск: node tests/e2e/v201-mock.mjs  (нужен Chromium: CHROME_PATH или tools/test/chrome.mjs). Снимки 360×740 — SHOTS_DIR или %TEMP%\v201-shots.
 // Что проверяется: цвет и подпись пропусков, зачёт за 7 и 8 дней, плашка «Что нового» один раз, преподаватели, «Добавить домашку» по доступу,
 // отметка пары (был / Н / Ув., 2 часа, причина и срок), «Студенты» и карточка (отмена, документ), «Доступы», формы заданий по типам и защита от дублей.
@@ -42,7 +42,7 @@ const mk = () => ({
   absences: [abs('ab-1', 's-a', '2026-11-03', 'Логистика', 2, false, 'lecture'), abs('ab-2', 's-a', '2026-11-04', 'Логистика', 2, false, 'lab'),
     abs('ab-3', 's-a', '2026-11-05', 'Эконометрика', 2, true, 'practice', { cert_type: 'Справка', cert_due_date: '2026-11-06' }), abs('ab-4', 's-b', '2026-11-05', 'Логистика', 4, false, 'lecture', { created_by: 'u-teacher' })],
   homework_editors: [], absence_cancellations: [{ id: 'c1', absence: { date: '2026-10-30', subject: 'Логистика', hours: 2 }, cancelled_by: 'u-me', cancelled_at: '2026-11-02T10:00:00Z' }],
-  notifications: [], certificates: [], schedule_meta: [{ last_import_at: '2026-11-08T10:00:00Z', semester_end: null }],
+  notifications: [], certificates: [], schedule_meta: [{ last_import_at: '2026-11-08T10:00:00Z', semester_start: '2026-08-31', semester_end: '2026-12-18' }],
   rpc: { absence_hours_my: { total: 6, excused: 2, unexcused: 4, warn_hours: 8, dean_hours: 12 }, data_deletion_requests_list: [], homework_access_set: null },
 });
 let DB = mk(), LOG = [];
@@ -56,6 +56,7 @@ async function fake(route) {
   const rpc = /^\/rest\/v1\/rpc\/(.+)$/.exec(path);
   if (rpc) { LOG.push({ m, rpc: rpc[1], body: req.postDataJSON() }); return route.fulfill(J(200, DB.rpc[rpc[1]] ?? null)); }
   const t = /^\/rest\/v1\/(.+)$/.exec(path); if (!t) return route.fulfill(J(404, {}));
+  if ((DB.fail || []).includes(t[1])) return route.fulfill(J(500, { message: 'boom' }));
   let rows = DB[t[1]] || [];
   for (const [k, v] of u.searchParams) if (/^eq./.test(v) && rows.length && k in rows[0]) rows = rows.filter((r) => String(r[k]) === v.slice(3));   // фильтры eq: только по столбцам, которые есть в строках
   if (m === 'GET' || m === 'HEAD') {
@@ -95,12 +96,12 @@ try {
   {
     const { ctx, page, errs } = await open('/home', 'app.html');
     await page.waitForSelector('.cab-ringcard');
-    const h3 = (await T(page, '.cab-ringcard h3')).replace(/\s+/g, ' ');
-    check('главная: «Пропуски 4 из 12», без подписей про предупреждение и деканат', h3 === 'Пропуски 4 из 12' && !/предупрежд|деканат/i.test(await T(page, '.cab-ringcard')), h3);
-    check('главная: 4 ч — жёлтый', await page.locator('.cab-ringcard h3 b.abs-y').count() === 1);
+    const h3 = (await T(page, '.cab-ringcard h3')).replace(/\s+/g, ' '), ring = (await T(page, '.cab-ringcard .ringnum')).replace(/\s+/g, ' ');
+    check('главная: подпись «Пропуски», в круге «4 из 12», без подписей про предупреждение и деканат', h3 === 'Пропуски' && ring === '4 из 12' && !/предупрежд|деканат/i.test(await T(page, '.cab-ringcard')), h3 + ' | ' + ring);
+    check('главная: 4 ч — жёлтый', await page.locator('.cab-ringcard .ringnum b.abs-y').count() === 1);
     const tiles = await page.locator('.cab-tiles .cab-tile').allInnerTexts();
     check('главная: экзамен через 7 дней виден, зачёт через 8 дней скрыт', tiles.some((x) => /Логистика/.test(x) && /7 дней/.test(x)) && !tiles.some((x) => /Эконометрика/.test(x) && /8 дней/.test(x)), tiles.join(' | '));
-    check('плашка «Что нового»: показана при первом входе', await page.locator('.cab-wn').count() === 1 && /2\.0\.1/.test(await T(page, '.cab-wn')));
+    check('плашка «Что нового»: показана при первом входе', await page.locator('.cab-wn').count() === 1 && /2.0.2/.test(await T(page, '.cab-wn')));
     check('плашка: есть полоска прогресса', await page.locator('.cab-wn .cab-wn-bar').count() === 1);
     await shot(page, 'home');
     check('главная 360 px: без горизонтальной прокрутки', await noOverflow(page));
@@ -110,7 +111,7 @@ try {
     check('плашка: после перезахода не повторяется', await p2.locator('.cab-wn').count() === 0);
     await page.waitForTimeout(5600);
     check('плашка: исчезает сама через 5 секунд', await page.locator('.cab-wn').count() === 0);
-    check('профиль: подпись версии и строка «Что нового»', await (async () => { await p2.goto(`${BASE}/app.html#/profile`); await p2.waitForSelector('.pf-card'); const t = await p2.locator('#cabMain').innerText(); return /Версия 2\.0\.1/.test(t) && /Что нового/.test(t); })());
+    check('профиль: подпись версии и строка «Что нового»', await (async () => { await p2.goto(`${BASE}/app.html#/profile`); await p2.waitForSelector('.pf-card'); const t = await p2.locator('#cabMain').innerText(); return /Версия 2.0.2/.test(t) && /Что нового/.test(t); })());
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
   }
   // ---------- преподаватели ----------
@@ -148,7 +149,7 @@ try {
   {
     const { ctx, page, errs } = await open('/journal', 'headman.html', { staff: true });
     await page.waitForSelector('.mk-row');
-    check('журнал: регулятора часов нет, за пару 2 часа', await page.locator('#hmHrs, #hmPlus, #hmMinus').count() === 0 && /2 ч/.test(await T(page, '#hmSel option')));
+    check('журнал: регулятора часов и ручного ввода предмета нет, за пару 2 часа', await page.locator('#hmHrs, #hmPlus, #hmMinus, #hmSubj, #hmKind, #hmSel').count() === 0 && /за пару 2 ч/.test(await T(page, '#hmBarL')));
     check('журнал: переключатель «Отметки | Студенты»', /Отметки/.test(await T(page, '#hmSeg')) && /Студенты/.test(await T(page, '#hmSeg')));
     const row = (i) => page.locator('.mk-row').nth(i);
     await row(1).locator('button[data-s="a"]').click();
@@ -164,7 +165,7 @@ try {
     await page.click('#hmSave'); await page.waitForTimeout(600);
     const up = LOG.find((x) => x.m === 'POST' && x.table === 'absences'), rows = (up && up.body) || [];
     const by = (sid) => rows.find((r) => r.student_id === sid);
-    check('сохранение: все по 2 часа, Н неуважительная', rows.length === 3 && rows.every((r) => r.hours === 2) && by('s-b').is_excused === false, JSON.stringify(rows));
+    check('сохранение: все по 2 часа, Н неуважительная, вид и пара из расписания', rows.length === 3 && rows.every((r) => r.hours === 2 && r.lesson_kind === 'lab' && r.pair_no === 3 && r.subject === 'Логистика') && by('s-b').is_excused === false, JSON.stringify(rows));
     check('сохранение: уважительная с причиной и сроком', by('s-c').is_excused === true && by('s-c').cert_type === 'Освобождение' && by('s-c').cert_due_date === '2026-11-14' && by('s-c').cert_submitted === false, JSON.stringify(by('s-c')));
     check('сохранение: «уже сдал» — без срока', by('s-me').cert_submitted === true && by('s-me').cert_due_date === null && by('s-me').cert_type === 'Справка', JSON.stringify(by('s-me')));
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
@@ -182,7 +183,7 @@ try {
     await shot(page, 'students'); check('студенты 360 px: без горизонтальной прокрутки', await noOverflow(page));
     await a.click(); await page.waitForSelector('.sc-tbl');
     const tbl = (await T(page, '.sc-tbl')).replace(/\s+/g, ' ');
-    check('карточка: таблица по лекциям, практическим и лабораторным', /Лекции/.test(tbl) && /Практические/.test(tbl) && /Лабораторные/.test(tbl) && /Итого\s+2\s+4\s+6/.test(tbl), tbl);
+    check('карточка: таблица по предметам и видам занятий', /Лекции/.test(tbl) && /Практ\./.test(tbl) && /Лаб\./.test(tbl) && /Логистика/.test(tbl) && /Эконометрика/.test(tbl), tbl);
     const list = await page.locator('.sc-ab').allInnerTexts();
     check('карточка: список пропусков — дата, предмет, вид, причина', list.length === 3 && /Логистика · Лекция/.test(list.join(' ')) && /Справка, просрочен/.test(list.join(' ').replace(/\s+/g, ' ')), list.join(' | '));
     check('карточка: история отмен', await page.locator('.st-det summary').count() === 1);
@@ -235,6 +236,165 @@ try {
     await shot(page, 'tasks'); check('задания 360 px: без горизонтальной прокрутки', await noOverflow(page));
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
   }
+  // =====================================================================================================
+  // 2.0.2
+  // =====================================================================================================
+  const LONG1 = 'Интегрированные маркетинговые коммуникации', LONG2 = 'Функционально-стоимостный анализ';
+  // Слова названий целые: ни одно слово не лежит на двух строках, нет горизонтального выхода за блок, нет переноса по слогам и обрезки
+  const brokenWords = (page) => page.evaluate(() => {
+    const bad = [];
+    document.querySelectorAll('.cab-lesson .n, .cab-lesson .k, .cab-card h3, .cab-tile b, .st-alert small, .tc-head > span:first-child, .tc-top b, .mk-p b, .cs-subj, .sc-subj th[scope=row], .cab-h2 > span, .st-sh-t').forEach((el) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let n = w.nextNode(); n; n = w.nextNode()) for (const m of n.nodeValue.matchAll(/\S+/g)) {
+        const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+        if (r.getClientRects().length > 1) bad.push('разорвано: ' + m[0]);
+      }
+      if (el.scrollWidth > el.clientWidth + 1) bad.push('выходит за блок: ' + el.className + ' / ' + el.parentElement.className + ' / ' + el.textContent.slice(0, 40) + ' ' + el.scrollWidth + '>' + el.clientWidth + ' ' + getComputedStyle(el).fontSize);
+      const cs = getComputedStyle(el);
+      if (cs.hyphens !== 'none' || cs.overflowWrap !== 'normal' || cs.wordBreak !== 'normal') bad.push('css: ' + el.className + ' ' + cs.hyphens + '/' + cs.overflowWrap + '/' + cs.wordBreak);
+      if (cs.textOverflow === 'ellipsis' || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none')) bad.push('обрезка: ' + el.className);
+    });
+    return [...new Set(bad)];
+  });
+  // ---------- названия предметов целиком (320 и 360 px) ----------
+  for (const width of [320, 360]) {
+    const { ctx, page, errs } = await open('/home', 'app.html', { size: [width, 740] });
+    DB.schedule_lessons[0].subject = LONG1; DB.schedule_lessons[1].subject = LONG2;
+    DB.tasks.find((x) => x.id === 'dl-1').rec.subject = LONG1; DB.tasks.find((x) => x.id === 'hw-1').rec.subject = LONG2;
+    for (const [route, sel] of [['/home', '.cab-lesson'], ['/schedule', '.cab-lesson'], ['/study/homework', '.cab-card'], ['/study/deadlines', '.cab-card'], ['/study/teachers', '.tc-card']]) {
+      await page.goto(`${BASE}/app.html#${route}`); await page.reload(); await page.waitForSelector(sel); await page.waitForTimeout(500);
+      if (route === '/study/teachers') { await page.locator('.tc-head').first().click(); await page.waitForTimeout(450); }
+      check(`слова целые, ${width} px: ${route}`, (await brokenWords(page)).length === 0 && await noOverflow(page), (await brokenWords(page)).join(' | '));
+      if (width === 320 && route === '/home') await shot(page, 'long-subjects-home');
+    }
+    check(`${width} px: названия на месте, не сокращены`, (await page.locator('body').innerText()).includes('Интегрированные'), '');
+    check(`${width} px: дефис внутри слова не рвёт строку`, !(await page.evaluate(() => [...document.querySelectorAll('.cab-lesson .n')].some((n) => /Функционально-$/.test(n.innerText.split('\n')[0] || '')))));
+    check(`${width} px: ошибок страницы нет`, errs.length === 0, errs.join(' / ')); await ctx.close();
+  }
+  {
+    const { ctx, page, errs } = await open('/journal/student/s-a', 'headman.html', { staff: true, size: [320, 740] });
+    await page.waitForSelector('.sc-subj');
+    DB.absences.push(abs('ab-long', 's-a', '2026-11-06', LONG1, 2, false, 'lecture'), abs('ab-long2', 's-a', '2026-11-06', LONG2, 2, true, 'practice', { cert_type: 'Справка', cert_due_date: '2026-11-12' }));
+    await page.reload(); await page.waitForSelector('.sc-subj');
+    check('слова целые, 320 px: таблица по предметам и список пропусков', (await brokenWords(page)).length === 0 && await noOverflow(page), (await brokenWords(page)).join(' | '));
+    await shot(page, 'long-subjects-card'); await ctx.close();
+  }
+  // ---------- таблица по предметам в карточке студента ----------
+  {
+    const cells = (page, row) => page.evaluate((r) => [...document.querySelectorAll(`.sc-subj ${r} > *`)].map((c) => { const m = /неуважительных (\d+), уважительных (\d+)/.exec(c.textContent); return m ? [+m[1], +m[2]] : c.textContent.replace(/\s+/g, ' ').trim(); }), row);
+    const { ctx, page, errs } = await open('/journal/student/s-a', 'headman.html', { staff: true });
+    DB.absences.push(abs('ab-old', 's-a', '2026-10-20', 'Логистика', 2, false, 'lecture'));
+    await page.reload(); await page.waitForSelector('.sc-subj');
+    const rows = await page.evaluate(() => [...document.querySelectorAll('.sc-subj tbody th.cs-subj')].map((r) => r.textContent.trim()));
+    check('таблица: строка на предмет с пропусками, остальных предметов нет', rows.join('|') === 'Логистика|Эконометрика', rows.join('|'));
+    const head = (await page.locator('.sc-subj thead').innerText()).replace(/\s+/g, ' ');
+    check('таблица: колонки лекции, практические, лабораторные (лабораторные у Логистики есть)', /Лекции Практ\. Лаб\. Всего/.test(head), head);
+    const r1 = await cells(page, 'tbody:nth-of-type(1) tr:nth-child(2)'), r2 = await cells(page, 'tbody:nth-of-type(2) tr:nth-child(2)'), tf = await cells(page, 'tfoot tr:nth-child(2)');
+    check('таблица (этот месяц): Логистика — лекция 2/0, лабораторная 2/0, всего 4/0', JSON.stringify(r1) === JSON.stringify([[2, 0], '—нет', [2, 0], [4, 0]]), JSON.stringify(r1));
+    check('таблица: Эконометрика — практическое 0/2, лабораторных нет, всего 0/2', JSON.stringify(r2) === JSON.stringify(['—нет', [0, 2], '—нет лабораторных', [0, 2]]), JSON.stringify(r2));
+    check('таблица: итого студента 4 неуважительных и 2 уважительных', JSON.stringify(tf) === JSON.stringify([[2, 0], [0, 2], [2, 0], [4, 2]]), JSON.stringify(tf));
+    check('таблица: «4 из 12» за месяц и уважительные/неуважительные различимы цветом', /4 из 12 ч/.test(await T(page, '#scTbl .meta')) && await page.locator('.sc-subj td b.c-coral').count() > 0 && await page.locator('.sc-subj td b.c-mint').count() > 0);
+    const listSum = (await page.locator('.sc-ab .meta span').allInnerTexts()).reduce((n, t) => n + (+/(\d+)\s*ч/.exec(t)[1]), 0);
+    check('таблица: сумма сходится со списком пропусков (все записи за период)', listSum === 8 && (await page.evaluate(() => 0)) === 0, String(listSum));
+    await page.click('#scSeg button[data-v="all"]');
+    const tfAll = await cells(page, 'tfoot tr:nth-child(2)');
+    check('таблица (всё время): итого 6 неуважительных и 2 уважительных, «6 ч»', JSON.stringify(tfAll.slice(-1)) === JSON.stringify([[6, 2]]) && /всего\s+6 ч/.test(await T(page, '#scTbl .meta')), JSON.stringify(tfAll));
+    await shot(page, 'student-card-subjects'); check('таблица 360 px: без горизонтальной прокрутки', await noOverflow(page));
+    // у студента без лабораторных колонки «Лаб.» нет
+    DB.schedule_lessons = DB.schedule_lessons.filter((l) => l.kind !== 'lab');
+    await page.goto(`${BASE}/headman.html#/journal/student/s-b`); await page.reload(); await page.waitForSelector('.sc-subj');
+    const h2 = (await T(page, '.sc-subj thead')).replace(/\s+/g, ' ');
+    check('таблица: нет лабораторных ни у одного предмета — колонки «Лаб.» нет', !/Лаб\./.test(h2) && /Лекции Практ\. Всего/.test(h2), h2);
+    check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
+  }
+  // ---------- «Внести пропуски»: пары из расписания ----------
+  {
+    const { ctx, page, errs } = await open('/journal', 'headman.html', { staff: true });
+    await page.waitForSelector('.mk-pair');
+    const pairs = await page.locator('.mk-pair').allInnerTexts();
+    check('пары: дата и список пар дня из расписания (предмет, вид, время, аудитория)', (await page.inputValue('#hmDate')) === TODAY && pairs.length === 6 && /09:00/.test(pairs[0]) && /Логистика/.test(pairs[0]) && /Лекция/.test(pairs[0]) && /ауд\. 101/.test(pairs[0]), pairs.join(' || '));
+    check('пары: идущая сейчас выбрана сама, подгруппа показана', /Идёт сейчас/.test(pairs[2]) && /1 подгр\./.test(pairs[1]));
+    await page.locator('.mk-pair').nth(5).click(); await page.waitForSelector('.mk-row');
+    check('пара: предмет и вид подставляются сами, ручного ввода нет', await page.locator('#hmSubj, #hmKind, #hmSel').count() === 0 && (await page.locator('.mk-pair.on').innerText()).includes('Эконометрика'));
+    await page.locator('.mk-row').first().locator('button[data-s="a"]').click();
+    await page.click('#hmSave'); await page.waitForTimeout(600);
+    const up = LOG.find((x) => x.m === 'POST' && x.table === 'absences'), r0 = up && up.body && up.body[0];
+    check('пара: запись — предмет, вид и номер пары из расписания, 2 часа', r0 && up.body.length === 1 && r0.subject === 'Эконометрика' && r0.lesson_kind === 'lecture' && r0.pair_no === 6 && r0.hours === 2 && r0.date === TODAY, JSON.stringify(up));
+    await page.fill('#hmDate', '2026-11-08'); await page.dispatchEvent('#hmDate', 'change'); await page.waitForTimeout(500);
+    check('нет пар в расписании: «На эту дату пар нет по расписанию»', /На эту дату пар нет по расписанию/.test(await T(page, '#hmPairs')) && await page.locator('.mk-pair, .mk-row').count() === 0);
+    await shot(page, 'journal-no-pairs'); check('пары 360 px: без горизонтальной прокрутки', await noOverflow(page));
+    check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
+  }
+  {
+    const { ctx, page, errs } = await open('/journal', 'headman.html', { staff: true });
+    DB.fail = ['schedule_lessons']; await page.reload(); await page.waitForTimeout(1500);
+    check('расписание не загрузилось: ошибка, пар и отметок не показываем', /Расписание не загрузилось/.test(await T(page, '#hmPairs')) && await page.locator('.mk-pair, .mk-row').count() === 0);
+    DB.fail = []; await page.click('#hmRetry'); await page.waitForSelector('.mk-pair');
+    check('повтор после ошибки подтягивает пары', await page.locator('.mk-pair').count() === 6);
+    await ctx.close();
+  }
+  {
+    // уже внесённая пара: помечена, правка меняет те же записи, дублей нет
+    const { ctx, page, errs } = await open('/journal', 'headman.html', { staff: true });
+    DB.schedule_lessons.push(lesson('Логистика', 'lab', 'Сидоров С.С.', 7));
+    DB.absences.push(abs('ab-t1', 's-a', TODAY, 'Логистика', 2, false, 'lecture', { pair_no: 1 }), abs('ab-t2', 's-b', TODAY, 'Логистика', 2, true, 'lecture', { pair_no: 1, cert_type: 'Справка', cert_due_date: '2026-11-12' }),
+      abs('ab-t3', 's-c', TODAY, 'Логистика', 2, false, 'lab', { pair_no: 3 }));
+    await page.reload(); await page.waitForSelector('.mk-pair');
+    const ps = await page.locator('.mk-pair').allInnerTexts();
+    check('уже отмеченные пары помечены; пары того же предмета с другим видом или номером — нет', /Отмечена: 2/.test(ps[0]) && !/Отмечена/.test(ps[1]) && /Отмечена: 1/.test(ps[2]) && !/Отмечена/.test(ps[6]), ps.map((x) => x.replace(/\s+/g, ' ')).join(' || '));
+    await page.locator('.mk-pair').nth(0).click(); await page.waitForSelector('.mk-row');
+    const st = await page.locator('.mk-row').evaluateAll((r) => r.map((x) => x.className));
+    check('повторная отметка: внесённые подставлены (Н и Ув.), остальные «Был»', /st-abs/.test(st[0]) && /st-exc/.test(st[1]) && !/st-/.test(st[2]) && await page.locator('.mk-row').nth(1).locator('select').inputValue() === 'Справка');
+    const row = (i) => page.locator('.mk-row').nth(i);
+    check('без изменений сохранить нельзя', await page.locator('#hmSave').isDisabled());
+    await row(0).locator('button[data-s="e"]').click();         // Н → Ув.
+    await row(1).locator('button[data-s="p"]').click();         // Ув. → Был: запись отменяется
+    await row(2).locator('button[data-s="a"]').click();         // новый Н
+    check('кнопка: что изменится', /новых 1/.test(await T(page, '#hmSave')) && /изменить 1/.test(await T(page, '#hmSave')) && /убрать 1/.test(await T(page, '#hmSave')), await T(page, '#hmSave'));
+    await page.click('#hmSave'); await page.waitForSelector('.cab-modal');
+    check('убрать пропуск: сначала подтверждение', /Убрать пропуски\?/.test(await T(page, '.cab-modal')));
+    await page.click('.cab-modal button[data-a="ok"]'); await page.waitForTimeout(700);
+    const posts = LOG.filter((x) => x.m === 'POST' && x.table === 'absences'), patch = LOG.filter((x) => x.m === 'PATCH' && x.table === 'absences'), del = LOG.filter((x) => x.m === 'DELETE' && x.table === 'absences');
+    check('повторная отметка: правка — PATCH той же записи, без дубля', patch.length === 1 && /id=eq\.ab-t1/.test(patch[0].q) && patch[0].body.is_excused === true && patch[0].body.cert_type === 'Справка', JSON.stringify(patch));
+    check('повторная отметка: «Был» — DELETE записи, новая отметка — один POST только на нового', del.length === 1 && /id=eq\.ab-t2/.test(del[0].q) && posts.length === 1 && posts[0].body.length === 1 && posts[0].body[0].student_id === 's-c' && posts[0].body[0].pair_no === 1, JSON.stringify({ del, posts }));
+    check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
+  }
+  // ---------- «Справки» ----------
+  {
+    const { ctx, page, errs } = await open('/journal/certs', 'headman.html', { staff: true });
+    DB.absences.push(abs('ab-d2', 's-b', '2026-11-06', 'Логистика', 2, true, 'lecture', { cert_type: 'Заявление', cert_due_date: '2026-11-12' }), abs('ab-d3', 's-c', '2026-11-02', 'Логистика', 2, true, 'practice', { cert_type: 'Справка', cert_submitted: true }),
+      abs('ab-d4', 's-a', '2026-05-01', 'Логистика', 2, true, 'lecture', { cert_type: 'Справка', cert_due_date: '2026-05-05' }), abs('ab-d5', 's-c', '2026-11-08', 'Эконометрика', 2, true, 'lecture', { cert_type: 'Справка', cert_due_date: TODAY }));
+    await page.reload(); await page.waitForSelector('.dc');
+    const cnt = await page.evaluate(() => [...document.querySelectorAll('.dc-cnt .big, .dc-done-cnt .j2-num')].map((x) => x.textContent.trim()));
+    check('справки: счётчики — просрочены 1, ждём 2 (срок сегодня ещё ждём), сданы 1; запись вне семестра не считается', cnt.join(',') === '1,2,1', cnt.join(','));
+    const txt = (await T(page, '#dcList')).replace(/\s+/g, ' ');
+    check('справки: статусы «просрочена», «ждём до ДД.ММ», «сдана» по сроку', /просрочена, срок был 06\.11/.test(txt) && /ждём до 12\.11/.test(txt) && /ждём до 09\.11/.test(txt) && /сдана/.test(txt) && !/01\.05|05\.05/.test(txt), txt);
+    check('справки: у записи студент, предмет, дата пропуска, часы, вид документа', /Борисова Б\.\s+ждём до 12\.11\s+Логистика · лекция\s+Пропуск 06\.11, 2 ч · Заявление/.test(txt.replace(/\s+/g, ' ')) || /Борисова/.test(txt) && /Пропуск 06\.11, 2 ч · Заявление/.test(txt), txt);
+    const heads = await page.locator('#dcList .cab-h2 span:first-child').allInnerTexts();
+    check('справки: просроченные сверху отдельной группой', heads.join('|') === 'Просрочены|Ждём|Сданы' && await page.locator('.dc-late').count() === 1, heads.join('|'));
+    await page.click('#dcF button[data-v="late"]'); check('справки: фильтр «Просрочены»', await page.locator('.dc').count() === 1 && /Андреев/.test(await T(page, '.dc')));
+    await page.click('#dcF button[data-v="all"]'); await page.fill('#dcQ', 'борис'); check('справки: поиск по студенту', await page.locator('.dc').count() === 1 && /Борисова/.test(await T(page, '.dc')));
+    await page.fill('#dcQ', ''); await shot(page, 'docs'); check('справки 360 px: без горизонтальной прокрутки', await noOverflow(page));
+    await page.locator('.dc', { hasText: 'Борисова' }).locator('button[data-a="ok"]').click(); await page.waitForTimeout(600);
+    const pt = LOG.find((x) => x.m === 'PATCH' && x.table === 'absences');
+    check('справки: «Подтвердить» — та же запись пропуска, cert_submitted = true', pt && /id=eq\.ab-d2/.test(pt.q) && pt.body.cert_submitted === true && Object.keys(pt.body).length === 1, JSON.stringify(pt));
+    await page.goto(`${BASE}/headman.html#/summary`); await page.reload(); await page.waitForSelector('.cab-tile');
+    const tile = (await page.locator('.cab-tile', { hasText: 'Справки' }).innerText()).replace(/\s+/g, ' ');
+    check('сводка: плитка «Справки» — ждём 3 (с просроченной), просрочено 1', /3/.test(tile) && /просрочено 1/.test(tile), tile);
+    check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
+  }
+  {
+    const { ctx, page } = await open('/journal/certs', 'headman.html', { staff: true, size: [320, 740] });
+    await page.waitForSelector('.dc'); check('справки 320 px: без горизонтальной прокрутки', await noOverflow(page)); await ctx.close();
+  }
+  // ---------- роли: студент без роли старосты не видит кабинет старосты ----------
+  {
+    const { ctx, page } = await open('/home', 'app.html');
+    await page.goto(`${BASE}/headman.html#/journal/certs`); await page.waitForTimeout(2500);
+    const body = await page.locator('body').innerText();
+    check('роль «студент»: в кабинете старосты нет ни пар, ни справок, ни отметок', !/Подтвердить|Внести|Отметьте|Просрочены/.test(body) && await page.locator('.mk-pair, .dc, .mk-row').count() === 0, body.slice(0, 160).replace(/\s+/g, ' '));
+    await ctx.close();
+  }
   // ---------- граница цвета на реальном кольце (0, 2, 4, 6, 8, 10, 12) ----------
   {
     const exp = { 0: 'g', 2: 'g', 4: 'y', 6: 'y', 8: 'r', 10: 'r', 12: 'r' };
@@ -242,7 +402,7 @@ try {
     for (const [h, c] of Object.entries(exp)) {
       DB.rpc.absence_hours_my = { total: +h, excused: 0, unexcused: +h, warn_hours: 8, dean_hours: 12 };
       await page.reload(); await page.waitForSelector('.cab-ringcard');
-      check(`кольцо ${h} ч — ${{ g: 'зелёный', y: 'жёлтый', r: 'красный' }[c]}`, await page.locator(`.cab-ringcard h3 b.abs-${c}`).count() === 1 && (await T(page, '.cab-ringcard h3')).replace(/\s+/g, ' ') === `Пропуски ${h} из 12`);
+      check(`кольцо ${h} ч — ${{ g: 'зелёный', y: 'жёлтый', r: 'красный' }[c]}`, await page.locator(`.cab-ringcard .ringnum b.abs-${c}`).count() === 1 && (await T(page, '.cab-ringcard h3')).trim() === 'Пропуски' && (await T(page, '.cab-ringcard .ringnum')).replace(/\s+/g, ' ') === `${h} из 12`);
     }
     await ctx.close();
   }

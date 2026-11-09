@@ -88,12 +88,12 @@
   };
 
   // ---------- общие куски разметки ----------
-  // Карточка пропусков: только «Пропуски N из 12», цвет по часам (Cab.absTone). Подписей про предупреждение и деканат нет.
+  // Карточка пропусков: подпись «Пропуски», в круге «N из 12», цвет по часам (Cab.absTone). Подписей про предупреждение и деканат нет.
   function absCard(s, link) {
     const open = raw(link ? '<a class="cab-ringcard" href="#/profile/absences">' : '<div class="cab-ringcard">'), end = raw(link ? '</a>' : '</div>');
     if (!s) return h`${open}<div><h3>Пропуски</h3><p>Не удалось загрузить часы пропусков</p></div>${link ? chev : ''}${end}`;
-    return h`${open}<div class="ringwrap">${Cab.ring(s.v, s.dean, 84)}<div class="ringnum" aria-hidden="true"><b class="abs-${Cab.absTone(s.v).cls}">${Cab.num(s.v)}</b>из ${Cab.num(s.dean)} ч</div></div>
-      <div style="flex:1;min-width:0"><h3>Пропуски <b class="abs-${Cab.absTone(s.v).cls}">${Cab.num(s.v)} из ${Cab.num(s.dean)}</b></h3></div>${link ? chev : ''}${end}`;
+    return h`${open}<div class="ringwrap">${Cab.ring(s.v, s.dean, 84)}<div class="ringnum" aria-hidden="true"><b class="abs-${Cab.absTone(s.v).cls}">${Cab.num(s.v)}</b>из ${Cab.num(s.dean)}</div></div>
+      <div style="flex:1;min-width:0"><h3>Пропуски</h3></div>${link ? chev : ''}${end}`;
   }
   // Плитка пары: одна разметка для главной и расписания, чтобы они не расходились.
   // o: { st: ''|'past'|'now', note: ', прошла', button: номер пары (кнопка, открывает шторку) или undefined (просто строка),

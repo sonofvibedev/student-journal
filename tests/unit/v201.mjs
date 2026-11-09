@@ -17,7 +17,7 @@ function load(store = new Map()) {
     document: { body: { appendChild: (n) => added.push(n) }, querySelector: () => null, createElement: el },
     navigator: { onLine: true }, console, JSON, Array, String, Math, Date, Promise, setTimeout: () => 0, clearTimeout() {},
     lsGet: (k) => (store.has(k) ? store.get(k) : null), lsSet: (k, v) => { store.set(k, String(v)); return true; },
-    APP_VERSION: '2.0.1', CHANGELOG: [{ version: '2.0.1', title: 'Проверка' }],
+    APP_VERSION: "2.0.2", CHANGELOG: [{ version: "2.0.2", title: 'Проверка' }],
   };
   ctx.window = ctx;
   vm.runInNewContext(readFileSync('cab-core.js', 'utf8'), ctx);

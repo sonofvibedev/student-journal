@@ -50,15 +50,17 @@
         if (!q.length) break;
         const batch = q.slice(0, 100);
         // как при обычном сохранении: то же самое, внесённое кем-то ещё, второй раз не вносим
-        const have = new Set();
+        const have = [];                      // уже внесённое: предмет, вид занятия и номер пары (пусто = подходит любое)
         const keys = [...new Set(batch.map((x) => x.group_id + '|' + x.date))];
         for (const k of keys) {
           const [g, d] = k.split('|');
-          const r = await sb.from('absences').select('student_id, subject').eq('group_id', g).eq('date', d);
+          const r = await sb.from('absences').select('student_id, subject, lesson_kind, pair_no').eq('group_id', g).eq('date', d);
           if (r.error) throw r.error;
-          r.data.forEach((a) => have.add([g, d, a.student_id, norm(a.subject)].join('|')));
+          r.data.forEach((a) => have.push({ ...a, g, d }));
         }
-        const fresh = batch.filter((x) => !have.has([x.group_id, x.date, x.student_id, norm(x.subject)].join('|')));
+        const same = (x, a) => a.g === x.group_id && a.d === x.date && a.student_id === x.student_id && norm(a.subject) === norm(x.subject)
+          && (a.lesson_kind == null || x.lesson_kind == null || a.lesson_kind === x.lesson_kind) && (a.pair_no == null || x.pair_no == null || a.pair_no === x.pair_no);
+        const fresh = batch.filter((x) => !have.some((a) => same(x, a)));
         const dup = batch.length - fresh.length;
         if (fresh.length) {
           const rows = fresh.map(({ uid: _u, at, ...r }) => ({ is_excused: false, ...r, created_at: at }));   // уважительная отметка (причина и срок документа) идёт в самой записи
