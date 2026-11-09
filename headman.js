@@ -696,15 +696,19 @@
 
   async function tasks(el, ctx, params, nav) {
     const gid = ctx.group.id, day = day0();
-    const rows = (await q(sb.from('tasks').select('id, kind, rec, created_by').eq('group_id', gid))).map(Cab.task);
+    const [rows0, ms] = await Promise.all([q(sb.from('tasks').select('id, kind, rec, created_by').eq('group_id', gid)),
+      q(sb.from('memberships').select('user_id').eq('group_id', gid).eq('base_role', 'student').eq('status', 'active')).catch(() => [])]);   // нет списка — правим только свои
+    const rows = rows0.map(Cab.task), stuIds = new Set(ms.map((m) => m.user_id));
     if (!nav.isCurrent()) return;
     const own = (x) => !x.createdBy || x.createdBy === ctx.uid;
+    const byStu = (x) => x.kind === 'homework' && !own(x) && stuIds.has(x.createdBy);        // домашка студента с доступом: староста правит и отменяет (политики tasks в базе)
+    const canEdit = (x) => own(x) || byStu(x);
     const cmp = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
     const live = rows.filter((x) => !x.due || x.due >= day), past = rows.filter((x) => x.due && x.due < day);
-    const card = (x, old) => { const d = Cab.due(x.due), mine = own(x); return h`<article class="cab-card ${old ? 'hm-old' : ''}"><div class="meta"><h3>${x.subject || 'Без предмета'}</h3><span class="st c-${d.cls}">${d.text}</span></div>
-      <p>${FORMS[formOf(x)].one}${mine ? x.createdBy ? ', добавили вы' : ', добавил староста' : ', добавил другой пользователь'}${x.subgroup ? ', подгруппа ' + x.subgroup : ''}${x.due ? ', до ' + Cab.dateText(x.due) : ''}</p>
+    const card = (x, old) => { const d = Cab.due(x.due), mine = canEdit(x); return h`<article class="cab-card ${old ? 'hm-old' : ''}"><div class="meta"><h3>${x.subject || 'Без предмета'}</h3><span class="st c-${d.cls}">${d.text}</span></div>
+      <p>${FORMS[formOf(x)].one}${own(x) ? x.createdBy ? ', добавили вы' : ', добавил староста' : byStu(x) ? ', добавил студент' : ', добавил преподаватель'}${x.subgroup ? ', подгруппа ' + x.subgroup : ''}${x.due ? ', до ' + Cab.dateText(x.due) : ''}</p>
       ${x.text ? h`<p class="hm-text">${x.text}</p>` : ''}
-      ${ctx.closed ? '' : mine ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-e="${x.id}" aria-label="Изменить: ${x.subject}">Изменить</button><button type="button" class="j2-btn small danger" data-d="${x.id}" aria-label="Отменить: ${x.subject}">Отменить</button></div>` : h`<p class="cab-note">Добавил не староста, отменить нельзя.</p>`}</article>`; };
+      ${ctx.closed ? '' : mine ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-e="${x.id}" aria-label="Изменить: ${x.subject}">Изменить</button><button type="button" class="j2-btn small danger" data-d="${x.id}" aria-label="Отменить: ${x.subject}">Отменить</button></div>` : h`<p class="cab-note">Добавил преподаватель: менять и отменять нельзя.</p>`}</article>`; };
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, `${live.length} ${plural(live.length, ['активное', 'активных', 'активных'])}`, 'Задания')}
       ${closedNote(ctx)}
       <div class="hm-tabs no-swipe" id="hmTypes" role="tablist" aria-label="Тип задания">${FORM_KEYS.map((k) => h`<button type="button" role="tab" data-k="${k}" aria-selected="${String(S.taskType === k)}">${FORMS[k].tab} ${live.filter((x) => formOf(x) === k).length}</button>`)}</div>
