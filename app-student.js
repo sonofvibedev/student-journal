@@ -69,6 +69,10 @@
       warn: Number(r.warn_hours != null ? r.warn_hours : ctx.group.warn_hours), dean: Number(r.dean_hours != null ? r.dean_hours : ctx.group.dean_hours) };
   }
   const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
+  // Зачёты и экзамены на главной — только когда до даты осталось не больше 7 дней (во вкладке «Зачёты и экзамены» видны все)
+  const EXAM_DAYS = 7;
+  const examSoon = (t, today) => !t.isExam || Cab.dayDiff(today, t.due) <= EXAM_DAYS;
+  Cab.st.examSoon = examSoon; Cab.st.EXAM_DAYS = EXAM_DAYS;
   // УСР в данных — задание kind='homework' с rec.type='УСР'. Домашки идут отдельно, дедлайны и УСР вместе, зачёты и экзамены в своём разделе.
   const isUsr = (t) => t.kind === 'homework' && String(t.type).trim().toUpperCase() === 'УСР';
   const isHw = (t) => t.kind === 'homework' && !t.isExam && !isUsr(t);
@@ -84,17 +88,12 @@
   };
 
   // ---------- общие куски разметки ----------
-  // Текст под кольцом пропусков
-  function absText(s) {
-    if (s.v >= s.dean) return 'Порог деканата достигнут';
-    const left = `до деканата ${hrs(s.dean - s.v)}`;
-    return s.v >= s.warn ? `Порог предупреждения превышен, ${left}` : `До предупреждения ${hrs(s.warn - s.v)}, ${left}`;
-  }
+  // Карточка пропусков: только «Пропуски N из 12», цвет по часам (Cab.absTone). Подписей про предупреждение и деканат нет.
   function absCard(s, link) {
     const open = raw(link ? '<a class="cab-ringcard" href="#/profile/absences">' : '<div class="cab-ringcard">'), end = raw(link ? '</a>' : '</div>');
     if (!s) return h`${open}<div><h3>Пропуски</h3><p>Не удалось загрузить часы пропусков</p></div>${link ? chev : ''}${end}`;
-    return h`${open}<div class="ringwrap">${Cab.ring(s.v, s.dean, 84)}<div class="ringnum" aria-hidden="true"><b>${Cab.num(s.v)}</b>из ${Cab.num(s.dean)} ч</div></div>
-      <div style="flex:1;min-width:0"><h3>Пропуски</h3><p>${absText(s)}</p></div>${link ? chev : ''}${end}`;
+    return h`${open}<div class="ringwrap">${Cab.ring(s.v, s.dean, 84)}<div class="ringnum" aria-hidden="true"><b class="abs-${Cab.absTone(s.v).cls}">${Cab.num(s.v)}</b>из ${Cab.num(s.dean)} ч</div></div>
+      <div style="flex:1;min-width:0"><h3>Пропуски <b class="abs-${Cab.absTone(s.v).cls}">${Cab.num(s.v)} из ${Cab.num(s.dean)}</b></h3></div>${link ? chev : ''}${end}`;
   }
   // Плитка пары: одна разметка для главной и расписания, чтобы они не расходились.
   // o: { st: ''|'past'|'now', note: ', прошла', button: номер пары (кнопка, открывает шторку) или undefined (просто строка),
@@ -138,6 +137,7 @@
     document.body.appendChild(m); root.inert = true;
     document.addEventListener('keydown', key); window.addEventListener('hashchange', close);
     m.querySelector('button').focus();
+    return { el: m, close };
   }
 
   // ---------- главная ----------
@@ -148,7 +148,7 @@
       soft(q(sb.from('schedule_lessons').select('lesson_date').eq('group_id', ctx.group.id).limit(1)))]);
     const ls = lessons.filter(mine(ctx));
     const noData = !ls.length && !(any || []).length;
-    const fire = (tasks || []).filter((t) => t.due && t.due >= today && Cab.taskVisible(t, sgOf(ctx))).sort(byDue).slice(0, 3);
+    const fire = (tasks || []).filter((t) => t.due && t.due >= today && Cab.taskVisible(t, sgOf(ctx)) && examSoon(t, today)).sort(byDue).slice(0, 3);
     const urgent = (tasks || []).filter((t) => t.due && !t.isExam && Cab.taskVisible(t, sgOf(ctx)) && Cab.dayDiff(today, t.due) >= 0 && Cab.dayDiff(today, t.due) <= 1).sort(byDue);
     const badge = unread ? (unread > 99 ? '99+' : unread) : '';
     put(el, nav, h`<div class="st-home">${banner(ctx)}
@@ -254,17 +254,56 @@
     exams: { title: 'Зачёты и экзамены', pick: (t) => t.isExam, empty: 'Зачётов и экзаменов пока нет' },
   };
   const taskCard = (t, arch) => {
-    const d = Cab.due(t.due);
+    const d = Cab.due(t.due), mineHw = !arch && Cab.ctx && t.createdBy === Cab.ctx.uid && isHw(t) && !Cab.ctx.isStaff;
     return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${t.subject || 'Без предмета'}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
-      <p>${typeLabel(t)}${t.due ? ' · до ' + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}</article>`;
+      <p>${typeLabel(t)}${t.due ? ' · до ' + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${mineHw ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button></div>` : ''}</article>`;
   };
+  // Студенту, которому староста дал доступ («Доступы» в кабинете старосты), на экране «Домашки» показываем добавление.
+  // Это только кнопка: право проверяет база (таблица homework_editors и политики tasks), без доступа вставка отклоняется.
+  const canAddHw = async (ctx) => {
+    if (ctx.closed) return false;
+    const r = await soft(q(sb.from('homework_editors').select('student_id').eq('group_id', ctx.group.id).eq('student_id', ctx.student.id).maybeSingle()));
+    return !!r;
+  };
+  async function hwSheet(ctx, all, done) {
+    const subs = [...new Set((await soft(q(sb.from('schedule_lessons').select('subject').eq('group_id', ctx.group.id).limit(1000))) || []).map((x) => x.subject).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+    const sg = sgOf(ctx);
+    const s = sheet('Новая домашка', h`<label class="j2-field"><span>Предмет</span><select id="hwS">${subs.map((x) => h`<option value="${x}">${x}</option>`)}</select></label>
+      <label class="j2-field"><span>Что задано</span><textarea id="hwX" maxlength="500" rows="3"></textarea></label>
+      <div class="j2-row"><label class="j2-field"><span>Срок сдачи</span><input id="hwD" type="date"></label>
+      <label class="j2-field"><span>Кому</span><select id="hwA"><option value="0">Вся группа</option><option value="1"${sg === 1 ? raw(' selected') : ''}>Подгруппа 1</option><option value="2"${sg === 2 ? raw(' selected') : ''}>Подгруппа 2</option></select></label></div>
+      <div class="j2-msg err" id="hwM" role="alert"></div><button class="j2-btn primary" type="button" id="hwOk">Добавить</button>`);
+    const g = (id) => s.el.querySelector(id), ok = g('#hwOk');
+    ok.onclick = () => J2.busy(ok, async () => {
+      const m = g('#hwM'); m.textContent = '';
+      const subject = g('#hwS').value, text = g('#hwX').value.trim(), due = g('#hwD').value, sub = Number(g('#hwA').value);
+      if (!subject) { m.textContent = 'Выберите предмет.'; return; }
+      if (!text) { m.textContent = 'Напишите, что задано.'; return; }
+      if (!due) { m.textContent = 'Укажите срок сдачи.'; return; }
+      if (all.some((t) => isHw(t) && one(t.subject).toLowerCase() === one(subject).toLowerCase() && t.due === due && one(t.text).toLowerCase() === one(text).toLowerCase())) { m.textContent = 'Такая домашка уже есть в списке.'; return; }
+      const id = 'hw-' + Date.now();
+      try { await q(sb.from('tasks').insert({ id, kind: 'homework', created_by: ctx.uid, group_id: ctx.group.id, rec: { id, subject, type: 'ПЗ', text, dueDate: due, subgroup: sub, createdAt: new Date().toISOString() } })); }
+      catch (e) { m.textContent = e.code === '42501' ? 'У вас нет доступа к добавлению домашек. Обратитесь к старосте.' : Cab.rpcText(e); return; }
+      s.close(); Cab.toast('Домашка добавлена', 'ok'); done();
+    });
+  }
   async function taskScreen(el, ctx, nav, key) {
     const cfg = TASK_SCREENS[key], today = Cab.minsk().iso;
-    const all = (await loadTasks(ctx)).filter((t) => cfg.pick(t) && Cab.taskVisible(t, sgOf(ctx)));
+    const [every, canAdd] = await Promise.all([loadTasks(ctx), key === 'homework' ? canAddHw(ctx) : false]);
+    const all = every.filter((t) => cfg.pick(t) && Cab.taskVisible(t, sgOf(ctx)));
     const act = all.filter((t) => !t.due || t.due >= today).sort(byDue), old = all.filter((t) => t.due && t.due < today).sort((a, b) => b.due.localeCompare(a.due));
     put(el, nav, h`${Cab.top({ href: '#/study', text: 'Учёба' })}<h1 class="cab-title">${cfg.title}</h1><p class="cab-sub">Активных: ${act.length}</p>
+      ${canAdd ? h`<button type="button" class="j2-btn primary" id="hwAdd"><span class="cab-ico sm">${Cab.icon.plus}</span>Добавить домашку</button>` : ''}
       ${act.length ? act.map((t) => taskCard(t, false)) : h`<div class="cab-empty">${all.length ? 'Активных заданий нет' : cfg.empty}</div>`}
       ${old.length ? h`<details class="st-det"><summary>Архив: ${old.length}</summary>${old.map((t) => taskCard(t, true))}</details>` : ''}`);
+    const add = el.querySelector('#hwAdd');
+    if (add) add.onclick = () => hwSheet(ctx, every, () => Cab.rerender());
+    el.onclick = async (e) => {                                                             // свою домашку (по доступу) можно удалить
+      const b = e.target.closest('button[data-del]'); if (!b) return;
+      if (!(await ask('Удалить домашку?', 'Её перестанут видеть остальные студенты.', 'Удалить'))) return;
+      try { const r = await q(sb.from('tasks').delete().eq('id', b.dataset.del).select('id')); Cab.toast(r.length ? 'Домашка удалена' : 'Не получилось удалить', r.length ? 'ok' : 'err'); Cab.rerender(); }
+      catch (err) { Cab.toast(Cab.rpcText(err), 'err'); }
+    };
   }
 
   // Экран-заглушка: иконка, короткий текст, кнопка назад. Для разделов, которые вернутся в следующих обновлениях
@@ -290,11 +329,27 @@
         : h`<div class="cab-empty">Оценок пока нет</div>`}`);
   }
 
-  // Преподаватели: карточки по предметам, по нажатию шторка с полным ФИО по видам занятий.
+  // Преподаватели: карточки по предметам, по нажатию раскрываются (слева иконка предмета, справа название, ниже преподаватели по видам занятий).
   // ФИО берём из schedule_lessons.teacher; сокращённые («Стасева А.А.») для группы 24ДММ-2 дополняем из data.json (Cab.teacherFull).
-  const KIND_ORDER = ['lecture', 'practice', 'lab', 'other'], KIND_PL = { lecture: 'Лекции', practice: 'Практические', lab: 'Лабораторные', other: 'Занятия' };
+  // Физкультура и кураторский час в списке не нужны: у них нет «своего» преподавателя по видам занятий.
+  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекция', practice: 'Практическое занятие', lab: 'Лабораторная работа' };
+  const HIDE_SUBJ = /физическ\S*\s+культур|физкультур|кураторск|куратор/i;
+  // Иконки предметов: один стиль (контур 1.8, скруглённые концы), цвет берут из текущего акцента
+  const SUBJ_ICO = [
+    [/эконометр/i, '<path d="M4 20V4"/><path d="M4 20h16"/><path d="M7.5 15l3.5-4 3 2.5L19 7.5"/>'],
+    [/коммуникац/i, '<path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h7"/>'],
+    [/инновац/i, '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/>'],
+    [/стоимостн|анализ.*функц/i, '<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7.5h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/>'],
+    [/исследован|аналитик/i, '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/><path d="M8 12.5v-2M10.5 12.5v-4M13 12.5v-3"/>'],
+    [/услуг/i, '<path d="M5 9h14l-1 11H6z"/><path d="M9 9V7a3 3 0 016 0v2"/>'],
+    [/логистик/i, '<path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>'],
+    [/маркетинг/i, '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/>'],
+  ];
+  const BOOK_ICO = '<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11"/>';
+  const subjIcon = (name) => { const hit = SUBJ_ICO.find(([re]) => re.test(name)); return raw(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${hit ? hit[1] : BOOK_ICO}</svg>`); };
+  Cab.st.subjIcon = subjIcon; Cab.st.HIDE_SUBJ = HIDE_SUBJ;
   async function teachers(el, ctx, nav) {
-    const rows = (await q(sb.from('schedule_lessons').select('subject,kind,teacher,subgroup').eq('group_id', ctx.group.id).limit(2000))).filter(mine(ctx));
+    const rows = (await q(sb.from('schedule_lessons').select('subject,kind,teacher,subgroup').eq('group_id', ctx.group.id).limit(2000))).filter(mine(ctx)).filter((l) => l.subject && !HIDE_SUBJ.test(l.subject));
     let dt = [];
     if (ctx.group.name === '24ДММ-2' && rows.some((l) => Cab.isAbbrevName(l.teacher))) {
       try { dt = (await (await fetch('data.json', { cache: 'no-store' })).json()).teachers || []; } catch (e) { dt = []; }   // нет файла — показываем как в расписании
@@ -302,27 +357,30 @@
     // предмет → вид занятия → подгруппа (0 — вся группа) → множество преподавателей
     const by = new Map();
     rows.forEach((l) => {
-      if (!l.subject) return;
-      const kind = KIND_ORDER.includes(l.kind) ? l.kind : 'other', sg = Number(l.subgroup) || 0;
+      const kind = KIND_ORDER.includes(l.kind) ? l.kind : null, sg = Number(l.subgroup) || 0;
       const ks = by.get(l.subject) || by.set(l.subject, new Map()).get(l.subject);
+      if (!kind) return;                                                                    // «другие» занятия в карточке не показываем, но предмет остаётся в списке
       const sgs = ks.get(kind) || ks.set(kind, new Map()).get(kind);
       const set = sgs.get(sg) || sgs.set(sg, new Set()).get(sg);
       if (l.teacher) set.add(Cab.teacherFull(l.teacher, l.subject, dt));
     });
     const names = (set) => (set.size ? [...set].join(', ') : 'не указан');
-    const block = (kind, sgs) => {
+    const line = (kind, sgs) => {
+      if (!sgs) return h`<p class="tc-ln"><b>${KIND_ROW[kind]}:</b> не указан</p>`;
       const e = [...sgs].sort((a, b) => a[0] - b[0]), same = new Set(e.map(([, set]) => [...set].sort().join('|'))).size === 1;
-      return same ? h`<p class="st-tl"><b>${KIND_PL[kind]}</b> — ${names(e[0][1])}</p>`
-        : h`<p class="st-tl"><b>${KIND_PL[kind]}:</b> ${e.map(([sg, set]) => `${sg ? sg + ' подгруппа' : 'все подгруппы'} — ${names(set)}`).join(', ')}</p>`;
+      return same ? h`<p class="tc-ln"><b>${KIND_ROW[kind]}:</b> ${names(e[0][1])}</p>`
+        : h`<p class="tc-ln"><b>${KIND_ROW[kind]}:</b> ${e.map(([sg, set]) => `${sg ? sg + ' подгруппа' : 'все подгруппы'} — ${names(set)}`).join('; ')}</p>`;
     };
     const list = [...by].sort((a, b) => a[0].localeCompare(b[0], 'ru'));
     put(el, nav, h`${Cab.top({ href: '#/study', text: 'Учёба' })}<h1 class="cab-title">Преподаватели</h1><p class="cab-sub">Нажмите на предмет</p>
-      ${list.length ? list.map(([subj, ks], i) => h`<button type="button" class="cab-row" data-i="${i}"><span><b>${subj}</b><small>${ks.size} ${Cab.plural(ks.size, ['вид занятий', 'вида занятий', 'видов занятий'])}</small></span><span class="cab-ico">${Cab.icon.chev}</span></button>`)
+      ${list.length ? list.map(([subj, ks], i) => h`<article class="tc-card"><button type="button" class="tc-head" aria-expanded="false" aria-controls="${'tcB' + i}" id="${'tcH' + i}"><span>${subj}</span><span class="cab-ico tc-chev" aria-hidden="true">${Cab.icon.chev}</span></button>
+          <div class="tc-body" id="${'tcB' + i}" role="region" aria-labelledby="${'tcH' + i}"><div class="tc-in"><div class="tc-top"><span class="tc-ico">${subjIcon(subj)}</span><b>${subj}</b></div>
+            ${KIND_ORDER.filter((k) => k !== 'lab' || ks.has(k)).map((k) => line(k, ks.get(k)))}</div></div></article>`)
         : h`<div class="cab-empty">Список появится после загрузки расписания</div>`}`);
     el.onclick = (e) => {
-      const b = e.target.closest('button[data-i]'); if (!b) return;
-      const [subj, ks] = list[+b.dataset.i];
-      sheet(subj, h`${KIND_ORDER.filter((k) => ks.has(k)).map((k) => block(k, ks.get(k)))}`);
+      const b = e.target.closest('button.tc-head'); if (!b) return;
+      const on = b.getAttribute('aria-expanded') !== 'true';
+      b.setAttribute('aria-expanded', String(on)); b.parentNode.classList.toggle('open', on);
     };
   }
 
@@ -366,6 +424,7 @@
       <div class="st-grp"><a class="st-line" href="#/profile/privacy"><span>Мои данные и удаление</span><span class="tg-st">${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" id="tgRow" href="#/profile/telegram"><span>Telegram-уведомления</span><span class="tg-st ${tg ? 'c-mint' : 'c-amber'}">${tg ? 'привязан' : 'не привязан'}${chev}</span></a></div>
       <div class="st-grp"><a class="st-line" id="wnRow" href="#/profile/whatsnew"><span>Что нового</span><span class="tg-st">${wnNew() ? h`<span class="c-lime">новое</span>` : ''}${chev}</span></a></div>
+      <p class="cab-note pf-ver">Версия ${APP_VERSION}</p>
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
     avatarInit(el, ctx, ini);
@@ -512,8 +571,9 @@
         : h`<details class="st-det"><summary>Версия ${e.version} · ${changelogDate(e)}</summary>${list(e)}</details>`)}`);
   }
 
+  const docState = Cab.docState;
   async function absences(el, ctx, nav) {
-    const [rows, stats] = await Promise.all([q(sb.from('absences').select('id,date,subject,hours,is_excused,lesson_kind').eq('student_id', ctx.student.id).order('date', { ascending: false })), absStats(ctx)]);
+    const [rows, stats] = await Promise.all([q(sb.from('absences').select('id,date,subject,hours,is_excused,lesson_kind,cert_type,cert_submitted,cert_due_date').eq('student_id', ctx.student.id).order('date', { ascending: false })), absStats(ctx)]);
     const month = Cab.minsk().iso.slice(0, 7), sum = (f) => rows.filter((r) => f(r) && (r.date || '').slice(0, 7) === month).reduce((a, r) => a + (Number(r.hours) || 0), 0);
     const s = stats || { v: sum((r) => !r.is_excused), excused: sum((r) => r.is_excused), unexcused: sum((r) => !r.is_excused), warn: Number(ctx.group.warn_hours), dean: Number(ctx.group.dean_hours) };
     const by = new Map();
@@ -524,7 +584,7 @@
       <div class="cab-card"><div class="cab-kv"><span>Неуважительные</span><b class="c-coral">${hrs(s.unexcused)}</b></div><div class="cab-kv"><span>Уважительные</span><b class="c-mint">${hrs(s.excused)}</b></div>
         <div class="cab-kv"><span>Предупреждение с</span><b>${hrs(s.warn)}</b></div><div class="cab-kv"><span>Деканат с</span><b>${hrs(s.dean)}</b></div></div>
       ${rows.length ? [...by].sort((a, b) => b[1].h - a[1].h).map(([subj, g]) => h`<h2 class="cab-h2"><span>${subj}</span><span class="c-mute">${hrs(g.h)}</span></h2><div class="cab-card">${g.rows.map((r) =>
-        h`<div class="cab-kv"><span>${r.date ? Cab.dateText(r.date) : 'без даты'}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</span><b class="${r.is_excused ? 'c-mint' : 'c-coral'} st-s">${hrs(r.hours || 0)}, ${r.is_excused ? 'уважительная' : 'неуважительная'}</b></div>`)}</div>`)
+        h`<div class="cab-kv"><span>${r.date ? Cab.dateText(r.date) : 'без даты'}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</span><b class="${r.is_excused ? 'c-mint' : 'c-coral'} st-s">${hrs(r.hours || 0)}, ${r.is_excused ? 'уважительная' : 'неуважительная'}</b></div>${r.is_excused && r.cert_type ? h`<div class="cab-kv"><span class="c-mute">${r.cert_type}</span><b class="st-s ${docState(r, Cab.minsk().iso).cls}">${docState(r, Cab.minsk().iso).text}</b></div>` : ''}`)}</div>`)
         : h`<div class="cab-empty">Пропусков нет</div>`}`);
   }
 

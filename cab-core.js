@@ -414,7 +414,26 @@
     }
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { syncNet(); if (Cab.autoRefresh && Cab.autoRefresh()) go(); } });
     await go();
+    if (opts.kind === 'student' || opts.kind === 'headman') Cab.whatsNewBanner(ctx, opts.kind === 'student' ? '#/profile/whatsnew' : 'app.html#/profile/whatsnew');
     return ctx;
+  };
+
+  // «Что нового» после обновления: плашка на 5 секунд с полоской, один раз на пользователя и версию.
+  // Ключ ставим сразу при показе (не по окончании), чтобы перезагрузка и перезаход её не повторяли.
+  Cab.WN_MS = 5000;
+  Cab.whatsNewBanner = (ctx, href) => {
+    try {
+      if (typeof APP_VERSION === 'undefined' || typeof CHANGELOG === 'undefined' || !ctx || !ctx.uid || ctx.offline) return false;
+      const key = 'j2_wn_' + ctx.uid + '_' + APP_VERSION;
+      if (lsGet(key)) return false;
+      lsSet(key, '1');
+      const e = CHANGELOG.find((x) => x.version === APP_VERSION) || CHANGELOG[0], a = document.createElement('a');
+      a.className = 'cab-wn'; a.href = href; a.setAttribute('role', 'status');
+      a.innerHTML = Cab.str(Cab.h`<span class="cab-wn-t">Что нового · версия ${APP_VERSION}</span><span class="cab-wn-s">${e.title || ''}</span><i class="cab-wn-bar" style="${'animation-duration:' + Cab.WN_MS + 'ms'}" aria-hidden="true"></i>`);
+      document.body.appendChild(a);
+      setTimeout(() => { a.classList.add('out'); setTimeout(() => a.remove(), 300); }, Cab.WN_MS);
+      return true;
+    } catch (err) { return false; }                                                         // плашка не должна мешать входу
   };
 
   // ms — сколько показывать (по умолчанию 3500; для заглушек короче). Ошибки (kind 'err') всегда 3500, повторный вызов перезапускает таймер
@@ -427,10 +446,19 @@
   // Шапка экрана: «назад» слева, подпись справа, заголовок. back: {href, text}
   Cab.top = (back, right) => Cab.h`<div class="cab-top">${back ? Cab.h`<a class="j2-back" href="${back.href}"><span class="cab-ico sm">${Cab.icon.back}</span>${back.text}</a>` : Cab.raw('<span></span>')}<span class="cab-top-r">${right || ''}</span></div>`;
 
-  // Кольцо прогресса: value из max, цвет по порогам (лайм → янтарь → коралл)
+  // Документ по уважительному пропуску: сдан, ждём до даты или просрочен (старосте и студенту одна и та же подпись)
+  Cab.docState = (r, today) => r.cert_submitted ? { text: 'сдан', cls: 'c-mint' }
+    : !r.cert_due_date ? { text: 'срок не указан', cls: 'c-amber' }
+    : r.cert_due_date < today ? { text: 'просрочен, ждали до ' + Cab.dateText(r.cert_due_date), cls: 'c-coral' }
+    : { text: 'ждём до ' + Cab.dateText(r.cert_due_date), cls: 'c-amber' };
+
+  // Цвет часов неуважительных пропусков: до 3 ч включительно зелёный (0–2 ч), 4–7 ч жёлтый (4–6 ч), от 8 ч красный
+  Cab.absTone = (hours) => { const v = Number(hours) || 0; return v >= 8 ? { cls: 'r', color: 'var(--abs-r)' } : v >= 4 ? { cls: 'y', color: 'var(--abs-y)' } : { cls: 'g', color: 'var(--abs-g)' }; };
+
+  // Кольцо прогресса: value из max, цвет по часам (Cab.absTone), а не по доле: порог 8 и 4 часа не зависит от лимита деканата
   Cab.ring = function (value, max, size) {
     const s = size || 96, r = s / 2 - 8, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, max ? value / max : 0));
-    const col = p >= 1 ? 'var(--j-coral)' : p >= 0.66 ? 'var(--j-amber)' : 'var(--j-lime)';
+    const col = Cab.absTone(value).color;
     return Cab.h`<svg class="cab-ring" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" role="img" aria-label="${Cab.num(value)} из ${Cab.num(max)} часов"><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8"/><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="${Cab.raw(col)}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p)).toFixed(1)}" transform="rotate(-90 ${s / 2} ${s / 2})"/></svg>`;
   };
 

@@ -61,7 +61,7 @@
         const fresh = batch.filter((x) => !have.has([x.group_id, x.date, x.student_id, norm(x.subject)].join('|')));
         const dup = batch.length - fresh.length;
         if (fresh.length) {
-          const rows = fresh.map(({ uid: _u, at, ...r }) => ({ ...r, is_excused: false, created_at: at }));
+          const rows = fresh.map(({ uid: _u, at, ...r }) => ({ is_excused: false, ...r, created_at: at }));   // уважительная отметка (причина и срок документа) идёт в самой записи
           const r = await sb.from('absences').upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
           if (r.error) throw r.error;
         }
