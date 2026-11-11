@@ -13,6 +13,18 @@
   Cab.h = (strings, ...vals) => new Raw(strings.reduce((a, s, i) => a + s + (i < vals.length ? one(vals[i]) : ''), ''));
   Cab.str = (v) => (v instanceof Raw ? v.s : one(v));
 
+  // ---------- сокращения предметов: только для показа в списках, в данных остаётся полное название ----------
+  // Базу, домашки и пропуски связывает полное название, поэтому сокращаем лишь текст на экране (шторки с подробностями и подписи для скринридера — полные).
+  Cab.SUBJECT_ABBR = {
+    'маркетинговые исследования и аналитика': 'МИИА',
+    'интегрированные маркетинговые коммуникации': 'ИМК',
+    'функционально-стоимостный анализ': 'ФСА'
+  };
+  Cab.sj = (name) => {
+    const s = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+    return Cab.SUBJECT_ABBR[s.toLowerCase()] || name;
+  };
+
   // ---------- время: журнал живёт по Минску (UTC+3 без перехода на летнее время) ----------
   const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   const DOW = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -61,8 +73,8 @@
   };
   Cab.initials = (s) => (s && s.last_name ? s.last_name + (s.first_name ? ' ' + s.first_name.charAt(0) + '.' : '') : 'Без имени');
   Cab.fullName = (s) => [s.last_name, s.first_name].filter(Boolean).join(' ') || 'Без имени';
-  Cab.KIND = { lecture: 'Лекция', practice: 'Практическое', lab: 'Лабораторная', other: 'Занятие' };
-  Cab.kindLow = (k) => ({ lecture: 'лекция', practice: 'практическое', lab: 'лабораторная', other: 'занятие' }[k] || 'занятие');
+  Cab.KIND = { lecture: 'Лекция', practice: 'ПЗ', lab: 'Лабораторная', other: 'Занятие' };
+  Cab.kindLow = (k) => ({ lecture: 'лекция', practice: 'ПЗ', lab: 'лабораторная', other: 'занятие' }[k] || 'занятие');
 
   // Запрос Supabase: ошибка превращается в исключение, данные возвращаются сразу
   Cab.q = async (p) => { const { data, error } = await p; if (error) { const e = new Error(error.message || 'query'); e.code = error.code; throw e; } return data; };

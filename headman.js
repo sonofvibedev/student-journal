@@ -104,8 +104,8 @@
     const rng = semRange(meta, t), waiting = certs.filter((a) => inSem(a, rng)), late = waiting.filter((a) => Cab.docKind(a, day) === 'late').length;
     const nextDue = waiting.map((a) => a.cert_due_date).filter((d) => d && d >= day).sort()[0];
     const lessonCard = now
-      ? h`<a class="cab-row t-lime" href="#/journal"><span><small>Сейчас идёт ${Cab.kindLow(now.kind)}</small><b>${ctx.closed ? 'Пропуски' : 'Отметить пропуски'}</b><small>${now.subject}, ${Cab.hm(now.starts_at)}–${Cab.hm(now.ends_at)}</small></span><span class="hm-count"><b>${marked}</b><small>отмечено</small></span></a>`
-      : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${next.subject}, ${Cab.hm(next.starts_at)}` : 'Пропуски можно отметить за любое занятие'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
+      ? h`<a class="cab-row t-lime" href="#/journal"><span><small>Сейчас идёт ${Cab.kindLow(now.kind)}</small><b>${ctx.closed ? 'Пропуски' : 'Отметить пропуски'}</b><small>${Cab.sj(now.subject)}, ${Cab.hm(now.starts_at)}–${Cab.hm(now.ends_at)}</small></span><span class="hm-count"><b>${marked}</b><small>отмечено</small></span></a>`
+      : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${Cab.sj(next.subject)}, ${Cab.hm(next.starts_at)}` : 'Пропуски можно отметить за любое занятие'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
     put(el, h`${Cab.top({ href: 'app.html', text: 'Кабинет студента' }, roleText(ctx))}
       <h1 class="cab-title">Кабинет старосты</h1><p class="cab-sub">${Cab.DOW[t.dow]}, ${t.d} ${Cab.MONTHS[t.m]}</p>
       ${Cab.raw(J2.roleSwitch('staff', { student: true, staff: true, sysadmin: ctx.isSysadmin }))}
@@ -328,7 +328,7 @@
       put(boxP, h`<h2 class="cab-h2"><span>Пары</span></h2><div class="mk-pairs" role="group" aria-label="Пары на ${Cab.dateText(S.date)}">${pairs().map((p) => {
         const n = marked(p), on = p.key === S.sel, sg = Number(p.subgroup) || 0;
         return h`<button type="button" class="mk-pair${on ? ' on' : ''}" data-k="${p.key}" aria-pressed="${String(on)}"><span class="mk-t">${Cab.hm(p.starts_at)}<small>${Cab.hm(p.ends_at)}</small></span>
-          <span class="mk-p"><b>${p.subject}</b><small>${Cab.KIND[p.kind] || 'Занятие'}${sg ? ` · ${sg} подгр.` : ''}${p.room ? ` · ауд. ${p.room}` : ''}</small>
+          <span class="mk-p"><b>${Cab.sj(p.subject)}</b><small>${Cab.KIND[p.kind] || 'Занятие'}${sg ? ` · ${sg} подгр.` : ''}${p.room ? ` · ауд. ${p.room}` : ''}</small>
           ${p.now ? h`<small class="c-lime">Идёт сейчас</small>` : ''}${n ? h`<small class="c-mint">Отмечена: ${n} ${plural(n, ['пропуск', 'пропуска', 'пропусков'])}</small>` : ''}</span></button>`;
       })}</div>`);
     }
@@ -490,14 +490,14 @@
     const days = [...new Set(rows.map((a) => a.date))];
     put(el, h`${head({ href: '#/journal', text: 'Журнал' }, dateRight(), 'История пропусков', 'Последние 30 дней')}
       ${closedNote(ctx)}
-      ${rows.length ? days.map((d) => h`<h2 class="cab-h2">${Cab.dateText(d)}, ${Cab.DOW_S[Cab.dowOf(d)].toLowerCase()}</h2>${rows.filter((a) => a.date === d).map((a) => h`<div class="cab-card" data-id="${a.id}"><div class="meta"><b>${Cab.initials(name.get(a.student_id) || {})}</b><span class="st">${num(a.hours)} ч</span></div><p>${a.subject || 'Без предмета'}${a.is_excused ? ', уважительный' : ''}, внёс: ${who(a)}</p>${own(a) && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-id="${a.id}" aria-label="Отменить пропуск: ${Cab.initials(name.get(a.student_id) || {})}, ${a.subject || ''}">Отменить</button></div>` : ''}</div>`)}`)
+      ${rows.length ? days.map((d) => h`<h2 class="cab-h2">${Cab.dateText(d)}, ${Cab.DOW_S[Cab.dowOf(d)].toLowerCase()}</h2>${rows.filter((a) => a.date === d).map((a) => h`<div class="cab-card" data-id="${a.id}"><div class="meta"><b>${Cab.initials(name.get(a.student_id) || {})}</b><span class="st">${num(a.hours)} ч</span></div><p>${Cab.sj(a.subject || 'Без предмета')}${a.is_excused ? ', уважительный' : ''}, внёс: ${who(a)}</p>${own(a) && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-id="${a.id}" aria-label="Отменить пропуск: ${Cab.initials(name.get(a.student_id) || {})}, ${a.subject || ''}">Отменить</button></div>` : ''}</div>`)}`)
         : h`<p class="cab-empty">За 30 дней пропусков нет.</p>`}
       <p class="cab-note">Отменить можно только свои записи. Записи преподавателя видны, но не меняются.</p>`);
     el.onclick = (e) => {
       const b = e.target.closest('button[data-id]'); if (!b) return;
       const a = rows.find((x) => x.id === b.dataset.id);
       act(b, async () => {
-        if (!(await confirmSheet('Отменить пропуск?', `${Cab.initials(name.get(a.student_id) || {})}, ${a.subject || 'без предмета'}, ${Cab.dateText(a.date)}, ${num(a.hours)} ч.`, 'Отменить пропуск'))) return;
+        if (!(await confirmSheet('Отменить пропуск?', `${Cab.initials(name.get(a.student_id) || {})}, ${Cab.sj(a.subject || 'без предмета')}, ${Cab.dateText(a.date)}, ${num(a.hours)} ч.`, 'Отменить пропуск'))) return;
         const del = await q(sb.from('absences').delete().eq('id', a.id).select('id'));
         toast(del.length ? 'Пропуск отменён.' : 'Не получилось отменить: запись уже изменена.', del.length ? 'ok' : 'err');
         Cab.rerender();
@@ -533,7 +533,7 @@
     const cnt = (k) => all.filter((a) => a.k === k).length;
     const ORDER = ['late', 'wait', 'done'], HEAD = { late: 'Просрочены', wait: 'Ждём', done: 'Сданы' };
     const card = (a) => h`<article class="cab-card dc dc-${a.k}" data-id="${a.id}"><div class="meta"><h3>${a.nm}</h3><span class="st c-${DOC_ST[a.k].cls}">${docText(a, today)}</span></div>
-      <p class="cs-subj">${a.subject || 'Без предмета'}${a.lesson_kind ? ' · ' + Cab.KIND[a.lesson_kind].toLowerCase() : ''}</p>
+      <p class="cs-subj">${Cab.sj(a.subject || 'Без предмета')}${a.lesson_kind ? ' · ' + Cab.KIND[a.lesson_kind].toLowerCase() : ''}</p>
       <p>Пропуск ${ddmm(a.date)}, ${num(a.hours)} ч · ${a.cert_type}</p>
       ${a.k !== 'done' && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small primary" data-a="ok" data-id="${a.id}" aria-label="Подтвердить документ: ${a.nm}, ${a.subject || ''}">Подтвердить</button></div>` : ''}</article>`;
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Журнал', `Семестр: ${Cab.dateText(rng.from)}${rng.to ? ' – ' + Cab.dateText(rng.to) : ''}`)}
@@ -624,11 +624,11 @@
   const dash = (why) => h`<td class="c-mute"><span aria-hidden="true">—</span><span class="sr-only">${why}</span></td>`;
   const hrCell = (c) => (c.un || c.ex ? h`<td><b class="${c.un ? 'c-coral' : 'c-mute'}">${num(c.un)}</b><i aria-hidden="true">/</i><b class="${c.ex ? 'c-mint' : 'c-mute'}">${num(c.ex)}</b><span class="sr-only">неуважительных ${num(c.un)}, уважительных ${num(c.ex)}</span></td>` : dash('нет'));
   function subjTable(st) {
-    const cols = [['lecture', 'Лекции'], ['practice', 'Практ.'], ...(st.lab ? [['lab', 'Лаб.']] : []), ...(st.none ? [['none', 'Без вида']] : [])];
+    const cols = [['lecture', 'Лекции'], ['practice', 'ПЗ'], ...(st.lab ? [['lab', 'Лаб.']] : []), ...(st.none ? [['none', 'Без вида']] : [])];
     // название предмета занимает всю ширину своей группы строк: слово остаётся целым даже на узком экране
     const grp = (title, vals, tag) => h`<${raw(tag)} class="cs-g"><tr><th scope="rowgroup" colspan="${cols.length + 1}" class="cs-subj">${title}</th></tr><tr>${vals}</tr></${raw(tag)}>`;
     return h`<table class="sc-tbl sc-subj"><thead><tr>${cols.map(([, t]) => h`<th scope="col">${t}</th>`)}<th scope="col">Всего</th></tr></thead>
-      ${st.list.map((r) => grp(r.subject, h`${cols.map(([k]) => (k === 'lab' && !r.hasLab ? dash('нет лабораторных') : hrCell(r[k])))}${hrCell({ un: r.un, ex: r.ex })}`, 'tbody'))}
+      ${st.list.map((r) => grp(Cab.sj(r.subject), h`${cols.map(([k]) => (k === 'lab' && !r.hasLab ? dash('нет лабораторных') : hrCell(r[k])))}${hrCell({ un: r.un, ex: r.ex })}`, 'tbody'))}
       ${grp('Итого', h`${cols.map(([k]) => hrCell(st.total[k]))}${hrCell({ un: st.total.un, ex: st.total.ex })}`, 'tfoot')}</table>`;
   }
 
@@ -649,7 +649,7 @@
     const kindTxt = (a) => (a.lesson_kind ? Cab.KIND[a.lesson_kind] : 'вид не указан');
     const item = (a) => { const ds = a.is_excused && a.cert_type ? Cab.docState(a, today) : null;
       return h`<div class="sc-ab" data-id="${a.id}"><div class="meta"><b>${a.date ? Cab.dateText(a.date) : 'без даты'}</b><span class="${a.is_excused ? 'c-mint' : 'c-coral'}">${num(a.hours)} ч, ${a.is_excused ? 'уважительная' : 'неуважительная'}</span></div>
-        <p>${a.subject || 'Без предмета'} · ${kindTxt(a)}</p>
+        <p>${Cab.sj(a.subject || 'Без предмета')} · ${kindTxt(a)}</p>
         <p>Причина: ${a.is_excused ? (a.cert_type || 'не указана') : 'без уважительной причины'}${ds ? h`, <span class="${ds.cls}">${ds.text}</span>` : ''}${a.comment ? ' · ' + a.comment : ''}</p>
         ${!ctx.closed && ds && !a.cert_submitted ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-a="doc" data-id="${a.id}">Документ сдан</button></div>` : ''}
         ${can(a) ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-a="cancel" data-id="${a.id}" aria-label="Отменить пропуск: ${a.subject || ''}, ${a.date ? Cab.dateText(a.date) : ''}">Отменить пропуск</button></div>` : a.created_by ? h`<p class="cab-note">Внёс преподаватель: отменить нельзя.</p>` : ''}</div>`; };
@@ -661,7 +661,7 @@
       <h2 class="cab-h2"><span>Все пропуски</span><span class="c-mute">${ab.length}</span></h2>
       ${ab.length ? h`<div class="cab-card">${ab.map(item)}</div>` : h`<p class="cab-empty">Пропусков нет.</p>`}
       ${canc.length ? h`<details class="st-det"><summary>История отмен: ${canc.length}</summary>${canc.map((c) => { const a = c.absence || {}, m = Cab.minsk(Date.parse(c.cancelled_at));
-        return h`<div class="cab-kv"><span>${a.date ? Cab.dateText(a.date) : 'без даты'}, ${a.subject || 'без предмета'}, ${num(a.hours || 0)} ч<small class="c-mute" style="display:block">${c.cancelled_by === ctx.uid ? 'отменили вы' : 'отменил староста или заместитель'}, ${Cab.dateText(m.iso)} в ${String(m.hh).padStart(2, '0')}:${String(m.mm).padStart(2, '0')}</small></span></div>`; })}</details>` : ''}`);
+        return h`<div class="cab-kv"><span>${a.date ? Cab.dateText(a.date) : 'без даты'}, ${Cab.sj(a.subject || 'без предмета')}, ${num(a.hours || 0)} ч<small class="c-mute" style="display:block">${c.cancelled_by === ctx.uid ? 'отменили вы' : 'отменил староста или заместитель'}, ${Cab.dateText(m.iso)} в ${String(m.hh).padStart(2, '0')}:${String(m.mm).padStart(2, '0')}</small></span></div>`; })}</details>` : ''}`);
     const paintTbl = () => {
       const m = S.card.period === 'month', st = Cab.subjStats(m ? ab.filter((a) => (a.date || '').slice(0, 7) === today.slice(0, 7)) : ab, labSubj);
       put($(el, '#scTbl'), st.list.length ? h`${subjTable(st)}
@@ -679,7 +679,7 @@
           toast(r.length ? 'Документ отмечен сданным.' : 'Не получилось сохранить: запись уже изменена.', r.length ? 'ok' : 'err');
           Cab.rerender(); return;
         }
-        if (!(await confirmSheet('Отменить пропуск?', `${a.subject || 'Без предмета'}, ${a.date ? Cab.dateText(a.date) : 'без даты'}, ${num(a.hours)} ч. Часы пересчитаются, запись сохранится в истории отмен.`, 'Отменить пропуск'))) return;
+        if (!(await confirmSheet('Отменить пропуск?', `${Cab.sj(a.subject || 'Без предмета')}, ${a.date ? Cab.dateText(a.date) : 'без даты'}, ${num(a.hours)} ч. Часы пересчитаются, запись сохранится в истории отмен.`, 'Отменить пропуск'))) return;
         const del = await q(sb.from('absences').delete().eq('id', a.id).select('id'));
         toast(del.length ? 'Пропуск отменён.' : 'Не получилось отменить: запись уже изменена.', del.length ? 'ok' : 'err');
         Cab.rerender();
@@ -756,7 +756,7 @@
     const canEdit = (x) => own(x) || byStu(x);
     const cmp = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
     const live = rows.filter((x) => !x.due || x.due >= day), past = rows.filter((x) => x.due && x.due < day);
-    const card = (x, old) => { const d = Cab.due(x.due), mine = canEdit(x); return h`<article class="cab-card ${old ? 'hm-old' : ''}"><div class="meta"><h3>${x.subject || 'Без предмета'}</h3><span class="st c-${d.cls}">${d.text}</span></div>
+    const card = (x, old) => { const d = Cab.due(x.due), mine = canEdit(x); return h`<article class="cab-card ${old ? 'hm-old' : ''}"><div class="meta"><h3>${Cab.sj(x.subject || 'Без предмета')}</h3><span class="st c-${d.cls}">${d.text}</span></div>
       <p>${FORMS[formOf(x)].one}${own(x) ? x.createdBy ? ', добавили вы' : ', добавил староста' : byStu(x) ? ', добавил студент' : ', добавил преподаватель'}${x.subgroup ? ', подгруппа ' + x.subgroup : ''}${x.due ? ', до ' + Cab.dateText(x.due) : ''}</p>
       ${x.text ? h`<p class="hm-text">${x.text}</p>` : ''}
       ${ctx.closed ? '' : mine ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-e="${x.id}" aria-label="Изменить: ${x.subject}">Изменить</button><button type="button" class="j2-btn small danger" data-d="${x.id}" aria-label="Отменить: ${x.subject}">Отменить</button></div>` : h`<p class="cab-note">Добавил преподаватель: менять и отменять нельзя.</p>`}</article>`; };
@@ -780,7 +780,7 @@
       const x = rows.find((r) => r.id === (b.dataset.e || b.dataset.d));
       act(b, async () => {
         if (b.dataset.e) { await taskSheet(ctx, x, formOf(x), rows); return; }
-        if (!(await confirmSheet('Отменить запись?', `${FORMS[formOf(x)].one}: ${x.subject || 'без предмета'}${x.text ? ', ' + x.text.slice(0, 80) : ''}`, 'Отменить'))) return;
+        if (!(await confirmSheet('Отменить запись?', `${FORMS[formOf(x)].one}: ${Cab.sj(x.subject || 'без предмета')}${x.text ? ', ' + x.text.slice(0, 80) : ''}`, 'Отменить'))) return;
         const del = await q(sb.from('tasks').delete().eq('id', x.id).select('id'));
         toast(del.length ? 'Запись отменена.' : 'Не получилось отменить: запись уже изменена.', del.length ? 'ok' : 'err');
         Cab.rerender();

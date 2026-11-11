@@ -392,7 +392,7 @@
   }
 
   const ROLE_LBL = { headman: 'староста', deputy: 'заместитель' };
-  const BASE_LBL = { student: 'студент', teacher_lecture: 'преподаватель (лекции)', teacher_practice: 'преподаватель (практика)' };
+  const BASE_LBL = { student: 'студент', teacher_lecture: 'преподаватель (лекции)', teacher_practice: 'преподаватель (ПЗ)' };
   const STATUS_LBL = { pending: 'ждёт подтверждения', active: 'действует', rejected: 'отклонён', removed: 'убран из группы' };
   async function loadMembers(n) {
     if (!(await loadGroups(n))) return;
@@ -437,7 +437,7 @@
   }
 
   // --- Преподаватели ---
-  const TROLE = { teacher_lecture: 'лекции', teacher_practice: 'практика' };
+  const TROLE = { teacher_lecture: 'лекции', teacher_practice: 'ПЗ' };
   async function loadTeachers(n) {
     if (!(await loadGroups(n))) return;
     const gid = st.roleGroup;
@@ -455,7 +455,7 @@
       (rows ? '<ul class="j2-list">' + rows + '</ul>' : '<p>Преподавателей пока нет.</p>') + '</section>' +
       '<section class="j2-card" id="tchForm" aria-labelledby="addT"><h2 id="addT">Добавить преподавателя</h2>' +
       '<label class="j2-field"><span>Почта</span><input id="tfEmail" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@example.com"></label>' +
-      '<label class="j2-field sa-field-sel"><span>Ведёт</span><select id="tfRole"><option value="teacher_lecture">Лекции</option><option value="teacher_practice">Практические занятия</option></select></label>' +
+      '<label class="j2-field sa-field-sel"><span>Ведёт</span><select id="tfRole"><option value="teacher_lecture">Лекции</option><option value="teacher_practice">ПЗ</option></select></label>' +
       '<p class="sa-card-p" id="tfSubjLbl">Предметы</p><div class="j2-chips" id="tfChips" role="group" aria-labelledby="tfSubjLbl"></div>' +
       (st.tf.subjErr ? '<p class="sa-note">Предметы из расписания не загрузились. Впишите вручную.</p>' : !subj.length ? '<p class="sa-note">В расписании группы предметов нет. Впишите вручную.</p>' : '') +
       '<div class="sa-thr"><label class="j2-field"><span>Свой предмет</span><input id="tfManual" type="text" maxlength="200" autocomplete="off"></label>' +

@@ -44,11 +44,40 @@
   // ---------- акцентный цвет: хранится в localStorage, применяется на всех экранах ----------
   const ACCENTS = [['#C6F432', 'Лайм'], ['#A78BFA', 'Фиолетовый'], ['#FFB347', 'Оранжевый'], ['#78A0FF', 'Синий'], ['#FF8CBE', 'Розовый']];
   let accent = ACCENTS[0][0];
+  // Фон подстраивается под акцент: тёмный фон с оттенком его цвета, пятна света и шторки в тон. Лайм — исходный нейтральный фон.
+  function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function hsl(h, s, l) {                                                                   // h в градусах, s и l в долях; результат — [r, g, b] 0–255
+    h = ((h % 360) + 360) % 360; const a = s * Math.min(l, 1 - l), f = (n) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+  }
+  function hueOf([r, g, b]) {
+    r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+    if (!d) return 0; const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360;
+  }
+  const hex2 = (rgb) => '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+  function accentPalette(c) {
+    if (c === ACCENTS[0][0]) return { bg: [10, 12, 17], sheet: '#14161D', nav: 'rgba(24, 26, 34, .86)', g1: [198, 244, 50], g2: [110, 80, 220], g3: [255, 160, 60] };
+    const rgb = hexRgb(c), hue = hueOf(rgb), bg = hsl(hue, .30, .065), nav = hsl(hue, .24, .11);
+    return { bg, sheet: hex2(hsl(hue, .26, .09)), nav: `rgba(${nav.join(', ')}, .86)`, g1: rgb, g2: hsl(hue + 28, .55, .42), g3: hsl(hue - 28, .65, .50) };
+  }
+  function applyAccent(c) {
+    const p = accentPalette(c), root = document.documentElement.style, rgb = hexRgb(c), bgHex = hex2(p.bg);
+    root.setProperty('--j-lime', c); root.setProperty('--j-lime-rgb', rgb.join(', '));
+    root.setProperty('--j-bg', bgHex); root.setProperty('--j-bg-rgb', p.bg.join(', '));
+    root.setProperty('--j-glow-1-rgb', p.g1.join(', ')); root.setProperty('--j-glow-2-rgb', p.g2.join(', ')); root.setProperty('--j-glow-3-rgb', p.g3.join(', '));
+    root.setProperty('--j-sheet', p.sheet); root.setProperty('--j-nav', p.nav);
+    try {                                                                                   // цвет шапки браузера и Telegram — тот же фон
+      const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', bgHex);
+      const W = window.Telegram && window.Telegram.WebApp;
+      if (W && W.initData) { try { W.setHeaderColor(bgHex); W.setBackgroundColor(bgHex); if (W.setBottomBarColor) W.setBottomBarColor(bgHex); } catch (e) { /* старый клиент */ } }
+    } catch (e) { /* без шапки обходимся */ }
+  }
   function setAccent(c, save) {
     if (!ACCENTS.some((a) => a[0] === c)) return;
-    accent = c; document.documentElement.style.setProperty('--j-lime', c);
+    accent = c; applyAccent(c);
     if (save) lsSet('j2_accent', c);
   }
+  Cab.applyAccent = applyAccent; Cab.accentPalette = accentPalette;                        // для проверок
   setAccent(lsGet('j2_accent'));
 
   // ---------- данные ----------
@@ -105,7 +134,7 @@
     if (moved && o.room !== 'col') hints.push(`Аудитория изменилась, была ${l.prev_room}`);   // на главной места мало: там пометка в строке
     const line = h`${kind}${sg ? h` · <span class="sg">${sg} подгр.<span class="sr-only">, подгруппа ${sg}</span></span>` : ''}${o.room === 'line' && l.room ? ` · ауд. ${l.room}` : ''}${o.note || ''}${moved && o.room === 'col' ? h`, <span class="warn">аудитория сменилась</span>` : ''}`;
     const inner = h`<div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
-      <div><div class="n">${l.subject}</div><div class="k">${line}</div>${hints.map((x, i) => h`<div class="k ${/^Аудитория/.test(x) ? 'warn' : 'st-hw'}">${x}</div>`)}</div>
+      <div><div class="n">${Cab.sj(l.subject)}</div><div class="k">${line}</div>${hints.map((x, i) => h`<div class="k ${/^Аудитория/.test(x) ? 'warn' : 'st-hw'}">${x}</div>`)}</div>
       ${o.room === 'col' ? (l.room ? h`<div class="r"><small>ауд.</small> ${l.room}</div>` : raw('<div></div>')) : ''}
       ${o.bar != null ? h`<div class="bar" role="progressbar" aria-label="Прошло ${o.bar}% пары" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.bar}"><i style="width:${o.bar}%"></i></div>` : ''}`;
     const cls = `cab-lesson kd-${kd} ${o.st || ''}`;
@@ -158,12 +187,12 @@
         : noData ? h`<div class="j2-card"><h2>Расписание ещё не загружено</h2><p>Оно появится после загрузки с bseu.by.</p></div>`
         : h`<div class="j2-card"><h2>Сегодня пар нет</h2></div>`}
       ${absCard(stats, true)}
-      ${urgent.length ? h`<a class="st-alert" href="${'#/' + (urgent.length === 1 ? taskRoute(urgent[0]) : 'study')}"><span class="cab-ico" aria-hidden="true">${Cab.icon.bell}</span><span><b>Срок сегодня или завтра</b><small>${urgent.length} ${Cab.plural(urgent.length, ['задание', 'задания', 'заданий'])}: ${urgent.slice(0, 2).map((t) => t.subject || 'Без предмета').join(', ')}${urgent.length > 2 ? ' и ещё ' + (urgent.length - 2) : ''}</small></span>${chev}</a>` : ''}
+      ${urgent.length ? h`<a class="st-alert" href="${'#/' + (urgent.length === 1 ? taskRoute(urgent[0]) : 'study')}"><span class="cab-ico" aria-hidden="true">${Cab.icon.bell}</span><span><b>Срок сегодня или завтра</b><small>${urgent.length} ${Cab.plural(urgent.length, ['задание', 'задания', 'заданий'])}: ${urgent.slice(0, 2).map((t) => Cab.sj(t.subject || 'Без предмета')).join(', ')}${urgent.length > 2 ? ' и ещё ' + (urgent.length - 2) : ''}</small></span>${chev}</a>` : ''}
       <div class="cab-h2"><span>Горит</span><a href="#/study">Все задания ${chev}</a></div>
       ${!tasks ? h`<p class="cab-note">Задания не загрузились. Обновите страницу.</p>`
         : !fire.length ? h`<p class="cab-note">Горящих заданий нет.</p>`
         : h`<div class="cab-tiles">${fire.map((t) => { const d = Cab.due(t.due);
-          return h`<a class="cab-tile ${d.cls === 'mute' ? '' : d.cls}" href="#/${taskRoute(t)}"><div><b class="st-clamp">${t.subject || 'Без предмета'}</b><small class="st-clamp">${typeLabel(t)}${t.text ? ', ' + one(t.text) : ''}</small></div><span class="when">${d.text}</span></a>`; })}</div>`}</div>`);
+          return h`<a class="cab-tile ${d.cls === 'mute' ? '' : d.cls}" href="#/${taskRoute(t)}"><div><b class="st-clamp">${Cab.sj(t.subject || 'Без предмета')}</b><small class="st-clamp">${typeLabel(t)}${t.text ? ', ' + one(t.text) : ''}</small></div><span class="when">${d.text}</span></a>`; })}</div>`}</div>`);
     Cab.autoRefresh = () => true;
   }
 
@@ -244,7 +273,7 @@
       ${hubRow('#/study/exams', 't-mint', 'Зачёты и экзамены', 'Даты и формы контроля')}
       ${hubRow('#/study/grades', 't-blue', 'Оценки', 'Средний балл появится позже')}
       ${hubRow('#/study/rating', 't-pink', 'Рейтинг', 'Калькулятор')}
-      ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и практические')}
+      ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и ПЗ')}
       ${hubRow('#/study/games', '', 'Игры', 'Скоро')}`);
   }
 
@@ -255,7 +284,7 @@
   };
   const taskCard = (t, arch) => {
     const d = Cab.due(t.due), mineHw = !arch && Cab.ctx && t.createdBy === Cab.ctx.uid && isHw(t) && !Cab.ctx.isStaff;
-    return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${t.subject || 'Без предмета'}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
+    return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${Cab.sj(t.subject || 'Без предмета')}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
       <p>${typeLabel(t)}${t.due ? ' · до ' + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${mineHw ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button></div>` : ''}</article>`;
   };
   // Студенту, которому староста дал доступ («Доступы» в кабинете старосты), на экране «Домашки» показываем добавление.
@@ -332,7 +361,7 @@
   // Преподаватели: карточки по предметам, по нажатию раскрываются (слева иконка предмета, справа название, ниже преподаватели по видам занятий).
   // ФИО берём из schedule_lessons.teacher; сокращённые («Стасева А.А.») для группы 24ДММ-2 дополняем из data.json (Cab.teacherFull).
   // Физкультура и кураторский час в списке не нужны: у них нет «своего» преподавателя по видам занятий.
-  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекция', practice: 'Практическое занятие', lab: 'Лабораторная работа' };
+  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекция', practice: 'ПЗ', lab: 'Лабораторная работа' };
   const HIDE_SUBJ = /физическ\S*\s+культур|физкультур|кураторск|куратор/i;
   // Иконки предметов: один стиль (контур 1.8, скруглённые концы), цвет берут из текущего акцента
   const SUBJ_ICO = [
