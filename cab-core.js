@@ -61,8 +61,12 @@
   };
   Cab.initials = (s) => (s && s.last_name ? s.last_name + (s.first_name ? ' ' + s.first_name.charAt(0) + '.' : '') : 'Без имени');
   Cab.fullName = (s) => [s.last_name, s.first_name].filter(Boolean).join(' ') || 'Без имени';
-  Cab.KIND = { lecture: 'Лекция', practice: 'Практическое', lab: 'Лабораторная', other: 'Занятие' };
-  Cab.kindLow = (k) => ({ lecture: 'лекция', practice: 'практическое', lab: 'лабораторная', other: 'занятие' }[k] || 'занятие');
+  Cab.KIND = { lecture: 'Лекция', practice: 'ПЗ', lab: 'Лабораторная', other: 'Занятие' };
+  Cab.kindLow = (k) => ({ lecture: 'лекция', practice: 'ПЗ', lab: 'лабораторная', other: 'занятие' }[k] || 'занятие');
+  // Сокращения предметов: только для текста на экране. В данных, запросах и сравнении остаётся полное название.
+  const SJ = { 'маркетинговые исследования и аналитика': 'МИИА', 'интегрированные маркетинговые коммуникации': 'ИМК', 'функционально-стоимостный анализ': 'ФСА' };
+  const sjKey = (n) => String(n == null ? '' : n).replace(/\s+/g, ' ').trim().toLowerCase().replace(/ё/g, 'е');
+  Cab.sj = (name) => SJ[sjKey(name)] || name;
 
   // Запрос Supabase: ошибка превращается в исключение, данные возвращаются сразу
   Cab.q = async (p) => { const { data, error } = await p; if (error) { const e = new Error(error.message || 'query'); e.code = error.code; throw e; } return data; };
@@ -184,7 +188,7 @@
     const r = await OQ.flush(sb, Cab.ctx.uid);
     Cab.netBar();
     if (r.error === '42501') Cab.toast('Часть отметок не принята: журнал закрыт или нет прав.', 'err');
-    else if (r.sent) Cab.toast(`Отметки отправлены: ${r.sent}.`, 'ok');
+    else if (r.sent) Cab.toast(`Отметки отправлены: ${r.sent}.` + (r.left ? ` Ещё ${r.left} отправятся, когда связь наладится.` : ''), 'ok');
     if (r.sent && Cab.onFlushed) Cab.onFlushed();
   };
 

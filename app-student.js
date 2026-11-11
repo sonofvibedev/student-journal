@@ -42,11 +42,11 @@
   Cab.st = { linkify, period, hrs };                                                        // для проверок
 
   // ---------- акцентный цвет: хранится в localStorage, применяется на всех экранах ----------
-  const ACCENTS = [['#C6F432', 'Лайм'], ['#A78BFA', 'Фиолетовый'], ['#FFB347', 'Оранжевый'], ['#78A0FF', 'Синий'], ['#FF8CBE', 'Розовый']];
+  const ACCENTS = window.J2Accent ? J2Accent.ACCENTS : [['#C6F432', 'Лайм']];                  // список и палитры — accent.js (подключён в <head>)
   let accent = ACCENTS[0][0];
   function setAccent(c, save) {
     if (!ACCENTS.some((a) => a[0] === c)) return;
-    accent = c; document.documentElement.style.setProperty('--j-lime', c);
+    accent = c; if (window.J2Accent) J2Accent.apply(c); else document.documentElement.style.setProperty('--j-lime', c);   // фон, шторки и панель меняются вместе с акцентом
     if (save) lsSet('j2_accent', c);
   }
   setAccent(lsGet('j2_accent'));
@@ -105,7 +105,7 @@
     if (moved && o.room !== 'col') hints.push(`Аудитория изменилась, была ${l.prev_room}`);   // на главной места мало: там пометка в строке
     const line = h`${kind}${sg ? h` · <span class="sg">${sg} подгр.<span class="sr-only">, подгруппа ${sg}</span></span>` : ''}${o.room === 'line' && l.room ? ` · ауд. ${l.room}` : ''}${o.note || ''}${moved && o.room === 'col' ? h`, <span class="warn">аудитория сменилась</span>` : ''}`;
     const inner = h`<div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
-      <div><div class="n">${l.subject}</div><div class="k">${line}</div>${hints.map((x, i) => h`<div class="k ${/^Аудитория/.test(x) ? 'warn' : 'st-hw'}">${x}</div>`)}</div>
+      <div><div class="n">${Cab.sj(l.subject)}</div><div class="k">${line}</div>${hints.map((x, i) => h`<div class="k ${/^Аудитория/.test(x) ? 'warn' : 'st-hw'}">${x}</div>`)}</div>
       ${o.room === 'col' ? (l.room ? h`<div class="r"><small>ауд.</small> ${l.room}</div>` : raw('<div></div>')) : ''}
       ${o.bar != null ? h`<div class="bar" role="progressbar" aria-label="Прошло ${o.bar}% пары" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.bar}"><i style="width:${o.bar}%"></i></div>` : ''}`;
     const cls = `cab-lesson kd-${kd} ${o.st || ''}`;
@@ -158,12 +158,12 @@
         : noData ? h`<div class="j2-card"><h2>Расписание ещё не загружено</h2><p>Оно появится после загрузки с bseu.by.</p></div>`
         : h`<div class="j2-card"><h2>Сегодня пар нет</h2></div>`}
       ${absCard(stats, true)}
-      ${urgent.length ? h`<a class="st-alert" href="${'#/' + (urgent.length === 1 ? taskRoute(urgent[0]) : 'study')}"><span class="cab-ico" aria-hidden="true">${Cab.icon.bell}</span><span><b>Срок сегодня или завтра</b><small>${urgent.length} ${Cab.plural(urgent.length, ['задание', 'задания', 'заданий'])}: ${urgent.slice(0, 2).map((t) => t.subject || 'Без предмета').join(', ')}${urgent.length > 2 ? ' и ещё ' + (urgent.length - 2) : ''}</small></span>${chev}</a>` : ''}
+      ${urgent.length ? h`<a class="st-alert" href="${'#/' + (urgent.length === 1 ? taskRoute(urgent[0]) : 'study')}"><span class="cab-ico" aria-hidden="true">${Cab.icon.bell}</span><span><b>Срок сегодня или завтра</b><small>${urgent.length} ${Cab.plural(urgent.length, ['задание', 'задания', 'заданий'])}: ${urgent.slice(0, 2).map((t) => Cab.sj(t.subject || 'Без предмета')).join(', ')}${urgent.length > 2 ? ' и ещё ' + (urgent.length - 2) : ''}</small></span>${chev}</a>` : ''}
       <div class="cab-h2"><span>Горит</span><a href="#/study">Все задания ${chev}</a></div>
       ${!tasks ? h`<p class="cab-note">Задания не загрузились. Обновите страницу.</p>`
         : !fire.length ? h`<p class="cab-note">Горящих заданий нет.</p>`
         : h`<div class="cab-tiles">${fire.map((t) => { const d = Cab.due(t.due);
-          return h`<a class="cab-tile ${d.cls === 'mute' ? '' : d.cls}" href="#/${taskRoute(t)}"><div><b class="st-clamp">${t.subject || 'Без предмета'}</b><small class="st-clamp">${typeLabel(t)}${t.text ? ', ' + one(t.text) : ''}</small></div><span class="when">${d.text}</span></a>`; })}</div>`}</div>`);
+          return h`<a class="cab-tile ${d.cls === 'mute' ? '' : d.cls}" href="#/${taskRoute(t)}"><div><b class="st-clamp">${Cab.sj(t.subject || 'Без предмета')}</b><small class="st-clamp">${typeLabel(t)}${t.text ? ', ' + one(t.text) : ''}</small></div><span class="when">${d.text}</span></a>`; })}</div>`}</div>`);
     Cab.autoRefresh = () => true;
   }
 
@@ -244,7 +244,7 @@
       ${hubRow('#/study/exams', 't-mint', 'Зачёты и экзамены', 'Даты и формы контроля')}
       ${hubRow('#/study/grades', 't-blue', 'Оценки', 'Средний балл появится позже')}
       ${hubRow('#/study/rating', 't-pink', 'Рейтинг', 'Калькулятор')}
-      ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и практические')}
+      ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и ПЗ')}
       ${hubRow('#/study/games', '', 'Игры', 'Скоро')}`);
   }
 
@@ -255,7 +255,7 @@
   };
   const taskCard = (t, arch) => {
     const d = Cab.due(t.due), mineHw = !arch && Cab.ctx && t.createdBy === Cab.ctx.uid && isHw(t) && !Cab.ctx.isStaff;
-    return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${t.subject || 'Без предмета'}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
+    return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${Cab.sj(t.subject || 'Без предмета')}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
       <p>${typeLabel(t)}${t.due ? ' · до ' + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${mineHw ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button></div>` : ''}</article>`;
   };
   // Студенту, которому староста дал доступ («Доступы» в кабинете старосты), на экране «Домашки» показываем добавление.
@@ -324,7 +324,7 @@
     const val = (g) => g.value != null ? h`<b class="c-lime"><span class="sr-only">Оценка </span>${g.value}</b>`
       : g.passed === true ? h`<b class="c-mint">зачтено</b>` : g.passed === false ? h`<b class="c-coral">не зачтено</b>` : h`<b class="c-mute">без оценки</b>`;
     put(el, nav, h`${Cab.top({ href: '#/study', text: 'Учёба' })}<h1 class="cab-title">Оценки</h1><p class="cab-sub">Ваши отметки по предметам</p>
-      ${rows.length ? [...by].map(([subj, gs]) => h`<h2 class="cab-h2"><span>${subj}</span></h2><div class="cab-card">${gs.map((g) =>
+      ${rows.length ? [...by].map(([subj, gs]) => h`<h2 class="cab-h2"><span>${Cab.sj(subj)}</span></h2><div class="cab-card">${gs.map((g) =>
         h`<div class="cab-kv"><span>${g.lesson_date ? Cab.dateText(g.lesson_date) : 'без даты'}${g.lesson_kind ? ' · ' + (Cab.KIND[g.lesson_kind] || '') : ''}${g.comment ? h`<small class="c-mute" style="display:block">${g.comment}</small>` : ''}</span>${val(g)}</div>`)}</div>`)
         : h`<div class="cab-empty">Оценок пока нет</div>`}`);
   }
@@ -332,7 +332,7 @@
   // Преподаватели: карточки по предметам, по нажатию раскрываются (слева иконка предмета, справа название, ниже преподаватели по видам занятий).
   // ФИО берём из schedule_lessons.teacher; сокращённые («Стасева А.А.») для группы 24ДММ-2 дополняем из data.json (Cab.teacherFull).
   // Физкультура и кураторский час в списке не нужны: у них нет «своего» преподавателя по видам занятий.
-  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекция', practice: 'Практическое занятие', lab: 'Лабораторная работа' };
+  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекция', practice: 'ПЗ', lab: 'Лабораторная работа' };
   const HIDE_SUBJ = /физическ\S*\s+культур|физкультур|кураторск|куратор/i;
   // Иконки предметов: один стиль (контур 1.8, скруглённые концы), цвет берут из текущего акцента
   const SUBJ_ICO = [
@@ -583,7 +583,7 @@
       <p class="cab-note">Кольцо и итоги: за текущий месяц. Ниже все пропуски по предметам.</p>
       <div class="cab-card"><div class="cab-kv"><span>Неуважительные</span><b class="c-coral">${hrs(s.unexcused)}</b></div><div class="cab-kv"><span>Уважительные</span><b class="c-mint">${hrs(s.excused)}</b></div>
         <div class="cab-kv"><span>Деканат с</span><b>${hrs(s.dean)}</b></div></div>
-      ${rows.length ? [...by].sort((a, b) => b[1].h - a[1].h).map(([subj, g]) => h`<h2 class="cab-h2"><span>${subj}</span><span class="c-mute">${hrs(g.h)}</span></h2><div class="cab-card">${g.rows.map((r) =>
+      ${rows.length ? [...by].sort((a, b) => b[1].h - a[1].h).map(([subj, g]) => h`<h2 class="cab-h2"><span>${Cab.sj(subj)}</span><span class="c-mute">${hrs(g.h)}</span></h2><div class="cab-card">${g.rows.map((r) =>
         h`<div class="cab-kv"><span>${r.date ? Cab.dateText(r.date) : 'без даты'}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</span><b class="${r.is_excused ? 'c-mint' : 'c-coral'} st-s">${hrs(r.hours || 0)}, ${r.is_excused ? 'уважительная' : 'неуважительная'}</b></div>${r.is_excused && r.cert_type ? h`<div class="cab-kv"><span class="c-mute">${r.cert_type}</span><b class="st-s ${docState(r, Cab.minsk().iso).cls}">${docState(r, Cab.minsk().iso).text}</b></div>` : ''}`)}</div>`)
         : h`<div class="cab-empty">Пропусков нет</div>`}`);
   }

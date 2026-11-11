@@ -105,7 +105,7 @@
     const nextDue = waiting.map((a) => a.cert_due_date).filter((d) => d && d >= day).sort()[0];
     const lessonCard = now
       ? h`<a class="cab-row t-lime" href="#/journal"><span><small>Сейчас идёт ${Cab.kindLow(now.kind)}</small><b>${ctx.closed ? 'Пропуски' : 'Отметить пропуски'}</b><small>${now.subject}, ${Cab.hm(now.starts_at)}–${Cab.hm(now.ends_at)}</small></span><span class="hm-count"><b>${marked}</b><small>отмечено</small></span></a>`
-      : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${next.subject}, ${Cab.hm(next.starts_at)}` : 'Пропуски можно отметить за любое занятие'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
+      : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${Cab.sj(next.subject)}, ${Cab.hm(next.starts_at)}` : 'Пропуски можно отметить за любое занятие'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
     put(el, h`${Cab.top({ href: 'app.html', text: 'Кабинет студента' }, roleText(ctx))}
       <h1 class="cab-title">Кабинет старосты</h1><p class="cab-sub">${Cab.DOW[t.dow]}, ${t.d} ${Cab.MONTHS[t.m]}</p>
       ${Cab.raw(J2.roleSwitch('staff', { student: true, staff: true, sysadmin: ctx.isSysadmin }))}
@@ -328,7 +328,7 @@
       put(boxP, h`<h2 class="cab-h2"><span>Пары</span></h2><div class="mk-pairs" role="group" aria-label="Пары на ${Cab.dateText(S.date)}">${pairs().map((p) => {
         const n = marked(p), on = p.key === S.sel, sg = Number(p.subgroup) || 0;
         return h`<button type="button" class="mk-pair${on ? ' on' : ''}" data-k="${p.key}" aria-pressed="${String(on)}"><span class="mk-t">${Cab.hm(p.starts_at)}<small>${Cab.hm(p.ends_at)}</small></span>
-          <span class="mk-p"><b>${p.subject}</b><small>${Cab.KIND[p.kind] || 'Занятие'}${sg ? ` · ${sg} подгр.` : ''}${p.room ? ` · ауд. ${p.room}` : ''}</small>
+          <span class="mk-p"><b>${Cab.sj(p.subject)}</b><small>${Cab.KIND[p.kind] || 'Занятие'}${sg ? ` · ${sg} подгр.` : ''}${p.room ? ` · ауд. ${p.room}` : ''}</small>
           ${p.now ? h`<small class="c-lime">Идёт сейчас</small>` : ''}${n ? h`<small class="c-mint">Отмечена: ${n} ${plural(n, ['пропуск', 'пропуска', 'пропусков'])}</small>` : ''}</span></button>`;
       })}</div>`);
     }
@@ -441,34 +441,62 @@
             ...(ex ? { is_excused: true, cert_type: m.doc, cert_submitted: !!m.done, cert_due_date: m.done ? null : m.due } : {}) };
         };
         const body = (m) => (m.s === 'e' ? { is_excused: true, cert_type: m.doc, cert_submitted: !!m.done, cert_due_date: m.done ? null : m.due } : { is_excused: false, cert_type: null, cert_submitted: false, cert_due_date: null });
-        let nAdd = 0, nUpd = 0, nDel = 0, skipped = 0, queued = false;
-        try {
-          // перед записью ещё раз смотрим, что уже внесено: то, что внёс кто-то другой, не дублируем
-          const fresh = await q(sb.from('absences').select('id, student_id, subject, lesson_kind, pair_no, certificate_id, created_by').eq('group_id', gid).eq('date', d));
+        let nAdd = 0, nUpd = 0, nDel = 0, skipped = 0, queued = 0, stop = null, editsOk = true;
+        const total = pl.add.length + pl.upd.length + pl.del.length;
+        let progress = 0;
+        const step = (n) => { progress += n; save.textContent = `Сохранение: ${progress} из ${total}`; };   // прогресс на самой кнопке
+        save.setAttribute('aria-live', 'polite'); step(0);
+        // остаток новых отметок уходит в очередь: id прежние, при отправке сверка с сервером, дублей не будет
+        const toQueue = (rows) => {
+          const lk = new Set(OQ.list(ctx.uid).filter((x) => x.group_id === gid && x.date === d && ofPair(x, p)).map((x) => x.student_id));
+          queued += OQ.add(ctx.uid, rows.filter((r) => !lk.has(r.student_id))); Cab.netBar();
+        };
+        // перед записью ещё раз смотрим, что уже внесено: то, что внёс кто-то другой, не дублируем
+        let fresh = null;
+        try { fresh = await OQ.retry(() => q(sb.from('absences').select('id, student_id, subject, lesson_kind, pair_no, certificate_id, created_by').eq('group_id', gid).eq('date', d))); }
+        catch (e) { if (!OQ.isNetError(e)) throw e; stop = e; }
+        if (!fresh) { toQueue(pl.add.map(mk)); editsOk = !(pl.upd.length || pl.del.length); }
+        else {
           const mine = new Map(fresh.filter((a) => ofPair(a, p) && !lockWhy(a, ctx.uid)).map((a) => [a.student_id, a]));
           const taken = new Set(fresh.filter((a) => ofPair(a, p)).map((a) => a.student_id));
-          const todo = pl.add.filter((sid) => !taken.has(sid)); skipped = pl.add.length - todo.length;
-          if (todo.length) await q(sb.from('absences').upsert(todo.map((sid) => ({ is_excused: false, ...mk(sid) })), { onConflict: 'id', ignoreDuplicates: true }));
-          nAdd = todo.length;
-          for (const sid of pl.upd) {                                  // правка той же записи
-            const ex = mine.get(sid), m = S.marks.get(sid); if (!ex) { skipped++; continue; }
-            const r = await q(sb.from('absences').update(body(m)).eq('id', ex.id).select('id')); if (r.length) nUpd++; else skipped++;
+          const todo = pl.add.filter((sid) => !taken.has(sid)); skipped = pl.add.length - todo.length; step(skipped);
+          // новые: пачками по OQ.CHUNK, обрыв повторяется с растущей паузой, остаток при обрыве — в очередь
+          const sent = await OQ.sendRows(sb, todo.map((sid) => ({ is_excused: false, ...mk(sid) })), { onProgress: step });
+          nAdd = sent.sent;
+          if (sent.err) { stop = sent.err; if (OQ.isNetError(stop)) toQueue(sent.left); editsOk = !(pl.upd.length || pl.del.length); }
+          if (!stop) {                                                 // правка той же записи: одинаковые изменения одним запросом
+            const groups = new Map();
+            for (const sid of pl.upd) {
+              const ex = mine.get(sid); if (!ex) { skipped++; step(1); continue; }
+              const b = body(S.marks.get(sid)), k = JSON.stringify(b);
+              if (!groups.has(k)) groups.set(k, { b, ids: [] });
+              groups.get(k).ids.push(ex.id);
+            }
+            for (const { b, ids } of groups.values()) {
+              const r = await OQ.mutateIds(sb, ids, b, { onProgress: step });
+              nUpd += r.done; skipped += ids.length - r.left.length - r.done;
+              if (r.err) { stop = r.err; editsOk = false; break; }
+            }
           }
-          for (const sid of pl.del) {                                  // «Был» вместо Н: отмена записи (след остаётся в истории отмен)
-            const ex = mine.get(sid); if (!ex) { skipped++; continue; }
-            const r = await q(sb.from('absences').delete().eq('id', ex.id).select('id')); if (r.length) nDel++; else skipped++;
+          if (!stop) {                                                 // «Был» вместо Н: отмена записей (след остаётся в истории отмен)
+            const ids = [];
+            for (const sid of pl.del) { const ex = mine.get(sid); if (ex) ids.push(ex.id); else { skipped++; step(1); } }
+            const r = await OQ.mutateIds(sb, ids, null, { onProgress: step });
+            nDel = r.done; skipped += ids.length - r.left.length - r.done;
+            if (r.err) { stop = r.err; editsOk = false; }
           }
-        } catch (e) {
-          if (!OQ.isNetError(e)) throw e;
-          if (pl.upd.length || pl.del.length) { toast('Нет связи: изменить или убрать внесённое без сети нельзя. Повторите, когда появится сеть.', 'err'); return; }
-          const lk = new Set(OQ.list(ctx.uid).filter((x) => x.group_id === gid && x.date === d && ofPair(x, p)).map((x) => x.student_id));
-          nAdd = OQ.add(ctx.uid, pl.add.filter((sid) => !lk.has(sid)).map(mk)); queued = true;
-          Cab.netBar();
+        }
+        if (stop) {                                                    // частичный успех: что сохранено, что ждёт, что делать
+          const net = OQ.isNetError(stop);
+          if (net && editsOk && queued && !nAdd) toast(`Нет связи. Сохранено на телефоне: ${queued}. Отправится, когда появится сеть.`, 'ok');   // совсем без связи: как раньше
+          else toast([net ? 'Нет связи.' : errText(stop), `Сохранено ${nAdd + nUpd + nDel} из ${total}.`,
+            queued ? `Ещё ${queued} ${plural(queued, ['отметка ждёт', 'отметки ждут', 'отметок ждут'])} в очереди и уйдут сами, когда появится сеть.` : '',
+            editsOk ? '' : 'Изменения и отмены не сохранены: нажмите «Сохранить» ещё раз (внесённое второй раз не добавится).'].filter(Boolean).join(' '), 'err');
+          if (!editsOk) return;                                        // отметки остаются на экране
         }
         S.dirty = false;
         const out = [nAdd && `внесено ${nAdd}`, nUpd && `изменено ${nUpd}`, nDel && `убрано ${nDel}`].filter(Boolean).join(', ');
-        toast(queued ? `Нет связи. Сохранено на телефоне: ${nAdd}. Отправится, когда появится сеть.`
-          : (out ? out[0].toUpperCase() + out.slice(1) + '.' : 'Эти пропуски уже внесены.') + (skipped ? ` Пропущено: ${skipped} (запись уже изменена).` : ''), 'ok');
+        if (!stop) toast(out ? out[0].toUpperCase() + out.slice(1) + '.' + (skipped ? ` Пропущено: ${skipped} (запись уже изменена).` : '') : skipped ? `Пропущено: ${skipped} (запись уже изменена).` : 'Эти пропуски уже внесены.', 'ok');
         await loadDay();
         S.sel = p.key; initMarks(); paint();
       }).then(sync);
@@ -490,7 +518,7 @@
     const days = [...new Set(rows.map((a) => a.date))];
     put(el, h`${head({ href: '#/journal', text: 'Журнал' }, dateRight(), 'История пропусков', 'Последние 30 дней')}
       ${closedNote(ctx)}
-      ${rows.length ? days.map((d) => h`<h2 class="cab-h2">${Cab.dateText(d)}, ${Cab.DOW_S[Cab.dowOf(d)].toLowerCase()}</h2>${rows.filter((a) => a.date === d).map((a) => h`<div class="cab-card" data-id="${a.id}"><div class="meta"><b>${Cab.initials(name.get(a.student_id) || {})}</b><span class="st">${num(a.hours)} ч</span></div><p>${a.subject || 'Без предмета'}${a.is_excused ? ', уважительный' : ''}, внёс: ${who(a)}</p>${own(a) && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-id="${a.id}" aria-label="Отменить пропуск: ${Cab.initials(name.get(a.student_id) || {})}, ${a.subject || ''}">Отменить</button></div>` : ''}</div>`)}`)
+      ${rows.length ? days.map((d) => h`<h2 class="cab-h2">${Cab.dateText(d)}, ${Cab.DOW_S[Cab.dowOf(d)].toLowerCase()}</h2>${rows.filter((a) => a.date === d).map((a) => h`<div class="cab-card" data-id="${a.id}"><div class="meta"><b>${Cab.initials(name.get(a.student_id) || {})}</b><span class="st">${num(a.hours)} ч</span></div><p>${Cab.sj(a.subject || 'Без предмета')}${a.is_excused ? ', уважительный' : ''}, внёс: ${who(a)}</p>${own(a) && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-id="${a.id}" aria-label="Отменить пропуск: ${Cab.initials(name.get(a.student_id) || {})}, ${a.subject || ''}">Отменить</button></div>` : ''}</div>`)}`)
         : h`<p class="cab-empty">За 30 дней пропусков нет.</p>`}
       <p class="cab-note">Отменить можно только свои записи. Записи преподавателя видны, но не меняются.</p>`);
     el.onclick = (e) => {
@@ -533,7 +561,7 @@
     const cnt = (k) => all.filter((a) => a.k === k).length;
     const ORDER = ['late', 'wait', 'done'], HEAD = { late: 'Просрочены', wait: 'Ждём', done: 'Сданы' };
     const card = (a) => h`<article class="cab-card dc dc-${a.k}" data-id="${a.id}"><div class="meta"><h3>${a.nm}</h3><span class="st c-${DOC_ST[a.k].cls}">${docText(a, today)}</span></div>
-      <p class="cs-subj">${a.subject || 'Без предмета'}${a.lesson_kind ? ' · ' + Cab.KIND[a.lesson_kind].toLowerCase() : ''}</p>
+      <p class="cs-subj">${Cab.sj(a.subject || 'Без предмета')}${a.lesson_kind ? ' · ' + Cab.KIND[a.lesson_kind].toLowerCase() : ''}</p>
       <p>Пропуск ${ddmm(a.date)}, ${num(a.hours)} ч · ${a.cert_type}</p>
       ${a.k !== 'done' && !ctx.closed ? h`<div class="cab-actions"><button type="button" class="j2-btn small primary" data-a="ok" data-id="${a.id}" aria-label="Подтвердить документ: ${a.nm}, ${a.subject || ''}">Подтвердить</button></div>` : ''}</article>`;
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, dateRight(), 'Журнал', `Семестр: ${Cab.dateText(rng.from)}${rng.to ? ' – ' + Cab.dateText(rng.to) : ''}`)}
@@ -624,11 +652,11 @@
   const dash = (why) => h`<td class="c-mute"><span aria-hidden="true">—</span><span class="sr-only">${why}</span></td>`;
   const hrCell = (c) => (c.un || c.ex ? h`<td><b class="${c.un ? 'c-coral' : 'c-mute'}">${num(c.un)}</b><i aria-hidden="true">/</i><b class="${c.ex ? 'c-mint' : 'c-mute'}">${num(c.ex)}</b><span class="sr-only">неуважительных ${num(c.un)}, уважительных ${num(c.ex)}</span></td>` : dash('нет'));
   function subjTable(st) {
-    const cols = [['lecture', 'Лекции'], ['practice', 'Практ.'], ...(st.lab ? [['lab', 'Лаб.']] : []), ...(st.none ? [['none', 'Без вида']] : [])];
+    const cols = [['lecture', 'Лекции'], ['practice', 'ПЗ'], ...(st.lab ? [['lab', 'Лаб.']] : []), ...(st.none ? [['none', 'Без вида']] : [])];
     // название предмета занимает всю ширину своей группы строк: слово остаётся целым даже на узком экране
     const grp = (title, vals, tag) => h`<${raw(tag)} class="cs-g"><tr><th scope="rowgroup" colspan="${cols.length + 1}" class="cs-subj">${title}</th></tr><tr>${vals}</tr></${raw(tag)}>`;
     return h`<table class="sc-tbl sc-subj"><thead><tr>${cols.map(([, t]) => h`<th scope="col">${t}</th>`)}<th scope="col">Всего</th></tr></thead>
-      ${st.list.map((r) => grp(r.subject, h`${cols.map(([k]) => (k === 'lab' && !r.hasLab ? dash('нет лабораторных') : hrCell(r[k])))}${hrCell({ un: r.un, ex: r.ex })}`, 'tbody'))}
+      ${st.list.map((r) => grp(Cab.sj(r.subject), h`${cols.map(([k]) => (k === 'lab' && !r.hasLab ? dash('нет лабораторных') : hrCell(r[k])))}${hrCell({ un: r.un, ex: r.ex })}`, 'tbody'))}
       ${grp('Итого', h`${cols.map(([k]) => hrCell(st.total[k]))}${hrCell({ un: st.total.un, ex: st.total.ex })}`, 'tfoot')}</table>`;
   }
 
@@ -649,7 +677,7 @@
     const kindTxt = (a) => (a.lesson_kind ? Cab.KIND[a.lesson_kind] : 'вид не указан');
     const item = (a) => { const ds = a.is_excused && a.cert_type ? Cab.docState(a, today) : null;
       return h`<div class="sc-ab" data-id="${a.id}"><div class="meta"><b>${a.date ? Cab.dateText(a.date) : 'без даты'}</b><span class="${a.is_excused ? 'c-mint' : 'c-coral'}">${num(a.hours)} ч, ${a.is_excused ? 'уважительная' : 'неуважительная'}</span></div>
-        <p>${a.subject || 'Без предмета'} · ${kindTxt(a)}</p>
+        <p>${Cab.sj(a.subject || 'Без предмета')} · ${kindTxt(a)}</p>
         <p>Причина: ${a.is_excused ? (a.cert_type || 'не указана') : 'без уважительной причины'}${ds ? h`, <span class="${ds.cls}">${ds.text}</span>` : ''}${a.comment ? ' · ' + a.comment : ''}</p>
         ${!ctx.closed && ds && !a.cert_submitted ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-a="doc" data-id="${a.id}">Документ сдан</button></div>` : ''}
         ${can(a) ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-a="cancel" data-id="${a.id}" aria-label="Отменить пропуск: ${a.subject || ''}, ${a.date ? Cab.dateText(a.date) : ''}">Отменить пропуск</button></div>` : a.created_by ? h`<p class="cab-note">Внёс преподаватель: отменить нельзя.</p>` : ''}</div>`; };
@@ -661,7 +689,7 @@
       <h2 class="cab-h2"><span>Все пропуски</span><span class="c-mute">${ab.length}</span></h2>
       ${ab.length ? h`<div class="cab-card">${ab.map(item)}</div>` : h`<p class="cab-empty">Пропусков нет.</p>`}
       ${canc.length ? h`<details class="st-det"><summary>История отмен: ${canc.length}</summary>${canc.map((c) => { const a = c.absence || {}, m = Cab.minsk(Date.parse(c.cancelled_at));
-        return h`<div class="cab-kv"><span>${a.date ? Cab.dateText(a.date) : 'без даты'}, ${a.subject || 'без предмета'}, ${num(a.hours || 0)} ч<small class="c-mute" style="display:block">${c.cancelled_by === ctx.uid ? 'отменили вы' : 'отменил староста или заместитель'}, ${Cab.dateText(m.iso)} в ${String(m.hh).padStart(2, '0')}:${String(m.mm).padStart(2, '0')}</small></span></div>`; })}</details>` : ''}`);
+        return h`<div class="cab-kv"><span>${a.date ? Cab.dateText(a.date) : 'без даты'}, ${Cab.sj(a.subject || 'без предмета')}, ${num(a.hours || 0)} ч<small class="c-mute" style="display:block">${c.cancelled_by === ctx.uid ? 'отменили вы' : 'отменил староста или заместитель'}, ${Cab.dateText(m.iso)} в ${String(m.hh).padStart(2, '0')}:${String(m.mm).padStart(2, '0')}</small></span></div>`; })}</details>` : ''}`);
     const paintTbl = () => {
       const m = S.card.period === 'month', st = Cab.subjStats(m ? ab.filter((a) => (a.date || '').slice(0, 7) === today.slice(0, 7)) : ab, labSubj);
       put($(el, '#scTbl'), st.list.length ? h`${subjTable(st)}
@@ -756,7 +784,7 @@
     const canEdit = (x) => own(x) || byStu(x);
     const cmp = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
     const live = rows.filter((x) => !x.due || x.due >= day), past = rows.filter((x) => x.due && x.due < day);
-    const card = (x, old) => { const d = Cab.due(x.due), mine = canEdit(x); return h`<article class="cab-card ${old ? 'hm-old' : ''}"><div class="meta"><h3>${x.subject || 'Без предмета'}</h3><span class="st c-${d.cls}">${d.text}</span></div>
+    const card = (x, old) => { const d = Cab.due(x.due), mine = canEdit(x); return h`<article class="cab-card ${old ? 'hm-old' : ''}"><div class="meta"><h3>${Cab.sj(x.subject || 'Без предмета')}</h3><span class="st c-${d.cls}">${d.text}</span></div>
       <p>${FORMS[formOf(x)].one}${own(x) ? x.createdBy ? ', добавили вы' : ', добавил староста' : byStu(x) ? ', добавил студент' : ', добавил преподаватель'}${x.subgroup ? ', подгруппа ' + x.subgroup : ''}${x.due ? ', до ' + Cab.dateText(x.due) : ''}</p>
       ${x.text ? h`<p class="hm-text">${x.text}</p>` : ''}
       ${ctx.closed ? '' : mine ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-e="${x.id}" aria-label="Изменить: ${x.subject}">Изменить</button><button type="button" class="j2-btn small danger" data-d="${x.id}" aria-label="Отменить: ${x.subject}">Отменить</button></div>` : h`<p class="cab-note">Добавил преподаватель: менять и отменять нельзя.</p>`}</article>`; };

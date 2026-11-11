@@ -196,6 +196,9 @@ try {
   // ===== «Логи» =====
   await tab(sp, 'logs', 'Логи');
   await sp.locator('#logBody li, #logBody .j2-card.bad').first().waitFor({ timeout: 15000 });   // «Загружаем…» тоже <p>: ждём именно записи
+  // 2.0.3: первая вкладка — «Все пользователи» (лента sysadmin_activity_log): фильтры и выгрузка есть
+  check('Логи: по умолчанию «Все пользователи», есть фильтры и выгрузка', (await sp.locator('[data-log="all"][aria-selected="true"]').count()) === 1 && (await sp.locator('#lfUser, #lfRole, #lfKind, #lfFrom, #lfTo, #lfQ').count()) === 6 && (await sp.getByRole('button', { name: /Выгрузить в CSV/ }).count()) === 1);
+  await sp.locator('[data-log="audit"]').click(); await sp.locator('#logBody li, #logBody .j2-card.bad').first().waitFor({ timeout: 15000 });
   check('Логи: «Действия» показывают записи журнала', (await sp.locator('#logBody li').count()) > 0);
   await layout(sp, 'Логи: действия');
   await sp.locator('[data-log="client"]').click();

@@ -7,6 +7,7 @@ const mem = new Map();
 globalThis.localStorage = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
 await import('../../offline-queue.js');   // скрипт браузера: кладёт себя в globalThis.OQ
 const OQ = globalThis.OQ;
+OQ.DELAYS = [];   // здесь повторы выключены: проверяем саму очередь; повторы и пачки — в v203.mjs
 
 const results = [];
 async function t(name, fn) {
@@ -101,11 +102,11 @@ await t('flush: чужая очередь не трогается', async () => 
   await OQ.flush(sb, 'u1');
   assert.equal(OQ.count('u2'), 1); assert.equal(sb.db.rows.length, 1);
 });
-await t('flush: больше 100 записей уходят пачками', async () => {
+await t('flush: большая очередь уходит пачками по OQ.CHUNK', async () => {
   mem.clear(); const sb = fakeSb();
   OQ.add('u1', Array.from({ length: 230 }, (_, i) => row(i + 1)));
   const r = await OQ.flush(sb, 'u1');
-  assert.deepEqual([r.sent, r.left], [230, 0]); assert.equal(sb.db.upserts, 3);
+  assert.deepEqual([r.sent, r.left], [230, 0]); assert.equal(sb.db.upserts, Math.ceil(230 / OQ.CHUNK));
 });
 await t('isNetError / isPermanent', () => {
   assert.ok(OQ.isNetError(new Error('Load failed'))); assert.ok(!OQ.isNetError(new Error('duplicate key')));

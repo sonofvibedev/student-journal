@@ -149,19 +149,19 @@ try {
   // ---------- преподаватели ----------
   await page.goto(`${BASE}/app.html#/study/teachers`); await page.reload(); await page.waitForSelector('#cabMain button.cab-row', { timeout: 30000 }); await page.waitForTimeout(500);   // подгруппа снова не выбрана: ctx читается при входе
   const cards = await page.locator('#cabMain button.cab-row').count(), tt = await page.locator('#cabMain').innerText();
-  check('преподаватели: на странице только карточки предметов (5), без ФИО и «Лекции: …»', cards === 5 && !tt.includes('Иванов') && !tt.includes('Лекции:') && !tt.includes('Практические:'), `${cards} | ${tt.slice(0, 200)}`);
+  check('преподаватели: на странице только карточки предметов (5), без ФИО и «Лекции: …»', cards === 5 && !tt.includes('Иванов') && !tt.includes('Лекция:') && !tt.includes('ПЗ:'), `${cards} | ${tt.slice(0, 200)}`);
   check('преподаватели: под названием число видов занятий («3 вида занятий»)', (await page.locator('#cabMain button.cab-row', { hasText: 'Эконометрика' }).innerText()).includes('3 вида занятий'));
   await page.screenshot({ path: join(shots, 'teachers.png') });
   await page.locator('#cabMain button.cab-row', { hasText: 'Эконометрика' }).click();
   const dlg = page.getByRole('dialog');
   const dt = await dlg.innerText();
-  check('шторка: заголовок предмета, «Лекции — ФИО», «Практические — …»', dt.includes('Эконометрика') && dt.includes('Лекции — Миксюк Светлана Федоровна') && dt.includes('Практические — Стасева А.А.'), dt);
-  check('шторка: «Лабораторные: 1 подгруппа — …, 2 подгруппа — …» (преподаватели разные)', dt.includes('Лабораторные: 1 подгруппа — Пушкин С.А., 2 подгруппа — Стасева А.А.'), dt);
+  check('шторка: заголовок предмета, «Лекция: ФИО», «ПЗ: …» (название предмета в шторке полное)', dt.includes('Эконометрика') && dt.includes('Лекция: Миксюк Светлана Федоровна') && dt.includes('ПЗ: Стасева А.А.'), dt);
+  check('шторка: «Лабораторные: 1 подгруппа — …, 2 подгруппа — …» (преподаватели разные)', dt.includes('Лабораторная работа: 1 подгруппа — Пушкин С.А.; 2 подгруппа — Стасева А.А.'), dt);
   await page.screenshot({ path: join(shots, 'teacher-sheet.png') });
   await page.keyboard.press('Escape');
   if (grp.name === '24ДММ-2') {
     await page.locator('#cabMain button.cab-row', { hasText: 'Логистика' }).click();
-    check('ФИО: сокращённое из расписания дополнено из data.json (группа 24ДММ-2)', (await dlg.innerText()).includes('Практические — Яровская Екатерина Сергеевна'), await dlg.innerText());
+    check('ФИО: сокращённое из расписания дополнено из data.json (группа 24ДММ-2)', (await dlg.innerText()).includes('ПЗ: Яровская Екатерина Сергеевна'), await dlg.innerText());
     await page.keyboard.press('Escape');
     await page.locator('#cabMain button.cab-row', { hasText: 'Стратегический маркетинг' }).click();
     check('ФИО: Волонтей А.В. → Волонтей Алексей Викторович', (await dlg.innerText()).includes('Волонтей Алексей Викторович'), await dlg.innerText());

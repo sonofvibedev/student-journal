@@ -258,7 +258,7 @@ select pg_temp.expect_count('лаб: студент видит свой lab-пр
 select pg_temp.ok('лаб: уведомление студенту «лабораторная»',
   exists (select 1 from public.notifications where user_id = pg_temp.u(3) and ref ->> 'absence_id' = 'v2-lab'
            and body like '%лабораторная%'));
-select pg_temp.is('лаб: _lesson_kind_ru прежние значения', public._lesson_kind_ru('lecture') || '/' || public._lesson_kind_ru('practice'),
-  'лекция/практическое');
+select pg_temp.is('лаб: _lesson_kind_ru: практическое теперь ПЗ', public._lesson_kind_ru('lecture') || '/' || public._lesson_kind_ru('practice'),
+  'лекция/ПЗ');
 select pg_temp.ok('лаб: _lesson_kind_ru закрыта для клиентов',
   not has_function_privilege('authenticated', 'public._lesson_kind_ru(text)', 'execute'));

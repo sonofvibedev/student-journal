@@ -17,10 +17,54 @@
   // Нет связи: браузер сам говорит «офлайн» или запрос не дошёл (supabase-js: «Failed to fetch», Safari: «Load failed»)
   OQ.isNetError = (e) => {
     if (root.navigator && root.navigator.onLine === false) return true;
-    return /failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(String((e && e.message) || e || ''));
+    if (e && String(e.code) === '57014') return true;           // statement timeout: сервер не успел, повтор уместен
+    return /failed to fetch|networkerror|network request failed|load failed|fetch failed|timed? ?out|bad gateway|gateway time|service unavailable|too many requests|connection (reset|closed)/i.test(String((e && e.message) || e || ''));
   };
   // Повтор бессмысленен: журнал закрыт, нет прав, студента убрали из группы
   OQ.isPermanent = (e) => !!e && ['42501', '23503', '23502', '22P02'].includes(String(e.code));
+
+  // ---- массовое внесение: пачки, повтор с растущей паузой, правка и удаление по id ----
+  OQ.CHUNK = 40;                          // записей в одном запросе (28 студентов × 4 пары = 3 запроса, а не один на 112 строк)
+  OQ.DELAYS = [500, 1500, 4000];          // паузы перед повторами при обрыве, мс; пусто — без повторов
+  OQ.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  OQ.chunk = (arr, n) => { const out = [], k = Math.max(1, n || OQ.CHUNK); for (let i = 0; i < arr.length; i += k) out.push(arr.slice(i, i + k)); return out; };
+  // Повторяет fn на сетевой ошибке. Браузер говорит «офлайн» — не ждём, сразу отдаём ошибку (отметки уйдут в очередь).
+  OQ.retry = async (fn, o) => {
+    const delays = (o && o.delays) || OQ.DELAYS, sleep = (o && o.sleep) || OQ.sleep;
+    for (let i = 0; ; i++) {
+      try { return await fn(); }
+      catch (e) {
+        if (!OQ.isNetError(e) || i >= delays.length || (root.navigator && root.navigator.onLine === false)) throw e;
+        await sleep(delays[i]);
+      }
+    }
+  };
+  const call = (mk, o) => OQ.retry(async () => { const r = await mk(); if (r.error) throw r.error; return r; }, o);
+  // Вставка пачками. Повтор той же пачки безопасен: id у строк уже есть, ON CONFLICT (id) DO NOTHING.
+  // Возвращает { sent, left, err }: left — то, что не ушло (неудавшаяся пачка и все после неё), err — причина.
+  OQ.sendRows = async (sb, rows, o) => {
+    const out = { sent: 0, left: rows.slice(), err: null };
+    for (const part of OQ.chunk(rows, o && o.size)) {
+      try { await call(() => sb.from('absences').upsert(part, { onConflict: 'id', ignoreDuplicates: true }), o); }
+      catch (e) { out.err = e; return out; }
+      out.sent += part.length; out.left = out.left.slice(part.length);
+      if (o && o.onProgress) o.onProgress(part.length);
+    }
+    return out;
+  };
+  // Правка (patch) или удаление (patch = null) записей по id пачками. { done, left, err }: done — реально затронуто, left — id, до которых не дошли.
+  OQ.mutateIds = async (sb, ids, patch, o) => {
+    const out = { done: 0, left: ids.slice(), err: null };
+    for (const part of OQ.chunk(ids, o && o.size)) {
+      try {
+        const r = await call(() => (patch ? sb.from('absences').update(patch) : sb.from('absences').delete()).in('id', part).select('id'), o);
+        out.done += (r.data || []).length;
+      } catch (e) { out.err = e; return out; }
+      out.left = out.left.slice(part.length);
+      if (o && o.onProgress) o.onProgress(part.length);
+    }
+    return out;
+  };
 
   // Очередь пользователя: [{ id, uid, group_id, student_id, date, subject, hours, lesson_kind, at }]
   OQ.list = (uid) => read().filter((x) => x.uid === uid);
@@ -48,14 +92,13 @@
       for (;;) {
         const q = OQ.list(uid);
         if (!q.length) break;
-        const batch = q.slice(0, 100);
+        const batch = q.slice(0, OQ.CHUNK);
         // как при обычном сохранении: то же самое, внесённое кем-то ещё, второй раз не вносим
         const have = [];                      // уже внесённое: предмет, вид занятия и номер пары (пусто = подходит любое)
         const keys = [...new Set(batch.map((x) => x.group_id + '|' + x.date))];
         for (const k of keys) {
           const [g, d] = k.split('|');
-          const r = await sb.from('absences').select('student_id, subject, lesson_kind, pair_no').eq('group_id', g).eq('date', d);
-          if (r.error) throw r.error;
+          const r = await call(() => sb.from('absences').select('student_id, subject, lesson_kind, pair_no').eq('group_id', g).eq('date', d));
           r.data.forEach((a) => have.push({ ...a, g, d }));
         }
         const same = (x, a) => a.g === x.group_id && a.d === x.date && a.student_id === x.student_id && norm(a.subject) === norm(x.subject)
@@ -64,8 +107,7 @@
         const dup = batch.length - fresh.length;
         if (fresh.length) {
           const rows = fresh.map(({ uid: _u, at, ...r }) => ({ is_excused: false, ...r, created_at: at }));   // уважительная отметка (причина и срок документа) идёт в самой записи
-          const r = await sb.from('absences').upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
-          if (r.error) throw r.error;
+          await call(() => sb.from('absences').upsert(rows, { onConflict: 'id', ignoreDuplicates: true }));
         }
         drop(batch.map((x) => x.id));
         out.sent += fresh.length; out.dropped += dup;
@@ -73,7 +115,7 @@
     } catch (e) {
       if (OQ.isNetError(e)) out.net = true;
       else if (OQ.isPermanent(e)) {   // вся пачка не примется никогда: убираем её, пользователю скажем сколько
-        const q = OQ.list(uid); const n = Math.min(100, q.length); drop(q.slice(0, n).map((x) => x.id)); out.dropped += n;
+        const q = OQ.list(uid); const n = Math.min(OQ.CHUNK, q.length); drop(q.slice(0, n).map((x) => x.id)); out.dropped += n;
         out.error = e.code;
       } else out.error = e.code || 'error';
     }

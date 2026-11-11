@@ -8,7 +8,8 @@
   const sb = J2.sb, $ = J2.$, esc = J2.esc;
   const st = {
     tab: 'state', nav: 0, roleSub: 'req', reqs: [], open: new Set(), groups: [], roleGroup: '', rc: null,
-    logAction: '', logActions: new Set(), logSub: 'audit', logHours: 168, log: null,
+    logAction: '', logActions: new Set(), logSub: 'all', logHours: 168, log: null,
+    lf: { role: '', user: '', kind: '', from: '', to: '', q: '' }, lfUsers: new Map(),   // фильтры ленты «Все пользователи»; lfUsers: id → имя из загруженных записей
     hours: 24, ask: null, secret: null, tf: null, me: null, gl: [], gcount: {}, imp: {}, teachers: [], admins: [], tg: null,
   };
 
@@ -261,16 +262,10 @@
   }
 
   // ---------- Логи ----------
-  const ACTION = {
-    registration_approve: 'Заявка одобрена', registration_reject: 'Заявка отклонена', membership_approve: 'Студент подтверждён', membership_reject: 'Студент отклонён',
-    student_reset_binding: 'Сброс привязки', remind_headman: 'Напоминание старосте', consent_accept: 'Согласие принято', group_code_rotate: 'Новый код группы',
-    set_group_role: 'Роль в группе', set_thresholds: 'Пороги пропусков', sysadmin_bootstrap: 'Сисадмин назначен',
-    teacher_assign: 'Преподаватель назначен', teacher_remove: 'Преподаватель снят', sysadmin_add: 'Сисадмин добавлен', sysadmin_remove: 'Сисадмин снят',
-    group_create: 'Группа создана', group_status: 'Статус группы изменён', sysadmin_user_create: 'Учётная запись создана', backup_manual: 'Копия создана вручную',
-    backup_download: 'Копия скачана', ops_report_sent: 'Сводка отправлена', tg_webhook_reinstall: 'Вебхук бота переустановлен',
-  };
+  const ACTION = LogExplain.ACTION;
   const actionLabel = (a) => ACTION[a] || a;
   const LOGSEG = {
+    all: { label: 'Все пользователи' },
     audit: { label: 'Действия' },
     client: { label: 'Ошибки браузера', s: 'client', k: 'error' },
     server: { label: 'Ошибки сервера', s: 'server', k: 'error' },
@@ -287,7 +282,10 @@
   async function loadLog(n, more) {
     const L = st.log, sub = st.logSub, spec = LOGSEG[sub], last = L.rows[L.rows.length - 1];
     let data, error;
-    if (sub === 'audit') {
+    if (sub === 'all') {
+      const f = st.lf;
+      ({ data, error } = await sb.rpc('sysadmin_activity_log', { p_role: f.role || null, p_user: f.user || null, p_kind: f.kind || null, p_from: f.from || null, p_to: f.to || null, p_q: f.q || null, p_limit: PAGE, p_offset: more ? L.rows.length : 0 }));
+    } else if (sub === 'audit') {
       let q = sb.from('audit_log').select('*').order('at', { ascending: false }).limit(PAGE);   // ponytail: курсор по at; записи с одним временем на границе страниц могут пропасть
       if (st.logAction) q = q.eq('action', st.logAction);
       if (more && last) q = q.lt('at', last.at);
@@ -297,13 +295,25 @@
     }
     if (stale(n) || st.log !== L) return;
     if (error) { L.err = error; if (!more) { paintLogFilters(n); paint(n, failBox(error, 'retry-log'), $('logBody')); return; } say(errMsg(error), 'err'); return; }
-    (data || []).forEach((r) => { if (sub === 'audit') st.logActions.add(r.action); });
+    (data || []).forEach((r) => { if (sub === 'audit') st.logActions.add(r.action); if (sub === 'all' && r.actor) st.lfUsers.set(r.actor, r.actor_name); });
     L.rows = L.rows.concat(data || []); L.more = (data || []).length === PAGE; L.err = null;
     paintLogFilters(n); paintLog(n);
   }
   function paintLogFilters(n) {
     const box = $('logFilters'); if (!box || stale(n)) return;
-    if (st.logSub === 'audit') {
+    if (st.logSub === 'all') {
+      const f = st.lf, opt = (v, t, cur) => '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(t) + '</option>';
+      const users = [...st.lfUsers].sort((a, b) => a[1].localeCompare(b[1], 'ru'));
+      if (f.user && !st.lfUsers.has(f.user)) users.unshift([f.user, 'Выбранный пользователь']);
+      box.innerHTML = '<div class="sa-lf">' +
+        '<label class="j2-field sa-field-sel"><span>Пользователь</span><select id="lfUser"><option value="">Все</option>' + users.map(([id, nm]) => opt(id, nm, f.user)).join('') + '</select></label>' +
+        '<label class="j2-field sa-field-sel"><span>Роль</span><select id="lfRole"><option value="">Все роли</option>' + ['student', 'headman', 'deputy', 'teacher', 'sysadmin'].map((r) => opt(r, LogExplain.ROLE_RU[r], f.role)).join('') + '</select></label>' +
+        '<label class="j2-field sa-field-sel"><span>Тип события</span><select id="lfKind"><option value="">Все типы</option>' + Object.keys(LogExplain.KIND_RU).map((k) => opt(k, LogExplain.KIND_RU[k], f.kind)).join('') + '</select></label>' +
+        '<label class="j2-field"><span>С даты</span><input type="date" id="lfFrom" value="' + esc(f.from) + '"></label>' +
+        '<label class="j2-field"><span>По дату</span><input type="date" id="lfTo" value="' + esc(f.to) + '"></label>' +
+        '<label class="j2-field"><span>Поиск</span><input type="search" id="lfQ" value="' + esc(f.q) + '" placeholder="Фамилия, предмет, действие" autocomplete="off" maxlength="80"></label></div>' +
+        '<p class="sa-note">Без дат показываются последние 90 дней.</p>';
+    } else if (st.logSub === 'audit') {
       const opts = [...new Set([...Object.keys(ACTION), ...st.logActions])];
       box.innerHTML = '<label class="j2-field sa-field-sel"><span>Действие</span><select id="logFilter"><option value="">Все действия</option>' +
         opts.map((a) => '<option value="' + esc(a) + '"' + (a === st.logAction ? ' selected' : '') + '>' + esc(actionLabel(a)) + '</option>').join('') + '</select></label>';
@@ -314,6 +324,12 @@
   }
   const PERF_LBL = { page: 'Загрузка страницы', api: 'Ответ сервера (медиана)' };
   function logRow(r) {
+    if (st.logSub === 'all') {
+      const e = LogExplain.explain(r);
+      return '<li class="sa-log' + (e.ok ? '' : ' sa-bad') + '"><div class="sa-head"><b>' + esc(e.who) + '</b><span class="sub">' + esc(when(r.at)) + '</span></div>' +
+        '<div class="sa-card-p">' + esc(e.text) + '</div>' +
+        '<div class="sa-mono">' + esc([e.kindRu, r.group_name, e.ok ? 'успешно' : 'ошибка'].filter(Boolean).join(' · ')) + '</div></li>';
+    }
     if (st.logSub === 'audit') {
       const d = r.details && Object.keys(r.details).length ? JSON.stringify(r.details) : '';
       return '<li class="sa-log"><div class="sa-head"><b>' + esc(actionLabel(r.action)) + '</b><span class="sub">' + esc(when(r.at)) + '</span></div>' +
@@ -330,7 +346,8 @@
     const L = st.log, box = $('logBody'); if (!box || stale(n)) return;
     box.innerHTML = '<div class="j2-card">' + (L.rows.length ? '<ul class="j2-list">' + L.rows.map(logRow).join('') + '</ul>' : '<p>Записей нет.</p>') + '</div>' +
       (L.more ? '<button type="button" class="j2-btn" data-act="log-more">Показать ещё</button>' : '') +
-      '<p class="sa-note">Показано записей: ' + L.rows.length + (st.logSub === 'audit' ? '. «Кто»: первые символы идентификатора пользователя.' : '. События хранятся 30 дней.') + '</p>';
+      (st.logSub === 'all' ? '<button type="button" class="j2-btn" data-act="log-csv">Выгрузить в CSV (до 500 записей)</button>' : '') +
+      '<p class="sa-note">Показано записей: ' + L.rows.length + (st.logSub === 'audit' ? '. «Кто»: первые символы идентификатора пользователя.' : st.logSub === 'all' ? '. Имена студентов сокращены, оценки и причины справок не показываются, ошибки браузера не привязаны к пользователю.' : '. События хранятся 30 дней.') + '</p>';
   }
 
   // ---------- Роли ----------
@@ -392,7 +409,7 @@
   }
 
   const ROLE_LBL = { headman: 'староста', deputy: 'заместитель' };
-  const BASE_LBL = { student: 'студент', teacher_lecture: 'преподаватель (лекции)', teacher_practice: 'преподаватель (практика)' };
+  const BASE_LBL = { student: 'студент', teacher_lecture: 'преподаватель (лекции)', teacher_practice: 'преподаватель (ПЗ)' };
   const STATUS_LBL = { pending: 'ждёт подтверждения', active: 'действует', rejected: 'отклонён', removed: 'убран из группы' };
   async function loadMembers(n) {
     if (!(await loadGroups(n))) return;
@@ -437,7 +454,7 @@
   }
 
   // --- Преподаватели ---
-  const TROLE = { teacher_lecture: 'лекции', teacher_practice: 'практика' };
+  const TROLE = { teacher_lecture: 'лекции', teacher_practice: 'ПЗ' };
   async function loadTeachers(n) {
     if (!(await loadGroups(n))) return;
     const gid = st.roleGroup;
@@ -455,7 +472,7 @@
       (rows ? '<ul class="j2-list">' + rows + '</ul>' : '<p>Преподавателей пока нет.</p>') + '</section>' +
       '<section class="j2-card" id="tchForm" aria-labelledby="addT"><h2 id="addT">Добавить преподавателя</h2>' +
       '<label class="j2-field"><span>Почта</span><input id="tfEmail" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@example.com"></label>' +
-      '<label class="j2-field sa-field-sel"><span>Ведёт</span><select id="tfRole"><option value="teacher_lecture">Лекции</option><option value="teacher_practice">Практические занятия</option></select></label>' +
+      '<label class="j2-field sa-field-sel"><span>Ведёт</span><select id="tfRole"><option value="teacher_lecture">Лекции</option><option value="teacher_practice">ПЗ</option></select></label>' +
       '<p class="sa-card-p" id="tfSubjLbl">Предметы</p><div class="j2-chips" id="tfChips" role="group" aria-labelledby="tfSubjLbl"></div>' +
       (st.tf.subjErr ? '<p class="sa-note">Предметы из расписания не загрузились. Впишите вручную.</p>' : !subj.length ? '<p class="sa-note">В расписании группы предметов нет. Впишите вручную.</p>' : '') +
       '<div class="sa-thr"><label class="j2-field"><span>Свой предмет</span><input id="tfManual" type="text" maxlength="200" autocomplete="off"></label>' +
@@ -925,9 +942,19 @@
     const t = e.target;
     if (t.id === 'logFilter') { st.logAction = t.value; reloadLog(); }
     if (t.id === 'logHours') { st.logHours = Number(t.value); reloadLog(); }
+    const LF = { lfUser: 'user', lfRole: 'role', lfKind: 'kind', lfFrom: 'from', lfTo: 'to', lfQ: 'q' };
+    if (LF[t.id]) { st.lf[LF[t.id]] = t.value.trim(); reloadLog(); }
     if (t.id === 'roleGroup') { st.roleGroup = t.value; st.rc = null; st.tf = null; clearSecrets(); const n = ++st.nav; $('rolesBody').innerHTML = loading; ({ grp: loadMembers, tch: loadTeachers }[st.roleSub] || loadMembers)(n); }
     if (t.dataset && t.dataset.ng != null) ngPick(Number(t.dataset.ng));
   });
+  async function exportLog() {
+    const f = st.lf, { data, error } = await sb.rpc('sysadmin_activity_log', { p_role: f.role || null, p_user: f.user || null, p_kind: f.kind || null, p_from: f.from || null, p_to: f.to || null, p_q: f.q || null, p_limit: 500, p_offset: 0 });
+    if (error) { say(errMsg(error), 'err'); return; }
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + LogExplain.toCsv(data || [])], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'journal-logs-' + new Date().toISOString().slice(0, 10) + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    say('Выгружено записей: ' + (data || []).length + '.', 'ok');
+  }
   function reloadLog() { const n = ++st.nav; st.log = { key: n, rows: [], more: false, err: null }; const b = $('logBody'); if (b) b.innerHTML = loading; loadLog(n, false); }
   view().addEventListener('click', (e) => {
     const t = e.target;
@@ -948,6 +975,7 @@
     if (a === 'retry-bk') { $('bkBody').innerHTML = loading; return loadBackups(st.nav); }
     if (a === 'digest') return digest(btn, card);
     if (a === 'log-more') return act(btn, btn.parentNode, () => loadLog(st.nav, true));
+    if (a === 'log-csv') return act(btn, btn.parentNode, exportLog);
     if (a === 'ask-yes') { const q = st.ask; if (!q) return; return act(btn, card, async () => { st.ask = null; try { await q.run(); } finally { paintAsk(); } }); }
     if (a === 'ask-no') { st.ask = null; paintAsk(); return; }
     if (a === 'sec-copy') return copySecret();

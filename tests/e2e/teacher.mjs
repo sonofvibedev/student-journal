@@ -200,7 +200,7 @@ try {
   await go(p, '#/journal/attendance', 'Отсутствуют');
   await p.locator('.tc-row').first().waitFor();
   const pairOpts = await p.locator('#tcPair option').allInnerTexts();
-  check('посещаемость: пары только лекции (практических нет)', pairOpts.length >= 2 && pairOpts.filter((t) => !/Другое/.test(t)).every((t) => /лекция/.test(t) && !/практическое/.test(t)), JSON.stringify(pairOpts));
+  check('посещаемость: пары только лекции (практических нет)', pairOpts.length >= 2 && pairOpts.filter((t) => !/Другое/.test(t)).every((t) => /лекция/.test(t) && !/ПЗ/.test(t)), JSON.stringify(pairOpts));
   check('посещаемость: выбрана идущая пара (5 ноября, 11:15, лекция, 2 ч)', /5 ноября, 11:15, лекция, 2 ч/.test(await p.locator('#tcPair option:checked').innerText()));
   const row = (s) => p.locator('.tc-row').filter({ has: p.locator('b', { hasText: re(initials(s)) }) });
   await row(S3).getByText('внёс: староста').waitFor({ timeout: 15000 });
@@ -328,7 +328,7 @@ try {
   await pp.locator('#tcPair').waitFor();
   await pp.locator('.tc-row').first().waitFor();
   const po = await pp.locator('#tcPair option').allInnerTexts();
-  check('практик: пары только практические, лекций нет', po.filter((t) => !/Другое/.test(t)).length >= 1 && po.filter((t) => !/Другое/.test(t)).every((t) => /практическое/.test(t) && !/лекция/.test(t)), JSON.stringify(po));
+  check('практик: пары только практические, лекций нет', po.filter((t) => !/Другое/.test(t)).length >= 1 && po.filter((t) => !/Другое/.test(t)).every((t) => /ПЗ/.test(t) && !/лекция/.test(t)), JSON.stringify(po));
   const prow = (s) => pp.locator('.tc-row').filter({ has: pp.locator('b', { hasText: re(initials(s)) }) });
   await prow(S4).getByText('внёс: староста').waitFor({ timeout: 15000 });
   check('практик: запись старосты по практике видна, лекционные записи не видны', await prow(S4).getByRole('button', { name: /Отменить/ }).count() === 1 && /был/.test(await prow(S5).innerText()) && !/внёс/.test(await prow(S5).innerText()));

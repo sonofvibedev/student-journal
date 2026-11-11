@@ -11,7 +11,7 @@
   const norm = (s) => String(s || '').trim().toLowerCase();
   const byName = (a, b) => (a.last_name || '').localeCompare(b.last_name || '', 'ru') || (a.first_name || '').localeCompare(b.first_name || '', 'ru');
   const soft = (p) => p.catch((e) => { console.warn('[teacher]', e); return null; });
-  const roleText = (ctx) => 'Преподаватель, ' + (ctx.subjects.join(', ') || 'без предметов');
+  const roleText = (ctx) => 'Преподаватель, ' + (ctx.subjects.map(Cab.sj).join(', ') || 'без предметов');
   const head = (back, right, title, sub) => h`${Cab.top(back, right)}<h1 class="cab-title">${title}</h1>${sub ? h`<p class="cab-sub">${sub}</p>` : ''}`;
   const MIN = ['минута', 'минуты', 'минут'], PPL = ['человек', 'человека', 'человек'];
   const grp = (ctx, gid) => ctx.groups.find((g) => g.id === gid) || { id: gid, name: '', status: 'active' };
@@ -65,7 +65,7 @@
     [...ctx.groups].sort((a, b) => a.name.localeCompare(b.name, 'ru')).forEach((g) => mySubj(ctx, g.id).sort((a, b) => a.localeCompare(b, 'ru')).forEach((s) => out.push({ key: g.id + '|' + s, gid: g.id, group: g.name, subject: s })));
     return out;
   }
-  const pairText = (ctx, p) => `${p.subject}, ${p.group}, ${ctx.teacherRole === 'lecture' ? 'лекции' : 'практические'}`;
+  const pairText = (ctx, p) => `${Cab.sj(p.subject)}, ${p.group}, ${ctx.teacherRole === 'lecture' ? 'лекции' : 'ПЗ'}`;
   function curPair(ctx) {
     const ps = pairs(ctx);
     if (!ps.some((p) => p.key === S.sel)) S.sel = ps[0] ? ps[0].key : null;
@@ -78,7 +78,7 @@
   }
   const jtabs = (el, v) => Cab.segmented(el, [{ value: 'journal', label: 'Занятия' }, { value: 'journal/attendance', label: 'Посещаемость' }, { value: 'journal/grades', label: 'Оценки' }], v, (x) => { location.hash = '#/' + x; });
   const jhead = (ctx) => head({ href: '#/home', text: 'Главная' }, roleText(ctx), 'Журнал');
-  const noPairs = (el, ctx, seg) => { put(el, h`${jhead(ctx)}<div id="tcSeg"></div><div class="cab-card"><h3>Нет назначенных предметов</h3><p>Вам не назначены ${ctx.teacherRole === 'lecture' ? 'лекции' : 'практические занятия'} в группах. Обратитесь к администратору.</p></div>`); jtabs($(el, '#tcSeg'), seg); };
+  const noPairs = (el, ctx, seg) => { put(el, h`${jhead(ctx)}<div id="tcSeg"></div><div class="cab-card"><h3>Нет назначенных предметов</h3><p>Вам не назначены ${ctx.teacherRole === 'lecture' ? 'лекции' : 'ПЗ'} в группах. Обратитесь к администратору.</p></div>`); jtabs($(el, '#tcSeg'), seg); };
 
   // Занятия предмета и вида преподавателя из расписания
   const lessonsIn = async (ctx, pk, from, to) => {
@@ -115,9 +115,9 @@
     const now = nowOf(), next = mine.find((l) => Cab.toMin(l.starts_at) > t.minutes);
     const left = now ? Cab.toMin(now.ends_at) - t.minutes : 0;
     const lessonCard = now
-      ? h`<a class="cab-row t-lime" href="#/journal/attendance"><span><small>Сейчас идёт ${Cab.kindLow(now.kind)}</small><b>${grp(ctx, now.group_id).name}</b><small>${now.subject}, ещё ${left} ${plural(left, MIN)}, ${cnt(now.group_id)} ${plural(cnt(now.group_id), PPL)}</small></span>${now.room ? h`<span class="tc-room"><small>ауд.</small> <b>${now.room}</b></span>` : ''}</a>`
-      : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${next.subject}, ${grp(ctx, next.group_id).name}, ${Cab.hm(next.starts_at)}` : 'Сегодня занятий больше нет'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
-    const kinds = (gid) => { const k = new Set(ctx.assignments.filter((a) => a.group_id === gid).map((a) => a.lesson_kind)); return k.size > 1 ? 'лекции и практические' : k.has('practice') ? 'практические' : 'лекции'; };
+      ? h`<a class="cab-row t-lime" href="#/journal/attendance"><span><small>Сейчас идёт ${Cab.kindLow(now.kind)}</small><b>${grp(ctx, now.group_id).name}</b><small>${Cab.sj(now.subject)}, ещё ${left} ${plural(left, MIN)}, ${cnt(now.group_id)} ${plural(cnt(now.group_id), PPL)}</small></span>${now.room ? h`<span class="tc-room"><small>ауд.</small> <b>${now.room}</b></span>` : ''}</a>`
+      : h`<a class="cab-row" href="#/journal"><span><b>Пар сейчас нет</b><small>${next ? `Дальше: ${Cab.sj(next.subject)}, ${grp(ctx, next.group_id).name}, ${Cab.hm(next.starts_at)}` : 'Сегодня занятий больше нет'}</small></span><span class="cab-ico">${icon.chev}</span></a>`;
+    const kinds = (gid) => { const k = new Set(ctx.assignments.filter((a) => a.group_id === gid).map((a) => a.lesson_kind)); return k.size > 1 ? 'лекции и ПЗ' : k.has('practice') ? 'ПЗ' : 'лекции'; };
     const groupRows = ctx.groups.map((g) => h`<a class="tc-grp" href="#/groups"><span><b>${g.name}</b><small>${cnt(g.id)} ${plural(cnt(g.id), PPL)}, ${kinds(g.id)}</small></span>${nowOf(g.id) ? h`<span class="tc-pill">идёт пара</span>` : h`<span class="cab-ico sm">${icon.chev}</span>`}</a>`);
     // строки чата: по тредам из chat_threads_my, иначе по одной на группу (RPC может быть недоступен: экран не падает)
     const threads = Array.isArray(thr) ? thr.filter((x) => x.thread_id) : [];
@@ -152,7 +152,7 @@
       const pct = x.attendance_pct == null ? null : Math.round(Number(x.attendance_pct)), wk = x.absences_week == null ? null : Number(x.absences_week);
       const live = ls.some((l) => l.group_id === g.id && subs.includes(l.subject) && Cab.toMin(l.starts_at) <= t.minutes && t.minutes < Cab.toMin(l.ends_at));
       return h`<article class="cab-card" data-g="${g.id}"><div class="meta"><h3>${g.name}</h3>${isClosed(ctx, g.id) ? h`<span class="tc-pill mute">журнал закрыт</span>` : live ? h`<span class="tc-pill">идёт пара</span>` : ''}</div>
-        <p>${n} ${plural(n, PPL)}, ${ctx.teacherRole === 'lecture' ? 'лекции' : 'практические'}</p>
+        <p>${n} ${plural(n, PPL)}, ${ctx.teacherRole === 'lecture' ? 'лекции' : 'ПЗ'}</p>
         <div class="tc-metrics"><span><b class="${pct == null ? 'c-mute' : pct >= 90 ? 'c-lime' : pct >= 80 ? 'c-amber' : 'c-coral'}">${pct == null ? '—' : pct + '%'}</b><small>посещаемость</small></span>
         <span><b class="c-mute">—</b><small>средний балл тестов</small></span><span><b class="${wk ? 'c-amber' : wk === 0 ? 'c-lime' : 'c-mute'}">${wk == null ? '—' : num(wk)}</b><small>${wk == null ? 'пропусков' : plural(Math.round(wk), ['час', 'часа', 'часов'])} за неделю</small></span></div>
         <div class="cab-actions"><button type="button" class="j2-btn" data-list="${g.id}">Список</button><a class="j2-btn tc-write" href="#/chat">Написать старосте</a></div></article>`;
@@ -239,7 +239,7 @@
       <div class="tc-bar"><span id="tcCnt"></span><span>${stu.length} ${plural(stu.length, PPL)}</span></div>
       <div class="cab-pick" id="tcList"></div>
       ${closed ? '' : h`<button type="button" class="j2-btn primary" id="tcSave"></button>`}
-      <p class="cab-note">Менять «неуважительный» на «уважительный» можно в записях своей дисциплины. Отменить можно свои записи и записи старосты. Только по ${role === 'lecture' ? 'лекциям' : 'практическим занятиям'}.</p>`);
+      <p class="cab-note">Менять «неуважительный» на «уважительный» можно в записях своей дисциплины. Отменить можно свои записи и записи старосты. Только по ${role === 'lecture' ? 'лекциям' : 'ПЗ'}.</p>`);
     jtabs($(el, '#tcSeg'), 'journal/attendance'); bindPick(el);
     const sel = $(el, '#tcPair'), other = $(el, '#tcOther'), list = $(el, '#tcList'), save = $(el, '#tcSave');
     sel.value = S.pair; $(el, '#tcDate').value = S.otherDate;
@@ -406,7 +406,7 @@
     const cmp = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
     const live = rows.filter((x) => !x.due || x.due >= day).sort(cmp), past = rows.filter((x) => x.due && x.due < day).sort((a, b) => cmp(b, a)).slice(0, 10);
     const canWrite = ctx.groups.some((g) => g.status === 'active');
-    const card = (x, old) => { const d = Cab.due(x.due), ro = isClosed(ctx, x.gid); return h`<article class="cab-card ${old ? 'tc-old' : ''}"><div class="meta"><h3>${x.subject || 'Без предмета'}</h3><span class="st c-${d.cls}">${d.text}</span></div>
+    const card = (x, old) => { const d = Cab.due(x.due), ro = isClosed(ctx, x.gid); return h`<article class="cab-card ${old ? 'tc-old' : ''}"><div class="meta"><h3>${Cab.sj(x.subject || 'Без предмета')}</h3><span class="st c-${d.cls}">${d.text}</span></div>
       <p>${typeText(x)}${own(x) ? ', внесли вы' : ', от старосты'}${many ? ', ' + grp(ctx, x.gid).name : ''}${x.subgroup ? ', подгруппа ' + x.subgroup : ''}${x.due ? ', до ' + Cab.dateText(x.due) : ''}</p>
       ${x.text ? h`<p class="tc-text">${x.text}</p>` : ''}
       ${ro ? '' : h`<div class="cab-actions"><button type="button" class="j2-btn small" data-e="${x.id}" aria-label="Изменить: ${x.subject}">Изменить</button><button type="button" class="j2-btn small danger" data-d="${x.id}" aria-label="Отменить: ${x.subject}">Отменить</button></div>`}</article>`; };

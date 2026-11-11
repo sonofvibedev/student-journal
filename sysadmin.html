@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Системный администратор</title>
-<link rel="stylesheet" href="j2.css?v=61">
+<link rel="stylesheet" href="j2.css?v=67">
 <style>
   /* Только то, чего нет в j2.css: нижняя панель разделов и мелочи утилиты */
   .sa-wrap { padding-bottom: calc(110px + var(--app-inset-bottom)); }
@@ -43,6 +43,10 @@
   .sa-thr .j2-btn { width: auto; flex: none; margin: 0; }
   .sa-field-sel { margin-bottom: 12px; }
   .sa-field-sel select { padding-right: 24px; }
+  .sa-lf { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .sa-lf .j2-field { margin-bottom: 10px; min-width: 0; }
+  .sa-lf .j2-field input { min-width: 0; }
+  .j2-list li.sa-bad { border-left: 3px solid var(--j-coral); padding-left: 10px; }
   .j2-list li.sa-log, .j2-list li.sa-mem { flex-direction: column; align-items: stretch; gap: 4px; }
   .sa-note { color: var(--j-muted); font-size: 14px; margin: 0 0 12px; }
   .sa-state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -53,7 +57,7 @@
   .sa-pill.bad { color: var(--j-coral); }
   .j2-tabs.sa-seg { flex-wrap: wrap; }
   .j2-tabs.sa-seg button { flex: 1 1 45%; min-width: 0; overflow-wrap: anywhere; }
-  .sa-secret { border: 2px solid var(--j-lime); background: rgba(198, 244, 50, .08); }
+  .sa-secret { border: 2px solid var(--j-lime); background: rgba(var(--j-lime-rgb), .08); }
   .sa-secret .j2-code { font-size: clamp(20px, 6.2vw, 28px); letter-spacing: .06em; overflow-wrap: anywhere; word-break: break-all; }
   .sa-secret .sa-warn { color: var(--j-amber); margin-top: 6px; }
   .sa-res { min-height: 0; margin: 8px 0 0; font-size: 14px; overflow-wrap: anywhere; }
@@ -103,12 +107,13 @@
   </div>
 </nav>
 
-<script src="env.js?v=61"></script>
-<script src="monitor.js?v=61"></script>
-<script src="vendor/supabase.js?v=61"></script>
-<script src="j2-core.js?v=61"></script>
-<script src="vendor/telegram-web-app.js?v=61"></script>
-<script src="tg-app.js?v=61"></script>
-<script src="sysadmin.js?v=61"></script>
+<script src="env.js?v=67"></script>
+<script src="monitor.js?v=67"></script>
+<script src="vendor/supabase.js?v=67"></script>
+<script src="j2-core.js?v=67"></script>
+<script src="vendor/telegram-web-app.js?v=67"></script>
+<script src="tg-app.js?v=67"></script>
+<script src="log-explain.js?v=67"></script>
+<script src="sysadmin.js?v=67"></script>
 </body>
 </html>

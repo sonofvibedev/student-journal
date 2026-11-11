@@ -17,12 +17,9 @@ vm.runInNewContext(readFileSync('cab-core.js', 'utf8'), ctx);
 const Cab = ctx.Cab;
 const a = (subject, hours, ex, kind) => ({ subject, hours, is_excused: ex, lesson_kind: kind });
 
-t('версия приложения 2.0.2 и запись в «Что нового»', () => {
+t('запись 2.0.2 в «Что нового» осталась (текущую версию проверяет v203.mjs)', () => {
   const src = readFileSync('changelog.js', 'utf8');
-  assert.ok(/const APP_VERSION = '2\.0\.2';/.test(src));
-  const first = /const CHANGELOG = \[\s*\{\s*version: '([^']+)'/.exec(src);
-  assert.equal(first[1], '2.0.2');
-  assert.equal(JSON.parse(readFileSync('package.json', 'utf8')).version, '2.0.2');
+  assert.ok(/version: '2\.0\.2',\s*date: '09\.11\.2026'/.test(src));
 });
 
 t('по предметам: часы по видам, уважительные и неуважительные отдельно, итоги сходятся', () => {

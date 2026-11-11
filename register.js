@@ -471,7 +471,7 @@
           h('h2', null, h('span', { class: 'j2-ok', 'aria-hidden': 'true', text: '✓' }), `bseu.by, группа ${(S.group && S.group.group_name) || ''}`),
           h('ul', { class: 'j2-list' },
             row('Семестр', d.semester ? String(d.semester) : '', weeks ? `${weeks} ${pl(weeks, 'неделя', 'недели', 'недель')}` : 'не указано'),
-            row('Предметы', 'лекции и практические', String(subjects.length)),
+            row('Предметы', 'лекции и ПЗ', String(subjects.length)),
             row('Преподаватели', 'подтянуты из расписания', String(teachers.length)))),
         subjects.length ? h('div', { class: 'j2-card' }, h('h2', { text: 'Предметы' }),
           h('ul', { class: 'j2-list' }, subjects.map((s) => h('li', null, h('div', null, h('b', { text: String(s.name) }),

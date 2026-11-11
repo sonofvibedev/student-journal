@@ -8,7 +8,7 @@
   const W = (function () { try { const w = window.Telegram && window.Telegram.WebApp; return w && w.initData ? w : null; } catch (e) { return null; } })();
   const TGApp = (window.TGApp = window.TGApp || {});
   TGApp.inTelegram = !!W;
-  const BG = '#0A0C11';                                                                   // фон журнала (j2.css, --j-bg)
+  let BG = window.J2_BG || '#0A0C11';                                                      // фон журнала (j2.css, --j-bg); при смене акцента его даёт accent.js
   const since = (v) => { try { return typeof W.isVersionAtLeast === 'function' && W.isVersionAtLeast(v); } catch (e) { return false; } };
   const call = (fn) => { try { fn(); } catch (e) { /* клиент без этой возможности: журнал работает и так */ } };
 
@@ -26,7 +26,9 @@
   if (W) {
     call(() => W.expand());
     if (since('7.7') && typeof W.disableVerticalSwipes === 'function') call(() => W.disableVerticalSwipes());
-    call(() => { if (since('6.1')) { W.setHeaderColor(BG); W.setBackgroundColor(BG); } if (since('7.10') && W.setBottomBarColor) W.setBottomBarColor(BG); });
+    const paint = () => call(() => { if (since('6.1')) { W.setHeaderColor(BG); W.setBackgroundColor(BG); } if (since('7.10') && W.setBottomBarColor) W.setBottomBarColor(BG); });
+    paint();
+    TGApp.setBg = (c) => { BG = c; paint(); };                                              // акцент сменили: шапка, фон и нижняя панель Telegram берут новый цвет
     call(() => W.ready());
     insets();
     ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged'].forEach((ev) => call(() => W.onEvent(ev, insets)));
