@@ -81,7 +81,7 @@ npx supabase functions deploy <имя> --project-ref woiqekpuoddxixlrbvkp --no-v
 
 ## 6. Сайт
 
-1. `deploy-fix.ps1 -RepoPath C:\Users\dimpo\student-journal` публикует `index.html`, `data.json`, `cabinet.html`, `manifest.json`, `sw.js`, `icons/` (скрипт добавляет и все файлы кабинетов 2.0 из раздела 0; перед запуском посмотреть `git status`).
+1. `deploy-fix.ps1 -RepoPath D:\student-journal` публикует `index.html`, `data.json`, `cabinet.html`, `manifest.json`, `sw.js`, `icons/` (скрипт добавляет и все файлы кабинетов 2.0 из раздела 0; перед запуском посмотреть `git status`).
 2. Hosting (GitHub Pages) отдаёт по HTTPS: `chat-crypto.js` (Web Crypto) работает только в secure context.
 3. Через 1–2 минуты открыть `…/app.html`, `…/headman.html`, `…/sysadmin.html` в чистом окне: HTTP 200, нет ошибок в консоли. Сервис-воркер сменится на `journal-24dmm2-v51` после второго открытия.
 

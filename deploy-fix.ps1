@@ -17,7 +17,7 @@
     По умолчанию — текущая папка, из которой запущен скрипт.
 
 .EXAMPLE
-    .\deploy-fix.ps1 -RepoPath "C:\Users\dimpo\student-journal"
+    .\deploy-fix.ps1 -RepoPath "D:\student-journal"
 #>
 
 param(
