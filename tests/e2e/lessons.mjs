@@ -189,8 +189,6 @@ try {
   check('повторное нажатие перезапускает таймер (через 2,4 с после первого ещё виден)', await shown());
   await wait(1000);
   check('и скрывается через ~1,8 с после последнего нажатия', !(await shown()));
-  await page.locator('#achSoon').click({ force: true }); await wait(2400);
-  check('тост «Достижения» тоже скрывается за ~2 с', !(await shown()));
   await page.evaluate(() => Cab.toast('Не удалось сохранить', 'err')); await wait(2400);
   check('тост ошибки через 2,4 с ещё виден (не укорочен)', await shown());
   await wait(1500);

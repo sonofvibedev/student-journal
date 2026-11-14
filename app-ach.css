@@ -1,0 +1,30 @@
+/* «Журнал 2.1»: раздел «Достижения» (app-ach.js). Подгружается при первом открытии раздела вместе с icons/achievements/achievements-icons.css.
+   Цвета — только токены темы (--j-*, --ach-*): светлая и тёмная тема переключаются без правок здесь. */
+.ac-sum { display: grid; gap: 10px; }
+.ac-big { display: flex; align-items: baseline; gap: 8px; }
+.ac-big b { font-size: 38px; line-height: 1; font-weight: 800; }
+.ac-big span { color: var(--j-muted); font-size: 15px; }
+.ac-bar { height: 8px; border-radius: 4px; overflow: hidden; background: rgba(var(--j-fg-rgb), .10); }
+.ac-bar i { display: block; height: 100%; width: calc(var(--ac-fill, 0) * 100%); border-radius: 4px; background: var(--j-accent-text); }
+.ac-bar.anti i { background: var(--ach-anti); }
+.ac-line { display: flex; align-items: center; gap: 10px; min-height: var(--j-tap); }
+.ac-line > span { min-width: 0; display: grid; gap: 1px; }
+.ac-line small { color: var(--j-muted); font-size: 13px; line-height: 1.25; }
+.ac-line b { font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.ac-cnt { color: var(--j-muted); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.ac-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ac-cell { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; min-height: 116px; padding: 10px 6px 8px; margin: 0;
+  border-radius: 18px; border: 1px solid var(--j-card-border); background: var(--j-card); color: var(--j-text); font: inherit; text-align: center; cursor: pointer; }
+.ac-cell:focus-visible { outline: 2px solid var(--j-accent-text); outline-offset: 2px; }
+.ac-cell.anti { border-color: var(--ach-anti-soft); }
+.ac-name { font-size: 12px; line-height: 1.2; font-weight: 600; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ac-cell.off .ac-name { color: var(--j-muted); }
+.ac-sh { display: grid; justify-items: center; gap: 4px; text-align: center; margin: 0 0 12px; }
+.ac-sh p { margin: 0; color: var(--j-muted); font-size: 15px; }
+.ac-sh .ac-state { font-size: 13px; font-weight: 700; color: var(--j-accent-text); }
+.ac-sh .ac-state.off { color: var(--j-muted); }
+.ac-sh-bar { margin: 0 0 8px; }
+.ac-sh-t { margin: 6px 0 0; color: var(--j-text); font-size: 14px; }
+.ac-check { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.ac-check li { color: var(--j-muted); } .ac-check li.done { color: var(--j-text); }
+.ac-check li::before { content: '○ '; } .ac-check li.done::before { content: '✓ '; color: var(--j-accent-text); }

@@ -2,6 +2,8 @@
 //   icons/achievements/<code>.svg        — с CSS-переменными, запасные значения тёмной темы (inline и <img>)
 //   icons/achievements/light/<code>.svg  — то же, запасные значения светлой темы (для <img> на светлом фоне)
 //   icons/achievements/achievements-icons.css — токены тёмной/светлой темы и состояния (закрыто, мелкий размер)
+//   icons/achievements/sprite.svg        — все значки из achievements.js одним файлом (<symbol id="a-<code>">): кабинет студента
+//                                          подгружает его один раз, кладёт в страницу и рисует значки через <use> (app-ach.js)
 //   docs/previews/achievements-icons.html — превью, всё инлайн (открывается и с диска, и по http)
 // Список достижений берётся из achievements.js (сам файл не меняется).
 // Запуск: node tools/achievements-icons.mjs   — генерирует файлы и проверяет контраст (падает, если < 3:1).
@@ -302,6 +304,8 @@ for (const a of ALL) {
   writeFileSync(`icons/achievements/light/${a.code}.svg`, svg(a, T.light) + '\n');
 }
 writeFileSync('icons/achievements/achievements-icons.css', CSS);
+const symbol = (a) => svg(a, T.dark).replace(/^<svg[^>]*>/, `<symbol id="a-${a.code}" viewBox="0 0 64 64">`).replace(/<\/svg>$/, '</symbol>');
+writeFileSync('icons/achievements/sprite.svg', ['<svg xmlns="http://www.w3.org/2000/svg">', ...ACHIEVEMENTS.map(symbol), '</svg>', ''].join('\n'));   // предложенных значков (PROPOSED) в кабинете пока нет
 const cr = contrast();
 writeFileSync('docs/previews/achievements-icons.html', preview(cr));
 console.table(cr.rows.map((r) => ({ тема: r.theme, где: r.where, что: r.what, контраст: r.r, нужно: r.need || '—' })));

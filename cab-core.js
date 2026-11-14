@@ -349,7 +349,7 @@
     const go = (r) => { if (r === true) reset = true; if (!raf) raf = requestAnimationFrame(run); };
     new MutationObserver(() => go()).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', () => go(true));
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => go(true));
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(() => go(true)); document.fonts.addEventListener('loadingdone', () => go(true)); }   // шрифт догрузился позже первого ready: ширины сменились без мутаций
   } catch (e) { /* старый движок: названия просто переносятся по словам */ } };
 
   // 2.0.2: пропуски по предметам и видам занятий. rows — записи absences, labSubj — Set предметов (в нижнем регистре), у которых есть лабораторные в расписании.
