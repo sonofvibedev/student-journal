@@ -720,18 +720,21 @@
   // =====================================================================================================
   async function access(el, ctx, params, nav) {
     const gid = ctx.group.id;
-    const [stu, eds] = await Promise.all([
+    const [stu, eds, bots] = await Promise.all([
       q(sb.from('students').select('id, last_name, first_name, claim_status').eq('group_id', gid).eq('claim_status', 'active')),
       q(sb.from('homework_editors').select('student_id').eq('group_id', gid)).catch((e) => { console.error('[headman] доступы', e); return null; }),
+      rpc('homework_bot_status', { p_group: gid }).catch(() => null),             // нет ответа: подпись про бота просто не показываем
     ]);
     if (!nav.isCurrent()) return;
     stu.sort(byName);
     const list = stu.filter((x) => x.id !== ctx.student.id);                    // у старосты и заместителя право есть всегда
     const on = new Set((eds || []).map((x) => x.student_id));
+    const bot = bots ? new Map(bots.map((x) => [x.student_id, x.bot_linked])) : null;
+    const botNote = (id) => (!bot || bot.get(id) ? '' : ' · ещё не запустил бота: через бота вносить не сможет, в приложении сможет');
     put(el, h`${head({ href: '#/summary', text: 'Сводка' }, roleText(ctx), 'Доступы', 'Кто может вносить домашки')}
       ${closedNote(ctx)}
       ${eds == null ? h`<div class="j2-card bad"><h2>Раздел пока недоступен</h2><p>Обновите страницу. Если не помогло, повторите позже.</p></div>`
-        : list.length ? h`<div class="st-grp">${list.map((x) => h`<button type="button" class="tg-sw" role="switch" data-id="${x.id}" aria-checked="${String(on.has(x.id))}"${ctx.closed ? raw(' disabled') : ''}><span><span class="tg-t">${Cab.fullName(x)}</span><small>Может вносить домашки</small></span><span class="tg-k" aria-hidden="true"></span></button>`)}</div>
+        : list.length ? h`<div class="st-grp">${list.map((x) => h`<button type="button" class="tg-sw" role="switch" data-id="${x.id}" aria-checked="${String(on.has(x.id))}"${ctx.closed ? raw(' disabled') : ''}><span><span class="tg-t">${Cab.fullName(x)}</span><small>Может вносить домашки${botNote(x.id)}</small></span><span class="tg-k" aria-hidden="true"></span></button>`)}</div>
           <p class="cab-note">Студент с доступом видит кнопку «Добавить домашку» в разделе «Домашки». Дедлайны, УСР, зачёты и экзамены вносит только староста.</p>`
         : h`<p class="cab-empty">Подтверждённых студентов пока нет.</p>`}`);
     el.onclick = (e) => {
@@ -739,7 +742,10 @@
       const prev = b.getAttribute('aria-checked') === 'true';
       b.setAttribute('aria-checked', String(!prev)); b.dataset.busy = '1';
       rpc('homework_access_set', { p_student: b.dataset.id, p_on: !prev })
-        .then(() => toast(prev ? 'Доступ убран.' : 'Доступ выдан.', 'ok'))
+        .then(() => {
+          const unlinked = !prev && bot && !bot.get(b.dataset.id);
+          toast(prev ? 'Доступ убран.' : unlinked ? 'Доступ выдан. Студент ещё не запустил бота: в приложении кнопка «Добавить домашку» уже есть.' : 'Доступ выдан.', 'ok');
+        })
         .catch((err) => { b.setAttribute('aria-checked', String(prev)); toast(errText(err), 'err'); })
         .finally(() => { delete b.dataset.busy; });
     };

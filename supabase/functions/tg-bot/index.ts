@@ -40,7 +40,9 @@ const KIND_LABEL: Record<string, string> = { homework: 'Домашка', deadlin
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const MENU: Button[][] = [[['Домашка', 'k:homework'], ['Дедлайн', 'k:deadline']]];
 const STALE = 'Диалог устарел. Начните заново: /start';
-const NO_RIGHTS = 'У вас нет права вносить задачи. Попросите администратора выдать его.';
+const NO_RIGHTS = 'У вас нет права вносить задачи через бота. Попросите старосту открыть вам доступ в журнале: «Доступы» → ваше имя. '
+  + 'Если доступ уже выдан, а бот отвечает так же, сообщите старосте.';
+const LEGACY_GROUP_ID = '00000000-0000-4000-8000-000000000024';   // 24ДММ-2
 const lazyExpire = () => expireStale().catch(() => 0);   // просроченные заявки закрываем при любом обращении
 
 // ---------- Состояние диалога ----------
@@ -61,7 +63,15 @@ async function getMe(tid: number): Promise<(Me & { canPost: boolean }) | null> {
   const { data: p } = await admin.from('profiles').select('student_id, can_post_tasks').eq('user_id', link.user_id).maybeSingle();
   if (!p) return null;
   const isAdmin = canDecide(tid, ADMIN_IDS);
-  return { userId: link.user_id, studentId: p.student_id, isAdmin, canPost: p.can_post_tasks === true || isAdmin };
+  // Право выдаётся двумя путями: старый флаг profiles.can_post_tasks и «Доступы» старосты (homework_editors, веб 2.0).
+  // Бот пишет в журнал группы 24ДММ-2 (data.json), поэтому доступ из «Доступов» считается только для неё.
+  let editor = p.can_post_tasks === true;
+  if (!editor && p.student_id) {
+    const { data: he } = await admin.from('homework_editors').select('student_id')
+      .eq('group_id', LEGACY_GROUP_ID).eq('student_id', p.student_id).maybeSingle();
+    editor = !!he;
+  }
+  return { userId: link.user_id, studentId: p.student_id, isAdmin, canPost: editor || isAdmin };
 }
 
 // Что писать в data.json в поле approvedBy: student_id админа, если он привязан, иначе «admin».

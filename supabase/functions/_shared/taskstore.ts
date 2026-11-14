@@ -29,7 +29,7 @@ export async function applyOps(ops: Ops) {
   if (ops.upserts.length) {
     const now = new Date().toISOString();
     const { error } = await admin.from('tasks').upsert(
-      ops.upserts.map((u) => ({ id: u.rec.id, kind: u.kind, rec: u.rec, updated_at: now })), { onConflict: 'id' });
+      ops.upserts.map((u) => ({ id: u.rec.id, kind: u.kind, rec: u.rec, group_id: LEGACY_GROUP_ID, updated_at: now })), { onConflict: 'id' });
     if (error) throw new Error('tasks_write');
   }
   if (ops.deletes.length) {
