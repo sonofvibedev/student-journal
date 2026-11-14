@@ -20,13 +20,13 @@ vm.runInNewContext(read('cab-core.js'), ctx);
 const Cab = ctx.Cab;
 
 // ---------- версия ----------
-await t('версия 2.0.3 одна: package.json, APP_VERSION, первая запись «Что нового»', () => {
-  const src = read('changelog.js'), v = JSON.parse(read('package.json')).version;
-  assert.equal(v, '2.0.3');
+await t('версия одна: package.json (2.1.0), APP_VERSION (2.1), первая запись «Что нового»', () => {
+  const src = read('changelog.js'), full = JSON.parse(read('package.json')).version, v = full.replace(/\.0$/, '');
+  assert.equal(full, '2.1.0');
   assert.ok(src.includes(`const APP_VERSION = '${v}';`));
   const first = /const CHANGELOG = \[\s*\{\s*version: '([^']+)'[\s\S]*?items: \[([\s\S]*?)\n    \],/.exec(src);
   assert.equal(first[1], v);
-  assert.ok((first[2].match(/^\s+'/gm) || []).length >= 5, 'в записи 2.0.3 должны быть пункты по всем разделам');
+  assert.ok((first[2].match(/^\s+'/gm) || []).length >= 5, 'в первой записи должны быть пункты по всем разделам');
 });
 await t('CACHE_VERSION на единицу выше, ?v= во всех страницах тот же номер', () => {
   const n = Number(/journal-24dmm2-v(\d+)/.exec(read('sw.js'))[1]);
@@ -148,7 +148,7 @@ await t('в интерфейсе нет слов «практический/пр
     const bad = read(f).split('\n').filter((l) => /практическ|Практическ|Практ\./.test(l) && !/Летняя практика/.test(l));
     assert.deepEqual(bad.map((l) => l.trim().slice(0, 90)), [], f);
   }
-  const first = /const CHANGELOG = \[\s*\{\s*version: '2\.0\.3'[\s\S]*?\n  \},/.exec(read('changelog.js'))[0];
+  const first = /\{\s*version: '2\.0\.3'[\s\S]*?\n  \},/.exec(read('changelog.js'))[0];
   assert.ok(/«практические» и «практическое»/.test(first));                                          // в 2.0.3 это слово упомянуто как «было»
 });
 await t('миграции: _lesson_kind_ru говорит «ПЗ», у новых миграций есть down-файлы, прод не трогается', () => {

@@ -101,7 +101,7 @@ try {
     check('главная: 4 ч — жёлтый', await page.locator('.cab-ringcard .ringnum b.abs-y').count() === 1);
     const tiles = await page.locator('.cab-tiles .cab-tile').allInnerTexts();
     check('главная: экзамен через 7 дней виден, зачёт через 8 дней скрыт', tiles.some((x) => /Логистика/.test(x) && /7 дней/.test(x)) && !tiles.some((x) => /Эконометрика/.test(x) && /8 дней/.test(x)), tiles.join(' | '));
-    check('плашка «Что нового»: показана при первом входе', await page.locator('.cab-wn').count() === 1 && /2.0.3/.test(await T(page, '.cab-wn')));
+    check('плашка «Что нового»: показана при первом входе', await page.locator('.cab-wn').count() === 1 && /2.1/.test(await T(page, '.cab-wn')));
     check('плашка: есть полоска прогресса', await page.locator('.cab-wn .cab-wn-bar').count() === 1);
     await shot(page, 'home');
     check('главная 360 px: без горизонтальной прокрутки', await noOverflow(page));
@@ -111,7 +111,7 @@ try {
     check('плашка: после перезахода не повторяется', await p2.locator('.cab-wn').count() === 0);
     await page.waitForTimeout(5600);
     check('плашка: исчезает сама через 5 секунд', await page.locator('.cab-wn').count() === 0);
-    check('профиль: подпись версии и строка «Что нового»', await (async () => { await p2.goto(`${BASE}/app.html#/profile`); await p2.waitForSelector('.pf-card'); const t = await p2.locator('#cabMain').innerText(); return /Версия 2.0.3/.test(t) && /Что нового/.test(t); })());
+    check('профиль: подпись версии и строка «Что нового»', await (async () => { await p2.goto(`${BASE}/app.html#/profile`); await p2.waitForSelector('.pf-card'); const t = await p2.locator('#cabMain').innerText(); return /Версия 2.1/.test(t) && /Что нового/.test(t); })());
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
   }
   // ---------- преподаватели ----------
