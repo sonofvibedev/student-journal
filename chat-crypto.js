@@ -1,26 +1,26 @@
-// Сквозное шифрование чата «староста/заместитель ↔ преподаватель» (этап 4). Контракт: docs/stage4-contract.md,
-// модель угроз: docs/stage4-db.md. Только Web Crypto API; работает в браузере (window.ChatCrypto) и в Node 24
+// Сквозное шифрование чата «староста/заместитель ↔ преподаватель», 2.1 п.12: без «пароля переписки».
+// Протокол и модель угроз: docs/v21-chat-keys.md; база: миграция 20261122100000_journal21_chat_devices.sql.
+// Только Web Crypto API; работает в браузере (window.ChatCrypto) и в Node 24
 // (тест tests/unit/chat-crypto.mjs подставляет crypto и хранилище через init(sb, uid, { crypto, storage })).
 //
-// Ключи: ECDH P-256. Закрытый ключ живёт в IndexedDB как неизвлекаемый CryptoKey и на сервере — только в виде
-// резервной копии: AES-GCM-256, ключ из PBKDF2-SHA256 (600 000 итераций, соль 16 байт) от «пароля переписки»,
-// additionalData = 'journal-chat-backup-v1|<user_id>'.
-// Ключ треда: ECDH → HKDF-SHA256 (salt = id треда, info = 'journal-chat-v1') → AES-GCM-256.
-// Сообщение: iv 12 байт, additionalData = '<thread_id>|<sender_id>|<sender_key_version>|<recipient_key_version>'.
-// Закрытый ключ наружу не отдаётся; тексты сообщений и пароли никуда не пишутся (ни в console, ни в storage).
+// Устройство: пара ECDH P-256 создаётся сама при первом открытии чата; закрытый ключ — неизвлекаемый CryptoKey в IndexedDB,
+// на сервер уходит только открытый (chat_device_register). Ключ треда — случайные 32 байта «эпохи»; в базе только обёртки:
+//   KEK = HKDF-SHA256(ECDH(устройство-обёртчик, устройство-получатель), salt = '<thread>|<epoch>',
+//                     info = 'journal-chat-wrap-v2|<обёртчик>|<получатель>') → AES-GCM-256,
+//   iv 12 байт, additionalData = 'journal-chat-wrap-v2|<thread>|<epoch>|<обёртчик>|<получатель>'.
+// Сообщение: AES-GCM ключом эпохи, iv 12 байт, additionalData = 'journal-chat-v2|<thread>|<epoch>|<sender_id>|<sender_device>'.
+// Закрытые ключи наружу не отдаются; тексты сообщений и ключи никуда не пишутся (ни в console, ни в storage).
 (function (root) {
   'use strict';
 
-  const ITER = 600000;
-  const MAX_ITER = 10000000;
-  const MAX_CT = 8192;                                   // байт шифртекста, как в chat_send
-  const INFO = 'journal-chat-v1';
+  const MAX_CT = 8192;                                   // байт шифртекста, как в chat_post
   const CURVE = { name: 'ECDH', namedCurve: 'P-256' };
+  const AES = { name: 'AES-GCM', length: 256 };
   const enc = new TextEncoder();
   const dec = new TextDecoder();
 
-  // Состояние вошедшего пользователя (одна учётная запись на страницу)
-  const S = { sb: null, uid: null, c: null, store: null, priv: null, pub: null, version: null, keys: new Map() };
+  // Состояние вошедшего пользователя (одна учётная запись на страницу); th — треды: Map(id → состояние ключей)
+  const S = { sb: null, uid: null, c: null, store: null, priv: null, pub: null, dev: null, th: new Map() };
 
   // ----- base64url -----
   function b64u(buf) {
@@ -39,8 +39,8 @@
   const rand = (n) => S.c.getRandomValues(new Uint8Array(n));
   const fail = (code) => { throw new Error(code); };
 
-  // ----- хранилище закрытого ключа (IndexedDB; ключ записи — user_id) -----
-  // Интерфейс для подмены: { get(uid), set(uid, record), del(uid) }, все async. record = { priv, pub, version }.
+  // ----- хранилище ключа устройства (IndexedDB; запись 'dev:<user_id>' = { device_id, priv, pub }) -----
+  // Интерфейс для подмены: { get(k), set(k, v), del(k) }, все async.
   function idbStorage() {
     const open = () => new Promise((res, rej) => {
       const r = root.indexedDB.open('journal-chat', 1);
@@ -65,176 +65,206 @@
       del: (k) => run('readwrite', (s) => s.delete(k)),
     };
   }
-  // Сбой хранилища (приватный режим, запрет сайта) не ломает чат: ключ остаётся в памяти до закрытия страницы
+  // Сбой хранилища (приватный режим, запрет сайта) не ломает чат: ключ живёт в памяти до закрытия страницы
   const quiet = async (fn) => { try { return await fn(); } catch (_) { return undefined; } };
+
+  async function rpc(name, args) {
+    const { data, error } = await S.sb.rpc(name, args);
+    if (error) fail(error.message || name + '_failed');
+    return data;
+  }
 
   // ----- ключи -----
   const pubOnly = (j) => ({ kty: 'EC', crv: 'P-256', x: j.x, y: j.y });
-  const sameKey = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y;
-  const importPriv = (jwk) => S.c.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y, d: jwk.d }, CURVE, false, ['deriveBits']);
+  const okJwk = (j) => !!j && /^[A-Za-z0-9_-]{43}$/.test(j.x || '') && /^[A-Za-z0-9_-]{43}$/.test(j.y || '');
   const importPub = (jwk) => S.c.subtle.importKey('jwk', pubOnly(jwk), CURVE, false, []);
+  const msgKey = (raw) => S.c.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
 
-  async function passKey(password, salt, iter) {
-    const base = await S.c.subtle.importKey('raw', enc.encode(String(password).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
-    return S.c.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, base,
-      { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  // Ключ обёртки между моим устройством и устройством other (одинаков с обеих сторон)
+  async function kek(threadId, epoch, wrapper, target, otherJwk) {
+    const bits = await S.c.subtle.deriveBits({ name: 'ECDH', public: await importPub(otherJwk) }, S.priv, 256);
+    const hk = await S.c.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
+    return S.c.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode(threadId + '|' + epoch), info: enc.encode(`journal-chat-wrap-v2|${wrapper}|${target}`) },
+      hk, AES, false, ['encrypt', 'decrypt']);
   }
-  const backupAad = () => enc.encode('journal-chat-backup-v1|' + S.uid);
+  const wrapAad = (threadId, epoch, wrapper, target) => enc.encode(`journal-chat-wrap-v2|${threadId}|${epoch}|${wrapper}|${target}`);
 
-  async function myRow() {
-    const { data, error } = await S.sb.from('chat_keys').select('public_jwk, key_version, backup').eq('user_id', S.uid).maybeSingle();
-    if (error) fail(error.message || 'load_failed');
-    return data || null;
+  async function wrap(th, epoch, raw, dev) {
+    const iv = rand(12);
+    const ct = await S.c.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: wrapAad(th.id, epoch, S.dev, dev.id) },
+      await kek(th.id, epoch, S.dev, dev.id, dev.pub), raw);
+    return { device_id: dev.id, iv: b64u(iv), ct: b64u(ct) };
   }
-
-  async function adopt(priv, pub, version) {
-    S.priv = priv; S.pub = pubOnly(pub); S.version = Number(version); S.keys.clear();
-    await quiet(() => S.store.set(S.uid, { priv, pub: S.pub, version: S.version }));
+  async function unwrap(th, w) {
+    const from = th.devices.get(w.wrapper);
+    if (!from || (from.user_id !== th.me && from.user_id !== th.peer)) return null;   // обернул не участник треда
+    try {
+      const iv = unb64u(w.iv);
+      if (iv.length !== 12) return null;
+      const raw = new Uint8Array(await S.c.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: wrapAad(th.id, w.epoch, w.wrapper, S.dev) },
+        await kek(th.id, w.epoch, w.wrapper, S.dev, from.pub), unb64u(w.ct)));
+      return raw.length === 32 ? raw : null;
+    } catch (_) { return null; }
   }
-  const ready = () => ({ state: 'ready', key_version: S.version });
+  const msgAad = (threadId, epoch, sender, device) => enc.encode(`journal-chat-v2|${threadId}|${epoch}|${sender}|${device}`);
 
-  // Новая пара → копия под паролем → публикация → локально только неизвлекаемый ключ
-  async function publish(password, reset) {
-    if (typeof password !== 'string' || password.length < 8) fail('weak_password');
-    const pair = await S.c.subtle.generateKey(CURVE, true, ['deriveBits']);
-    const jwk = await S.c.subtle.exportKey('jwk', pair.privateKey);
-    const salt = rand(16), iv = rand(12);
-    const ct = await S.c.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: backupAad() }, await passKey(password, salt, ITER),
-      enc.encode(JSON.stringify({ kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y, d: jwk.d })));
-    const priv = await importPriv(jwk);
-    const pub = pubOnly(jwk);
-    jwk.d = '';
-    const backup = { v: 1, kdf: 'PBKDF2-SHA256', iter: ITER, salt: b64u(salt), iv: b64u(iv), ct: b64u(ct) };
-    const { data, error } = await S.sb.rpc('chat_keys_publish', { p_public_jwk: pub, p_backup: backup, p_reset: !!reset });
-    if (error) fail(error.message || 'publish_failed');
-    await adopt(priv, pub, data.key_version);
-    return ready();
-  }
-
-  // Ключ треда (кэш по треду, ключу собеседника и своей версии)
-  function threadKey(thread) {
-    const p = thread.peer.public_jwk;
-    const id = [thread.id, thread.peer.id, p.x, p.y, S.version].join('|');
-    if (!S.keys.has(id)) {
-      const job = (async () => {
-        const bits = await S.c.subtle.deriveBits({ name: 'ECDH', public: await importPub(p) }, S.priv, 256);
-        const hk = await S.c.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
-        return S.c.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode(String(thread.id)), info: enc.encode(INFO) },
-          hk, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-      })();
-      job.catch(() => S.keys.delete(id));
-      S.keys.set(id, job);
+  // Ответ chat_thread_state → состояние треда (ключи эпох из прошлых открытий сохраняются)
+  async function absorb(threadId, st) {
+    const me = String(st.me), peer = String(st.peer);
+    if (me !== S.uid) fail('wrong_user');
+    let th = S.th.get(threadId);
+    if (!th || th.peer !== peer) th = { id: threadId, me, peer, keys: new Map(), raw: new Map(), wrappers: new Map() };
+    th.epoch = st.epoch == null ? null : Number(st.epoch);
+    th.devices = new Map();
+    for (const d of st.devices || []) {
+      const uid = String(d.user_id);
+      if ((uid === me || uid === peer) && okJwk(d.public_jwk)) th.devices.set(String(d.id), { id: String(d.id), user_id: uid, pub: pubOnly(d.public_jwk), revoked: !!d.revoked, epochs: (d.epochs || []).map(Number) });
     }
-    return S.keys.get(id);
+    for (const w of st.wraps || []) {
+      const e = Number(w.epoch);
+      if (th.raw.has(e)) continue;
+      const raw = await unwrap(th, { ...w, epoch: e, wrapper: String(w.wrapper) });
+      if (raw) { th.raw.set(e, raw); th.keys.set(e, await msgKey(raw)); th.wrappers.set(e, String(w.wrapper)); }
+    }
+    S.th.set(threadId, th);
+    return th;
   }
-  const msgAad = (threadId, senderId, skv, rkv) => enc.encode(`${threadId}|${senderId}|${skv}|${rkv}`);
+  const active = (th, uid) => [...th.devices.values()].filter((d) => !d.revoked && (uid == null || d.user_id === uid));
+  // Писать можно ключом текущей эпохи, только если обернувшее его устройство действующее (оно входит в отпечаток)
+  function sendable(th) {
+    const w = th.devices.get(th.wrappers.get(th.epoch));
+    return th.keys.has(th.epoch) && !!w && !w.revoked;
+  }
+
+  async function newEpoch(th, epoch) {
+    const raw = rand(32);
+    const wraps = [];
+    for (const d of active(th)) wraps.push(await wrap(th, epoch, raw, d));
+    await rpc('chat_epoch_create', { p_thread: th.id, p_device: S.dev, p_epoch: epoch, p_wraps: wraps });
+    th.raw.set(epoch, raw); th.keys.set(epoch, await msgKey(raw)); th.wrappers.set(epoch, S.dev);
+  }
+
+  // Подтверждение своего нового устройства: выдать ему ключи всех эпох, что есть у этого
+  async function approve(th) {
+    const wraps = [];
+    for (const d of active(th, S.uid)) {
+      if (d.id === S.dev) continue;
+      for (const [e, raw] of th.raw) if (!d.epochs.includes(e)) wraps.push({ ...(await wrap(th, e, raw, d)), epoch: e });
+    }
+    for (let i = 0; i < wraps.length; i += 200) await rpc('chat_wraps_add', { p_thread: th.id, p_device: S.dev, p_wraps: wraps.slice(i, i + 200) });
+    return wraps.length;
+  }
+
+  // Отпечаток: SHA-256('journal-chat-fp-v2|' + по участникам в порядке user_id: '<user_id>:<x.y действующих устройств
+  // по возрастанию через запятую>' через '|'), первые 16 hex-знаков → 'XXXX XXXX XXXX XXXX'. У обоих собеседников одинаковый.
+  async function fp(th) {
+    const part = (uid) => uid + ':' + active(th, uid).map((d) => d.pub.x + '.' + d.pub.y).sort().join(',');
+    const canon = 'journal-chat-fp-v2|' + [th.me, th.peer].sort().map(part).join('|');
+    const h = new Uint8Array(await S.c.subtle.digest('SHA-256', enc.encode(canon)));
+    const hex = Array.from(h.slice(0, 8), (x) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    return hex.match(/.{4}/g).join(' ');
+  }
 
   // ===== API =====
 
-  // → { state: 'none' | 'locked' | 'ready', key_version }  (key_version — своя текущая версия на сервере или null)
+  // Ключ устройства: из хранилища или новый (без вопросов пользователю). → { state: 'ready', device_id, created }
   async function init(sb, uid, opts) {
     const o = opts || {};
     if (!sb || !uid) fail('bad_args');
     S.sb = sb; S.uid = String(uid);
     S.c = o.crypto || root.crypto;
     S.store = o.storage || idbStorage();
-    S.priv = null; S.pub = null; S.version = null; S.keys.clear();
+    S.priv = null; S.pub = null; S.dev = null; S.th.clear();
     if (!S.c || !S.c.subtle) fail('no_crypto');
-    const row = await myRow();
-    if (!row) {
-      await quiet(() => S.store.del(S.uid));
-      return { state: 'none', key_version: null };
+    const slot = 'dev:' + S.uid;
+    const rec = await quiet(() => S.store.get(slot));
+    if (rec && rec.priv && okJwk(rec.pub)) {
+      const r = await rpc('chat_device_register', { p_public_jwk: pubOnly(rec.pub) });
+      if (!r.revoked) {
+        S.priv = rec.priv; S.pub = pubOnly(rec.pub); S.dev = String(r.device_id);
+        return { state: 'ready', device_id: S.dev, created: false };
+      }
     }
-    const rec = await quiet(() => S.store.get(S.uid));
-    if (rec && rec.priv && sameKey(rec.pub, row.public_jwk)) {
-      S.priv = rec.priv; S.pub = pubOnly(row.public_jwk); S.version = Number(row.key_version);
-      return ready();
+    // закрытый ключ создаётся неизвлекаемым: наружу его не достать даже коду страницы; открытый экспортируется всегда
+    const pair = await S.c.subtle.generateKey(CURVE, false, ['deriveBits']);
+    const pub = pubOnly(await S.c.subtle.exportKey('jwk', pair.publicKey));
+    const r = await rpc('chat_device_register', { p_public_jwk: pub });
+    if (r.revoked) fail('device_revoked');
+    S.priv = pair.privateKey; S.pub = pub; S.dev = String(r.device_id);
+    await quiet(() => S.store.set(slot, { device_id: S.dev, priv: S.priv, pub }));
+    await quiet(() => S.store.del(S.uid));                 // запись прежней схемы (ключ под паролем переписки) больше не нужна
+    return { state: 'ready', device_id: S.dev, created: true };
+  }
+
+  // Открыть тред: прочитать ключи, при необходимости создать эпоху и подтвердить свои новые устройства.
+  // → { status: 'ready' | 'waiting' | 'no_peer', epoch, fingerprint, peer_devices: [id], my_devices: [id], approved }
+  //   waiting — ключ текущей эпохи этому устройству ещё не выдан (ждём своё прежнее устройство или «начать заново»);
+  //   no_peer — у собеседника ещё нет ни одного устройства (он не открывал чат).
+  async function open(threadId) {
+    if (!S.dev) fail('not_ready');
+    threadId = String(threadId);
+    for (let tries = 0; ; tries++) {
+      const st = await rpc('chat_thread_state', { p_thread: threadId, p_device: S.dev });
+      const th = await absorb(threadId, st);
+      if (!active(th, th.peer).length) return result(th, 'no_peer', 0);
+      if (st.stale) {
+        if (tries >= 3) fail('epoch_conflict');
+        try { await newEpoch(th, (th.epoch || 0) + 1); }
+        catch (e) { if (!/epoch_conflict|devices_changed/.test(e.message)) throw e; }
+        continue;                                          // перечитать: своя или чужая новая эпоха
+      }
+      const n = await approve(th);
+      return result(th, sendable(th) ? 'ready' : 'waiting', n);
     }
-    return { state: 'locked', key_version: Number(row.key_version) };
+  }
+  async function result(th, status, approved) {
+    const ids = (uid) => active(th, uid).map((d) => d.id).sort();
+    return { status, epoch: th.epoch, fingerprint: await fp(th), peer_devices: ids(th.peer), my_devices: ids(th.me), approved };
   }
 
-  async function setup(password) {
-    if (!S.sb) fail('not_initialized');
-    if (await myRow()) fail('already_exists');
-    return publish(password, false);
-  }
-
-  // Неверный пароль → Error('bad_password'); копия не от этого ключа → Error('bad_backup')
-  async function unlock(password) {
-    if (!S.sb) fail('not_initialized');
-    const row = await myRow();
-    if (!row) fail('no_keys');
-    const b = row.backup || {};
-    let salt, iv, ct;
-    try { salt = unb64u(b.salt); iv = unb64u(b.iv); ct = unb64u(b.ct); } catch (_) { fail('bad_backup'); }
-    if (b.v !== 1 || b.kdf !== 'PBKDF2-SHA256' || !Number.isInteger(b.iter) || b.iter < ITER || b.iter > MAX_ITER
-        || salt.length !== 16 || iv.length !== 12) fail('bad_backup');
-    let jwk;
-    try {
-      const pt = await S.c.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: backupAad() }, await passKey(password, salt, b.iter), ct);
-      jwk = JSON.parse(dec.decode(pt));
-    } catch (_) { fail('bad_password'); }
-    if (!jwk || typeof jwk.d !== 'string' || !sameKey(jwk, row.public_jwk)) fail('bad_backup');
-    const priv = await importPriv(jwk);
-    jwk.d = '';
-    await adopt(priv, row.public_jwk, row.key_version);
-    return ready();
-  }
-
-  // Новая пара (p_reset): старые сообщения обеих сторон станут нечитаемыми
-  async function reset(password) {
-    if (!S.sb) fail('not_initialized');
-    return publish(password, true);
-  }
-
-  // thread = { id, me:{id}, peer:{id, public_jwk, key_version}, my_key_version }
-  // → { iv, ciphertext, sender_key_version, recipient_key_version }
-  async function encrypt(thread, plaintext) {
-    if (!S.priv) fail('not_ready');
-    if (!thread || !thread.id || !thread.me || String(thread.me.id) !== S.uid) fail('wrong_user');
-    if (thread.my_key_version != null && Number(thread.my_key_version) !== S.version) fail('key_changed');
-    if (!thread.peer || !thread.peer.public_jwk || thread.peer.key_version == null) fail('no_peer_key');
+  // → { epoch, device, iv, ciphertext } для chat_post
+  async function encrypt(threadId, plaintext) {
+    const th = S.th.get(String(threadId));
+    if (!S.dev || !th || !sendable(th)) fail('not_ready');
     if (typeof plaintext !== 'string') fail('bad_text');
-    const skv = S.version, rkv = Number(thread.peer.key_version);
     const iv = rand(12);
-    const ct = await S.c.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: msgAad(thread.id, S.uid, skv, rkv) },
-      await threadKey(thread), enc.encode(plaintext));
+    const ct = await S.c.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: msgAad(th.id, th.epoch, S.uid, S.dev) },
+      th.keys.get(th.epoch), enc.encode(plaintext));
     if (ct.byteLength > MAX_CT) fail('too_long');
-    return { iv: b64u(iv), ciphertext: b64u(ct), sender_key_version: skv, recipient_key_version: rkv };
+    return { epoch: th.epoch, device: S.dev, iv: b64u(iv), ciphertext: b64u(ct) };
   }
 
-  // msg = строка chat_messages { sender_id, sender_key_version, recipient_key_version, iv, ciphertext } → текст или null
-  // null: ключ заменён (версия не совпала с текущей у меня или у собеседника), чужой отправитель, подмена, повреждение.
-  async function decrypt(thread, msg) {
+  // msg = строка chat_messages { sender_id, key_epoch, sender_device, iv, ciphertext } → текст или null
+  // null: ключа этой эпохи у устройства нет (старая переписка, ещё не подтверждено), сообщение прежней схемы,
+  // чужой отправитель или устройство, подмена, повреждение.
+  async function decrypt(threadId, msg) {
     try {
-      if (!S.priv || !thread || !thread.peer || !thread.peer.public_jwk || !msg) return null;
-      const sender = String(msg.sender_id);
-      const mine = sender === S.uid;
-      if (!mine && sender !== String(thread.peer.id)) return null;
-      const skv = Number(msg.sender_key_version), rkv = Number(msg.recipient_key_version);
-      if ((mine ? skv : rkv) !== S.version || (mine ? rkv : skv) !== Number(thread.peer.key_version)) return null;
+      const th = S.th.get(String(threadId));
+      if (!th || !msg || msg.key_epoch == null) return null;
+      const e = Number(msg.key_epoch), sender = String(msg.sender_id), dev = th.devices.get(String(msg.sender_device));
+      if (!th.keys.has(e) || (sender !== th.me && sender !== th.peer) || !dev || dev.user_id !== sender) return null;
       const iv = unb64u(msg.iv);
       if (iv.length !== 12) return null;
-      const pt = await S.c.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: msgAad(thread.id, sender, skv, rkv) },
-        await threadKey(thread), unb64u(msg.ciphertext));
+      const pt = await S.c.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: msgAad(th.id, e, sender, dev.id) }, th.keys.get(e), unb64u(msg.ciphertext));
       return dec.decode(pt);
     } catch (_) {
       return null;
     }
   }
 
-  // Отпечаток пары ключей: SHA-256('journal-chat-fp-v1|' + x.y первого по user_id + '|' + x.y второго),
-  // первые 8 hex-знаков в верхнем регистре → 'XXXX XXXX'. У обоих собеседников одинаковый.
-  async function fingerprint(thread) {
-    if (!S.pub) fail('not_ready');
-    if (!thread || !thread.peer || !thread.peer.public_jwk) fail('no_peer_key');
-    const parts = [[S.uid, S.pub], [String(thread.peer.id), thread.peer.public_jwk]]
-      .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-    const canon = 'journal-chat-fp-v1|' + parts.map(([, j]) => j.x + '.' + j.y).join('|');
-    const h = new Uint8Array(await S.c.subtle.digest('SHA-256', enc.encode(canon)));
-    const hex = Array.from(h.slice(0, 4), (x) => x.toString(16).padStart(2, '0')).join('').toUpperCase();
-    return hex.slice(0, 4) + ' ' + hex.slice(4);
+  async function fingerprint(threadId) {
+    const th = S.th.get(String(threadId));
+    if (!th) fail('not_ready');
+    return fp(th);
   }
 
-  root.ChatCrypto = Object.freeze({ init, setup, unlock, reset, encrypt, decrypt, fingerprint });
+  // «Начать заново на этом устройстве»: остальные свои устройства отзываются; треды получат новую эпоху при открытии.
+  async function reset() {
+    if (!S.dev) fail('not_ready');
+    const n = await rpc('chat_device_reset', { p_device: S.dev });
+    S.th.clear();
+    return { revoked: Number(n) || 0 };
+  }
+
+  root.ChatCrypto = Object.freeze({ init, open, encrypt, decrypt, fingerprint, reset });
 })(typeof window !== 'undefined' ? window : globalThis);
