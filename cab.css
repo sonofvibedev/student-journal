@@ -471,3 +471,8 @@
 /* слово названия не влезло даже в 11px — блок на всю ширину */
 .cab-tile.fw-wide { grid-column: 1 / -1; }
 .cab-lesson.fw-wide { grid-template-columns: minmax(0, 1fr) auto; } .cab-lesson.fw-wide > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; } .cab-lesson.fw-wide .t { justify-self: start; min-width: 54px; box-sizing: border-box; }
+
+/* 2.1: список пропусков по порядку дат; переключатель подгруппы в шапке расписания */
+.ab-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--j-card-border); } .ab-row:first-child { border-top: 0; }
+.ab-main { min-width: 0; } .ab-main b { display: block; font-weight: 700; } .ab-main small { display: block; margin-top: 2px; color: var(--j-muted); font-size: 13px; line-height: 1.35; }
+.cab-head .cab-seg2.sg-mini { flex: none; width: 112px; padding: 3px; border-radius: 18px; } .cab-seg2.sg-mini button { min-height: 44px; border-radius: 15px; font-size: 15px; }

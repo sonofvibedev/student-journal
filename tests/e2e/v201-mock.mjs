@@ -124,8 +124,8 @@ try {
     check('карточка свёрнута до нажатия', await page.locator('.tc-head').first().getAttribute('aria-expanded') === 'false' && (await body.boundingBox()).height < 2);
     await page.locator('.tc-head').first().click(); await page.waitForTimeout(400);
     const txt = (await body.innerText()).replace(/\s+/g, ' ');
-    check('раскрытая карточка: иконка слева, название, лекция и практическое', await body.locator('.tc-top svg').count() === 1 && /Лекция:/.test(txt) && /ПЗ:/.test(txt), txt);
-    check('лабораторная показана, если она есть у предмета', /Лабораторная работа:\s*Сидоров/.test(txt), txt);
+    check('раскрытая карточка: иконка слева, название, лекция и практическое', await body.locator('.tc-top svg').count() === 1 && /Лекции:/.test(txt) && /ПЗ:/.test(txt), txt);
+    check('лабораторная показана, если она есть у предмета', /Лабораторные работы:\s*Сидоров/.test(txt), txt);
     await page.locator('.tc-head').nth(1).click(); await page.waitForTimeout(400);
     const t2 = (await page.locator('.tc-card').nth(1).locator('.tc-body').innerText()).replace(/\s+/g, ' ');
     check('у предмета без лабораторной строки нет', !/Лабораторная/.test(t2) && /ПЗ:\s*не указан/.test(t2), t2);

@@ -169,13 +169,16 @@
 
   // ---------- расписание ----------
   async function schedule(el, ctx, nav) {
-    const now = Cab.minsk(), today = now.iso, sg = sgOf(ctx);
+    const now = Cab.minsk(), today = now.iso;
     let mon = Cab.mondayOf(now.dow === 6 ? Cab.addDays(today, 1) : today), sel = null, rows = [], any = true;     // в воскресенье показываем следующую неделю
     const [meta, tasks] = await Promise.all([soft(q(sb.from('schedule_meta').select('last_import_at').eq('group_id', ctx.group.id).maybeSingle())), soft(loadTasks(ctx))]);
-    const dated = (tasks || []).filter((t) => t.due && Cab.taskVisible(t, sg));
-    const hw = dated.filter(isHw), usr = dated.filter((t) => isUsr(t) && !t.isExam);
     const has = (list) => (l) => list.some((t) => t.due >= l.lesson_date && one(t.subject).toLowerCase() === one(l.subject).toLowerCase());
-    const hasHw = has(hw), hasUsr = has(usr);
+    let hasHw, hasUsr;
+    const hints = () => {                                                                                    // пересчитывается при смене подгруппы
+      const dated = (tasks || []).filter((t) => t.due && Cab.taskVisible(t, sgOf(ctx)));
+      hasHw = has(dated.filter(isHw)); hasUsr = has(dated.filter((t) => isUsr(t) && !t.isExam));
+    };
+    hints();
     async function load() {
       rows = (await loadLessons(ctx, mon, Cab.addDays(mon, 5))).filter(mine(ctx));
       any = rows.length > 0 || ((await soft(q(sb.from('schedule_lessons').select('lesson_date').eq('group_id', ctx.group.id).limit(1)))) || []).length > 0;
@@ -197,7 +200,8 @@
         return lessonTile(l, { st, note: when, button: i, room: 'line', hints: hasHw(l) ? ['Есть домашка'] : hasUsr(l) ? ['Есть УСР'] : [] });
       });
       el.innerHTML = str(h`${banner(ctx)}
-        <div class="cab-head"><h1 class="cab-title">Расписание</h1></div>
+        <div class="cab-head"><h1 class="cab-title">Расписание</h1>
+          <div class="cab-seg2 sg-mini" id="sgSeg" role="group" aria-label="Подгруппа">${[1, 2].map((n) => h`<button type="button" data-sg="${n}" aria-pressed="${String(sgOf(ctx) === n)}" aria-label="Подгруппа ${n}"${ctx.closed ? raw(' disabled') : ''}>${n}</button>`)}</div></div>
         <div class="st-wk">${wkBtn('wkPrev', 'Предыдущая неделя', Cab.icon.back)}<b aria-live="polite">${rangeOf()}</b>${wkBtn('wkNext', 'Следующая неделя', Cab.icon.chev)}</div>
         <div class="cab-days" role="tablist" aria-label="Дни недели">${[0, 1, 2, 3, 4, 5].map((i) => { const d = Cab.addDays(mon, i);
           return h`<button type="button" role="tab" class="cab-day" id="day-${d}" data-d="${d}" aria-selected="${String(d === sel)}" tabindex="${d === sel ? 0 : -1}" ${d === today ? raw('aria-current="date"') : ''}>${Cab.DOW_S[i]}<b>${+d.slice(8)}</b></button>`; })}</div>
@@ -212,6 +216,15 @@
       days.onkeydown = (e) => {                                                            // стрелки переключают день, как у вкладок
         const i = [...days.children].findIndex((b) => b.dataset.d === sel), k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
         if (k) { e.preventDefault(); pick(days.children[(i + k + 6) % 6].dataset.d, true); }
+      };
+      const seg = el.querySelector('#sgSeg');
+      seg.onclick = async (e) => {                                                           // подгруппа хранится в базе и действует во всех экранах с расписанием
+        const b = e.target.closest('button[data-sg]'); if (!b || seg.dataset.busy) return;
+        const n = +b.dataset.sg, prev = sgOf(ctx); if (n === prev) return;
+        ctx.student.subgroup = String(n); seg.dataset.busy = '1';                            // сразу показываем, при ошибке откатываем
+        try { await rpc('student_set_subgroup', { p_subgroup: n }); Cab.keepCtx(); const keep = sel; await load(); sel = keep; hints(); }
+        catch (err) { ctx.student.subgroup = prev ? String(prev) : null; Cab.toast(Cab.rpcText(err), 'err'); }
+        finally { delete seg.dataset.busy; if (nav.isCurrent()) { draw(); el.querySelector(`#sgSeg [data-sg="${sgOf(ctx)}"]`)?.focus(); } }
       };
       const go = async (n) => {
         const prev = mon; mon = Cab.addDays(mon, n * 7);
@@ -332,7 +345,7 @@
   // Преподаватели: карточки по предметам, по нажатию раскрываются (слева иконка предмета, справа название, ниже преподаватели по видам занятий).
   // ФИО берём из schedule_lessons.teacher; сокращённые («Стасева А.А.») для группы 24ДММ-2 дополняем из data.json (Cab.teacherFull).
   // Физкультура и кураторский час в списке не нужны: у них нет «своего» преподавателя по видам занятий.
-  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекция', practice: 'ПЗ', lab: 'Лабораторная работа' };
+  const KIND_ORDER = ['lecture', 'practice', 'lab'], KIND_ROW = { lecture: 'Лекции', practice: 'ПЗ', lab: 'Лабораторные работы' };   // у вида занятий множественное число: у предмета их несколько
   const HIDE_SUBJ = /физическ\S*\s+культур|физкультур|кураторск|куратор/i;
   // Иконки предметов: один стиль (контур 1.8, скруглённые концы), цвет берут из текущего акцента
   const SUBJ_ICO = [
@@ -393,7 +406,7 @@
       soft(myLink(ctx)),
       soft(q(sb.from('notification_prefs').select('enabled').eq('user_id', ctx.uid).eq('kind', 'deadline_soon').maybeSingle()))]);
     const remOn = !pref || pref.enabled !== false;                                                                   // ошибка запроса = «не привязан», без шума
-    const s = ctx.student, sg = sgOf(ctx);
+    const s = ctx.student;
     const roleName = ctx.role === 'headman' ? 'Староста' : ctx.role === 'deputy' ? 'Заместитель старосты' : 'Студент';
     const ini = ((s.last_name || '').charAt(0) + (s.first_name || '').charAt(0)).toUpperCase() || '?';
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
@@ -404,7 +417,6 @@
         <button type="button" class="pf-stu" id="pfStu">Studak · скоро</button>
       </section>
       ${raw(J2.roleSwitch('student', { student: true, staff: ctx.isStaff, sysadmin: ctx.isSysadmin }))}
-      <div class="st-sg"><span id="sgLbl">Подгруппа</span><div class="cab-seg2" id="sgSeg" role="group" aria-labelledby="sgLbl">${[1, 2].map((n) => h`<button type="button" data-sg="${n}" aria-pressed="${String(sg === n)}"${ctx.closed ? raw(' disabled') : ''}>${n}</button>`)}</div></div>
       <h2 class="cab-h2"><span>Мои справки</span></h2>
       ${!certs ? h`<p class="cab-note">Справки не загрузились. Обновите страницу.</p>`
         : !certs.length ? h`<p class="cab-note">Справок пока нет.</p>`
@@ -412,7 +424,8 @@
           return h`<div class="cab-kv"><span>${CERT[c.kind] || CERT.other}, ${period(c.date_from, c.date_to)}</span><b class="${st[1]} st-s">${st[0]}</b></div>`; })}
       <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><button type="button" class="st-soon" id="achSoon" aria-disabled="true"><b>Достижения</b><small>скоро</small></button></nav>
       <section class="cab-card" aria-labelledby="remT"><h3 id="remT">Напоминания о сроках</h3>
-        <div class="st-grp" style="margin:10px 0 8px"><button type="button" class="tg-sw" role="switch" id="remSw" aria-checked="${String(remOn)}"><span><span class="tg-t">Напоминать о горящих заданиях</span><small>За день до срока</small></span><span class="tg-k" aria-hidden="true"></span></button></div>
+        <div class="st-grp" style="margin:10px 0 8px"><button type="button" class="tg-sw" role="switch" id="remSw" aria-checked="${String(remOn)}"><span><span class="tg-t">Напоминать о горящих заданиях</span><small>За 1 день до срока, в 09:00 по Минску</small></span><span class="tg-k" aria-hidden="true"></span></button></div>
+        <a class="st-a" id="remAll" href="#/profile/reminders">Когда и о чём напоминает журнал</a>
         ${tg ? h`<p class="cab-note" style="margin:0">Telegram привязан: напоминание придёт в бота и в колокольчик журнала.</p>`
           : h`<p class="cab-note c-amber" style="margin:0">Telegram не привязан: напоминание придёт только в колокольчик журнала. <a class="st-a" id="remTg" href="#/profile/telegram">Привязать Telegram</a></p>`}</section>
       <section class="cab-card" aria-labelledby="thT"><h3 id="thT">Оформление</h3>
@@ -437,16 +450,6 @@
       try { await setPref(ctx, 'deadline_soon', !prev); }
       catch (err) { rem.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
       finally { delete rem.dataset.busy; }
-    };
-    const seg = el.querySelector('#sgSeg');
-    seg.onclick = async (e) => {
-      const b = e.target.closest('button[data-sg]'); if (!b || seg.dataset.busy) return;
-      const n = +b.dataset.sg, prev = sgOf(ctx); if (n === prev) return;
-      const mark = (v) => seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(+x.dataset.sg === v)));
-      mark(n); ctx.student.subgroup = String(n); seg.dataset.busy = '1';                // сразу показываем, при ошибке откатываем
-      try { await rpc('student_set_subgroup', { p_subgroup: n }); Cab.keepCtx(); Cab.toast('Подгруппа сохранена', 'ok'); }
-      catch (err) { ctx.student.subgroup = prev ? String(prev) : null; mark(prev); Cab.toast(Cab.rpcText(err), 'err'); }
-      finally { delete seg.dataset.busy; }
     };
     const box = el.querySelector('#stColors');
     box.onclick = (e) => {
@@ -576,15 +579,17 @@
     const [rows, stats] = await Promise.all([q(sb.from('absences').select('id,date,subject,hours,is_excused,lesson_kind,cert_type,cert_submitted,cert_due_date').eq('student_id', ctx.student.id).order('date', { ascending: false })), absStats(ctx)]);
     const month = Cab.minsk().iso.slice(0, 7), sum = (f) => rows.filter((r) => f(r) && (r.date || '').slice(0, 7) === month).reduce((a, r) => a + (Number(r.hours) || 0), 0);
     const s = stats || { v: sum((r) => !r.is_excused), excused: sum((r) => r.is_excused), unexcused: sum((r) => !r.is_excused), warn: Number(ctx.group.warn_hours), dean: Number(ctx.group.dean_hours) };
-    const by = new Map();
-    rows.forEach((r) => { const k = r.subject || 'Без предмета'; if (!by.has(k)) by.set(k, { h: 0, rows: [] }); const g = by.get(k); g.h += Number(r.hours) || 0; g.rows.push(r); });
-    put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Пропуски</h1><p class="cab-sub">По предметам</p>
+    // Список по порядку дат, новые сверху: заголовок строки — дата и часы, под ним мелко предмет и причина
+    const list = [...rows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    const why = (r) => r.cert_type || (r.is_excused ? 'Уважительная' : 'Неуважительная');
+    const today0 = Cab.minsk().iso;
+    put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Пропуски</h1><p class="cab-sub">Все пропуски по порядку</p>
       ${absCard(s, false)}
-      <p class="cab-note">Кольцо и итоги: за текущий месяц. Ниже все пропуски по предметам.</p>
+      <p class="cab-note">Кольцо и итоги: за текущий месяц. Ниже все пропуски по порядку.</p>
       <div class="cab-card"><div class="cab-kv"><span>Неуважительные</span><b class="c-coral">${hrs(s.unexcused)}</b></div><div class="cab-kv"><span>Уважительные</span><b class="c-mint">${hrs(s.excused)}</b></div>
         <div class="cab-kv"><span>Деканат с</span><b>${hrs(s.dean)}</b></div></div>
-      ${rows.length ? [...by].sort((a, b) => b[1].h - a[1].h).map(([subj, g]) => h`<h2 class="cab-h2"><span>${Cab.sj(subj)}</span><span class="c-mute">${hrs(g.h)}</span></h2><div class="cab-card">${g.rows.map((r) =>
-        h`<div class="cab-kv"><span>${r.date ? Cab.dateText(r.date) : 'без даты'}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</span><b class="${r.is_excused ? 'c-mint' : 'c-coral'} st-s">${hrs(r.hours || 0)}, ${r.is_excused ? 'уважительная' : 'неуважительная'}</b></div>${r.is_excused && r.cert_type ? h`<div class="cab-kv"><span class="c-mute">${r.cert_type}</span><b class="st-s ${docState(r, Cab.minsk().iso).cls}">${docState(r, Cab.minsk().iso).text}</b></div>` : ''}`)}</div>`)
+      ${list.length ? h`<div class="cab-card ab-list">${list.map((r) => { const ds = r.is_excused && r.cert_type ? docState(r, today0) : null;
+        return h`<div class="ab-row"><div class="ab-main"><b>${r.date ? Cab.dateText(r.date) : 'Без даты'} · ${hrs(r.hours || 0)}</b><small>${Cab.sj(r.subject || 'Без предмета')} · ${why(r)}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</small></div>${ds ? h`<span class="st-s ${ds.cls}">${ds.text}</span>` : ''}</div>`; })}</div>`
         : h`<div class="cab-empty">Пропусков нет</div>`}`);
   }
 
@@ -820,6 +825,43 @@
     };
   }
 
+  // Напоминания: что и когда присылает журнал. Времена и сроки взяты из базы (notify_daily, cron journal-notify-daily 06:00 UTC = 09:00 по Минску,
+  // триггеры уведомлений) и не настраиваются; переключается только отправка в Telegram по видам, как на экране Telegram. В колокольчике журнала события есть всегда.
+  const REM_TIMED = [
+    ['deadline_soon', 'Домашки, дедлайны, УСР, зачёты и экзамены', 'За 1 день до срока, один раз, в 09:00 по Минску. Не приходит, если вы отметили задание выполненным, и для заданий чужой подгруппы.'],
+    ['certificate', 'Срок сдачи справки', 'За 1 день до срока, в 09:00 по Минску: самому студенту и старосте с заместителем.'],
+  ];
+  const REM_STAFF = [['semester', 'Скорое закрытие семестра', 'Старосте и заместителю: один раз, когда до конца семестра 8–14 дней, и один раз, когда осталось 1–7 дней. В 09:00 по Минску.']];
+  const REM_NOW = [
+    ['task', 'Новая домашка или дедлайн', 'Сразу, как задание внесено.'],
+    ['schedule', 'Изменения расписания', 'Сразу после загрузки расписания с bseu.by (оно обновляется каждую ночь в 03:00 по Минску), если пара изменилась.'],
+    ['grade', 'Новая оценка', 'Сразу, как оценка внесена.'],
+    ['absence', 'Внесённый пропуск', 'Сразу, как староста внёс пропуск.'],
+    ['dean_threshold', 'Порог деканата', 'Сразу, как неуважительные часы за месяц достигли порога предупреждения или деканата (пороги задаёт группа).'],
+  ];
+  async function reminders(el, ctx, nav) {
+    const rows = await soft(q(sb.from('notification_prefs').select('kind,enabled').eq('user_id', ctx.uid))), link = await soft(myLink(ctx));
+    const on = new Map((rows || []).map((r) => [r.kind, r.enabled !== false]));              // нет строки = включено
+    const sw = ([k, t, d]) => h`<button type="button" class="tg-sw" role="switch" data-k="${k}" aria-checked="${String(on.has(k) ? on.get(k) : true)}"${ctx.closed ? raw(' disabled') : ''}><span><span class="tg-t">${t}</span><small>${d}</small></span><span class="tg-k" aria-hidden="true"></span></button>`;
+    const warn = Number(ctx.group.warn_hours) || null, dean = Number(ctx.group.dean_hours) || null;
+    if (!put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Напоминания</h1><p class="cab-sub">Что и когда присылает журнал</p>
+      <h2 class="cab-h2"><span>По времени</span></h2>
+      <div class="st-grp" id="remTimed">${REM_TIMED.concat(ctx.isStaff ? REM_STAFF : []).map(sw)}</div>
+      <h2 class="cab-h2"><span>Сразу, как случилось</span></h2>
+      <div class="st-grp" id="remNow">${REM_NOW.map(sw)}</div>
+      ${warn && dean ? h`<p class="cab-note">Порог предупреждения — ${hrs(warn)}, деканата — ${hrs(dean)} неуважительных пропусков за месяц.</p>` : ''}
+      <p class="cab-note">Переключатели управляют только Telegram. ${link ? 'Telegram привязан.' : h`Telegram не привязан: <a class="st-a" href="#/profile/telegram">привязать</a>.`} В колокольчике журнала события остаются всегда.</p>
+      <p class="cab-note">Время и срок напоминаний задаёт журнал, поменять их здесь нельзя. Зачёты и экзамены на главной видны за ${EXAM_DAYS} дней до даты.</p>`)) return;
+    el.onclick = async (e) => {                                                             // запись сразу, при ошибке откат
+      const b = e.target.closest('button.tg-sw'); if (!b || b.disabled || b.dataset.busy) return;
+      const prev = b.getAttribute('aria-checked') === 'true';
+      b.setAttribute('aria-checked', String(!prev)); b.dataset.busy = '1';
+      try { await setPref(ctx, b.dataset.k, !prev); }
+      catch (err) { b.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
+      finally { delete b.dataset.busy; }
+    };
+  }
+
   // Экран «Журнал обновился»: после сброса привязок бот просит войти заново (макет s03, средний)
   async function rebind(el, ctx, nav) {
     const link = await soft(myLink(ctx));
@@ -857,7 +899,7 @@
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
-    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/whatsnew': route('profile', whatsNew), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/privacy': route('profile', privacy),
+    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/whatsnew': route('profile', whatsNew), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/reminders': route('profile', reminders), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({
