@@ -1,0 +1,58 @@
+/* Значки достижений 2.x — токены. Файл генерирует tools/achievements-icons.mjs, правки — там.
+   Тема: data-theme="light"|"dark" на <html>; без атрибута (или data-theme="system") — по prefers-color-scheme. */
+:root {
+  --ach-glass: rgba(255,255,255,.07);
+  --ach-rim: rgba(255,255,255,.24);
+  --ach-shine: rgba(255,255,255,.42);
+  --ach-glyph: var(--j-lime, #C6F432);
+  --ach-glyph-soft: rgba(var(--j-lime-rgb, 198, 244, 50), .18);
+  --ach-anti: #FF8A80;
+  --ach-anti-soft: rgba(255,138,128,.18);
+  --ach-anti-glass: rgba(255,138,128,.09);
+  --ach-tier-bronze: #E0A06A;
+  --ach-tier-silver: #C9D2DD;
+  --ach-tier-gold: #F2C14E;
+  --ach-tier-platinum: #8FE3E0;
+  --ach-plate-ink: #0A0C11;
+}
+:root[data-theme="light"] {
+  --ach-glass: rgba(18,21,28,.045);
+  --ach-rim: rgba(18,21,28,.16);
+  --ach-shine: rgba(255,255,255,.95);
+  --ach-glyph: #4A6B00;
+  --ach-glyph-soft: rgba(120,175,0,.20);
+  --ach-anti: #C2372A;
+  --ach-anti-soft: rgba(194,55,42,.14);
+  --ach-anti-glass: rgba(194,55,42,.06);
+  --ach-tier-bronze: #9C5A26;
+  --ach-tier-silver: #66717F;
+  --ach-tier-gold: #946C00;
+  --ach-tier-platinum: #13807C;
+  --ach-plate-ink: #FFFFFF;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ach-glass: rgba(18,21,28,.045);
+    --ach-rim: rgba(18,21,28,.16);
+    --ach-shine: rgba(255,255,255,.95);
+    --ach-glyph: #4A6B00;
+    --ach-glyph-soft: rgba(120,175,0,.20);
+    --ach-anti: #C2372A;
+    --ach-anti-soft: rgba(194,55,42,.14);
+    --ach-anti-glass: rgba(194,55,42,.06);
+    --ach-tier-bronze: #9C5A26;
+    --ach-tier-silver: #66717F;
+    --ach-tier-gold: #946C00;
+    --ach-tier-platinum: #13807C;
+    --ach-plate-ink: #FFFFFF;
+  }
+}
+.ach-icon { display: inline-block; width: var(--ach-size, 56px); height: var(--ach-size, 56px); flex: none; vertical-align: middle; }
+/* Мелкий значок (24–32 px): штрих толще, ярлык с номером прячется — номер остаётся в подписи */
+.ach-icon.ach-sm { --ach-sw: 2.6; --ach-plate-display: none; }
+/* Закрыто: тот же значок, силуэт без цвета */
+.ach-icon.is-locked { --ach-glyph: #6B7280; --ach-anti: #6B7280; --ach-tier-bronze: #6B7280; --ach-tier-silver: #6B7280; --ach-tier-gold: #6B7280; --ach-tier-platinum: #6B7280; --ach-glyph-soft: transparent; --ach-anti-soft: transparent; --ach-anti-glass: var(--ach-glass); opacity: .75; }
+:root[data-theme="light"] .ach-icon.is-locked { --ach-glyph: #9AA0AA; --ach-anti: #9AA0AA; --ach-tier-bronze: #9AA0AA; --ach-tier-silver: #9AA0AA; --ach-tier-gold: #9AA0AA; --ach-tier-platinum: #9AA0AA; --ach-glyph-soft: transparent; --ach-anti-soft: transparent; --ach-anti-glass: var(--ach-glass); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .ach-icon.is-locked { --ach-glyph: #9AA0AA; --ach-anti: #9AA0AA; --ach-tier-bronze: #9AA0AA; --ach-tier-silver: #9AA0AA; --ach-tier-gold: #9AA0AA; --ach-tier-platinum: #9AA0AA; --ach-glyph-soft: transparent; --ach-anti-soft: transparent; --ach-anti-glass: var(--ach-glass); } }
+/* <img> не видит переменных страницы — только фильтр */
+img.ach-icon.is-locked { filter: grayscale(1); opacity: .45; }
