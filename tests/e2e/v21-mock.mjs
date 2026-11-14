@@ -26,14 +26,17 @@ const BASE = `http://127.0.0.1:${server.address().port}`;
 
 // ---------- заглушка базы ----------
 const st = (id, last, first, sub) => ({ id, last_name: last, first_name: first, subgroup: sub || 1, claim_status: 'active', study_form: 'budget' });
-const lesson = (subject, kind, teacher, pair, sg) => ({ lesson_date: TODAY, pair_no: pair, starts_at: `${8 + pair}:00:00`.padStart(8, '0'), ends_at: `${9 + pair}:30:00`.padStart(8, '0'), subject, kind, teacher, room: '101', subgroup: sg || null, prev_room: null, changed_at: null });
+const lesson = (subject, kind, teacher, pair, sg) => ({ lesson_date: TODAY, pair_no: pair, starts_at: `${8 + pair}:00:00`.padStart(8, '0'), ends_at: `${9 + pair}:30:00`.padStart(8, '0'), subject, kind, teacher, room: '101', subgroup: sg || null, prev_room: null, changed_at: null, event: null });
 const abs = (id, sid, date, subject, hours, ex, kind, extra) => ({ id, student_id: sid, date, subject, hours, is_excused: ex, lesson_kind: kind, created_by: null, comment: null, cert_type: null, cert_submitted: false, cert_due_date: null, ...extra });
 const task = (id, kind, rec, by) => ({ id, kind, rec: { id, createdAt: '2026-11-01T00:00:00Z', subgroup: 0, ...rec }, created_by: by || null });
 const mk = () => ({
   memberships: [{ user_id: 'u-me', group_id: G, student_id: 's-me', base_role: 'student', extra_role: null, status: 'active', consent_at: '2026-11-01T00:00:00Z' }, { user_id: 'u-a', group_id: G, student_id: 's-a', base_role: 'student', extra_role: null, status: 'active', consent_at: '2026-11-01T00:00:00Z' }],
   groups: [{ id: G, name: '24ДММ-2', status: 'active', warn_hours: 8, dean_hours: 12 }],
   students: [st('s-me', 'Тестов', 'Тест'), st('s-a', 'Андреев', 'Антон'), st('s-b', 'Борисова', 'Берта'), st('s-c', 'Васильев', 'Виктор')],
-  schedule_lessons: [lesson('Логистика', 'lecture', 'Иванов И.И.', 1), lesson('Логистика', 'practice', 'Петров П.П.', 2, 1), lesson('Логистика', 'lab', 'Сидоров С.С.', 3), lesson('Физическая культура и здоровье', 'practice', 'Физрук Ф.Ф.', 4), lesson('Кураторский час', 'other', 'Кураторов К.К.', 5), lesson('Эконометрика', 'lecture', 'Сверлов А.С.', 6)],
+  schedule_lessons: [lesson('Логистика', 'lecture', 'Иванов И.И.', 1), lesson('Логистика', 'practice', 'Петров П.П.', 2, 1), lesson('Логистика', 'lab', 'Сидоров С.С.', 3), lesson('Физическая культура и здоровье', 'practice', 'Физрук Ф.Ф.', 4), lesson('Кураторский час', 'other', 'Кураторов К.К.', 5), lesson('Эконометрика', 'lecture', 'Сверлов А.С.', 6),
+    { ...lesson('Логистика', 'other', 'Иванов И.И.', 1), lesson_date: '2026-11-14', event: 'consultation', room: '3/230' },
+    { ...lesson('Логистика', 'other', 'Иванов И.И.', 1), lesson_date: '2026-11-16', event: 'exam', room: '3/230' }, { ...lesson('Логистика', 'other', 'Иванов И.И.', 2), lesson_date: '2026-11-16', event: 'exam', room: '3/230' }, { ...lesson('Логистика', 'other', 'Иванов И.И.', 3), lesson_date: '2026-11-16', event: 'exam', room: null },
+    { ...lesson('Эконометрика', 'other', 'Миксюк С.Ф.', 2), lesson_date: '2026-12-20', event: 'exam', room: '3/233' }, { ...lesson('Эконометрика', 'other', 'Миксюк С.Ф.', 1), lesson_date: '2026-12-19', event: 'credit', room: '3/233' }],
   tasks: [task('dl-e7', 'deadline', { subject: 'Логистика', type: 'exam', text: '', dueDate: '2026-11-16' }), task('dl-e8', 'deadline', { subject: 'Эконометрика', type: 'zachet', text: '', dueDate: '2026-11-17' }),
     task('hw-1', 'homework', { subject: 'Логистика', type: 'ПЗ', text: 'Задача 5', dueDate: '2026-11-10' }), task('hw-stu', 'homework', { subject: 'Логистика', type: 'ПЗ', text: 'От студента', dueDate: '2026-12-05' }, 'u-a'), task('hw-tch', 'homework', { subject: 'Логистика', type: 'ПЗ', text: 'От препода', dueDate: '2026-12-05' }, 'u-teacher'), task('dl-1', 'deadline', { subject: 'Эконометрика', type: 'deadline', text: 'Отчёт', dueDate: '2026-11-12' })],
   absences: [abs('ab-1', 's-a', '2026-11-03', 'Логистика', 2, false, 'lecture'), abs('ab-2', 's-a', '2026-11-04', 'Логистика', 2, false, 'lab'),
@@ -142,6 +145,36 @@ try {
     check('напоминания: у старосты есть строка про закрытие семестра', /закрытие семестра/.test(await h2.page.locator('#cabMain').innerText()));
     const p3 = await open('/profile', 'app.html'); await p3.page.waitForSelector('#remAll');
     check('профиль: в карточке напоминаний время и ссылка на подробности', /09:00 по Минску/.test(await p3.page.locator('#remSw').innerText()) && await p3.page.locator('#remAll').getAttribute('href') === '#/profile/reminders');
+  }
+  // ---------- п.5 экзамены и консультации в расписании ----------
+  {
+    const { page, errs } = await open('/schedule', 'app.html');
+    await page.locator('#day-2026-11-14').click();
+    const sat = (await page.locator('.cab-lessons').innerText()).replace(/s+/g, ' ');
+    check('расписание: консультация подписана «Консультация» и с аудиторией', /Консультация/.test(sat) && /ауд\. 3\/230/.test(sat), sat);
+    check('расписание: у консультации свой цвет и значок', await page.locator('.cab-lesson.kd-ev-consultation .ev-ico').count() === 1);
+    await page.locator('button[aria-label="Следующая неделя"]').click();
+    await page.waitForFunction(() => document.querySelector('#day-2026-11-16'));
+    await page.locator('#day-2026-11-16').click();
+    const mon = (await page.locator('.cab-lessons').innerText()).replace(/s+/g, ' ');
+    check('расписание: три пары экзамена подписаны «Экзамен», аудитория показана', (mon.match(/Экзамен/g) || []).length === 3 && /ауд\. 3\/230/.test(mon) && /аудитория не указана/.test(mon), mon);
+    check('расписание: у экзамена свой цвет и значок', await page.locator('.cab-lesson.kd-ev-exam .ev-ico').count() === 3);
+    await shot(page, 'schedule-exam');
+    check('расписание (экзамен) 360 px: без горизонтальной прокрутки', await noOverflow(page));
+    check('расписание (экзамен): ошибок страницы нет', !errs.length, errs.join(' | '));
+  }
+  // ---------- п.11 экзамены из расписания во вкладке «Зачёты и экзамены» ----------
+  {
+    const { page, errs } = await open('/study/exams', 'app.html');
+    const t = (await page.locator('#cabMain').innerText()).replace(/s+/g, ' ');
+    check('вкладка: экзамен Логистика (внесён старостой) дополнен временем, аудиторией и преподавателем из расписания', /Логистика/.test(t) && /09:00–12:30|0?9:00–1d:dd/.test(t) && /3\/230/.test(t) && /Иванов И\.И\./.test(t), t);
+    check('вкладка: экзамен из расписания, которого нет у старосты (Эконометрика, 20 декабря), добавлен', /Эконометрика/.test(t) && /3\/233/.test(t) && /Миксюк/.test(t), t);
+    check('вкладка: консультаций и зачёта из расписания нет', !/Консультац/.test(t), t);
+    check('вкладка: экзамен Логистика показан один раз (без дубля)', (t.match(/Логистика/g) || []).length === 1, t);
+    check('вкладка: зачёт, внесённый старостой, остался', /Зачёт/.test(t) && /Эконометрика/.test(t), t);
+    await shot(page, 'exams-tab');
+    check('вкладка 360 px: без горизонтальной прокрутки', await noOverflow(page));
+    check('вкладка: ошибок страницы нет', !errs.length, errs.join(' | '));
   }
 } catch (e) { console.error(e); results.push(false); }
 await browser.close();

@@ -476,3 +476,11 @@
 .ab-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--j-card-border); } .ab-row:first-child { border-top: 0; }
 .ab-main { min-width: 0; } .ab-main b { display: block; font-weight: 700; } .ab-main small { display: block; margin-top: 2px; color: var(--j-muted); font-size: 13px; line-height: 1.35; }
 .cab-head .cab-seg2.sg-mini { flex: none; width: 112px; padding: 3px; border-radius: 18px; } .cab-seg2.sg-mini button { min-height: 44px; border-radius: 15px; font-size: 15px; }
+
+/* 2.1: экзамен, консультация, зачёт в расписании — свои цвета (через токены) и значок */
+.cab-lesson.kd-ev-exam { --kc: var(--j-coral); --kb: color-mix(in srgb, var(--j-coral) 18%, transparent); }
+.cab-lesson.kd-ev-consultation { --kc: var(--j-violet); --kb: color-mix(in srgb, var(--j-violet) 18%, transparent); }
+.cab-lesson.kd-ev-credit { --kc: var(--j-amber); --kb: color-mix(in srgb, var(--j-amber) 18%, transparent); }
+.cab-lesson[class*="kd-ev-"]:not(.now) .k { color: var(--kc); font-weight: 600; }
+.ev-ico { display: inline-block; width: 15px; height: 15px; margin: -2px 5px 0 0; vertical-align: middle; }
+.ex-info { margin-top: 6px; } .ex-info .cab-kv { padding: 6px 0; } .ex-info .cab-kv b { text-align: right; }

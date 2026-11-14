@@ -53,7 +53,7 @@
 
   // ---------- данные ----------
   const loadLessons = (ctx, from, to) => q(sb.from('schedule_lessons')
-    .select('lesson_date,pair_no,starts_at,ends_at,subject,kind,teacher,room,subgroup,prev_room,changed_at')
+    .select('lesson_date,pair_no,starts_at,ends_at,subject,kind,event,teacher,room,subgroup,prev_room,changed_at')
     .eq('group_id', ctx.group.id).gte('lesson_date', from).lte('lesson_date', to).order('lesson_date').order('starts_at').order('subgroup', { nullsFirst: true }));   // в одной паре сначала вся группа, потом 1 и 2 подгруппа
   const loadTasks = async (ctx) => (await q(sb.from('tasks').select('id,kind,rec,created_by').eq('group_id', ctx.group.id))).map(Cab.task);
   const unreadCount = async (ctx) => {
@@ -98,19 +98,28 @@
   // Плитка пары: одна разметка для главной и расписания, чтобы они не расходились.
   // o: { st: ''|'past'|'now', note: ', прошла', button: номер пары (кнопка, открывает шторку) или undefined (просто строка),
   //      room: 'col' (крупно справа) | 'line' (в строке под названием), hints: ['Есть домашка', …], bar: процент идущей пары или null }
+  // Экзамен, зачёт и консультация (колонка schedule_lessons.event, 2.1): своя подпись, цвет и значок; аудитория указана всегда
+  const EV = { exam: 'Экзамен', consultation: 'Консультация', credit: 'Зачёт' };
+  const EV_ICO = {
+    exam: '<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M10 14l2 2 3.5-4"/>',
+    consultation: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h7"/>',
+    credit: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/>',
+  };
+  const evIcon = (ev) => raw(`<svg class="ev-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${EV_ICO[ev]}</svg>`);
+  const kindName = (l) => EV[l.event] || Cab.KIND[l.kind] || 'Занятие';
   function lessonTile(l, o) {
-    const kind = Cab.KIND[l.kind] || 'Занятие', sg = Number(l.subgroup) || 0, kd = ['lecture', 'practice', 'lab'].includes(l.kind) ? l.kind : 'other';
+    const ev = EV[l.event] ? l.event : '', kind = kindName(l), sg = Number(l.subgroup) || 0, kd = ev ? 'ev-' + ev : ['lecture', 'practice', 'lab'].includes(l.kind) ? l.kind : 'other';
     const hints = (o.hints || []).slice();
     const moved = l.prev_room && l.prev_room !== l.room;
     if (moved && o.room !== 'col') hints.push(`Аудитория изменилась, была ${l.prev_room}`);   // на главной места мало: там пометка в строке
-    const line = h`${kind}${sg ? h` · <span class="sg">${sg} подгр.<span class="sr-only">, подгруппа ${sg}</span></span>` : ''}${o.room === 'line' && l.room ? ` · ауд. ${l.room}` : ''}${o.note || ''}${moved && o.room === 'col' ? h`, <span class="warn">аудитория сменилась</span>` : ''}`;
+    const line = h`${ev ? evIcon(ev) : ''}${kind}${sg ? h` · <span class="sg">${sg} подгр.<span class="sr-only">, подгруппа ${sg}</span></span>` : ''}${o.room === 'line' && (l.room || ev) ? ` · ${l.room ? 'ауд. ' + l.room : 'аудитория не указана'}` : ''}${o.note || ''}${moved && o.room === 'col' ? h`, <span class="warn">аудитория сменилась</span>` : ''}`;
     const inner = h`<div class="t">${Cab.hm(l.starts_at)}<small>${Cab.hm(l.ends_at)}</small></div>
       <div><div class="n">${Cab.sj(l.subject)}</div><div class="k">${line}</div>${hints.map((x, i) => h`<div class="k ${/^Аудитория/.test(x) ? 'warn' : 'st-hw'}">${x}</div>`)}</div>
-      ${o.room === 'col' ? (l.room ? h`<div class="r"><small>ауд.</small> ${l.room}</div>` : raw('<div></div>')) : ''}
+      ${o.room === 'col' ? (l.room ? h`<div class="r"><small>ауд.</small> ${l.room}</div>` : ev ? h`<div class="r"><small>ауд. не указана</small></div>` : raw('<div></div>')) : ''}
       ${o.bar != null ? h`<div class="bar" role="progressbar" aria-label="Прошло ${o.bar}% пары" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${o.bar}"><i style="width:${o.bar}%"></i></div>` : ''}`;
     const cls = `cab-lesson kd-${kd} ${o.st || ''}`;
     if (o.button == null) return h`<li class="${cls}">${inner}</li>`;
-    const label = [l.subject, Cab.kindLow(l.kind), sg ? `подгруппа ${sg}` : '', `${Cab.hm(l.starts_at)}–${Cab.hm(l.ends_at)}`, l.room ? `аудитория ${l.room}` : '', (o.note || '').replace(/^, /, ''), ...hints].filter(Boolean).join(', ');
+    const label = [l.subject, ev ? kind.toLowerCase() : Cab.kindLow(l.kind), sg ? `подгруппа ${sg}` : '', `${Cab.hm(l.starts_at)}–${Cab.hm(l.ends_at)}`, l.room ? `аудитория ${l.room}` : '', (o.note || '').replace(/^, /, ''), ...hints].filter(Boolean).join(', ');
     return h`<li><button type="button" class="${cls} st-btn st-two" data-i="${o.button}" aria-label="${label}">${inner}</button></li>`;
   }
   // Лента пар дня. nowMin — минуты «сейчас» для сегодняшнего дня, иначе null
@@ -236,7 +245,7 @@
       el.querySelector('.cab-lessons') && (el.querySelector('.cab-lessons').onclick = (e) => {
         const b = e.target.closest('[data-i]'); if (!b) return;
         const l = day[+b.dataset.i];
-        sheet(l.subject, h`<p class="cab-note">${Cab.KIND[l.kind] || 'Занятие'} · ${Cab.dateText(l.lesson_date)}, ${Cab.hm(l.starts_at)}–${Cab.hm(l.ends_at)}</p>
+        sheet(l.subject, h`<p class="cab-note">${kindName(l)} · ${Cab.dateText(l.lesson_date)}, ${Cab.hm(l.starts_at)}–${Cab.hm(l.ends_at)}</p>
           <div class="cab-kv"><span>Преподаватель</span><b>${l.teacher || 'не указан'}</b></div>
           <div class="cab-kv"><span>Аудитория</span><b>${l.room || 'не указана'}</b></div>
           ${l.prev_room && l.prev_room !== l.room ? h`<div class="cab-kv"><span>Была</span><b class="c-amber">${l.prev_room}</b></div>` : ''}
@@ -266,10 +275,32 @@
     deadlines: { title: 'Дедлайны и УСР', pick: isDl, empty: 'Дедлайнов и УСР пока нет' },
     exams: { title: 'Зачёты и экзамены', pick: (t) => t.isExam, empty: 'Зачётов и экзаменов пока нет' },
   };
+  // Экзамены из расписания (2.1): строки schedule_lessons с event = 'exam' по предмету и дате сводим в одну запись: время от первой пары до последней, аудитория, преподаватель
+  const loadExams = (ctx) => q(sb.from('schedule_lessons').select('lesson_date,starts_at,ends_at,subject,teacher,room').eq('group_id', ctx.group.id).eq('event', 'exam').order('lesson_date').order('starts_at'));
+  const examsOf = (rows) => {
+    const by = new Map();
+    rows.forEach((l) => {
+      const k = l.subject + '|' + l.lesson_date, g = by.get(k) || by.set(k, { subject: l.subject, date: l.lesson_date, from: l.starts_at, to: l.ends_at, rooms: new Set(), teachers: new Set() }).get(k);
+      if (l.starts_at < g.from) g.from = l.starts_at; if (l.ends_at > g.to) g.to = l.ends_at;
+      if (l.room) g.rooms.add(l.room); if (l.teacher) g.teachers.add(l.teacher);
+    });
+    return [...by.values()];
+  };
+  const examInfo = (x) => h`<div class="ex-info"><div class="cab-kv"><span>Время</span><b>${Cab.hm(x.from)}–${Cab.hm(x.to)}</b></div><div class="cab-kv"><span>Аудитория</span><b>${x.rooms.size ? [...x.rooms].join(', ') : 'не указана'}</b></div>${x.teachers.size ? h`<div class="cab-kv"><span>Преподаватель</span><b>${[...x.teachers].join(', ')}</b></div>` : ''}</div>`;
+  // Зачёт или экзамен, внесённый старостой, и тот же экзамен из расписания (предмет и дата) — одна запись: у ручной берём время, аудиторию и преподавателя из расписания
+  const mergeExams = (tasks, exams) => {
+    const key = (s, d) => one(s).toLowerCase() + '|' + d, have = new Map(tasks.filter((t) => t.type === 'exam').map((t) => [key(t.subject, t.due), t]));
+    const extra = [];
+    exams.forEach((x) => {
+      const t = have.get(key(x.subject, x.date));
+      if (t) t.sch = x; else extra.push({ id: 'sch-' + key(x.subject, x.date), kind: 'deadline', type: 'exam', subject: x.subject, text: '', due: x.date, subgroup: 0, createdBy: null, isExam: true, sch: x });
+    });
+    return tasks.concat(extra);
+  };
   const taskCard = (t, arch) => {
     const d = Cab.due(t.due), mineHw = !arch && Cab.ctx && t.createdBy === Cab.ctx.uid && isHw(t) && !Cab.ctx.isStaff;
     return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${Cab.sj(t.subject || 'Без предмета')}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
-      <p>${typeLabel(t)}${t.due ? ' · до ' + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${mineHw ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button></div>` : ''}</article>`;
+      <p>${typeLabel(t)}${t.due ? (t.isExam ? ' · ' : ' · до ') + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.sch ? examInfo(t.sch) : ''}${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${mineHw ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button></div>` : ''}</article>`;
   };
   // Студенту, которому староста дал доступ («Доступы» в кабинете старосты), на экране «Домашки» показываем добавление.
   // Это только кнопка: право проверяет база (таблица homework_editors и политики tasks), без доступа вставка отклоняется.
@@ -302,8 +333,9 @@
   }
   async function taskScreen(el, ctx, nav, key) {
     const cfg = TASK_SCREENS[key], today = Cab.minsk().iso;
-    const [every, canAdd] = await Promise.all([loadTasks(ctx), key === 'homework' ? canAddHw(ctx) : false]);
-    const all = every.filter((t) => cfg.pick(t) && Cab.taskVisible(t, sgOf(ctx)));
+    const [every, canAdd, ex] = await Promise.all([loadTasks(ctx), key === 'homework' ? canAddHw(ctx) : false, key === 'exams' ? soft(loadExams(ctx)) : null]);
+    let all = every.filter((t) => cfg.pick(t) && Cab.taskVisible(t, sgOf(ctx)));
+    if (key === 'exams' && ex) all = mergeExams(all, examsOf(ex));                      // не загрузилось расписание — остаются только внесённые старостой
     const act = all.filter((t) => !t.due || t.due >= today).sort(byDue), old = all.filter((t) => t.due && t.due < today).sort((a, b) => b.due.localeCompare(a.due));
     put(el, nav, h`${Cab.top({ href: '#/study', text: 'Учёба' })}<h1 class="cab-title">${cfg.title}</h1><p class="cab-sub">Активных: ${act.length}</p>
       ${canAdd ? h`<button type="button" class="j2-btn primary" id="hwAdd"><span class="cab-ico sm">${Cab.icon.plus}</span>Добавить домашку</button>` : ''}

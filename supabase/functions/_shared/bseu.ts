@@ -68,6 +68,13 @@ export function expandWeeks(w: string): number[] {
   return out;
 }
 
+// Событие по ClassType: «Экзамен», «Зачет» (по-английски Offset), «Консультация». Обычные занятия — null.
+export type LessonEvent = 'exam' | 'consultation' | 'credit';
+export const eventOf = (t: string): LessonEvent | null => {
+  const s = t.toLowerCase();
+  return s.startsWith('экзам') ? 'exam' : s.startsWith('консульт') ? 'consultation' : /^зач[её]т/.test(s) ? 'credit' : null;
+};
+
 export const kindOf = (t: string): 'lecture' | 'practice' | 'lab' | 'other' => {
   const s = t.toLowerCase();
   return s.startsWith('лекц') ? 'lecture' : s.startsWith('практ') ? 'practice' : s.startsWith('лаб') ? 'lab' : 'other';
@@ -86,7 +93,7 @@ export const addDaysIso = (iso: string, n: number) => { const t = new Date(iso +
 // Понедельник недели, в которой лежит дата (журнал живёт по Минску)
 export const mondayOf = (iso: string) => addDaysIso(iso, -((new Date(iso + 'T00:00:00Z').getUTCDay() + 6) % 7));
 
-export type Row = { lesson_date: string; pair_no: number; starts_at: string; ends_at: string; subject: string; kind: string; teacher: string | null; room: string | null; subgroup: number | null };
+export type Row = { lesson_date: string; pair_no: number; starts_at: string; ends_at: string; subject: string; kind: string; teacher: string | null; room: string | null; subgroup: number | null; event: LessonEvent | null };
 
 // Занятия по датам. week1Monday — понедельник первой недели семестра (из «Текущая - N неделя» и сегодняшней даты)
 export function toRows(lessons: Lesson[], week1Monday: string): Row[] {
@@ -102,12 +109,29 @@ export function toRows(lessons: Lesson[], week1Monday: string): Row[] {
         lesson_date: addDaysIso(week1Monday, (w - 1) * 7 + (day - 1)), pair_no: pair,
         starts_at: `${pad(Number(t[1]))}:${t[2]}`, ends_at: `${pad(Number(t[3]))}:${t[4]}`,
         subject: l.subject, kind: kindOf(l.kind), teacher: l.teacher && l.teacher !== 'null' ? l.teacher : null,
-        room: l.room && !/null/.test(l.room) && l.room.replace(/[\/\s0]/g, '') ? l.room : null, subgroup: sub === 1 || sub === 2 ? sub : null,
+        room: l.room && !/null/.test(l.room) && l.room.replace(/[\/\s0]/g, '') ? l.room : null, subgroup: sub === 1 || sub === 2 ? sub : null, event: eventOf(l.kind),
       };
       const key = `${row.lesson_date}|${row.pair_no}|${row.subject}|${row.subgroup ?? 0}`;
       if (seen.has(key)) continue;       // то же занятие дважды в разборе: берём первое
       seen.add(key); rows.push(row);
     }
+  }
+  return inferConsultations(rows);
+}
+
+// Предыдущий учебный день: вчера, а перед понедельником — суббота (воскресенья в расписании нет)
+export const prevStudyDay = (iso: string) => addDaysIso(iso, new Date(iso + 'T00:00:00Z').getUTCDay() === 1 ? -2 : -1);
+
+// Консультации, которые bseu.by не пометил: занятие по тому же предмету в учебный день перед экзаменом.
+// Если по предмету консультация уже есть явно (event = 'consultation' где угодно до экзамена), ничего не выводим.
+export function inferConsultations(rows: Row[]): Row[] {
+  const exams = new Set(rows.filter((r) => r.event === 'exam').map((r) => `${r.subject}|${r.lesson_date}`));
+  const explicit = new Set(rows.filter((r) => r.event === 'consultation').map((r) => r.subject));
+  for (const key of exams) {
+    const [subject, date] = key.split('|');
+    if (explicit.has(subject)) continue;
+    const day = prevStudyDay(date);
+    for (const r of rows) if (r.subject === subject && r.lesson_date === day && r.event === null) r.event = 'consultation';
   }
   return rows;
 }

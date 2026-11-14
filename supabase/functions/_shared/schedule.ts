@@ -22,7 +22,7 @@ const hm = (t: string) => String(t).slice(0, 5);
 async function loadExisting(groupId: string): Promise<Existing[]> {
   const out: Existing[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await admin.from('schedule_lessons').select('id, lesson_date, pair_no, starts_at, ends_at, subject, kind, teacher, room, subgroup, prev_room')
+    const { data, error } = await admin.from('schedule_lessons').select('id, lesson_date, pair_no, starts_at, ends_at, subject, kind, teacher, room, subgroup, prev_room, event')
       .eq('group_id', groupId).order('id').range(from, from + 999);
     if (error) throw new Error('db_read');
     out.push(...(data as Existing[]));
@@ -76,8 +76,8 @@ export async function importGroup(groupId: string, actor: string | null): Promis
     const roomChanged = (o.room ?? null) !== (r.room ?? null);
     const timeChanged = hm(o.starts_at) !== r.starts_at || hm(o.ends_at) !== r.ends_at;
     const teacherChanged = (o.teacher ?? null) !== (r.teacher ?? null);
-    if (timeChanged || teacherChanged || roomChanged || o.kind !== r.kind) {
-      toChange.push({ id: o.id, patch: { starts_at: r.starts_at, ends_at: r.ends_at, teacher: r.teacher, room: r.room, kind: r.kind, changed_at: now, updated_at: now, ...(roomChanged ? { prev_room: o.room } : {}) } });
+    if (timeChanged || teacherChanged || roomChanged || o.kind !== r.kind || (o.event ?? null) !== r.event) {
+      toChange.push({ id: o.id, patch: { starts_at: r.starts_at, ends_at: r.ends_at, teacher: r.teacher, room: r.room, kind: r.kind, event: r.event, updated_at: now, ...(timeChanged || teacherChanged || roomChanged || o.kind !== r.kind ? { changed_at: now } : {}), ...(roomChanged ? { prev_room: o.room } : {}) } });
       if (r.lesson_date >= today) {
         if (roomChanged) note(r, 'room', o.room, r.room);
         if (timeChanged) note(r, 'time', hm(o.starts_at) !== r.starts_at ? hm(o.starts_at) : `${hm(o.starts_at)}–${hm(o.ends_at)}`, hm(o.starts_at) !== r.starts_at ? r.starts_at : `${r.starts_at}–${r.ends_at}`);
