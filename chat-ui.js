@@ -1,7 +1,7 @@
-// «Журнал 2.0», этап 4: экран чата со сквозным шифрованием, общий для кабинета старосты и преподавателя.
+// «Журнал 2.0», этап 4 (2.1 п.12 — без пароля переписки): экран чата со сквозным шифрованием, общий для кабинета старосты и преподавателя.
 // Подключается после cab-core.js и chat-crypto.js. ChatUI.mount(el, { sb, ctx, role: 'headman'|'teacher', startThread, back, title, right }).
-// Шифрует и расшифровывает ChatCrypto прямо в браузере; расшифрованный текст живёт только в памяти экрана
-// (не в localStorage, не в адресе, не в console). Права проверяет сервер (RLS и RPC), страница лишь показывает.
+// Шифрует и расшифровывает ChatCrypto прямо в браузере; ключ устройства создаётся сам, пароля нет. Расшифрованный текст живёт
+// только в памяти экрана (не в localStorage, не в адресе, не в console). Права проверяет сервер (RLS и RPC), страница лишь показывает.
 'use strict';
 (function () {
   const { h, str, plural, icon } = Cab;
@@ -9,7 +9,7 @@
   const MAX = 2000, NEAR = 1800;           // длина сообщения, с какой длины показываем счётчик
   const POLL_MS = 4000, SLOW = 4;          // опрос новых сообщений; каждый 4-й опрос ещё сверяет ключи и счётчики
   const QUICK = [['Перенос пары', 'Перенос пары: '], ['Другая аудитория', 'Пара пройдёт в другой аудитории: '], ['Новое задание', 'Новое задание: ']];
-  const COLS = 'id, sender_id, sender_key_version, recipient_key_version, iv, ciphertext, created_at';
+  const COLS = 'id, sender_id, key_epoch, sender_device, iv, ciphertext, created_at';
   const SEND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="24" height="24"><path d="M21 3L3 10l7 3 3 7z"/><path d="M21 3L10 13"/></svg>';
   const $ = (r, s) => r.querySelector(s);
   const put = (el, html) => { if (el) el.innerHTML = str(html); };
@@ -18,14 +18,15 @@
   // Ошибка человеческим языком (коды из raise exception в RPC)
   function errText(e) {
     const c = code(e);
-    if (c.includes('key_changed')) return 'Собеседник заменил ключ. Обновите страницу и повторите.';
+    if (c.includes('key_changed') || c.includes('not_ready')) return 'Ключ переписки обновился. Повторите отправку.';
     if (c.includes('rate_limited')) return 'Слишком много сообщений. Подождите минуту и повторите.';
     if (c.includes('too_long')) return 'Сообщение слишком длинное. Сократите его.';
     if (!navigator.onLine || /fetch|network|load failed/i.test(c)) return 'Нет связи. Сообщение не отправлено: повторите, когда появится сеть.';
     return Cab.rpcText(e);
   }
-  const errTextLoad = (e) => (/fetch|network|load failed/i.test(code(e)) || !navigator.onLine ? 'Нет связи. Проверьте сеть и повторите.' : Cab.rpcText(e));
-  // В консоль уходит только код ошибки: ни текста сообщений, ни паролей, ни ключей
+  const errTextLoad = (e) => (code(e).includes('too_many_devices') ? 'К чату подключено слишком много устройств. Откройте чат на одном из прежних и нажмите «Сверить» → «Начать заново на этом устройстве».'
+    : /fetch|network|load failed/i.test(code(e)) || !navigator.onLine ? 'Нет связи. Проверьте сеть и повторите.' : Cab.rpcText(e));
+  // В консоль уходит только код ошибки: ни текста сообщений, ни ключей
   const logErr = (where, e) => console.error('[chat]', where, e && (e.rpc || e.name) || 'error');
 
   // Время по Минску; дата нужна, если сообщение не сегодняшнее
@@ -35,7 +36,12 @@
     return (m.iso === Cab.minsk().iso ? '' : Cab.dateShort(m.iso) + ', ') + `${p(m.hh)}:${p(m.mm)}`;
   }
 
-  // ---------- нижний лист («Сверить») ----------
+  // Устройства собеседника, которые мы уже видели в этом треде (не секрет: только id). Изменились — показываем «ключ заменён».
+  const seenKey = (tid) => 'j2_chat_peer_' + tid;
+  const seenGet = (tid) => { try { return JSON.parse(lsGet(seenKey(tid), 'null')); } catch (_) { return null; } };
+  const seenSet = (tid, ids) => lsSet(seenKey(tid), JSON.stringify(ids));
+
+  // ---------- нижний лист («Сверить», «Начать заново») ----------
   let sh = null;
   function closeSheet() {
     if (!sh) return;
@@ -68,15 +74,15 @@
     window.removeEventListener('hashchange', unmount);
     document.removeEventListener('visibilitychange', i.onVis);
     closeSheet();
-    i.msgs = []; i.thread = null; i.drafts = {};           // расшифрованное забываем
+    i.msgs = []; i.ks = null; i.drafts = {};           // расшифрованное забываем
   }
 
   async function mount(el, o) {
     unmount();
     o = o || {};
     const role = o.role === 'teacher' ? 'teacher' : 'headman';
-    const inst = cur = { el, sb: o.sb || Cab.sb, ctx: o.ctx || Cab.ctx, role, start: o.startThread || null, dead: false, rows: [], sel: -1, gen: 0, thread: null, peerReady: false,
-      myKv: null, msgs: [], seen: new Set(), cursor: null, drafts: {}, sending: false, polling: false, again: false, n: 0, timer: 0, netErr: false };
+    const inst = cur = { el, sb: o.sb || Cab.sb, ctx: o.ctx || Cab.ctx, role, start: o.startThread || null, dead: false, rows: [], sel: -1, gen: 0, tid: null, ks: null,
+      msgs: [], seen: new Set(), cursor: null, drafts: {}, sending: false, polling: false, again: false, n: 0, timer: 0, netErr: false };
     inst.onVis = () => { if (!document.hidden) poll(inst); };
     window.addEventListener('hashchange', unmount);
     document.addEventListener('visibilitychange', inst.onVis);
@@ -85,70 +91,28 @@
     const right = o.right || (teacher ? 'Преподаватель' + (ctx.subjects && ctx.subjects.length ? ', ' + ctx.subjects.join(', ') : '') : (ctx.group && ctx.group.name) || '');
     el.innerHTML = str(h`${Cab.top(back, right)}<h1 class="cab-title">${o.title || (teacher ? 'Чат со старостами' : 'Чат')}</h1><div class="ch" id="chBody"></div>`);
     inst.box = $(el, '#chBody');
-    put(inst.box, h`<p class="cab-load">Загружаем…</p>`);
     await boot(inst);
   }
 
+  // Ключ устройства создаётся сам при первом открытии (или берётся из IndexedDB): пользователю ничего вводить не нужно
   async function boot(inst) {
+    put(inst.box, h`<p class="cab-load" role="status">Готовим шифрование на этом устройстве…</p>`);
     try {
       const C = window.ChatCrypto;
       if (!C) { fail(inst, new Error('no_crypto'), 'Не загрузился модуль шифрования. Обновите страницу.'); return; }
-      const { state } = await C.init(inst.sb, inst.ctx.uid);
+      await C.init(inst.sb, inst.ctx.uid);
       if (inst.dead) return;
-      if (state === 'ready') await openChat(inst); else gate(inst, state === 'locked' ? 'locked' : 'none');
+      await openChat(inst);
     } catch (e) { if (!inst.dead) fail(inst, e); }
   }
 
   function fail(inst, e, text) {
     logErr('boot', e);
     put(inst.box, h`<div class="j2-card bad"><h2>Чат недоступен</h2><p>${text || errTextLoad(e)}</p></div><button class="j2-btn" id="chRetry" type="button">Повторить</button>`);
-    $(inst.box, '#chRetry').onclick = () => { put(inst.box, h`<p class="cab-load">Загружаем…</p>`); boot(inst); };
+    $(inst.box, '#chRetry').onclick = () => boot(inst);
   }
-
-  // =====================================================================================================
-  // Ключи: создать пароль, ввести пароль, сброс
-  // =====================================================================================================
-  function gate(inst, mode) {
-    const none = mode === 'none', locked = mode === 'locked', reset = mode === 'reset';
-    put(inst.box, h`
-      <div class="cab-card ${reset ? 'coral' : 'ch-violet'}"><h3>${none ? 'Защитите переписку' : locked ? 'Чат закрыт на этом устройстве' : 'Старая переписка пропадёт'}</h3>
-        <p>${none ? 'Сообщения шифруются на вашем устройстве: сервер и администраторы их прочитать не могут.' : locked ? 'Введите пароль переписки, чтобы открыть чат на этом устройстве.'
-          : 'Новый пароль создаст новые ключи. Прежние сообщения станут нечитаемыми для вас и для собеседника, он увидит, что ключ заменён. Отменить это нельзя.'}</p></div>
-      ${none ? h`<div class="cab-card amber"><p>Без этого пароля старые сообщения на новом устройстве не открыть. Запомните его.</p></div>` : ''}
-      <label class="j2-field"><span>${reset ? 'Новый пароль переписки' : 'Пароль переписки'}</span><input id="chPw" type="password" autocomplete="${locked ? 'current-password' : 'new-password'}"></label>
-      ${locked ? '' : h`<label class="j2-field"><span>Повторите пароль</span><input id="chPw2" type="password" autocomplete="new-password"></label>`}
-      ${locked ? '' : h`<p class="cab-note">Минимум 8 символов. Можно тот же, что для входа в журнал.</p>`}
-      <div class="j2-msg err" id="chMsg" role="alert"></div>
-      <button class="j2-btn ${reset ? 'danger' : 'primary'}" id="chGo" type="button">${none ? 'Создать ключи' : locked ? 'Открыть чат' : 'Сбросить и создать новые ключи'}</button>
-      ${locked ? h`<button class="j2-btn link" id="chForgot" type="button">Забыл пароль</button>` : ''}
-      ${reset ? h`<button class="j2-btn" id="chBack" type="button">Назад</button>` : ''}`);
-    const b = inst.box, pw = $(b, '#chPw'), pw2 = $(b, '#chPw2'), msg = $(b, '#chMsg'), go = $(b, '#chGo');
-    if ($(b, '#chForgot')) $(b, '#chForgot').onclick = () => gate(inst, 'reset');
-    if ($(b, '#chBack')) $(b, '#chBack').onclick = () => gate(inst, 'locked');
-    const submit = () => J2.busy(go, async () => {
-      msg.textContent = '';
-      const p1 = pw.value, p2 = pw2 ? pw2.value : p1;
-      if (!p1) { msg.textContent = 'Введите пароль переписки.'; return; }
-      if (!locked && p1.length < 8) { msg.textContent = 'Пароль переписки: минимум 8 символов.'; return; }
-      if (p1 !== p2) { msg.textContent = 'Пароли не совпадают.'; return; }
-      const label = go.textContent; go.textContent = 'Подождите…';
-      const C = window.ChatCrypto;
-      try { await (none ? C.setup(p1) : locked ? C.unlock(p1) : C.reset(p1)); }
-      catch (e) {
-        const c = String((e && (e.message || e.code)) || '') + code(e);
-        msg.textContent = c.includes('bad_password') ? 'Неверный пароль переписки.' : c.includes('key_mismatch') || c.includes('already_exists') ? 'Ключи уже созданы на другом устройстве. Обновите страницу и введите пароль.'
-          : !navigator.onLine ? 'Нет связи. Повторите, когда появится сеть.' : 'Не получилось. Проверьте связь и повторите.';
-        if (!/bad_password/.test(c)) logErr('keys', e);
-        return;
-      } finally { go.textContent = label; }
-      pw.value = ''; if (pw2) pw2.value = '';
-      if (inst.dead) return;
-      try { await openChat(inst); } catch (e) { fail(inst, e); }
-    });
-    go.onclick = submit;
-    [pw, pw2].forEach((x) => { if (x) x.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }; });
-    pw.focus();
-  }
+  // Это устройство отозвано «начать заново» с другого устройства: заводим новый ключ и открываем заново
+  const revoked = (e) => code(e).includes('device_revoked');
 
   // =====================================================================================================
   // Экран чата
@@ -162,19 +126,15 @@
   };
 
   async function openChat(inst) {
-    const [mine, rows] = await Promise.all([
-      Cab.q(inst.sb.from('chat_keys').select('key_version').eq('user_id', inst.ctx.uid)),
-      Cab.rpc('chat_threads_my'),
-    ]);
+    const rows = await Cab.rpc('chat_threads_my');
     if (inst.dead) return;
-    inst.myKv = mine[0] ? mine[0].key_version : null;
     const ord = (r) => (r.kind === 'lecture' ? 0 : 1);
     inst.rows = (rows || []).filter((r) => inst.role === 'teacher' || KINDS[r.kind])
       .sort((a, b) => (inst.role === 'headman' ? ord(a) - ord(b) : String(a.group_name).localeCompare(String(b.group_name), 'ru') || ord(a) - ord(b)));
-    inst.gen++; inst.sel = -1; inst.thread = null; inst.peerReady = false;
+    inst.gen++; inst.sel = -1; inst.tid = null; inst.ks = null;
     clearTimeout(inst.timer);
     if (!inst.rows.length) {
-      put(inst.box, h`<div class="cab-card"><h3>${inst.role === 'headman' ? 'Преподаватели не назначены' : 'Переписок пока нет'}</h3><p>${inst.role === 'headman' ? 'Когда сисадмин назначит преподавателей группе, здесь появятся вкладки «Лекции» и «ПЗ».' : 'Они появятся, когда староста группы откроет чат с вами.'}</p></div>`);
+      put(inst.box, h`<div class="cab-card"><h3>${inst.role === 'headman' ? 'Преподаватели не назначены' : 'Переписок пока нет'}</h3><p>${inst.role === 'headman' ? 'Когда сисадмин назначит преподавателей группы, здесь появятся вкладки «Лекции» и «ПЗ».' : 'Они появятся, когда староста группы откроет чат с вами.'}</p></div>`);
       inst.timer = setTimeout(() => { if (!inst.dead && inst.box.isConnected) openChat(inst).catch(() => {}); }, 15000);   // вдруг переписка уже открыта
       return;
     }
@@ -183,6 +143,7 @@
       ${inst.ctx.closed ? h`<div class="j2-card warn" role="status"><h2>Журнал закрыт</h2><p>Переписку можно читать, отправлять сообщения нельзя.</p></div>` : ''}
       <div id="chTabs"></div>
       <div class="ch-enc" id="chEnc"></div>
+      <div id="chNote"></div>
       <div class="ch-list" id="chList" role="log" aria-live="polite" aria-label="Сообщения"></div>
       <div class="ch-compose">
         <div class="j2-msg err" id="chErr" role="alert"></div>
@@ -203,6 +164,16 @@
     inst.start = null;
     await selectTab(inst, i);
     tick(inst);
+    approveOthers(inst);
+  }
+
+  // Прежнее устройство подтверждает новые устройства этого же аккаунта во всех тредах, не только в открытом
+  async function approveOthers(inst) {
+    for (const r of inst.rows.slice()) {
+      if (inst.dead) return;
+      if (!r.thread_id || r === inst.rows[inst.sel]) continue;
+      try { await window.ChatCrypto.open(r.thread_id); } catch (e) { /* не страшно: подтвердим при открытии вкладки */ }
+    }
   }
 
   function paintTabs(inst) {
@@ -215,71 +186,103 @@
     const ta = $(inst.box, '#chIn'), c = $(inst.box, '#chCnt'); if (!ta || !c) return;
     c.textContent = ta.value.length >= NEAR ? `${ta.value.length} из ${MAX}` : '';
   }
-  // Поле и кнопка доступны, когда есть ключ собеседника и журнал открыт
+  const status = (inst) => (inst.ks ? inst.ks.status : null);
+  // Поле и кнопка доступны, когда ключ треда есть на этом устройстве и журнал открыт
   function composer(inst) {
     const ta = $(inst.box, '#chIn'), btn = $(inst.box, '#chSend'); if (!ta) return;
-    const why = inst.ctx.closed ? 'Журнал закрыт' : !inst.thread ? 'Загружаем…' : !inst.peerReady ? 'Собеседник ещё не включил шифрование' : '';
+    const s = status(inst);
+    const why = inst.ctx.closed ? 'Журнал закрыт' : !s ? 'Загружаем…' : s === 'no_peer' ? 'Собеседник ещё не открывал чат' : s === 'waiting' ? 'Ждём подтверждения этого устройства' : '';
     ta.disabled = !!why; btn.disabled = !!why || inst.sending; ta.placeholder = why || 'Сообщение';
     const chips = inst.box.querySelectorAll('.ch-chip'); chips.forEach((c) => { c.disabled = !!why; });
   }
 
-  async function paintEnc(inst) {
+  function paintEnc(inst) {
     const enc = $(inst.box, '#chEnc'); if (!enc) return;
-    let fp = null;
-    if (inst.peerReady) { try { fp = await window.ChatCrypto.fingerprint(inst.thread); } catch (e) { logErr('fp', e); } }
-    if (inst.dead || !enc.isConnected) return;
-    inst.fp = fp;
-    put(enc, h`<span class="cab-ico sm">${icon.lock}</span><span class="ch-fp">${fp ? 'Сквозное шифрование, ключ ' + fp : 'Сквозное шифрование. Ключ собеседника ещё не создан'}</span>${fp ? h`<button type="button" class="ch-ver" id="chVer">Сверить</button>` : ''}`);
+    const ks = inst.ks, fp = ks && ks.status !== 'no_peer' ? ks.fingerprint : null;
+    put(enc, h`<span class="cab-ico sm">${icon.lock}</span><span class="ch-fp">${fp ? h`Сквозное шифрование, ключ <span class="ch-fpb">${fp}</span>` : 'Сквозное шифрование'}</span>${ks ? h`<button type="button" class="ch-ver" id="chVer">Сверить</button>` : ''}`);
     const v = $(enc, '#chVer');
-    if (v) v.onclick = () => {
-      const r = inst.rows[inst.sel];
-      const el = openSheet('Сверить ключ', h`<div class="j2-code" role="status">${fp}</div><p class="cab-note">${r && r.peer_name ? 'Собеседник: ' + r.peer_name + '. ' : ''}Сравните этот отпечаток с собеседником вне журнала, например по телефону. Если он не совпадает, ничего важного не отправляйте.</p><button class="j2-btn primary" type="button" id="chShDone">Готово</button>`);
-      $(el, '#chShDone').onclick = closeSheet;
-    };
+    if (v) v.onclick = () => verifySheet(inst);
+    paintNote(inst);
   }
 
-  // Ключ собеседника: объект или null, если он ещё не создал ключи
-  async function peerKey(r) {
-    let k;
-    try { k = await Cab.rpc('chat_peer_key', { p_thread: r.thread_id }); }
-    catch (e) { if (/key/.test(e.rpc || '') && !/key_changed/.test(e.rpc)) return null; throw e; }
-    if (Array.isArray(k)) k = k[0];
-    return k && k.public_jwk ? k : null;
+  function verifySheet(inst) {
+    const ks = inst.ks, r = inst.rows[inst.sel], n = (x) => `${x} ${plural(x, ['устройство', 'устройства', 'устройств'])}`;
+    const el = openSheet('Сверить ключ', h`
+      ${ks.status === 'no_peer' ? h`<p class="cab-note">Собеседник ещё не открывал чат: сверять пока нечего.</p>` : h`<div class="j2-code ch-code" role="status">${ks.fingerprint}</div>
+      <p class="cab-note">${r && r.peer_name ? 'Собеседник: ' + r.peer_name + '. ' : ''}Сравните этот отпечаток с собеседником вне журнала, например по телефону. Если он не совпадает, ничего важного не отправляйте.</p>
+      <p class="cab-note">В переписке: у вас ${n(ks.my_devices.length)}, у собеседника ${n(ks.peer_devices.length)}. Новое устройство меняет отпечаток.</p>`}
+      <button class="j2-btn primary" type="button" id="chShDone">Готово</button>
+      <button class="j2-btn link" type="button" id="chShReset">Начать заново на этом устройстве</button>`);
+    $(el, '#chShDone').onclick = closeSheet;
+    $(el, '#chShReset').onclick = () => resetSheet(inst);
   }
-  // Собрать thread для ChatCrypto; true, если версии ключей изменились
-  function applyKeys(inst, r, k, myKv) {
-    const was = inst.thread ? `${inst.peerReady ? inst.thread.peer.key_version : '-'}|${inst.thread.my_key_version}` : '';
-    inst.myKv = myKv;
-    inst.peerReady = !!k;
-    inst.thread = { id: r.thread_id, me: { id: inst.ctx.uid }, peer: { id: (k && k.user_id) || r.peer_user_id, public_jwk: k ? k.public_jwk : null, key_version: k ? k.key_version : null }, my_key_version: myKv };
-    return was !== `${inst.peerReady ? k.key_version : '-'}|${myKv}`;
+
+  // «Начать заново»: прежние устройства отзываются, переписка до этого момента на этом устройстве не откроется
+  function resetSheet(inst) {
+    const el = openSheet('Начать заново?', h`<div class="cab-card coral"><p>Ваши другие устройства потеряют доступ к чату. Сообщения, которых нет на этом устройстве, прочитать будет нельзя. Собеседник увидит, что ваш ключ заменён.</p></div>
+      <p class="cab-note">Нужно, если прежнее устройство потеряно или его данные стёрты. Если оно под рукой, просто откройте на нём чат: это устройство получит доступ само.</p>
+      <div class="j2-msg err" id="chShMsg" role="alert"></div>
+      <button class="j2-btn danger" type="button" id="chShGo">Начать заново</button><button class="j2-btn" type="button" id="chShNo">Отмена</button>`);
+    $(el, '#chShNo').onclick = closeSheet;
+    const go = $(el, '#chShGo');
+    go.onclick = () => J2.busy(go, async () => {
+      try { await window.ChatCrypto.reset(); }
+      catch (e) { logErr('reset', e); $(el, '#chShMsg').textContent = errTextLoad(e); return; }
+      closeSheet();
+      if (!inst.dead) await selectTab(inst, inst.sel);
+    });
   }
-  const myVersion = async (inst) => { const m = await Cab.q(inst.sb.from('chat_keys').select('key_version').eq('user_id', inst.ctx.uid)); return m[0] ? m[0].key_version : null; };
+
+  // Под строкой шифрования: устройство ждёт подтверждения / ключ собеседника заменён
+  function paintNote(inst) {
+    const box = $(inst.box, '#chNote'); if (!box) return;
+    const ks = inst.ks, tid = inst.tid;
+    if (ks && ks.status === 'waiting') {
+      put(box, h`<div class="cab-card amber ch-note" role="status"><h3>Ждём подтверждения этого устройства</h3>
+        <p>Откройте чат журнала на устройстве, где вы уже переписывались: оно само передаст ключи, пароль не нужен. Это окно обновится.</p>
+        <div class="cab-actions"><button class="j2-btn" type="button" id="chNoteReset">Нет доступа к прежнему устройству</button></div></div>`);
+      $(box, '#chNoteReset').onclick = () => resetSheet(inst);
+      return;
+    }
+    const old = tid && ks && ks.status !== 'no_peer' ? seenGet(tid) : null;
+    const now = ks ? ks.peer_devices : [];
+    if (!old || !Array.isArray(old) || !now.length || old.slice().sort().join() === now.join()) {
+      if (tid && ks && ks.status !== 'no_peer' && (!old || !Array.isArray(old))) seenSet(tid, now);   // первая встреча: запоминаем молча
+      put(box, '');
+      return;
+    }
+    const added = old.every((id) => now.includes(id));
+    put(box, h`<div class="cab-card coral ch-note" role="status"><h3>${added ? 'У собеседника новое устройство' : 'Ключ собеседника заменён'}</h3>
+      <p>Новый отпечаток: <b class="ch-fpb">${ks.fingerprint}</b>. ${added ? 'Если собеседник не входил с нового устройства, ' : 'Собеседник мог сменить телефон или очистить браузер. Если сомневаетесь, '}сверьте отпечаток с ним по телефону.</p>
+      <div class="cab-actions"><button class="j2-btn" type="button" id="chNoteOk">Понятно</button></div></div>`);
+    $(box, '#chNoteOk').onclick = () => { seenSet(tid, now); put(box, ''); };
+  }
 
   async function selectTab(inst, i) {
     const old = inst.sel, ta = $(inst.box, '#chIn');
-    if (ta && old >= 0) inst.drafts[old] = ta.value;
+    if (ta && old >= 0 && old !== i) inst.drafts[old] = ta.value;
     inst.sel = i; const my = ++inst.gen;
-    inst.thread = null; inst.peerReady = false; inst.msgs = []; inst.seen = new Set(); inst.cursor = null; inst.netErr = false;
+    inst.tid = null; inst.ks = null; inst.msgs = []; inst.seen = new Set(); inst.cursor = null; inst.netErr = false;
     if (ta) { ta.value = inst.drafts[i] || ''; inst.grow(); counter(inst); }
     setErr(inst, '');
     paintTabs(inst); composer(inst);
-    put($(inst.box, '#chList'), h`<p class="cab-load">Загружаем…</p>`);
-    put($(inst.box, '#chEnc'), h`<span class="cab-ico sm">${icon.lock}</span><span class="ch-fp">Сквозное шифрование</span>`);
+    put($(inst.box, '#chList'), h`<p class="cab-load" role="status">Открываем переписку…</p>`);
+    put($(inst.box, '#chEnc'), h`<span class="cab-ico sm">${icon.lock}</span><span class="ch-fp">Ключ создаётся…</span>`);
+    put($(inst.box, '#chNote'), '');
     const r = inst.rows[i];
     try {
       if (!r.thread_id) r.thread_id = await Cab.rpc('chat_thread_open', { p_group: r.group_id, p_teacher: r.peer_user_id });
       if (inst.dead || my !== inst.gen) return;
-      const [k, kv] = await Promise.all([peerKey(r), myVersion(inst)]);
+      const ks = await window.ChatCrypto.open(r.thread_id);
       if (inst.dead || my !== inst.gen) return;
-      applyKeys(inst, r, k, kv);
-      await paintEnc(inst);
-      if (inst.peerReady) await loadMsgs(inst, my);
+      inst.tid = r.thread_id; inst.ks = ks;
+      paintEnc(inst);
+      if (ks.status !== 'no_peer') await loadMsgs(inst, my); else paintList(inst, true);
       if (inst.dead || my !== inst.gen) return;
       composer(inst);
-      if (!inst.peerReady) paintList(inst, true);
     } catch (e) {
       if (inst.dead || my !== inst.gen) return;
+      if (revoked(e)) { boot(inst); return; }
       logErr('open', e);
       put($(inst.box, '#chList'), h`<div class="cab-card"><h3>Не получилось открыть чат</h3><p>${errTextLoad(e)}</p><div class="cab-actions"><button class="j2-btn" id="chAgain" type="button">Повторить</button></div></div>`);
       $(inst.box, '#chAgain').onclick = () => selectTab(inst, i);
@@ -300,14 +303,14 @@
 
   // Расшифровать новые строки и дорисовать; true, если среди них есть чужие
   async function addMsgs(inst, rows, stick) {
-    const C = window.ChatCrypto, uid = inst.ctx.uid, thread = inst.thread;
+    const C = window.ChatCrypto, uid = inst.ctx.uid, tid = inst.tid, gen = inst.gen;
     let peer = false, added = false;
     for (const m of rows) {
       if (inst.seen.has(m.id)) continue;
       inst.seen.add(m.id);
       let text = null;
-      try { text = await C.decrypt(thread, m); } catch (e) { text = null; }
-      if (inst.dead || inst.thread !== thread) return false;
+      try { text = await C.decrypt(tid, m); } catch (e) { text = null; }
+      if (inst.dead || inst.gen !== gen) return false;
       inst.msgs.push({ id: m.id, mine: m.sender_id === uid, text: typeof text === 'string' ? text : null, at: m.created_at });
       if (!inst.cursor || m.created_at > inst.cursor) inst.cursor = m.created_at;
       added = true; if (m.sender_id !== uid) peer = true;
@@ -319,9 +322,10 @@
   function paintList(inst, stick) {
     const list = $(inst.box, '#chList'); if (!list) return;
     const near = stick || window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 140;
-    const r = inst.rows[inst.sel] || {}, who = r.peer_name || 'Собеседник';
-    put(list, inst.msgs.length ? inst.msgs.map((m) => h`<div class="ch-m ${m.mine ? 'me' : 'pe'}"><div class="ch-b ${m.text == null ? 'bad' : ''}">${m.text == null ? 'Сообщение недоступно: ключ был заменён' : m.text}</div><small class="ch-t">${m.mine ? 'Вы' : who}, ${stamp(m.at)}</small></div>`)
-      : h`<p class="cab-empty">${inst.peerReady ? 'Сообщений пока нет. Текст шифруется на вашем устройстве.' : 'Собеседник ещё не включил шифрование. Как только он это сделает, здесь можно будет писать.'}</p>`);
+    const r = inst.rows[inst.sel] || {}, who = r.peer_name || 'Собеседник', s = status(inst);
+    const gone = s === 'waiting' ? 'Сообщение откроется, когда устройство подтвердят' : 'Сообщение недоступно на этом устройстве: ключ был заменён';
+    put(list, inst.msgs.length ? inst.msgs.map((m) => h`<div class="ch-m ${m.mine ? 'me' : 'pe'}"><div class="ch-b ${m.text == null ? 'bad' : ''}">${m.text == null ? gone : m.text}</div><small class="ch-t">${m.mine ? 'Вы' : who}, ${stamp(m.at)}</small></div>`)
+      : h`<p class="cab-empty">${s === 'no_peer' ? 'Собеседник ещё не открывал чат. Как только он его откроет, здесь можно будет писать.' : 'Сообщений пока нет. Текст шифруется на вашем устройстве.'}</p>`);
     if (near) setTimeout(() => { if (!inst.dead) window.scrollTo(0, document.documentElement.scrollHeight); }, 0);   // после scrollTo(0,0) роутера
   }
 
@@ -340,16 +344,16 @@
   }
 
   async function poll(inst, slow) {
-    if (inst.dead || document.hidden || inst.sel < 0 || !inst.thread) return;
+    if (inst.dead || document.hidden || inst.sel < 0 || !inst.ks) return;
     if (inst.polling) { inst.again = true; return; }
     inst.polling = true;
     const my = inst.gen;
     try {
       do {
         inst.again = false;
-        if (slow || !inst.peerReady) { await refresh(inst, my); slow = false; }
+        if (slow || status(inst) !== 'ready') { await refresh(inst, my); slow = false; }
         if (inst.dead || my !== inst.gen) return;
-        if (inst.peerReady) {
+        if (status(inst) !== 'no_peer') {
           const r = inst.rows[inst.sel];
           let q = inst.sb.from('chat_messages').select(COLS).eq('thread_id', r.thread_id).order('created_at', { ascending: true }).limit(200);
           if (inst.cursor) q = q.gt('created_at', new Date(Date.parse(inst.cursor) - 2000).toISOString());   // запас 2 с: поздно появившиеся строки не теряем, дубли отсекает seen
@@ -360,47 +364,54 @@
         if (inst.netErr) { inst.netErr = false; setErr(inst, ''); }
       } while (inst.again);
     } catch (e) {
+      if (revoked(e)) { if (!inst.dead) boot(inst); return; }
       if (!inst.dead && !inst.netErr) { inst.netErr = true; setErr(inst, 'Нет связи. Пробуем снова…'); }
     } finally { inst.polling = false; }
   }
 
-  // Сверка ключей и счётчиков на вкладках; сменился ключ: перечитываем тред заново
+  // Сверка ключей (заодно подтверждает свои новые устройства) и счётчиков на вкладках; сменилась эпоха, статус или
+  // устройства — перерисовываем, а ключи новых эпох могли открыть старые сообщения: перечитываем тред
   async function refresh(inst, my) {
     const r = inst.rows[inst.sel];
-    const [k, kv, all] = await Promise.all([peerKey(r), myVersion(inst), Cab.rpc('chat_threads_my').catch(() => null)]);
+    const [ks, all] = await Promise.all([window.ChatCrypto.open(r.thread_id), Cab.rpc('chat_threads_my').catch(() => null)]);
     if (inst.dead || my !== inst.gen) return;
     if (all) {
       all.forEach((x) => { const y = inst.rows.find((z) => z.thread_id && z.thread_id === x.thread_id); if (y) y.unread = y === r ? 0 : x.unread; });
       if (inst.role === 'teacher') inst.rows.push(...all.filter((x) => x.thread_id && !inst.rows.some((z) => z.thread_id === x.thread_id)));   // староста открыл новую переписку
       paintTabs(inst);
     }
-    if (applyKeys(inst, r, k, kv)) {
-      inst.msgs = []; inst.seen = new Set(); inst.cursor = null;
-      await paintEnc(inst);
-      if (inst.peerReady) await loadMsgs(inst, my); else paintList(inst, true);
+    const was = inst.ks, sig = (k) => [k.status, k.epoch, k.fingerprint].join('|');
+    inst.ks = ks;
+    if (sig(was) !== sig(ks)) {
+      paintEnc(inst);
+      if (was.status !== ks.status || was.epoch !== ks.epoch) {
+        inst.msgs = []; inst.seen = new Set(); inst.cursor = null;
+        if (ks.status !== 'no_peer') await loadMsgs(inst, my); else paintList(inst, true);
+      }
       composer(inst);
     }
   }
 
   // ---------- отправка ----------
   async function send(inst) {
-    if (inst.dead || inst.sending || !inst.peerReady || inst.ctx.closed) return;
+    if (inst.dead || inst.sending || status(inst) !== 'ready' || inst.ctx.closed) return;
     const ta = $(inst.box, '#chIn'), btn = $(inst.box, '#chSend');
     const text = ta.value.trim();
     if (!text) return;
     setErr(inst, ''); inst.netErr = false;
     inst.sending = true; btn.disabled = true;
-    const thread = inst.thread, my = inst.gen;
+    const tid = inst.tid, my = inst.gen;
     let ok = false;
     try {
-      const enc = await window.ChatCrypto.encrypt(thread, text);
-      await Cab.rpc('chat_send', { p_thread: thread.id, p_iv: enc.iv, p_ciphertext: enc.ciphertext, p_sender_kv: enc.sender_key_version, p_recipient_kv: enc.recipient_key_version });
+      const enc = await window.ChatCrypto.encrypt(tid, text);
+      await Cab.rpc('chat_post', { p_thread: tid, p_device: enc.device, p_epoch: enc.epoch, p_iv: enc.iv, p_ciphertext: enc.ciphertext });
       ok = true;
     } catch (e) {
       logErr('send', e);
       if (!inst.dead) {
+        if (revoked(e)) { inst.sending = false; boot(inst); return; }
         setErr(inst, errText(e));
-        if (code(e).includes('key_changed')) refresh(inst, my).catch(() => {});      // следующая попытка уже с новым ключом
+        if (/key_changed|not_ready/.test(code(e))) refresh(inst, my).catch(() => {});      // следующая попытка уже с новым ключом
       }
     }
     inst.sending = false;
