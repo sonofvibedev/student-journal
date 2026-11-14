@@ -60,6 +60,7 @@
       var key = ev.kind + '|' + ev.name + '|' + ev.message;
       if (ev.kind === 'error') { seen[key] = (seen[key] || 0) + 1; if (seen[key] > MAX_SAME) return; }
       total++; queue.push(ev);
+      if (ev.kind === 'error' && window.J2Act && window.J2Act.log) { try { window.J2Act.log('error', ev.name + ': ' + ev.message.slice(0, 50)); } catch (x) { /* лог действий не мешает */ } }   // тот же сбой в ленте активности (2.1)
       later(ev.kind === 'error' ? 3000 : 30000);   // ошибки уходят быстро, замеры копятся
     }
 

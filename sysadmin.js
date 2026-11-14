@@ -9,7 +9,7 @@
   const st = {
     tab: 'state', nav: 0, roleSub: 'req', reqs: [], open: new Set(), groups: [], roleGroup: '', rc: null,
     logAction: '', logActions: new Set(), logSub: 'all', logHours: 168, log: null,
-    lf: { role: '', user: '', kind: '', from: '', to: '', q: '' }, lfUsers: new Map(),   // фильтры ленты «Все пользователи»; lfUsers: id → имя из загруженных записей
+    lf: { role: '', user: '', kind: '', from: '', to: '', q: '' }, lfUsers: new Map(), uf: { role: '', user: '', kind: '', from: '', to: '', q: '' }, ufPeople: null, prefs: null,   // фильтры ленты «Все пользователи»; lfUsers: id → имя из загруженных записей
     hours: 24, ask: null, secret: null, tf: null, me: null, gl: [], gcount: {}, imp: {}, teachers: [], admins: [], tg: null,
   };
 
@@ -266,12 +266,14 @@
   const actionLabel = (a) => ACTION[a] || a;
   const LOGSEG = {
     all: { label: 'Все пользователи' },
+    usage: { label: 'Активность' },
     audit: { label: 'Действия' },
     client: { label: 'Ошибки браузера', s: 'client', k: 'error' },
     server: { label: 'Ошибки сервера', s: 'server', k: 'error' },
     perf: { label: 'Замеры', s: 'client', k: 'perf' },
   };
   const PAGE = 50;
+  const USAGE_KIND = { login: 'Вход', logout: 'Выход', screen: 'Открыл экран', action: 'Нажал', error: 'Ошибка' };
   async function renderLogs(n) {
     const seg = '<div class="j2-tabs sa-seg" role="tablist" aria-label="Тип записей">' + Object.keys(LOGSEG).map((k) =>
       '<button type="button" role="tab" data-log="' + k + '" aria-selected="' + (st.logSub === k) + '">' + LOGSEG[k].label + '</button>').join('') + '</div>';
@@ -282,7 +284,12 @@
   async function loadLog(n, more) {
     const L = st.log, sub = st.logSub, spec = LOGSEG[sub], last = L.rows[L.rows.length - 1];
     let data, error;
-    if (sub === 'all') {
+    if (sub === 'usage') {
+      const f = st.uf;
+      if (!more && !st.ufPeople) { const pr = await sb.rpc('sysadmin_usage_people'); if (!pr.error) st.ufPeople = pr.data || []; }
+      if (!more && !st.prefs) { const pf = await sb.rpc('sysadmin_prefs_get'); if (!pf.error) st.prefs = pf.data; }
+      ({ data, error } = await sb.rpc('sysadmin_usage_log', { p_user: f.user || null, p_role: f.role || null, p_kind: f.kind || null, p_from: f.from || null, p_to: f.to || null, p_q: f.q || null, p_limit: PAGE, p_offset: more ? L.rows.length : 0 }));
+    } else if (sub === 'all') {
       const f = st.lf;
       ({ data, error } = await sb.rpc('sysadmin_activity_log', { p_role: f.role || null, p_user: f.user || null, p_kind: f.kind || null, p_from: f.from || null, p_to: f.to || null, p_q: f.q || null, p_limit: PAGE, p_offset: more ? L.rows.length : 0 }));
     } else if (sub === 'audit') {
@@ -301,7 +308,24 @@
   }
   function paintLogFilters(n) {
     const box = $('logFilters'); if (!box || stale(n)) return;
-    if (st.logSub === 'all') {
+    if (st.logSub === 'usage') {
+      const f = st.uf, opt = (v, t, cur) => '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(t) + '</option>';
+      const people = (st.ufPeople || []).slice().sort((a, b) => String(a.user_name).localeCompare(String(b.user_name), 'ru'));
+      const P = st.prefs || {}, sw = (k, t, hint) => '<button type="button" class="tg-sw" role="switch" data-pref="' + k + '" aria-checked="' + String(!!P[k]) + '"><span><span class="tg-t">' + t + '</span><small>' + hint + '</small></span><span class="tg-k" aria-hidden="true"></span></button>';
+      box.innerHTML = '<div class="sa-lf">' +
+        '<label class="j2-field sa-field-sel"><span>Человек</span><select id="ufUser"><option value="">Все</option>' + people.map((p) => opt(p.user_id, p.user_name || 'Без имени', f.user)).join('') + '</select></label>' +
+        '<label class="j2-field sa-field-sel"><span>Роль</span><select id="ufRole"><option value="">Все роли</option>' + ['student', 'headman', 'deputy', 'teacher', 'sysadmin'].map((r) => opt(r, LogExplain.ROLE_RU[r], f.role)).join('') + '</select></label>' +
+        '<label class="j2-field sa-field-sel"><span>Что произошло</span><select id="ufKind"><option value="">Всё</option>' + Object.keys(USAGE_KIND).map((k) => opt(k, USAGE_KIND[k], f.kind)).join('') + '</select></label>' +
+        '<label class="j2-field"><span>С даты</span><input type="date" id="ufFrom" value="' + esc(f.from) + '"></label>' +
+        '<label class="j2-field"><span>По дату</span><input type="date" id="ufTo" value="' + esc(f.to) + '"></label>' +
+        '<label class="j2-field"><span>Поиск</span><input type="search" id="ufQ" value="' + esc(f.q) + '" placeholder="Имя, экран, кнопка, устройство" autocomplete="off" maxlength="80"></label></div>' +
+        '<p class="sa-note">Лента хранится 30 дней. Пароли и переписка в неё не попадают: пишутся только названия экранов и кнопок.</p>' +
+        '<section class="j2-card" aria-labelledby="prT"><h2 id="prT">Уведомления мне в Telegram</h2><div class="st-grp">' +
+        sw('new_device', 'Вход с нового устройства', 'Сразу, как человек зашёл с устройства, которого за 30 дней не было') +
+        sw('roles', 'Выдача ролей и доступов', 'Сразу') + sw('deletes', 'Удаления и отмены', 'Отмена пропуска, снятие роли, стирание данных') +
+        sw('errors', 'Ошибки', 'Не чаще одного сообщения на ошибку в полчаса') + sw('digest', 'Дайджест за сутки', 'Раз в день в 08:00 по Минску: заходили, входов, действий, ошибок') +
+        '</div>' + (st.prefs ? '' : '<p class="sa-note">Настройки не загрузились. Обновите раздел.</p>') + '<p class="sa-note">Telegram должен быть привязан к вашей учётной записи (бот).</p></section>';
+    } else if (st.logSub === 'all') {
       const f = st.lf, opt = (v, t, cur) => '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(t) + '</option>';
       const users = [...st.lfUsers].sort((a, b) => a[1].localeCompare(b[1], 'ru'));
       if (f.user && !st.lfUsers.has(f.user)) users.unshift([f.user, 'Выбранный пользователь']);
@@ -324,6 +348,12 @@
   }
   const PERF_LBL = { page: 'Загрузка страницы', api: 'Ответ сервера (медиана)' };
   function logRow(r) {
+    if (st.logSub === 'usage') {
+      const what = USAGE_KIND[r.kind] || r.kind, target = r.name ? ': ' + r.name : '';
+      return '<li class="sa-log"><div class="sa-head"><b>' + esc((r.user_name || 'Без имени') + ' (' + String(LogExplain.ROLE_RU[r.role] || r.role || '').toLowerCase() + ')') + '</b><span class="sub">' + esc(when(r.at)) + '</span></div>' +
+        '<div class="sa-card-p">' + esc(what + target) + (r.new_device ? ' · новое устройство' : '') + '</div>' +
+        '<div class="sa-mono">' + esc([r.group_name, r.device].filter(Boolean).join(' · ')) + '</div></li>';
+    }
     if (st.logSub === 'all') {
       const e = LogExplain.explain(r);
       return '<li class="sa-log' + (e.ok ? '' : ' sa-bad') + '"><div class="sa-head"><b>' + esc(e.who) + '</b><span class="sub">' + esc(when(r.at)) + '</span></div>' +
@@ -942,6 +972,8 @@
     const t = e.target;
     if (t.id === 'logFilter') { st.logAction = t.value; reloadLog(); }
     if (t.id === 'logHours') { st.logHours = Number(t.value); reloadLog(); }
+    const UF = { ufUser: 'user', ufRole: 'role', ufKind: 'kind', ufFrom: 'from', ufTo: 'to', ufQ: 'q' };
+    if (UF[t.id]) { st.uf[UF[t.id]] = t.value.trim(); reloadLog(); }
     const LF = { lfUser: 'user', lfRole: 'role', lfKind: 'kind', lfFrom: 'from', lfTo: 'to', lfQ: 'q' };
     if (LF[t.id]) { st.lf[LF[t.id]] = t.value.trim(); reloadLog(); }
     if (t.id === 'roleGroup') { st.roleGroup = t.value; st.rc = null; st.tf = null; clearSecrets(); const n = ++st.nav; $('rolesBody').innerHTML = loading; ({ grp: loadMembers, tch: loadTeachers }[st.roleSub] || loadMembers)(n); }
@@ -962,6 +994,14 @@
     if (sb2) { st.roleSub = sb2.dataset.sub; say(''); const n = ++st.nav; renderRoles(n).catch((x) => paint(n, failBox(x))); return; }
     const hb = t.closest('[data-hours]');
     if (hb) { st.hours = Number(hb.dataset.hours); go('state'); return; }
+    const pb = t.closest('button[data-pref]');
+    if (pb && !pb.dataset.busy) {                                                           // переключатель уведомлений: запись сразу, при ошибке откат
+      const k = pb.dataset.pref, prev = pb.getAttribute('aria-checked') === 'true';
+      pb.setAttribute('aria-checked', String(!prev)); pb.dataset.busy = '1';
+      sb.rpc('sysadmin_prefs_set', { p_key: k, p_on: !prev }).then(({ error }) => { if (error) throw error; if (st.prefs) st.prefs[k] = !prev; })
+        .catch((x) => { pb.setAttribute('aria-checked', String(prev)); say(errMsg(x), 'err'); }).finally(() => { delete pb.dataset.busy; });
+      return;
+    }
     const lb = t.closest('[data-log]');
     if (lb) { st.logSub = lb.dataset.log; go('logs'); return; }
     const btn = t.closest('button[data-act]'); if (!btn) return;

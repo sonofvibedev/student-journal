@@ -9,7 +9,7 @@
 // shared.js в index.html и cabinet.html, чтобы новая страница никогда не взяла старые стили/скрипт.
 // Свои файлы запрашиваем мимо HTTP-кэша браузера (сервер ответит «не изменилось», если файл тот же):
 // иначе после деплоя телефон мог получить новую страницу со старым app.css.
-const CACHE_VERSION = 'journal-24dmm2-v71';
+const CACHE_VERSION = 'journal-24dmm2-v72';
 const NET_WAIT = 3000;          // сколько ждать сеть для своих файлов и страниц, прежде чем отдать кэш
 
 // Тяжёлые библиотеки старого журнала (exceljs, chart, bootstrap, qrcode) заранее не качаем: при выкате нового воркера это
@@ -63,6 +63,7 @@ const PRECACHE_URLS = [
   './sysadmin.js',
   './log-explain.js',
   './monitor.js',
+  './activity.js',
   './j2.css',
   './dean-report.js',
   './profile.js',

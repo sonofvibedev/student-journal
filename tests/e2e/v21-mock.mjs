@@ -43,7 +43,7 @@ const mk = () => ({
     abs('ab-3', 's-a', '2026-11-05', 'Эконометрика', 2, true, 'practice', { cert_type: 'Справка', cert_due_date: '2026-11-06' }), abs('ab-4', 's-b', '2026-11-05', 'Логистика', 4, false, 'lecture', { created_by: 'u-teacher' }), abs('ab-m1', 's-me', '2026-11-02', 'Логистика', 2, false, 'lecture'), abs('ab-m2', 's-me', '2026-11-06', 'Эконометрика', 2, true, 'practice', { cert_type: 'Больничный', cert_due_date: '2026-11-13' }), abs('ab-m3', 's-me', '2026-11-04', 'Логистика', 1, false, 'lab')],
   homework_editors: [], absence_cancellations: [{ id: 'c1', absence: { date: '2026-10-30', subject: 'Логистика', hours: 2 }, cancelled_by: 'u-me', cancelled_at: '2026-11-02T10:00:00Z' }],
   notifications: [], certificates: [], schedule_meta: [{ last_import_at: '2026-11-08T10:00:00Z', semester_start: '2026-08-31', semester_end: '2026-12-18' }],
-  rpc: { absence_hours_my: { total: 6, excused: 2, unexcused: 4, warn_hours: 8, dean_hours: 12 }, data_deletion_requests_list: [], homework_access_set: null },
+  rpc: { is_sysadmin: true, sysadmin_usage_people: [{ user_id: 'u-a', user_name: 'Андреев Антон', role: 'student' }], sysadmin_prefs_get: { new_device: true, roles: true, deletes: true, errors: true, digest: false }, sysadmin_usage_log: [{ at: '2026-11-09T08:30:00Z', kind: 'login', name: '', user_id: 'u-a', user_name: 'Андреев Антон', role: 'student', group_name: '24ДММ-2', device: 'Android · Chrome (телефон)', new_device: true }, { at: '2026-11-09T08:31:00Z', kind: 'action', name: 'Добавить домашку', user_id: 'u-a', user_name: 'Андреев Антон', role: 'student', group_name: '24ДММ-2', device: 'Android · Chrome (телефон)', new_device: false }], sysadmin_prefs_set: null, absence_hours_my: { total: 6, excused: 2, unexcused: 4, warn_hours: 8, dean_hours: 12 }, data_deletion_requests_list: [], homework_access_set: null },
 });
 let DB = mk(), LOG = [];
 const J = (status, body, extra = {}) => ({ status, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-expose-headers': '*', ...extra }, body: JSON.stringify(body) });
@@ -176,6 +176,46 @@ try {
     await shot(page, 'exams-tab');
     check('вкладка 360 px: без горизонтальной прокрутки', await noOverflow(page));
     check('вкладка: ошибок страницы нет', !errs.length, errs.join(' | '));
+  }
+  // ---------- п.2 журнал действий ----------
+  {
+    const { page } = await open('/home', 'app.html');
+    await page.waitForFunction(() => window.J2Act && J2Act.flush);
+    await page.waitForTimeout(400);
+    await page.goto(BASE + '/app.html#/study'); await page.waitForSelector('.cab-title');
+    await page.locator('a[href="#/profile"]').first().click(); await page.waitForSelector('.pf-card');
+    await page.locator('#thSeg button[data-th="light"]').click();
+    await page.goto(BASE + '/app.html#/chat/abc'); await page.waitForTimeout(300);
+    await page.evaluate(() => J2Act.flush()); await page.waitForTimeout(600);
+    const sent = LOG.filter((x) => x.rpc === 'usage_log_batch').flatMap((x) => x.body.p_events);
+    check('лог: вход и открытые экраны уходят пачкой в usage_log_batch', sent.some((e) => e.k === 'login') && sent.some((e) => e.k === 'screen' && /study/.test(e.n)), JSON.stringify(sent).slice(0, 300));
+    check('лог: нажатая кнопка записана по подписи', sent.some((e) => e.k === 'action' && /Светлая/.test(e.n)), JSON.stringify(sent.map((e) => e.n)));
+    check('лог: экраны чата и их кнопки не пишутся', !sent.some((e) => /chat/.test(e.n)));
+    check('лог: у события есть устройство и id устройства, нет паролей и адресных параметров', sent.every((e) => e.d && e.di && !/пароль|password|token|[?]/.test(e.n)));
+    check('лог: событий не больше 50 за вызов', LOG.filter((x) => x.rpc === 'usage_log_batch').every((x) => x.body.p_events.length <= 50));
+  }
+  // ---------- п.2 лента активности в утилите сисадмина ----------
+  {
+    const { ctx, page, errs } = await open('/home', 'app.html');
+    await page.goto(BASE + '/sysadmin.html'); await page.waitForSelector('#nav button[data-tab="logs"]', { timeout: 15000 });
+    await page.locator('#nav button[data-tab="logs"]').click();
+    await page.locator('button[data-log="usage"]').click();
+    await page.waitForSelector('#ufUser'); await page.waitForSelector('li.sa-log');
+    const t = (await page.locator('#view').innerText()).replace(/s+/g, ' ');
+    check('активность: лента — кто, что сделал, устройство, новое устройство помечено', /Андреев Антон [(]студент[)]/.test(t) && /Вход/.test(t) && /Нажал: Добавить домашку/.test(t) && /новое устройство/.test(t) && /Android · Chrome/.test(t), t.slice(0, 300));
+    check('активность: фильтры — человек, роль, что произошло, даты, поиск', await page.locator('#ufUser, #ufRole, #ufKind, #ufFrom, #ufTo, #ufQ').count() === 6);
+    await page.locator('#ufKind').selectOption('action');
+    await page.waitForTimeout(400);
+    check('активность: фильтр по типу уходит в запрос', LOG.some((x) => x.rpc === 'sysadmin_usage_log' && x.body.p_kind === 'action'));
+    await page.locator('#ufQ').fill('домашку'); await page.locator('#ufQ').dispatchEvent('change'); await page.waitForTimeout(400);
+    check('активность: поиск уходит в запрос', LOG.some((x) => x.rpc === 'sysadmin_usage_log' && x.body.p_q === 'домашку'));
+    check('активность: 5 переключателей уведомлений в Telegram, дайджест выключен', await page.locator('button[data-pref]').count() === 5 && await page.locator('button[data-pref="digest"]').getAttribute('aria-checked') === 'false');
+    await page.locator('button[data-pref="digest"]').click(); await page.waitForTimeout(400);
+    check('активность: переключатель пишет настройку в базу', LOG.some((x) => x.rpc === 'sysadmin_prefs_set' && x.body.p_key === 'digest' && x.body.p_on === true));
+    await shot(page, 'sysadmin-usage');
+    check('активность 360 px: без горизонтальной прокрутки', await noOverflow(page));
+    check('активность: ошибок страницы нет', !errs.length, errs.join(' | '));
+    await ctx.close();
   }
 } catch (e) { console.error(e); results.push(false); }
 await browser.close();

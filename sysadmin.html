@@ -6,13 +6,13 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0A0C11">
-<script src="accent.js?v=71"></script>
+<script src="accent.js?v=72"></script>
 <link rel="preconnect" href="https://woiqekpuoddxixlrbvkp.supabase.co" crossorigin>
 <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Системный администратор</title>
-<link rel="stylesheet" href="j2.css?v=71">
+<link rel="stylesheet" href="j2.css?v=72">
 <style>
   /* Только то, чего нет в j2.css: нижняя панель разделов и мелочи утилиты */
   .sa-wrap { padding-bottom: calc(110px + var(--app-inset-bottom)); }
@@ -28,7 +28,7 @@
   .sa-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 12px; color: var(--j-muted); font-size: 14px; min-height: var(--j-tap); }
   .sa-top > span { white-space: nowrap; }
   .sa-pill { flex: none; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 12px; border: 1px solid currentColor; }
-  .sa-pill.ok { color: var(--j-lime); } .sa-pill.wait { color: var(--j-amber); } .sa-pill.off { color: var(--j-muted); }
+  .sa-pill.ok { color: var(--j-accent-text); } .sa-pill.wait { color: var(--j-amber); } .sa-pill.off { color: var(--j-muted); }
   .sa-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .sa-head h2 { overflow-wrap: anywhere; }
   .sa-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
@@ -37,7 +37,7 @@
   .sa-code-box { margin: 10px 0; }
   .sa-people { margin: 8px 0 0; padding-left: 22px; color: var(--j-text); font-size: 14px; }
   .sa-people li { padding: 3px 0; }
-  details > summary { cursor: pointer; min-height: var(--j-tap); display: flex; align-items: center; color: var(--j-lime); font-weight: 600; font-size: 15px; }
+  details > summary { cursor: pointer; min-height: var(--j-tap); display: flex; align-items: center; color: var(--j-accent-text); font-weight: 600; font-size: 15px; }
   .sa-mono { font: 500 12px/1.4 ui-monospace, Consolas, monospace; color: var(--j-muted); overflow-wrap: anywhere; word-break: break-word; }
   .sa-thr { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
   .sa-thr .j2-field { flex: 1 1 100px; min-width: 0; margin: 0; }
@@ -52,10 +52,24 @@
   .sa-note { color: var(--j-muted); font-size: 14px; margin: 0 0 12px; }
   .sa-state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .sa-state-grid .j2-card { margin: 0; min-height: 96px; display: flex; flex-direction: column; justify-content: space-between; }
-  .sa-state-grid .big { font-size: 34px; font-weight: 800; color: var(--j-lime); line-height: 1; }
+  .sa-state-grid .big { font-size: 34px; font-weight: 800; color: var(--j-accent-text); line-height: 1; }
   .sa-state-grid .big.amber { color: var(--j-amber); }
   .sa-state-grid .sa-sub { font-size: 13px; margin-top: 6px; }
   .sa-pill.bad { color: var(--j-coral); }
+  /* переключатели уведомлений (как в кабинете) */
+  .st-grp { margin: 0 0 12px; overflow: hidden; border-radius: 22px; border: 1px solid var(--j-card-border); background: var(--j-card); }
+  .tg-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 60px; padding: 8px 16px; border: 0; border-top: 1px solid rgba(var(--j-fg-rgb), .08);
+    background: none; color: var(--j-text); font: 600 16px/1.25 'Onest', system-ui, sans-serif; text-align: left; cursor: pointer; }
+  .tg-sw:first-child { border-top: 0; }
+  .tg-sw > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .tg-sw .tg-t { display: block; }
+  .tg-sw small { display: block; color: var(--j-muted); font-weight: 500; font-size: 13px; }
+  .tg-k { flex: none; position: relative; width: 50px; height: 30px; border-radius: 15px; background: rgba(var(--j-fg-rgb), .18); transition: background .15s; }
+  .tg-k::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s, background .15s; }
+  .tg-sw[aria-checked="true"] .tg-k { background: var(--j-lime); }
+  .tg-sw[aria-checked="true"] .tg-k::after { transform: translateX(20px); background: var(--j-lime-ink); }
+  .tg-sw:disabled { opacity: .55; cursor: default; }
+  .tg-sw:focus-visible { outline: 2px solid var(--j-accent-text); outline-offset: -2px; }
   .j2-tabs.sa-seg { flex-wrap: wrap; }
   .j2-tabs.sa-seg button { flex: 1 1 45%; min-width: 0; overflow-wrap: anywhere; }
   .sa-secret { border: 2px solid var(--j-lime); background: rgba(var(--j-lime-rgb), .08); }
@@ -63,7 +77,7 @@
   .sa-secret .sa-warn { color: var(--j-amber); margin-top: 6px; }
   .sa-res { min-height: 0; margin: 8px 0 0; font-size: 14px; overflow-wrap: anywhere; }
   .sa-res:empty { display: none; }
-  .sa-res.ok { color: var(--j-lime); } .sa-res.err { color: var(--j-coral); } .sa-res.warn { color: var(--j-amber); }
+  .sa-res.ok { color: var(--j-accent-text); } .sa-res.err { color: var(--j-coral); } .sa-res.warn { color: var(--j-amber); }
   .sa-pre { white-space: pre-wrap; }
   .sa-wrap-any { overflow-wrap: anywhere; }
   .sa-new > summary, .sa-sub-d > summary { margin-bottom: 4px; }
@@ -108,13 +122,14 @@
   </div>
 </nav>
 
-<script src="env.js?v=71"></script>
-<script src="monitor.js?v=71"></script>
-<script src="vendor/supabase.js?v=71"></script>
-<script src="j2-core.js?v=71"></script>
-<script src="vendor/telegram-web-app.js?v=71"></script>
-<script src="tg-app.js?v=71"></script>
-<script src="log-explain.js?v=71"></script>
-<script src="sysadmin.js?v=71"></script>
+<script src="env.js?v=72"></script>
+<script src="monitor.js?v=72"></script>
+<script src="vendor/supabase.js?v=72"></script>
+<script src="j2-core.js?v=72"></script>
+<script src="activity.js?v=72"></script>
+<script src="vendor/telegram-web-app.js?v=72"></script>
+<script src="tg-app.js?v=72"></script>
+<script src="log-explain.js?v=72"></script>
+<script src="sysadmin.js?v=72"></script>
 </body>
 </html>
