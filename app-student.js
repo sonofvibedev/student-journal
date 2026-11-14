@@ -300,10 +300,14 @@
     });
     return tasks.concat(extra);
   };
+  // Отметки «Сделано» у домашек: события homework_done в app_events (ref = id задания). По ним растут значки hw_* (app-ach.js)
+  let hwDone = new Set();
+  const loadHwDone = async (ctx) => new Set(((await soft(q(sb.from('app_events').select('ref').eq('kind', 'homework_done').eq('student_id', ctx.student.id).eq('group_id', ctx.group.id)))) || []).map((x) => x.ref));
+  const doneBtn = (t) => { const on = hwDone.has(String(t.id)); return h`<button type="button" class="j2-btn small${on ? '' : ' primary'}" data-done="${t.id}" aria-pressed="${String(on)}">${on ? 'Сделано ✓' : 'Отметить сделанной'}</button>`; };
   const taskCard = (t, arch) => {
     const d = Cab.due(t.due), mineHw = !arch && Cab.ctx && t.createdBy === Cab.ctx.uid && isHw(t) && !Cab.ctx.isStaff;
     return h`<article class="cab-card${arch ? ' st-old' : ''}"><div class="meta"><h3>${Cab.sj(t.subject || 'Без предмета')}</h3><span class="st ${arch ? 'c-mute' : 'c-' + d.cls}">${arch ? 'срок был' : d.text}</span></div>
-      <p>${typeLabel(t)}${t.due ? (t.isExam ? ' · ' : ' · до ') + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.sch ? examInfo(t.sch) : ''}${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${mineHw ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button></div>` : ''}</article>`;
+      <p>${typeLabel(t)}${t.due ? (t.isExam ? ' · ' : ' · до ') + Cab.dateText(t.due) : ''}${t.subgroup ? ` · ${t.subgroup} подгруппа` : ''}</p>${t.sch ? examInfo(t.sch) : ''}${t.text ? h`<p class="st-text">${linkify(t.text)}</p>` : ''}${(isHw(t) && !t.isExam) || mineHw ? h`<div class="cab-actions">${isHw(t) && !t.isExam ? doneBtn(t) : ''}${mineHw ? h`<button type="button" class="j2-btn small danger" data-del="${t.id}">Удалить</button>` : ''}</div>` : ''}</article>`;
   };
   // Студенту, которому староста дал доступ («Доступы» в кабинете старосты), на экране «Домашки» показываем добавление.
   // Это только кнопка: право проверяет база (таблица homework_editors и политики tasks), без доступа вставка отклоняется.
@@ -336,7 +340,8 @@
   }
   async function taskScreen(el, ctx, nav, key) {
     const cfg = TASK_SCREENS[key], today = Cab.minsk().iso;
-    const [every, canAdd, ex] = await Promise.all([loadTasks(ctx), key === 'homework' ? canAddHw(ctx) : false, key === 'exams' ? soft(loadExams(ctx)) : null]);
+    const [every, canAdd, ex, done] = await Promise.all([loadTasks(ctx), key === 'homework' ? canAddHw(ctx) : false, key === 'exams' ? soft(loadExams(ctx)) : null, key === 'homework' ? loadHwDone(ctx) : null]);
+    if (done) hwDone = done;
     let all = every.filter((t) => cfg.pick(t) && Cab.taskVisible(t, sgOf(ctx)));
     if (key === 'exams' && ex) all = mergeExams(all, examsOf(ex));                      // не загрузилось расписание — остаются только внесённые старостой
     const act = all.filter((t) => !t.due || t.due >= today).sort(byDue), old = all.filter((t) => t.due && t.due < today).sort((a, b) => b.due.localeCompare(a.due));
@@ -346,7 +351,19 @@
       ${old.length ? h`<details class="st-det"><summary>Архив: ${old.length}</summary>${old.map((t) => taskCard(t, true))}</details>` : ''}`);
     const add = el.querySelector('#hwAdd');
     if (add) add.onclick = () => hwSheet(ctx, every, () => Cab.rerender());
-    el.onclick = async (e) => {                                                             // свою домашку (по доступу) можно удалить
+    el.onclick = async (e) => {
+      const dn = e.target.closest('button[data-done]');                                   // «Сделано»: событие homework_done, повтор безопасен (23505); значки пересчитывает Cab.ach.sync
+      if (dn) {
+        if (ctx.closed) { Cab.toast('Журнал закрыт: отметки недоступны', 'err'); return; }
+        const id = String(dn.dataset.done), was = hwDone.has(id); dn.disabled = true;
+        try {
+          if (was) { const { error } = await sb.from('app_events').delete().eq('kind', 'homework_done').eq('ref', id); if (error) throw error; hwDone.delete(id); }
+          else { const { error } = await sb.from('app_events').insert({ kind: 'homework_done', ref: id }); if (error && error.code !== '23505') throw error; hwDone.add(id); }
+          const on = hwDone.has(id); dn.classList.toggle('primary', !on); dn.setAttribute('aria-pressed', String(on)); dn.textContent = on ? 'Сделано ✓' : 'Отметить сделанной';
+          if (on && Cab.ach && Cab.ach.sync) Cab.ach.sync(ctx);
+        } catch (err) { Cab.toast('Не получилось сохранить отметку. Проверьте связь.', 'err'); }
+        dn.disabled = false; return;
+      }
       const b = e.target.closest('button[data-del]'); if (!b) return;
       if (!(await ask('Удалить домашку?', 'Её перестанут видеть остальные студенты.', 'Удалить'))) return;
       try { const r = await q(sb.from('tasks').delete().eq('id', b.dataset.del).select('id')); Cab.toast(r.length ? 'Домашка удалена' : 'Не получилось удалить', r.length ? 'ok' : 'err'); Cab.rerender(); }

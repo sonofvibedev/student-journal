@@ -149,5 +149,5 @@
     announce(ctx, mine, fresh);
   }
 
-  window.Cab.ach = { screen, start, tile };
+  window.Cab.ach = { screen, start, tile, sync };
 })();

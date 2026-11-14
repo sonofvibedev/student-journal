@@ -211,6 +211,22 @@ try {
     check('включение напоминаний пишет событие notifications_on в app_events', await until(async () => posts('app_events').some((l) => l.body && l.body.kind === 'notifications_on'), 4000));
     await ctx.close();
   }
+  // ---------- «Сделано» у домашки ----------
+  {
+    const hw = (id, due) => ({ id, kind: 'homework', created_by: null, group_id: G, rec: { id, createdAt: '2026-11-01T00:00:00Z', subgroup: 0, subject: 'Логистика', type: 'ПЗ', text: 'Задача 5', dueDate: due } });
+    const { page, ctx, errs } = await open('/study/homework', { wait: 'button[data-done]', mut: (d) => { d.tasks = [hw('hw-1', '2026-11-20'), hw('h1', '2026-11-21')]; } });
+    const btns = await page.locator('button[data-done]').allInnerTexts();
+    check('домашки: у невыполненной «Отметить сделанной», у уже отмеченной (h1) — «Сделано ✓»', btns.length === 2 && btns.some((x) => /Отметить сделанной/.test(x)) && btns.some((x) => /Сделано ✓/.test(x)), btns.join(' | '));
+    check('домашки: кнопка не меньше 44 px', (await page.locator('button[data-done]').first().boundingBox()).height >= 44);
+    await page.locator('button[data-done="hw-1"]').click();
+    check('«Отметить сделанной» пишет событие homework_done с id задания', await until(async () => posts('app_events').some((l) => l.body && l.body.kind === 'homework_done' && l.body.ref === 'hw-1'), 4000));
+    check('кнопка становится «Сделано ✓» и нажата', await until(async () => /Сделано ✓/.test(await page.locator('button[data-done="hw-1"]').innerText()) && await page.locator('button[data-done="hw-1"]').getAttribute('aria-pressed') === 'true', 3000));
+    await page.locator('button[data-done="hw-1"]').click();
+    check('повторное нажатие снимает отметку: DELETE app_events', await until(async () => LOG.some((l) => l.m === 'DELETE' && l.table === 'app_events' && /homework_done/.test(l.q) && /hw-1/.test(l.q)), 4000), JSON.stringify(LOG.filter((l) => l.table === 'app_events').slice(-3)));
+    check('после снятия кнопка снова «Отметить сделанной»', await until(async () => /Отметить сделанной/.test(await page.locator('button[data-done="hw-1"]').innerText()), 3000));
+    check('домашки 360 px: без горизонтальной прокрутки, ошибок нет', await noOverflow(page) && !errs.length, errs.join(' / '));
+    await ctx.close();
+  }
   // ---------- тёмная и светлая тема ----------
   for (const theme of ['dark', 'light']) {
     const { page, errs, ctx } = await open('/profile/achievements', { theme });
