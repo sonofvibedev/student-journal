@@ -40,7 +40,7 @@ const mk = () => ({
   tasks: [task('dl-e7', 'deadline', { subject: 'Логистика', type: 'exam', text: '', dueDate: '2026-11-16' }), task('dl-e8', 'deadline', { subject: 'Эконометрика', type: 'zachet', text: '', dueDate: '2026-11-17' }),
     task('hw-1', 'homework', { subject: 'Логистика', type: 'ПЗ', text: 'Задача 5', dueDate: '2026-11-10' }), task('hw-stu', 'homework', { subject: 'Логистика', type: 'ПЗ', text: 'От студента', dueDate: '2026-12-05' }, 'u-a'), task('hw-tch', 'homework', { subject: 'Логистика', type: 'ПЗ', text: 'От препода', dueDate: '2026-12-05' }, 'u-teacher'), task('dl-1', 'deadline', { subject: 'Эконометрика', type: 'deadline', text: 'Отчёт', dueDate: '2026-11-12' })],
   absences: [abs('ab-1', 's-a', '2026-11-03', 'Логистика', 2, false, 'lecture'), abs('ab-2', 's-a', '2026-11-04', 'Логистика', 2, false, 'lab'),
-    abs('ab-3', 's-a', '2026-11-05', 'Эконометрика', 2, true, 'practice', { cert_type: 'Справка', cert_due_date: '2026-11-06' }), abs('ab-4', 's-b', '2026-11-05', 'Логистика', 4, false, 'lecture', { created_by: 'u-teacher' })],
+    abs('ab-3', 's-a', '2026-11-05', 'Эконометрика', 2, true, 'practice', { cert_type: 'Справка', cert_due_date: '2026-11-06', certificate_id: 'ce-3' }), abs('ab-4', 's-b', '2026-11-05', 'Логистика', 4, false, 'lecture', { created_by: 'u-teacher' })],
   homework_editors: [], absence_cancellations: [{ id: 'c1', absence: { date: '2026-10-30', subject: 'Логистика', hours: 2 }, cancelled_by: 'u-me', cancelled_at: '2026-11-02T10:00:00Z' }],
   notifications: [], certificates: [], schedule_meta: [{ last_import_at: '2026-11-08T10:00:00Z', semester_start: '2026-08-31', semester_end: '2026-12-18' }],
   rpc: { absence_hours_my: { total: 6, excused: 2, unexcused: 4, warn_hours: 8, dean_hours: 12 }, data_deletion_requests_list: [], homework_access_set: null },
@@ -154,7 +154,7 @@ try {
     const row = (i) => page.locator('.mk-row').nth(i);
     await row(1).locator('button[data-s="a"]').click();
     await row(2).locator('button[data-s="e"]').click();
-    check('«Ув.» открывает причину, срок и «Уже сдал»', await row(2).locator('.mk-ex select option').count() === 3 && await row(2).locator('input[data-f="due"]').isVisible() && await row(2).locator('input[data-f="done"]').count() === 1);
+    check('«Ув.» открывает причину, срок и «Уже сдал»', await row(2).locator('.mk-ex select option').count() === 4 && await row(2).locator('input[data-f="due"]').isVisible() && await row(2).locator('input[data-f="done"]').count() === 1);
     check('«Н» без причины', await row(1).locator('.mk-ex').count() === 0);
     await row(2).locator('select').selectOption('Освобождение');
     await row(2).locator('input[data-f="due"]').fill('2026-11-14');
@@ -193,7 +193,8 @@ try {
     await page.click('.cab-modal button[data-a="ok"]'); await page.waitForTimeout(500);
     check('отмена: DELETE нужной записи', LOG.some((x) => x.m === 'DELETE' && x.table === 'absences' && /id=eq\.ab-3|id=eq\.ab-/.test(x.q)), JSON.stringify(LOG.filter((x) => x.m === 'DELETE')));
     await page.locator('.sc-ab', { hasText: 'Справка' }).locator('button[data-a="doc"]').click(); await page.waitForTimeout(500);
-    check('документ сдан: PATCH cert_submitted', LOG.some((x) => x.m === 'PATCH' && x.table === 'absences' && x.body && x.body.cert_submitted === true));
+    check('справка сдана: RPC certificate_set_submitted на всю справку пропуска, без PATCH пропуска', LOG.some((x) => x.rpc === 'certificate_set_submitted' && x.body.p_certificate === 'ce-3' && x.body.p_submitted === true)
+      && !LOG.some((x) => x.m === 'PATCH' && x.table === 'absences'), JSON.stringify(LOG.filter((x) => x.rpc)));
     await page.goto(`${BASE}/headman.html#/journal/student/s-b`); await page.waitForSelector('.sc-tbl');
     check('запись преподавателя: отменить нельзя', await page.locator('.sc-ab button[data-a="cancel"]').count() === 0 && /Внёс преподаватель/.test(await T(page, '.sc-ab')));
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
@@ -359,34 +360,7 @@ try {
     check('повторная отметка: «Был» — DELETE записи, новая отметка — один POST только на нового', del.length === 1 && /id=in.%28ab-t2%29/.test(del[0].q) && posts.length === 1 && posts[0].body.length === 1 && posts[0].body[0].student_id === 's-c' && posts[0].body[0].pair_no === 1, JSON.stringify({ del, posts }));
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
   }
-  // ---------- «Справки» ----------
-  {
-    const { ctx, page, errs } = await open('/journal/certs', 'headman.html', { staff: true });
-    DB.absences.push(abs('ab-d2', 's-b', '2026-11-06', 'Логистика', 2, true, 'lecture', { cert_type: 'Заявление', cert_due_date: '2026-11-12' }), abs('ab-d3', 's-c', '2026-11-02', 'Логистика', 2, true, 'practice', { cert_type: 'Справка', cert_submitted: true }),
-      abs('ab-d4', 's-a', '2026-05-01', 'Логистика', 2, true, 'lecture', { cert_type: 'Справка', cert_due_date: '2026-05-05' }), abs('ab-d5', 's-c', '2026-11-08', 'Эконометрика', 2, true, 'lecture', { cert_type: 'Справка', cert_due_date: TODAY }));
-    await page.reload(); await page.waitForSelector('.dc');
-    const cnt = await page.evaluate(() => [...document.querySelectorAll('.dc-cnt .big, .dc-done-cnt .j2-num')].map((x) => x.textContent.trim()));
-    check('справки: счётчики — просрочены 1, ждём 2 (срок сегодня ещё ждём), сданы 1; запись вне семестра не считается', cnt.join(',') === '1,2,1', cnt.join(','));
-    const txt = (await T(page, '#dcList')).replace(/\s+/g, ' ');
-    check('справки: статусы «просрочена», «ждём до ДД.ММ», «сдана» по сроку', /просрочена, срок был 06\.11/.test(txt) && /ждём до 12\.11/.test(txt) && /ждём до 09\.11/.test(txt) && /сдана/.test(txt) && !/01\.05|05\.05/.test(txt), txt);
-    check('справки: у записи студент, предмет, дата пропуска, часы, вид документа', /Борисова Б\.\s+ждём до 12\.11\s+Логистика · лекция\s+Пропуск 06\.11, 2 ч · Заявление/.test(txt.replace(/\s+/g, ' ')) || /Борисова/.test(txt) && /Пропуск 06\.11, 2 ч · Заявление/.test(txt), txt);
-    const heads = await page.locator('#dcList .cab-h2 span:first-child').allInnerTexts();
-    check('справки: просроченные сверху отдельной группой', heads.join('|') === 'Просрочены|Ждём|Сданы' && await page.locator('.dc-late').count() === 1, heads.join('|'));
-    await page.click('#dcF button[data-v="late"]'); check('справки: фильтр «Просрочены»', await page.locator('.dc').count() === 1 && /Андреев/.test(await T(page, '.dc')));
-    await page.click('#dcF button[data-v="all"]'); await page.fill('#dcQ', 'борис'); check('справки: поиск по студенту', await page.locator('.dc').count() === 1 && /Борисова/.test(await T(page, '.dc')));
-    await page.fill('#dcQ', ''); await shot(page, 'docs'); check('справки 360 px: без горизонтальной прокрутки', await noOverflow(page));
-    await page.locator('.dc', { hasText: 'Борисова' }).locator('button[data-a="ok"]').click(); await page.waitForTimeout(600);
-    const pt = LOG.find((x) => x.m === 'PATCH' && x.table === 'absences');
-    check('справки: «Подтвердить» — та же запись пропуска, cert_submitted = true', pt && /id=eq\.ab-d2/.test(pt.q) && pt.body.cert_submitted === true && Object.keys(pt.body).length === 1, JSON.stringify(pt));
-    await page.goto(`${BASE}/headman.html#/summary`); await page.reload(); await page.waitForSelector('.cab-tile');
-    const tile = (await page.locator('.cab-tile', { hasText: 'Справки' }).innerText()).replace(/\s+/g, ' ');
-    check('сводка: плитка «Справки» — ждём 3 (с просроченной), просрочено 1', /3/.test(tile) && /просрочено 1/.test(tile), tile);
-    check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
-  }
-  {
-    const { ctx, page } = await open('/journal/certs', 'headman.html', { staff: true, size: [320, 740] });
-    await page.waitForSelector('.dc'); check('справки 320 px: без горизонтальной прокрутки', await noOverflow(page)); await ctx.close();
-  }
+  // «Справки» (2.1, одна запись на справку) — tests/e2e/v21-certs-mock.mjs
   // ---------- роли: студент без роли старосты не видит кабинет старосты ----------
   {
     const { ctx, page } = await open('/home', 'app.html');
