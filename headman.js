@@ -711,11 +711,12 @@
 
   async function studentCard(el, ctx, id, nav) {
     const gid = ctx.group.id, today = day0(), lim = limitOf(ctx);
-    const [s, ab, canc, labs] = await Promise.all([
+    const [s, ab, canc, labs, sicks] = await Promise.all([
       q(sb.from('students').select('id, last_name, first_name').eq('id', id).eq('group_id', gid).maybeSingle()),
       q(sb.from('absences').select('id, date, subject, hours, is_excused, lesson_kind, created_by, comment, certificate_id, cert_type, cert_submitted, cert_due_date').eq('student_id', id).eq('group_id', gid).order('date', { ascending: false }).order('created_at', { ascending: false })),
       q(sb.from('absence_cancellations').select('id, absence, cancelled_by, cancelled_at').eq('student_id', id).eq('group_id', gid).order('cancelled_at', { ascending: false }).limit(30)).catch(() => []),   // история отмен: таблица есть с миграции 2.0.1
       q(sb.from('schedule_lessons').select('subject').eq('group_id', gid).eq('kind', 'lab').limit(1000)).catch(() => []),   // у каких предметов есть лабораторные
+      q(sb.from('certificates').select('id, date_from, date_to, status, open').eq('student_id', id).eq('group_id', gid).eq('kind', 'sick').order('date_from')).catch(() => []),   // больничные студента: куда можно перенести пропуск
     ]);
     if (!nav.isCurrent()) return;
     const back = { href: '#/journal/students', text: 'Студенты' };
@@ -723,12 +724,16 @@
     const mon = statOf(ab.filter((a) => (a.date || '').slice(0, 7) === today.slice(0, 7)), today), tot = statOf(ab, today);
     const labSubj = new Set(labs.map((x) => norm(x.subject)));
     const can = (a) => !ctx.closed && (!a.created_by || a.created_by === ctx.uid);       // свои и легаси; записи преподавателя не отменяются
+    // Куда можно перенести пропуск с причиной «Больничный»: другие несданные больничные студента (пропуск под сданной справкой не двигается)
+    const relinkTo = (a) => (ctx.closed || !a.certificate_id || a.cert_type !== 'Больничный' || a.cert_submitted ? [] : sicks.filter((c) => c.id !== a.certificate_id && c.status !== 'received'));
+    const sickText = (c) => (c.open ? `с ${ddmm(c.date_from)}, открыт` : c.date_from === c.date_to ? ddmm(c.date_from) : `${ddmm(c.date_from)}–${ddmm(c.date_to)}`);
     const kindTxt = (a) => (a.lesson_kind ? Cab.KIND[a.lesson_kind] : 'вид не указан');
     const item = (a) => { const ds = a.is_excused && a.cert_type ? Cab.docState(a, today) : null;
       return h`<div class="sc-ab" data-id="${a.id}"><div class="meta"><b>${a.date ? Cab.dateText(a.date) : 'без даты'}</b><span class="${a.is_excused ? 'c-mint' : 'c-coral'}">${num(a.hours)} ч, ${a.is_excused ? 'уважительная' : 'неуважительная'}</span></div>
         <p>${Cab.sj(a.subject || 'Без предмета')} · ${kindTxt(a)}</p>
         <p>Причина: ${a.is_excused ? (a.cert_type || 'не указана') : 'без уважительной причины'}${ds ? h`, <span class="${ds.cls}">${ds.text}</span>` : ''}${a.comment ? ' · ' + a.comment : ''}</p>
         ${!ctx.closed && ds && !a.cert_submitted && a.certificate_id ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-a="doc" data-id="${a.id}">Справка сдана</button></div>` : ''}
+        ${relinkTo(a).length ? h`<div class="cab-actions"><button type="button" class="j2-btn small" data-a="relink" data-id="${a.id}">Перенести в другой больничный</button></div>` : ''}
         ${can(a) ? h`<div class="cab-actions"><button type="button" class="j2-btn small danger" data-a="cancel" data-id="${a.id}" aria-label="Отменить пропуск: ${a.subject || ''}, ${a.date ? Cab.dateText(a.date) : ''}">Отменить пропуск</button></div>` : a.created_by ? h`<p class="cab-note">Внёс преподаватель: отменить нельзя.</p>` : ''}</div>`; };
     put(el, h`${head(back, roleText(ctx), Cab.fullName(s))}
       ${closedNote(ctx)}
@@ -751,6 +756,19 @@
       const b = e.target.closest('button[data-a]'); if (!b) return;
       const a = ab.find((x) => x.id === b.dataset.id); if (!a) return;
       act(b, async () => {
+        if (b.dataset.a === 'relink') {                                // пропуск попал не в тот больничный: выбрать нужный, срок обеих справок пересчитает база
+          const to = relinkTo(a); if (!to.length) return;
+          const pick = await new Promise((res) => {
+            let done = false;
+            const fin = (v) => { if (done) return; done = true; closeSheet(); res(v); };
+            const sh = sheet('В какой больничный перенести?', h`<p class="cab-note">${a.subject || 'Без предмета'}, ${a.date ? Cab.dateText(a.date) : 'без даты'}, ${num(a.hours)} ч</p>${to.map((c) => h`<button class="j2-btn" type="button" data-c="${c.id}">Больничный ${sickText(c)}</button>`)}<button class="j2-btn" type="button" data-c="">Отмена</button>`, () => fin(null));
+            sh.el.addEventListener('click', (e) => { const x = e.target.closest('button[data-c]'); if (x) fin(x.dataset.c || null); });
+          });
+          if (!pick) return;
+          await rpc('certificate_link', { p_certificate: pick, p_absence_ids: [a.id] });
+          toast('Пропуск перенесён в другой больничный.', 'ok');
+          Cab.rerender(); return;
+        }
         if (b.dataset.a === 'doc') {                                   // «Сдана» — на всю справку этого пропуска
           try { await certDone({ id: a.certificate_id, open: false }); }
           catch (e) { if (e.rpc !== 'cert_open') throw e; await certDone({ id: a.certificate_id, open: true }); }   // открытый больничный: закрыть и отметить

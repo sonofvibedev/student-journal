@@ -23,6 +23,7 @@ const Cab = ctx.Cab;
 await t('версия одна: package.json (2.1.0), APP_VERSION (2.1), первая запись «Что нового»', () => {
   const src = read('changelog.js'), full = JSON.parse(read('package.json')).version, v = full.replace(/\.0$/, '');
   assert.equal(full, '2.1.0');
+  assert.doesNotThrow(() => new vm.Script(src), 'changelog.js должен компилироваться (его грузят все страницы)');
   assert.ok(src.includes(`const APP_VERSION = '${v}';`));
   const first = /const CHANGELOG = \[\s*\{\s*version: '([^']+)'[\s\S]*?items: \[([\s\S]*?)\n    \],/.exec(src);
   assert.equal(first[1], v);

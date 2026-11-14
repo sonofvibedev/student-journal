@@ -192,6 +192,24 @@ try {
     check('карточка: «Справка сдана» — RPC на справку пропуска, без PATCH пропуска', rp.includes('certificate_set_submitted') && !LOG.some((x) => x.m === 'PATCH'), rp.join(','));
     check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
   }
+  // ---------- перенос пропуска в другой больничный ----------
+  {
+    const { ctx, page, errs } = await open('/journal/students', 'headman.html');
+    await page.waitForSelector('.sl-row');
+    DB.certificates.push(cert('ce-s2', 's-a', 'sick', '2026-10-20', '2026-10-22'));                // второй, закрытый больничный Андреева
+    await page.locator('.sl-row', { hasText: 'Андреев' }).click(); await page.waitForSelector('.sc-ab');
+    check('карточка: у пропуска под больничным есть «Перенести в другой больничный»', await page.locator('.sc-ab').first().locator('button[data-a="relink"]').count() === 1);
+    await page.locator('.sc-ab').first().locator('button[data-a="relink"]').click();
+    await page.waitForSelector('.cab-sheet button[data-c]');
+    const opts = (await page.locator('.cab-sheet button[data-c]').allInnerTexts()).map(sp);
+    check('перенос: в списке только другой больничный, срок 20.10–22.10', opts.some((x) => /Больничный 20\.10–22\.10/.test(x)) && !opts.some((x) => /ce-open|с 05\.11/.test(x)), opts.join(' | '));
+    check('перенос: кнопки не меньше 44 px', (await page.locator('.cab-sheet button[data-c]').first().boundingBox()).height >= 44);
+    await page.locator('.cab-sheet button[data-c="ce-s2"]').click(); await page.waitForTimeout(600);
+    const link = LOG.find((x) => x.rpc === 'certificate_link');
+    check('перенос: RPC certificate_link с выбранной справкой и одним пропуском', !!link && link.body.p_certificate === 'ce-s2' && link.body.p_absence_ids.length === 1, JSON.stringify(link && link.body));
+    check('перенос: пропуски не правятся напрямую', !LOG.some((x) => x.m === 'PATCH'));
+    check('ошибок страницы нет', errs.length === 0, errs.join(' / ')); await ctx.close();
+  }
   // ---------- профиль студента: свои справки ----------
   {
     const { ctx, page, errs } = await open('/profile', 'app.html');
