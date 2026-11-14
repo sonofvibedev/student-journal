@@ -432,11 +432,11 @@
   }
 
   // ---------- профиль ----------
-  const CERT = { sick: 'Больничный', statement: 'Заявление', other: 'Другое' };
-  const CERT_ST = { received: ['подтверждена', 'c-mint'], waiting: ['не подтверждена', 'c-amber'], none: ['не сдана', 'c-coral'] };
+  // Справка 2.1: одна на документ (больничный — на несколько дней, прочие — на день). «Сдана» отмечает староста.
+  const CERT_ST = { received: ['сдана', 'c-mint'], waiting: ['не сдана', 'c-amber'], none: ['не сдана', 'c-coral'] };
   async function profile(el, ctx, nav) {
     const [certs, tg, pref] = await Promise.all([
-      soft(q(sb.from('certificates').select('id,kind,date_from,date_to,status').eq('student_id', ctx.student.id).order('date_from', { ascending: false }))),
+      soft(q(sb.from('certificates').select('id,kind,date_from,date_to,status,open').eq('student_id', ctx.student.id).order('date_from', { ascending: false }))),
       soft(myLink(ctx)),
       soft(q(sb.from('notification_prefs').select('enabled').eq('user_id', ctx.uid).eq('kind', 'deadline_soon').maybeSingle()))]);
     const remOn = !pref || pref.enabled !== false;                                                                   // ошибка запроса = «не привязан», без шума
@@ -455,7 +455,7 @@
       ${!certs ? h`<p class="cab-note">Справки не загрузились. Обновите страницу.</p>`
         : !certs.length ? h`<p class="cab-note">Справок пока нет.</p>`
         : certs.map((c) => { const st = CERT_ST[c.status] || CERT_ST.none;
-          return h`<div class="cab-kv"><span>${CERT[c.kind] || CERT.other}, ${period(c.date_from, c.date_to)}</span><b class="${st[1]} st-s">${st[0]}</b></div>`; })}
+          return h`<div class="cab-kv"><span>${Cab.CERT_KIND[c.kind] || Cab.CERT_KIND.other}, ${c.open ? `с ${Cab.dateText(c.date_from)}, открыт` : period(c.date_from, c.date_to)}</span><b class="${st[1]} st-s">${st[0]}</b></div>`; })}
       <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><button type="button" class="st-soon" id="achSoon" aria-disabled="true"><b>Достижения</b><small>скоро</small></button></nav>
       <section class="cab-card" aria-labelledby="remT"><h3 id="remT">Напоминания о сроках</h3>
         <div class="st-grp" style="margin:10px 0 8px"><button type="button" class="tg-sw" role="switch" id="remSw" aria-checked="${String(remOn)}"><span><span class="tg-t">Напоминать о горящих заданиях</span><small>За 1 день до срока, в 09:00 по Минску</small></span><span class="tg-k" aria-hidden="true"></span></button></div>

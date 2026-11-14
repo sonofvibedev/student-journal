@@ -508,6 +508,17 @@
   // Состояние документа по сроку: сдан (done), срок прошёл (late), ждём (wait). Просрочка — срок строго раньше сегодняшнего дня.
   Cab.docKind = (r, today) => (r.cert_submitted ? 'done' : r.cert_due_date && r.cert_due_date < today ? 'late' : 'wait');
 
+  // Справки 2.1 (public.certificates): одна запись на документ. «Сдана» = status 'received'. У открытого больничного срока сдачи
+  // ещё нет (появится при закрытии). certDoc приводит справку к виду записи пропуска для docState/docKind.
+  Cab.CERT_KIND = { sick: 'Больничный', exemption: 'Освобождение', statement: 'Заявление', other: 'Справка' };
+  Cab.certDoc = (c) => ({ cert_submitted: c.status === 'received', cert_due_date: c.open ? null : c.due_date });
+  // «06.11–10.11», «05.11» (один день), «с 06.11, открыт»
+  Cab.certSpan = (c) => {
+    const d = (x) => (x ? `${x.slice(8, 10)}.${x.slice(5, 7)}` : '');
+    if (!c.date_from) return 'без дат';
+    return c.open ? `с ${d(c.date_from)}, открыт` : !c.date_to || c.date_to === c.date_from ? d(c.date_from) : `${d(c.date_from)}–${d(c.date_to)}`;
+  };
+
   // Цвет часов неуважительных пропусков: до 3 ч включительно зелёный (0–2 ч), 4–7 ч жёлтый (4–6 ч), от 8 ч красный
   Cab.absTone = (hours) => { const v = Number(hours) || 0; return v >= 8 ? { cls: 'r', color: 'var(--abs-r)' } : v >= 4 ? { cls: 'y', color: 'var(--abs-y)' } : { cls: 'g', color: 'var(--abs-g)' }; };
 
