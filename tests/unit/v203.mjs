@@ -30,7 +30,7 @@ await t('версия 2.0.3 одна: package.json, APP_VERSION, первая з
 });
 await t('CACHE_VERSION на единицу выше, ?v= во всех страницах тот же номер', () => {
   const n = Number(/journal-24dmm2-v(\d+)/.exec(read('sw.js'))[1]);
-  assert.equal(n, 67);
+  assert.ok(n >= 67, 'номер сборки не меньше 67 (поднимает tools/bump-assets.mjs)');
   for (const f of ['app.html', 'headman.html', 'teacher.html', 'join.html', 'register.html', 'sysadmin.html']) {
     const vs = new Set((read(f).match(/\?v=\d+/g) || []));
     assert.deepEqual([...vs], ['?v=' + n], f);
@@ -80,10 +80,10 @@ await t('контраст WCAG AA (не ниже 4,5) для всех акцен
 });
 await t('apply: переменные CSS, theme-color, цвет для Telegram', () => {
   const vars = {}, meta = { v: '', setAttribute(k, v) { this.v = v; } }, sets = [];
-  const doc = { documentElement: { style: { setProperty: (k, v) => { vars[k] = v; } } }, querySelector: () => meta };
+  const attrs = {}, doc = { documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, style: { setProperty: (k, v) => { vars[k] = v; } } }, querySelector: () => meta };
   const w = { document: doc, TGApp: { setBg: (c) => sets.push(c) } }; w.window = w; w.globalThis = w;
   vm.runInNewContext(read('accent.js'), w);
-  const p = w.J2Accent.apply('#A78BFA');
+  const p = w.J2Accent.apply('#A78BFA', 'dark');
   assert.equal(vars['--j-lime'], '#A78BFA'); assert.equal(vars['--j-bg-rgb'], p.bgRgb); assert.equal(vars['--j-sheet'], p.sheet); assert.equal(vars['--j-nav'], p.nav);
   assert.ok(['--j-lime-rgb', '--j-glow-1-rgb', '--j-glow-2-rgb', '--j-glow-3-rgb', '--j-lime-ink'].every((k) => vars[k]));
   assert.equal(meta.v, p.bg); assert.equal(w.J2_BG, p.bg); assert.deepEqual(sets.slice(-1), [p.bg]);

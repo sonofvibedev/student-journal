@@ -80,7 +80,7 @@ async function open(hash, file, { staff = false, editor = false, size = [360, 74
   DB = mk(); LOG = [];
   if (staff) DB.memberships[0].extra_role = 'headman';
   if (editor) DB.homework_editors = [{ student_id: 's-me' }];
-  const ctx = keep || await browser.newContext({ viewport: { width: size[0], height: size[1] }, locale: 'ru-RU', serviceWorkers: 'block' });
+  const ctx = keep || await browser.newContext({ viewport: { width: size[0], height: size[1] }, locale: 'ru-RU', colorScheme: 'dark', serviceWorkers: 'block' });
   if (!keep) { await ctx.route(`${SB}/**`, fake); await ctx.addInitScript(([k, v]) => { try { if (!localStorage.getItem(k)) localStorage.setItem(k, v); } catch (e) { /* нет памяти */ } }, [KEY, SES]); }
   const page = await ctx.newPage(), errs = [];
   page.on('pageerror', (e) => errs.push(String(e))); page.on('console', (m) => { if (m.type() === 'error' && !ERR_OK.test(m.text())) errs.push(m.text()); });

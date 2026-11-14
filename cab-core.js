@@ -515,7 +515,7 @@
   Cab.ring = function (value, max, size) {
     const s = size || 96, r = s / 2 - 8, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, max ? value / max : 0));
     const col = Cab.absTone(value).color;
-    return Cab.h`<svg class="cab-ring" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" role="img" aria-label="${Cab.num(value)} из ${Cab.num(max)} часов"><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="8"/><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="${Cab.raw(col)}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p)).toFixed(1)}" transform="rotate(-90 ${s / 2} ${s / 2})"/></svg>`;
+    return Cab.h`<svg class="cab-ring" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" role="img" aria-label="${Cab.num(value)} из ${Cab.num(max)} часов"><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" style="stroke:rgba(var(--j-fg-rgb),.12)" stroke-width="8"/><circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="${Cab.raw(col)}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p)).toFixed(1)}" transform="rotate(-90 ${s / 2} ${s / 2})"/></svg>`;
   };
 
   // Сегменты «Все / Мои / …»: onChange(value)

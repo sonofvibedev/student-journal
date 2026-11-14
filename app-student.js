@@ -44,6 +44,8 @@
   // ---------- акцентный цвет: хранится в localStorage, применяется на всех экранах ----------
   const ACCENTS = window.J2Accent ? J2Accent.ACCENTS : [['#C6F432', 'Лайм']];                  // список и палитры — accent.js (подключён в <head>)
   let accent = ACCENTS[0][0];
+  const THEMES = window.J2Accent ? J2Accent.THEMES : [['dark', 'Тёмная']];                       // «Авто / Тёмная / Светлая»: выбор хранится в localStorage (j2_theme), применяет accent.js
+  const getTheme = () => { const v = lsGet('j2_theme'); return THEMES.some((t) => t[0] === v) ? v : 'auto'; };
   function setAccent(c, save) {
     if (!ACCENTS.some((a) => a[0] === c)) return;
     accent = c; if (window.J2Accent) J2Accent.apply(c); else document.documentElement.style.setProperty('--j-lime', c);   // фон, шторки и панель меняются вместе с акцентом
@@ -438,7 +440,7 @@
       soft(myLink(ctx)),
       soft(q(sb.from('notification_prefs').select('enabled').eq('user_id', ctx.uid).eq('kind', 'deadline_soon').maybeSingle()))]);
     const remOn = !pref || pref.enabled !== false;                                                                   // ошибка запроса = «не привязан», без шума
-    const s = ctx.student;
+    const s = ctx.student, themePref = getTheme();
     const roleName = ctx.role === 'headman' ? 'Староста' : ctx.role === 'deputy' ? 'Заместитель старосты' : 'Студент';
     const ini = ((s.last_name || '').charAt(0) + (s.first_name || '').charAt(0)).toUpperCase() || '?';
     if (!put(el, nav, h`${banner(ctx)}<h1 class="cab-title">Профиль</h1>
@@ -461,8 +463,8 @@
         ${tg ? h`<p class="cab-note" style="margin:0">Telegram привязан: напоминание придёт в бота и в колокольчик журнала.</p>`
           : h`<p class="cab-note c-amber" style="margin:0">Telegram не привязан: напоминание придёт только в колокольчик журнала. <a class="st-a" id="remTg" href="#/profile/telegram">Привязать Telegram</a></p>`}</section>
       <section class="cab-card" aria-labelledby="thT"><h3 id="thT">Оформление</h3>
-        <div class="cab-seg2" role="group" aria-label="Тема"><button type="button" disabled aria-pressed="false" aria-describedby="thNote">Светлая</button><button type="button" aria-pressed="true">Тёмная</button></div>
-        <p class="cab-note" id="thNote">Светлая тема появится позже</p>
+        <div class="cab-seg2" id="thSeg" role="group" aria-label="Тема">${THEMES.map(([id, name]) => h`<button type="button" data-th="${id}" aria-pressed="${String(themePref === id)}">${name}</button>`)}</div>
+        <p class="cab-note" id="thNote">«Авто» берёт тему телефона (в Telegram — тему Telegram).</p>
         <div class="cab-colors" id="stColors" role="group" aria-label="Цвет акцента">${ACCENTS.map(([c, n]) => h`<button type="button" class="cab-color" data-c="${c}" style="background:${c}" aria-label="${n}" aria-pressed="${String(c === accent)}"></button>`)}</div></section>
       ${Cab.installCard()}
       <div class="st-grp"><a class="st-line" id="acRow" href="#/profile/account"><span>Логин и пароль</span><span class="tg-st">${chev}</span></a></div>
@@ -482,6 +484,12 @@
       try { await setPref(ctx, 'deadline_soon', !prev); }
       catch (err) { rem.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
       finally { delete rem.dataset.busy; }
+    };
+    const thSeg = el.querySelector('#thSeg');
+    thSeg.onclick = (e) => {
+      const b = e.target.closest('button[data-th]'); if (!b) return;
+      lsSet('j2_theme', b.dataset.th); if (window.J2Accent) J2Accent.refresh();
+      thSeg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     };
     const box = el.querySelector('#stColors');
     box.onclick = (e) => {
