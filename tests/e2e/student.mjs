@@ -285,9 +285,7 @@ try {
   check('профиль: Studak — плашка внутри карточки, отдельной строки и экрана нет', (await page.locator('.pf-card #pfStu').innerText()).includes('Studak · скоро') && (await page.locator('a[href="#/profile/studak"]').count()) === 0);
   await page.locator('#pfStu').click();
   check('профиль: тап по плашке Studak — короткое сообщение', (await page.locator('#cabToast').innerText()).includes('Пропуск Studak вернётся в ближайшем обновлении'));
-  check('профиль: «Достижения» — неактивная плитка «скоро», ссылки на старый журнал нет', (await page.locator('.st-tri #achSoon').innerText()).includes('скоро') && (await page.locator('#achSoon[aria-disabled="true"]').count()) === 1 && (await page.locator('a[href*="index.html#achievements"]').count()) === 0);
-  await page.locator('#achSoon').click({ force: true });   // aria-disabled: Playwright ждёт «включения», живой тап проходит
-  check('профиль: тап по «Достижения» — короткое сообщение, остаёмся в профиле', (await page.locator('#cabToast').innerText()).includes('Раздел достижений вернётся в ближайшем обновлении') && (await page.evaluate(() => location.hash)) === '#/profile');
+  check('профиль: «Достижения» — ссылка на раздел, ссылки на старый журнал нет', (await page.locator('#achRow').getAttribute('href')) === '#/profile/achievements' && (await page.locator('a[href*="index.html#achievements"]').count()) === 0);
   check('вход в новый кабинет записал событие first_login в app_events (для значка «Добро пожаловать»)', !!(await until(async () => (await api(`/rest/v1/app_events?user_id=eq.${uid}&kind=eq.first_login&select=kind`)).length === 1)));
   await page.locator('#pfAva').click();
   const avs = page.getByRole('dialog', { name: 'Фото профиля' });

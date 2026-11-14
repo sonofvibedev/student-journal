@@ -150,6 +150,7 @@
     m.querySelector('button').focus();
     return { el: m, close };
   }
+  Cab.sheet = sheet;                                                                       // для app-ach.js (подробности значка)
 
   // ---------- главная ----------
   async function home(el, ctx, nav) {
@@ -456,7 +457,7 @@
         : !certs.length ? h`<p class="cab-note">Справок пока нет.</p>`
         : certs.map((c) => { const st = CERT_ST[c.status] || CERT_ST.none;
           return h`<div class="cab-kv"><span>${Cab.CERT_KIND[c.kind] || Cab.CERT_KIND.other}, ${c.open ? `с ${Cab.dateText(c.date_from)}, открыт` : period(c.date_from, c.date_to)}</span><b class="${st[1]} st-s">${st[0]}</b></div>`; })}
-      <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><button type="button" class="st-soon" id="achSoon" aria-disabled="true"><b>Достижения</b><small>скоро</small></button></nav>
+      <nav class="st-tri" aria-label="Мои данные" style="margin-top:14px"><a href="#/profile/absences"><b>Пропуски</b><small>по предметам</small></a><a href="#/study/grades"><b>Оценки</b><small>мои отметки</small></a><a href="#/profile/achievements" id="achRow"><b>Достижения</b><small id="achTile">значки</small></a></nav>
       <section class="cab-card" aria-labelledby="remT"><h3 id="remT">Напоминания о сроках</h3>
         <div class="st-grp" style="margin:10px 0 8px"><button type="button" class="tg-sw" role="switch" id="remSw" aria-checked="${String(remOn)}"><span><span class="tg-t">Напоминать о горящих заданиях</span><small>За 1 день до срока, в 09:00 по Минску</small></span><span class="tg-k" aria-hidden="true"></span></button></div>
         <a class="st-a" id="remAll" href="#/profile/reminders">Когда и о чём напоминает журнал</a>
@@ -475,13 +476,13 @@
       <button class="j2-btn danger" id="outBtn" type="button">Выйти</button>`)) return;
     Cab.bindInstall(el);
     avatarInit(el, ctx, ini);
-    el.querySelector('#achSoon').onclick = () => Cab.toast('Раздел достижений вернётся в ближайшем обновлении', '', 1800);   // значки по-прежнему копятся в базе
+    if (Cab.ach) Cab.ach.tile(ctx).then((t) => { const s = el.querySelector('#achTile'); if (s) s.textContent = t; }).catch(() => {});   // «N из M»; не загрузилось — остаётся «значки»
     el.querySelector('#pfStu').onclick = () => Cab.toast('Пропуск Studak вернётся в ближайшем обновлении', '', 1800);
     const rem = el.querySelector('#remSw');
     rem.onclick = async () => {                                                             // запись сразу, при ошибке откат
       if (rem.dataset.busy) return;
       const prev = rem.getAttribute('aria-checked') === 'true'; rem.setAttribute('aria-checked', String(!prev)); rem.dataset.busy = '1';
-      try { await setPref(ctx, 'deadline_soon', !prev); }
+      try { await setPref(ctx, 'deadline_soon', !prev); if (!prev) logEvent('notifications_on'); }   // «Всегда в курсе»
       catch (err) { rem.setAttribute('aria-checked', String(prev)); Cab.toast('Не удалось сохранить настройку. Повторите.', 'err'); }
       finally { delete rem.dataset.busy; }
     };
@@ -544,8 +545,7 @@
       const d = await blobToUrl(data); avStore(ctx.uid, d); avPaint(ini, d);
     } catch (e) { avSynced = null; }
   }
-  // События для значков старого журнала (achievements.js): та же app_events, user_id и student_id ставит база, повтор не страшен (23505).
-  // Сами значки пока записывает клиент старого журнала при следующем открытии: сервер для этих кодов ничего не считает.
+  // События для значков (ach-calc.js, app-ach.js; тот же app_events, что у старого журнала): user_id и student_id ставит база, повтор не страшен (23505).
   function logEvent(kind, ref) {
     const k = `ach_ev_${Cab.ctx.uid}_${kind}_${ref || ''}`;
     if (lsGet(k)) return;
@@ -940,12 +940,12 @@
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
     'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games), 'study/games/words': route('study', (e, c, n) => window.AppGames.words(e, c, n)),
     ...Object.fromEntries(['sudoku', 'minesweeper', 'flappy', 'snake'].map((g) => ['study/games/' + g, route('study', (e, c, n) => window.AppGames.game(g)(e, c, n), true)])),
-    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/whatsnew': route('profile', whatsNew), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/reminders': route('profile', reminders), 'profile/privacy': route('profile', privacy),
+    profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/whatsnew': route('profile', whatsNew), 'profile/absences': route('profile', absences), 'profile/achievements': route('profile', (e, c, n) => Cab.ach.screen(e, c, n)), 'profile/telegram': route('profile', telegram), 'profile/reminders': route('profile', reminders), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };
   Cab.start({
     kind: 'student', start: 'home', routes,
     tabs: [{ id: 'home', label: 'Главная', icon: Cab.icon.home, path: 'home' }, { id: 'schedule', label: 'Расписание', icon: Cab.icon.calendar, path: 'schedule' },
       { id: 'study', label: 'Учёба', icon: Cab.icon.study, path: 'study' }, { id: 'profile', label: 'Профиль', icon: Cab.icon.user, path: 'profile' }],
-  }).then((ctx) => { if (ctx) { rebindCheck(ctx); logEvent('first_login'); } }).catch((e) => { console.error('[st]', e); Cab.fatal('Не получилось открыть журнал. Обновите страницу.'); });
+  }).then((ctx) => { if (ctx) { rebindCheck(ctx); logEvent('first_login'); if (Cab.ach) Cab.ach.start(ctx); } }).catch((e) => { console.error('[st]', e); Cab.fatal('Не получилось открыть журнал. Обновите страницу.'); });
 })();
