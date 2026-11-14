@@ -1304,8 +1304,24 @@ function flappyLoop(now) {
   s.raf = requestAnimationFrame(flappyLoop);
 }
 
-// Цвета закладок — те же три, что у цифр сапёра: не зависят от выбранной темы
-const FLAPPY_TAGS = ['#ff5a4f', '#35b37e', '#4c8dff'];
+// Цвета птицы и закладок лежат токенами --gm-* в games.css (свои для тёмной и светлой темы): здесь их только читаем.
+// Токена нет (старый экран без стилей) — берём системный цвет canvas, а не жёсткое значение.
+let gmPaletteCache = null;
+function gmColor(name) {
+  return (getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim() || 'CanvasText';
+}
+function gmPalette() {
+  if (!gmPaletteCache) {
+    gmPaletteCache = {};
+    ['pack', 'body', 'belly', 'wing', 'wing-2', 'eye', 'beak', 'eye-white'].forEach((k) => { gmPaletteCache[k] = gmColor('--gm-bird-' + k); });
+    gmPaletteCache.tags = [gmColor('--gm-tag-1'), gmColor('--gm-tag-2'), gmColor('--gm-tag-3')];
+  }
+  return gmPaletteCache;
+}
+// Смена темы или акцента меняет атрибуты <html>: кэш палитры сбрасываем
+if (typeof MutationObserver === 'function') {
+  new MutationObserver(() => { gmPaletteCache = null; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
+}
 
 function flappyDraw() {
   const s = flappyState;
@@ -1315,9 +1331,9 @@ function flappyDraw() {
   const ctx = s.ctx;
   const view = s.view || { w: F.width, h: F.height, dpr: 1, scale: 1, dx: 0, dy: 0 };
   const css = getComputedStyle(document.documentElement);
-  const bg = (css.getPropertyValue('--color-surface') || '#101014').trim();
+  const bg = (css.getPropertyValue('--color-surface') || 'Canvas').trim();
   const bg2 = (css.getPropertyValue('--color-surface-2') || bg).trim();
-  const accent = (css.getPropertyValue('--color-accent') || '#0a84ff').trim();
+  const accent = (css.getPropertyValue('--color-accent') || 'Highlight').trim();
 
   // Поля по краям — тем же фоном, чтобы не было пустых полос
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
@@ -1353,7 +1369,7 @@ function flappyDrawPaper(ctx, F, line) {
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = FLAPPY_TAGS[0];
+  ctx.strokeStyle = gmPalette().tags[0];
   ctx.globalAlpha = 0.5;
   ctx.beginPath();
   ctx.moveTo(26, 0);
@@ -1375,7 +1391,7 @@ function flappyDrawStack(ctx, F, pipe, accent) {
     let i = 0;
     for (let b = 0; b < h - 10; b += 22) {
       const by = downward ? y + b : y + h - b - 22;
-      ctx.fillStyle = FLAPPY_TAGS[i % FLAPPY_TAGS.length];
+      ctx.fillStyle = gmPalette().tags[i % 3];
       ctx.globalAlpha = 0.85;
       ctx.fillRect(x + 4, by + 16, F.pipeW - 8, 4);
       ctx.globalAlpha = 1;
@@ -1409,25 +1425,25 @@ function flappyDrawBird(ctx, F, s) {
   ctx.rotate(tilt);
 
   // Рюкзак за спиной: корпус и три закладки
-  ctx.fillStyle = '#6b4b2f';
+  ctx.fillStyle = gmPalette().pack;
   flappyRound(ctx, -r - 5, -r + 3, 11, r * 1.7, 4);
-  for (let i = 0; i < FLAPPY_TAGS.length; i++) {
-    ctx.fillStyle = FLAPPY_TAGS[i];
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = gmPalette().tags[i];
     ctx.fillRect(-r - 4, -r + 6 + i * 5, 9, 3);
   }
 
   // Тело — тёплая охра
-  ctx.fillStyle = '#c88a4a';
+  ctx.fillStyle = gmPalette().body;
   ctx.beginPath();
   ctx.ellipse(0, 0, r + 1, r, 0, 0, Math.PI * 2);
   ctx.fill();
   // Светлая грудка
-  ctx.fillStyle = '#e8c89a';
+  ctx.fillStyle = gmPalette().belly;
   ctx.beginPath();
   ctx.ellipse(2, 3, r - 3, r - 4, 0, 0, Math.PI * 2);
   ctx.fill();
   // Тёмная шапочка воробья
-  ctx.fillStyle = '#7a4a24';
+  ctx.fillStyle = gmPalette()['wing-2'];
   ctx.beginPath();
   ctx.ellipse(-1, -r + 3, r - 2, r - 6, 0, Math.PI, Math.PI * 2);
   ctx.fill();
@@ -1436,18 +1452,18 @@ function flappyDrawBird(ctx, F, s) {
   ctx.save();
   ctx.translate(-2, 1);
   ctx.rotate(-wingUp * 0.9);
-  ctx.fillStyle = '#9c6632';
+  ctx.fillStyle = gmPalette().wing;
   ctx.beginPath();
   ctx.ellipse(0, 0, r - 1, r - 5, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
   // Глаз и клюв
-  ctx.fillStyle = '#1c1c20';
+  ctx.fillStyle = gmPalette().eye;
   ctx.beginPath();
   ctx.arc(r - 5, -3, 2.1, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#ffc83d';
+  ctx.fillStyle = gmPalette().beak;
   ctx.beginPath();
   ctx.moveTo(r - 1, -1);
   ctx.lineTo(r + 7, 2);
@@ -1455,7 +1471,7 @@ function flappyDrawBird(ctx, F, s) {
   ctx.closePath();
   ctx.fill();
   // Хвост
-  ctx.fillStyle = '#9c6632';
+  ctx.fillStyle = gmPalette().wing;
   ctx.beginPath();
   ctx.moveTo(-r, -2);
   ctx.lineTo(-r - 9, -6);
@@ -1470,9 +1486,9 @@ function flappyDrawBird(ctx, F, s) {
     ctx.save();
     ctx.globalAlpha = calm ? 1 : 1 - hurt;
     ctx.translate(F.birdX + r + 6, y - r - (calm ? 8 : 8 + hurt * 10));
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = gmPalette()['eye-white'];
     flappyRound(ctx, 0, -11, 30, 18, 9);
-    ctx.fillStyle = '#1c1c20';
+    ctx.fillStyle = gmPalette().eye;
     ctx.font = 'bold 12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

@@ -53,6 +53,8 @@ const PRECACHE_URLS = [
   './app.html',
   './app-student.js',
   './app-rating.js',
+  './app-games.js',
+  './games2.css',
   './headman.html',
   './headman.js',
   './teacher.html',

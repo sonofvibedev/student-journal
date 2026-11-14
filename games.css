@@ -2,6 +2,26 @@
    Движение — только transform и opacity (кроме самого canvas),
    при «Уменьшении движения» анимаций нет. */
 
+/* ===== Цвета игр: токены по теме =====
+   Все цвета экранов игр берутся отсюда. Тёмная тема — по умолчанию, светлая — по data-theme="light" (его ставит accent.js).
+   Рисунки на canvas (птица, закладки) читают те же токены из JS (games.js: gmPalette). */
+:root {
+  --gm-n1: #4c8dff; --gm-n2: #35b37e; --gm-n3: #ff6b6b; --gm-n4: #9b7bff; --gm-n5: #d98324; --gm-n6: #29a0a6;
+  --gm-good: #35b37e; --gm-mid: #d9a441; --gm-bad: #d2544f;
+  --gm-on-accent: #0a0c11;                    /* текст на акцентной заливке */
+  --gm-on-scrim: #ffffff; --gm-scrim: rgba(0, 0, 0, .45); --gm-scrim-2: rgba(0, 0, 0, .6); --gm-scrim-3: rgba(0, 0, 0, .32); --gm-scrim-4: rgba(0, 0, 0, .5);
+  --gm-tag-1: #ff5a4f; --gm-tag-2: #35b37e; --gm-tag-3: #4c8dff;
+  --gm-bird-pack: #6b4b2f; --gm-bird-body: #c88a4a; --gm-bird-belly: #e8c89a; --gm-bird-wing: #9c6632; --gm-bird-wing-2: #7a4a24;
+  --gm-bird-eye: #1c1c20; --gm-bird-beak: #ffc83d; --gm-bird-eye-white: #ffffff;
+}
+:root[data-theme="light"] {
+  --gm-n1: #2b62cf; --gm-n2: #1f7a52; --gm-n3: #c43a3a; --gm-n4: #6a4cc9; --gm-n5: #a2600f; --gm-n6: #1b7479;
+  --gm-good: #1f7a52; --gm-mid: #8f6410; --gm-bad: #b3302b;
+  --gm-on-accent: #0a0c11;
+  --gm-scrim: rgba(20, 24, 36, .62); --gm-scrim-2: rgba(20, 24, 36, .78); --gm-scrim-3: rgba(255, 255, 255, .5); --gm-scrim-4: rgba(255, 255, 255, .72);
+  --gm-tag-1: #d93d33; --gm-tag-2: #1f7a52; --gm-tag-3: #2b62cf;
+}
+
 /* ===== Список игр ===== */
 .games-note { margin: 0 0 var(--space-3); color: var(--color-text-secondary); font-size: var(--fs-small); }
 
@@ -137,7 +157,7 @@ body.game-fs .fab { display: none; }
 .sudoku .sq.is-clue { color: var(--color-text); }
 .sudoku .sq.is-peer { background-color: var(--color-surface-2); }
 .sudoku .sq.is-same { background-color: var(--color-surface-3); }
-.sudoku .sq.is-sel { background-color: var(--color-accent); color: #fff; }
+.sudoku .sq.is-sel { background-color: var(--color-accent); color: var(--gm-on-accent); }
 .sudoku .sq.is-wrong { color: var(--color-danger); }
 .sq-notes { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; height: 100%; }
 .sq-notes i {
@@ -168,13 +188,13 @@ body.game-fs .fab { display: none; }
 }
 .mine-cell.is-open { background-color: var(--color-surface); }
 .mine-cell.is-flag { color: var(--color-danger); }
-.mine-cell.is-mine { background-color: var(--color-danger); color: #fff; }
-.mine-cell.n1 { color: #4c8dff; }
-.mine-cell.n2 { color: #35b37e; }
-.mine-cell.n3 { color: #ff6b6b; }
-.mine-cell.n4 { color: #9b7bff; }
-.mine-cell.n5 { color: #d98324; }
-.mine-cell.n6 { color: #29a0a6; }
+.mine-cell.is-mine { background-color: var(--color-danger); color: var(--gm-on-accent); }
+.mine-cell.n1 { color: var(--gm-n1); }
+.mine-cell.n2 { color: var(--gm-n2); }
+.mine-cell.n3 { color: var(--gm-n3); }
+.mine-cell.n4 { color: var(--gm-n4); }
+.mine-cell.n5 { color: var(--gm-n5); }
+.mine-cell.n6 { color: var(--gm-n6); }
 .mine-cell.n7, .mine-cell.n8 { color: var(--color-text-secondary); }
 
 /* ===== Flappy ===== */
@@ -187,9 +207,8 @@ body.game-fs .fab { display: none; }
 .flappy-hint {
   position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
   padding: 6px 14px; border-radius: var(--radius-pill);
-  background-color: rgba(0, 0, 0, .45); color: #fff; font-size: var(--fs-caption);
+  background-color: var(--gm-scrim); color: var(--gm-on-scrim); font-size: var(--fs-caption);
 }
-
 /* ===== Рейтинг ===== */
 .board { display: grid; gap: 4px; }
 .board-row {
@@ -200,7 +219,7 @@ body.game-fs .fab { display: none; }
 .board-place { width: 20px; color: var(--color-text-secondary); font-size: var(--fs-caption); font-weight: 700; }
 .board-ava {
   width: 28px; height: 28px; flex: none; display: grid; place-items: center;
-  border-radius: 50%; background-color: var(--color-accent); color: #fff;
+  border-radius: 50%; background-color: var(--color-accent); color: var(--gm-on-accent);
   font-size: 11px; font-weight: 700;
 }
 .board-name {
@@ -229,7 +248,7 @@ body.game-fs .fab { display: none; }
 .snake-hint {
   position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
   padding: 6px 14px; border-radius: var(--radius-pill);
-  background-color: rgba(0, 0, 0, .45); color: #fff; font-size: var(--fs-caption);
+  background-color: var(--gm-scrim); color: var(--gm-on-scrim); font-size: var(--fs-caption);
   pointer-events: none; text-align: center;
 }
 /* Крестовина: три столбца и два ряда, стрелки стоят как на джойстике */
@@ -251,18 +270,18 @@ body.game-fs .fab { display: none; }
 .snake-ov {
   position: absolute; inset: 0; z-index: 2;
   display: grid; place-items: center; text-align: center;
-  background-color: rgba(0, 0, 0, .32); pointer-events: none;
+  background-color: var(--gm-scrim-3); pointer-events: none;
 }
-.snake-ov.is-over { pointer-events: auto; background-color: rgba(0, 0, 0, .5); }
+.snake-ov.is-over { pointer-events: auto; background-color: var(--gm-scrim-4); }
 .snake-ov-num {
-  color: #fff; font-size: 5rem; font-weight: 800; line-height: 1;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, .55);
+  color: var(--color-text); font-size: 5rem; font-weight: 800; line-height: 1;
+  text-shadow: 0 2px 16px var(--gm-scrim);
   animation: snake-pop .7s ease-out;
 }
 @keyframes snake-pop { from { transform: scale(1.5); opacity: 0; } 25% { opacity: 1; } to { transform: scale(1); } }
 .snake-ov-pill {
   padding: 8px 16px; border-radius: var(--radius-pill); max-width: 86%;
-  background-color: rgba(0, 0, 0, .6); color: #fff; font-size: var(--fs-small); font-weight: 600;
+  background-color: var(--gm-scrim-2); color: var(--gm-on-scrim); font-size: var(--fs-small); font-weight: 600;
 }
 .snake-ov-card {
   display: grid; gap: 8px; justify-items: center; max-width: 86%;
@@ -334,9 +353,9 @@ body.game-fs .fab { display: none; }
   position: absolute; inset: 0 auto 0 0; width: var(--w, 0%);
   background-color: currentColor; opacity: .22; pointer-events: none;
 }
-.word-row.is-green { color: var(--color-success-text, #35b37e); }
-.word-row.is-yellow { color: #d9a441; }
-.word-row.is-red { color: #d2544f; }
+.word-row.is-green { color: var(--gm-good); }
+.word-row.is-yellow { color: var(--gm-mid); }
+.word-row.is-red { color: var(--gm-bad); }
 .word-row-word {
   position: relative; flex: 1 1 auto; min-width: 0;
   color: var(--color-text); overflow-wrap: anywhere;
@@ -347,7 +366,7 @@ body.game-fs .fab { display: none; }
 }
 .word-row-tag {
   margin-left: 6px; padding: 1px 6px; border-radius: var(--radius-pill);
-  background-color: var(--color-accent); color: #fff;
+  background-color: var(--color-accent); color: var(--gm-on-accent);
   font-size: var(--fs-caption); font-style: normal;
 }
 /* Последнее введённое слово выделено рамкой */

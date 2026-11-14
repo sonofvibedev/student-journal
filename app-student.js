@@ -269,7 +269,7 @@
       ${hubRow('#/study/grades', 't-blue', 'Оценки', 'Средний балл появится позже')}
       ${hubRow('#/study/rating', 't-pink', 'Рейтинг', 'Калькулятор')}
       ${hubRow('#/study/teachers', 't-violet', 'Преподаватели', 'Лекции и ПЗ')}
-      ${hubRow('#/study/games', '', 'Игры', 'Скоро')}`);
+      ${hubRow('#/study/games', '', 'Игры', 'Судоку, сапёр, flappy, змейка, «Ассоциации»')}`);
   }
 
   const TASK_SCREENS = {
@@ -362,7 +362,7 @@
       <div class="cab-card st-stub"><span class="st-stub-ico">${o.icon}</span><h3>${o.head}</h3><p>${o.text}</p></div>
       <a class="j2-btn primary" href="${o.back}">${o.button}</a>`);
   }
-  const games = (el, ctx, nav) => stub(el, nav, { back: '#/study', backText: 'Учёба', title: 'Игры', icon: STUB_ICO.games, head: 'Игры вернутся в ближайшем обновлении', text: 'Судоку, сапёр и другие игры скоро появятся в новом кабинете.', button: 'К учёбе' });
+  const games = (el, ctx, nav) => window.AppGames.hub(el, ctx, nav);   // игры: app-games.js (грузятся при первом открытии раздела)
 
   async function grades(el, ctx, nav) {
     const rows = await q(sb.from('grades').select('id,subject,lesson_kind,value,passed,lesson_date,comment').eq('student_id', ctx.student.id).order('lesson_date', { ascending: false }));
@@ -938,7 +938,8 @@
     schedule: route('schedule', schedule),
     study: route('study', study), 'study/homework': route('study', (e, c, n) => taskScreen(e, c, n, 'homework')),
     'study/deadlines': route('study', (e, c, n) => taskScreen(e, c, n, 'deadlines')), 'study/exams': route('study', (e, c, n) => taskScreen(e, c, n, 'exams')),
-    'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games),
+    'study/grades': route('study', grades), 'study/teachers': route('study', teachers), 'study/rating': route('study', (e, c, n) => Cab.ratingScreen(e, c, n)), 'study/games': route('study', games), 'study/games/words': route('study', (e, c, n) => window.AppGames.words(e, c, n)),
+    ...Object.fromEntries(['sudoku', 'minesweeper', 'flappy', 'snake'].map((g) => ['study/games/' + g, route('study', (e, c, n) => window.AppGames.game(g)(e, c, n), true)])),
     profile: route('profile', profile), 'profile/account': route('profile', account), 'profile/whatsnew': route('profile', whatsNew), 'profile/absences': route('profile', absences), 'profile/telegram': route('profile', telegram), 'profile/reminders': route('profile', reminders), 'profile/privacy': route('profile', privacy),
     rebind: route('profile', rebind, true),
   };

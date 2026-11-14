@@ -374,10 +374,10 @@ function snakeDraw() {
   const ctx = s.ctx;
   const css = getComputedStyle(document.documentElement);
   const pick = (name, fallback) => (css.getPropertyValue(name) || fallback).trim();
-  const accent = pick('--color-accent', '#0a84ff');
-  const surface = pick('--color-surface', '#101014');
-  const grid = pick('--color-separator', 'rgba(128,128,128,.25)');
-  const text = pick('--color-text-secondary', '#8e8e93');
+  const accent = pick('--color-accent', 'Highlight');
+  const surface = pick('--color-surface', 'Canvas');
+  const grid = pick('--color-separator', 'GrayText');
+  const text = pick('--color-text-secondary', 'GrayText');
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
@@ -401,7 +401,7 @@ function snakeDraw() {
   ctx.globalAlpha = 1;
 
   // Еда — тетрадка: страница со строчками и корешком
-  if (s.game.food) snakeDrawFood(ctx, s.game.food, cell, accent, pick('--color-surface-2', '#f2f2f7'));
+  if (s.game.food) snakeDrawFood(ctx, s.game.food, cell, accent, pick('--color-surface-2', 'Canvas'));
 
   // Змейка: градиент акцента от головы к хвосту
   const cells = s.game.cells;

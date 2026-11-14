@@ -1,0 +1,72 @@
+/* Игры в кабинете студента (app.html): подключается вместе с games.css, когда открывается раздел «Игры».
+   games.css написан под токены --color-* старого журнала; здесь они сводятся к токенам темы кабинета (--j-*),
+   поэтому игры сами следуют за «Авто / Тёмная / Светлая» и цветом акцента. Своих цветов здесь нет. */
+:root {
+  --color-text: var(--j-text); --color-text-secondary: var(--j-muted); --color-text-tertiary: rgba(var(--j-fg-rgb), .45);
+  --color-accent: var(--j-accent-text); --color-bg: var(--j-bg);
+  --color-surface: var(--j-card); --color-surface-2: rgba(var(--j-fg-rgb), .09); --color-surface-3: rgba(var(--j-fg-rgb), .16);
+  --color-separator: var(--j-card-border); --color-danger: var(--j-coral);
+  --pane-bg: var(--j-card); --glass-edge: var(--j-card-border); --glass-shadow: 0 8px 24px var(--j-shadow);
+  --radius-lg: var(--j-radius); --radius-md: 14px; --radius-sm: 8px; --radius-pill: 999px;
+  --space-3: 12px; --space-4: 16px;
+  --fs-small: .875rem; --fs-body: 1rem; --fs-caption: .8125rem; --control-h-sm: var(--j-tap);
+}
+
+/* Хранитель экрана: берёт на себя то, что раньше давал Bootstrap */
+.gm-root .d-none, .gm-root.d-none { display: none !important; }
+.gm-root .ms-auto { margin-left: auto; } .gm-root .w-100 { width: 100%; } .gm-root .mt-1 { margin-top: 4px; } .gm-root .mt-3 { margin-top: 12px; }
+.gm-root .btn, .gm-sheet .btn {
+  min-height: var(--j-tap); padding: 0 18px; border-radius: 14px; border: 1px solid var(--j-card-border);
+  background: var(--j-card); color: var(--j-text); font: inherit; font-weight: 600; font-size: .9375rem;
+}
+.gm-root .btn-sm, .gm-sheet .btn-sm { padding: 0 14px; font-size: .875rem; }
+.gm-root .btn-primary { background: var(--j-lime); border-color: var(--j-lime); color: var(--j-lime-ink); }
+.gm-root .btn-outline-danger { color: var(--j-coral); border-color: rgba(var(--j-coral-rgb), .5); background: none; }
+.gm-root .btn:active { opacity: .85; transform: scale(.98); }
+.gm-root .btn:disabled { opacity: .45; }
+.gm-root .form-control {
+  min-height: var(--j-tap); padding: 0 14px; border-radius: 14px; border: 1px solid var(--j-card-border);
+  background: var(--j-input); color: var(--j-text); font: inherit;
+}
+.gm-root .form-control:focus { outline: 2px solid var(--j-accent-text); outline-offset: 1px; }
+
+/* Заголовок раздела: как у остальных (Cab.top + .cab-title) */
+.gm-root .kicker { margin: 18px 0 8px; color: var(--j-muted); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.gm-root .tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.gm-root .tile {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-height: 112px;
+  padding: 14px; text-align: left; border-radius: var(--j-radius); border: 1px solid var(--j-card-border);
+  background: var(--j-card); color: var(--j-text); box-shadow: var(--glass-shadow); font: inherit;
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+}
+.gm-root .tile.wide { grid-column: 1 / -1; min-height: 0; }
+.gm-root .tile-ico { width: 34px; height: 34px; color: var(--j-accent-text); }
+.gm-root .tile-ico svg { width: 100%; height: 100%; }
+.gm-root .tile-name { font-weight: 700; font-size: 1rem; }
+.gm-root .tile-note { color: var(--j-muted); font-size: .8125rem; overflow-wrap: anywhere; }
+.gm-root .tile-flag {
+  position: absolute; top: 12px; right: 12px; padding: 2px 10px; border-radius: 999px;
+  background: var(--j-lime); color: var(--j-lime-ink); font-size: .6875rem; font-weight: 800;
+}
+.gm-root .is-games .tile-ico { color: var(--j-accent-text); }
+
+/* Лист рейтинга: нижняя шторка поверх кабинета (вместо Bootstrap-модалки) */
+.gm-sheet { position: fixed; inset: 0; z-index: 1100; display: none; }
+.gm-sheet.open { display: block; }
+.gm-sheet-scrim { position: absolute; inset: 0; background: var(--j-scrim); }
+.gm-sheet-body {
+  position: absolute; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto; max-height: 82dvh; overflow-y: auto;
+  padding: 10px 16px calc(var(--app-inset-bottom) + 20px); border-radius: 24px 24px 0 0;
+  background: var(--j-sheet); border: 1px solid var(--j-card-border); color: var(--j-text);
+}
+.gm-sheet-handle { width: 40px; height: 4px; margin: 0 auto 12px; border-radius: 2px; background: rgba(var(--j-fg-rgb), .25); }
+.gm-sheet-title { margin: 0 0 12px; font-size: 1.125rem; font-weight: 700; }
+.gm-sheet-close { position: absolute; top: 10px; right: 12px; min-width: var(--j-tap); min-height: var(--j-tap); border: 0; background: none; color: var(--j-muted); font-size: 1.5rem; }
+.gm-sheet .games-diffs { margin-bottom: 10px; }
+
+/* Экран игры: стрелка «Назад» в шапке игры — тот же вид, что у остальных разделов */
+.game-back { color: var(--j-accent-text); width: var(--j-tap); height: var(--j-tap); }
+.game-name { font-weight: 700; }
+
+/* «Ассоциации» внутри кабинета */
+.gm-root #wordsHost { padding-bottom: 24px; }
