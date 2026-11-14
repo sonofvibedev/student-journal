@@ -166,7 +166,7 @@
 .cab-chk input { flex: none; width: 28px; height: 28px; margin: 0; accent-color: var(--j-lime); } .cab-chk span { flex: 1; } .cab-chk small { display: block; color: var(--j-muted); }
 .cab-big { font-size: 38px; font-weight: 800; line-height: 1; }
 .cab-select { display: block; width: 100%; min-height: 56px; padding: 8px 14px; margin: 0 0 12px; border-radius: 18px; border: 1px solid var(--j-card-border); background: rgba(var(--j-teal-rgb), .08); color: var(--j-text); font: 600 17px 'Onest', sans-serif; }
-.cab-select option { color: #111; }
+.cab-select option { color: var(--j-text); background: var(--j-input); }
 
 .cab-net { position: sticky; top: 0; z-index: 55; padding: calc(var(--app-inset-top) + 8px) 16px 8px; text-align: center; font-size: 14px; color: var(--j-text); background: color-mix(in srgb, var(--j-amber) 14%, var(--j-sheet)); border-bottom: 1px solid var(--j-amber); }
 .cab-net[hidden] { display: none; }
@@ -351,7 +351,7 @@
 .tc-gr { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; border-top: 1px solid rgba(var(--j-fg-rgb), .08); overflow-wrap: anywhere; }
 .tc-gr:first-child { border-top: 0; } .tc-gr b { font-size: 17px; font-weight: 600; min-width: 0; }
 .tc-sel { flex: none; min-width: 104px; min-height: 48px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--j-card-border); background: rgba(var(--j-fg-rgb), .05); color: var(--j-accent-text); font: 700 17px 'Onest', sans-serif; text-align: center; text-align-last: center; }
-.tc-sel option { color: #111; }
+.tc-sel option { color: var(--j-text); background: var(--j-input); }
 .cab-card .tc-text { margin-top: 6px; color: var(--j-text); font-size: 15px; white-space: pre-wrap; }
 .tc-old { opacity: .6; }
 .ch-sub { display: flex; align-items: center; gap: 6px; }
@@ -475,9 +475,21 @@
 .cab-tile.fw-wide { grid-column: 1 / -1; }
 .cab-lesson.fw-wide { grid-template-columns: minmax(0, 1fr) auto; } .cab-lesson.fw-wide > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; } .cab-lesson.fw-wide .t { justify-self: start; min-width: 54px; box-sizing: border-box; }
 
-/* 2.1: список пропусков по порядку дат; переключатель подгруппы в шапке расписания */
-.ab-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--j-card-border); } .ab-row:first-child { border-top: 0; }
-.ab-main { min-width: 0; } .ab-main b { display: block; font-weight: 700; } .ab-main small { display: block; margin-top: 2px; color: var(--j-muted); font-size: 13px; line-height: 1.35; }
+/* 2.1.1: пропуски блоками по дням. Неуважительные — коралловый, уважительные — мятный (токены темы), смешанный день — две части со своими цветами */
+.ab-day { margin: 0 0 10px; padding: 12px 14px; border-radius: var(--j-radius); border: 1px solid var(--j-card-border); background: var(--j-card); }
+.ab-day.t-bad { border-color: rgba(var(--j-coral-rgb), .5); background: rgba(var(--j-coral-rgb), .08); --ab-c: var(--j-coral); }
+.ab-day.t-ok { border-color: rgba(var(--j-mint-rgb), .5); background: rgba(var(--j-mint-rgb), .08); --ab-c: var(--j-mint); }
+.ab-dh { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 17px; font-weight: 800; }
+.ab-day.t-bad .ab-dhr, .ab-day.t-ok .ab-dhr { color: var(--ab-c); }
+.ab-part { margin-top: 8px; --ab-c: var(--j-coral); } .ab-part.ok { --ab-c: var(--j-mint); }
+.ab-day.t-mix .ab-part { padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(var(--ab-rgb), .5); background: rgba(var(--ab-rgb), .08); }
+.ab-part { --ab-rgb: var(--j-coral-rgb); } .ab-part.ok { --ab-rgb: var(--j-mint-rgb); }
+.ab-ph { display: flex; align-items: center; gap: 8px; color: var(--ab-c); font-size: 14px; font-weight: 700; } .ab-ph b { margin-left: auto; }
+.ab-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ab-c); }
+.ab-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 4px 0 0; font-size: 15px; } .ab-line > span { min-width: 0; overflow-wrap: anywhere; }
+.ab-line small { margin-left: 8px; color: var(--j-muted); font-size: 13px; }
+.ab-why { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 6px; color: var(--j-muted); font-size: 13px; } .ab-why:first-of-type { margin-top: 4px; }
+/* 2.1: переключатель подгруппы в шапке расписания */
 .cab-head .cab-seg2.sg-mini { flex: none; width: 112px; padding: 3px; border-radius: 18px; } .cab-seg2.sg-mini button { min-height: 44px; border-radius: 15px; font-size: 15px; }
 
 /* 2.1: экзамен, консультация, зачёт в расписании — свои цвета (через токены) и значок */

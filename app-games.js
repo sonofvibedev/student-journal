@@ -32,9 +32,8 @@
       else tg.HapticFeedback.impactOccurred('light');
     } catch (e) { /* вибро не обязательно */ }
   };
-  const LS = 'j2.games.';
-  const lsGet = (k, d) => { try { const v = localStorage.getItem(LS + k); return v == null ? d : v; } catch (e) { return d; } };
-  const lsSet = (k, v) => { try { localStorage.setItem(LS + k, v); } catch (e) { /* без хранилища играем без памяти */ } };
+  // lsGet и lsSet игры берут из env.js (они там глобальные). Подменять их нельзя: ими же кабинет хранит тему, акцент и «Что нового»,
+  // и после захода в «Игры» выбор темы уходил бы в другой ключ (j2.games.j2_theme), а accent.js читал бы старый.
   const escapeHtml = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const appState = { auth: 'signed', studentId: '', onChange() {} };
@@ -49,7 +48,7 @@
 
   function installShims(ctx) {
     appState.studentId = ctx.student.id;
-    Object.assign(window, { AppState: appState, appData, sb: Cab.sb, goView, haptic, lsGet, lsSet, escapeHtml, staggerTiles() {} });
+    Object.assign(window, { AppState: appState, appData, sb: Cab.sb, goView, haptic, escapeHtml, staggerTiles() {} });
     if (!window.bootstrap) window.bootstrap = { Modal: { getOrCreateInstance: sheetApi } };
   }
 

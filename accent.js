@@ -52,7 +52,7 @@
   function ls(key) {                                           // ищем по суффиксу ключа: env.js (с префиксом тестового стенда) ещё не загружен
     try {
       const st = root.localStorage;
-      for (let i = 0; st && i < st.length; i++) { const k = st.key(i); if (k && k.slice(-key.length) === key) return st.getItem(k); }
+      for (let i = 0; st && i < st.length; i++) { const k = st.key(i); if (k && k.slice(-key.length) === key && k.indexOf('j2.games.') !== 0) return st.getItem(k); }   // 'j2.games.*' — остатки старой подмены lsSet в играх (до 2.1.1), их не читаем
     } catch (e) { /* хранилище недоступно */ }
     return null;
   }

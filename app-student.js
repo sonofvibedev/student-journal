@@ -633,21 +633,39 @@
 
   const docState = Cab.docState;
   async function absences(el, ctx, nav) {
-    const [rows, stats] = await Promise.all([q(sb.from('absences').select('id,date,subject,hours,is_excused,lesson_kind,cert_type,cert_submitted,cert_due_date').eq('student_id', ctx.student.id).order('date', { ascending: false })), absStats(ctx)]);
+    const [rows, stats, certs] = await Promise.all([q(sb.from('absences').select('id,date,subject,hours,is_excused,lesson_kind,cert_type,cert_submitted,cert_due_date,certificate_id').eq('student_id', ctx.student.id).order('date', { ascending: false })), absStats(ctx),
+      soft(q(sb.from('certificates').select('id,kind,date_from,date_to,open,status,due_date').eq('student_id', ctx.student.id)))]);   // справки не загрузились — причина берётся из самих пропусков
     const month = Cab.minsk().iso.slice(0, 7), sum = (f) => rows.filter((r) => f(r) && (r.date || '').slice(0, 7) === month).reduce((a, r) => a + (Number(r.hours) || 0), 0);
     const s = stats || { v: sum((r) => !r.is_excused), excused: sum((r) => r.is_excused), unexcused: sum((r) => !r.is_excused), warn: Number(ctx.group.warn_hours), dean: Number(ctx.group.dean_hours) };
-    // Список по порядку дат, новые сверху: заголовок строки — дата и часы, под ним мелко предмет и причина
-    const list = [...rows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')));
-    const why = (r) => r.cert_type || (r.is_excused ? 'Уважительная' : 'Неуважительная');
-    const today0 = Cab.minsk().iso;
-    put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Пропуски</h1><p class="cab-sub">Все пропуски по порядку</p>
+    // Блоки по дням, новые сверху. В дне уважительные и неуважительные пропуски — отдельными частями (у каждой свой цвет),
+    // в уважительной части справка одна на все предметы: пропуски одной справки (certificate_id) собираются под одной причиной.
+    const today0 = Cab.minsk().iso, certById = new Map((certs || []).map((c) => [c.id, c]));
+    const days = new Map();
+    rows.forEach((r) => { const k = r.date || ''; if (!days.has(k)) days.set(k, []); days.get(k).push(r); });
+    const sumH = (list) => list.reduce((a, r) => a + (Number(r.hours) || 0), 0);
+    const lines = (list, multi = list.length > 1) => list.map((r) => h`<div class="ab-line"><span>${Cab.sj(r.subject || 'Без предмета')}${r.lesson_kind ? h`<small>${Cab.KIND[r.lesson_kind] || ''}</small>` : ''}</span>${multi ? h`<b>${hrs(r.hours || 0)}</b>` : ''}</div>`);
+    const reasons = (list) => {                                                              // причины уважительной части: одна справка = одна причина
+      const g = new Map();
+      list.forEach((r) => { const k = r.certificate_id || 'type:' + (r.cert_type || ''); if (!g.has(k)) g.set(k, []); g.get(k).push(r); });
+      return [...g.values()].map((rs) => {
+        const c = rs[0].certificate_id && certById.get(rs[0].certificate_id), ds = c ? docState(Cab.certDoc(c), today0) : rs[0].cert_type ? docState(rs[0], today0) : null;
+        const name = c ? Cab.CERT_KIND[c.kind] || Cab.CERT_KIND.other : rs[0].cert_type === 'Другое' ? Cab.CERT_KIND.other : rs[0].cert_type || 'Без справки';
+        const span = c && (c.open || (c.date_to && c.date_to !== c.date_from)) ? ' · ' + Cab.certSpan(c) : '';
+        return h`<div class="ab-why"><span>${name}${span}</span>${ds ? h`<span class="st-s ${ds.cls}">${ds.text}</span>` : ''}</div>${lines(rs, list.length > 1)}`;
+      });
+    };
+    const part = (tone, title, list) => h`<div class="ab-part ${tone}"><div class="ab-ph"><i class="ab-dot" aria-hidden="true"></i><span>${title}</span><b>${hrs(sumH(list))}</b></div>${tone === 'bad' ? lines(list) : reasons(list)}</div>`;
+    const dayBlock = ([date, ds]) => {
+      const bad = ds.filter((r) => !r.is_excused), ok = ds.filter((r) => r.is_excused), tone = bad.length && ok.length ? 'mix' : bad.length ? 'bad' : 'ok';
+      return h`<section class="ab-day t-${tone}" aria-label="${date ? Cab.dateText(date) : 'Без даты'}"><div class="ab-dh"><b>${date ? Cab.dateText(date) : 'Без даты'}</b><b class="ab-dhr">${hrs(sumH(ds))}</b></div>
+        ${bad.length ? part('bad', 'Неуважительные', bad) : ''}${ok.length ? part('ok', 'Уважительные', ok) : ''}</section>`;
+    };
+    put(el, nav, h`${Cab.top({ href: '#/profile', text: 'Профиль' })}<h1 class="cab-title">Пропуски</h1><p class="cab-sub">По дням</p>
       ${absCard(s, false)}
-      <p class="cab-note">Кольцо и итоги: за текущий месяц. Ниже все пропуски по порядку.</p>
+      <p class="cab-note">Кольцо и итоги: за текущий месяц. Ниже все пропуски по дням.</p>
       <div class="cab-card"><div class="cab-kv"><span>Неуважительные</span><b class="c-coral">${hrs(s.unexcused)}</b></div><div class="cab-kv"><span>Уважительные</span><b class="c-mint">${hrs(s.excused)}</b></div>
         <div class="cab-kv"><span>Деканат с</span><b>${hrs(s.dean)}</b></div></div>
-      ${list.length ? h`<div class="cab-card ab-list">${list.map((r) => { const ds = r.is_excused && r.cert_type ? docState(r, today0) : null;
-        return h`<div class="ab-row"><div class="ab-main"><b>${r.date ? Cab.dateText(r.date) : 'Без даты'} · ${hrs(r.hours || 0)}</b><small>${Cab.sj(r.subject || 'Без предмета')} · ${why(r)}${r.lesson_kind ? ' · ' + (Cab.KIND[r.lesson_kind] || '') : ''}</small></div>${ds ? h`<span class="st-s ${ds.cls}">${ds.text}</span>` : ''}</div>`; })}</div>`
-        : h`<div class="cab-empty">Пропусков нет</div>`}`);
+      ${rows.length ? [...days].sort((x, y) => y[0].localeCompare(x[0])).map(dayBlock) : h`<div class="cab-empty">Пропусков нет</div>`}`);
   }
 
   // ---------- уведомления ----------

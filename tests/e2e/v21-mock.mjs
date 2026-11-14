@@ -121,10 +121,9 @@ try {
   {
     DB = mk();
     const { page } = await open('/profile/absences', 'app.html');
-    const rows = await page.locator('.ab-row').evaluateAll((els) => els.map((e) => [e.querySelector('b').innerText, e.querySelector('small').innerText]));
-    check('пропуски: по порядку дат, новые сверху (6 ноября, 4 ноября, 2 ноября)', rows.length === 3 && /6 нояб/.test(rows[0][0]) && /4 нояб/.test(rows[1][0]) && /2 нояб/.test(rows[2][0]), JSON.stringify(rows));
-    check('пропуски: причина — вид справки или «Неуважительная»', /Больничный/.test(rows[0][1]) && /Неуважительная/.test(rows[1][1]), JSON.stringify(rows));
-    check('пропуски: заголовок строки — дата и часы, под ним предмет и причина', rows.every(([t, s]) => /\d+ .*· \d+(,\d)? (час|часа|часов)/.test(t) && / · /.test(s)), JSON.stringify(rows));
+    const days = await page.locator('.ab-day').evaluateAll((els) => els.map((e) => [e.querySelector('.ab-dh').innerText.replace(/\s+/g, ' '), e.className]));   // блоки по дням (2.1.1); подробно — v211-mock.mjs
+    check('пропуски: блоки по дням, новые сверху (6, 4, 2 ноября)', days.map((d) => d[0].split(' ')[0]).join(',') === '6,4,2', JSON.stringify(days));
+    check('пропуски: в заголовке блока дата и часы за день', days.every(([t]) => /\d+ .* \d+(,\d)? (час|часа|часов)/.test(t)), JSON.stringify(days));
     await shot(page, 'absences');
     check('пропуски 360 px: без горизонтальной прокрутки', await noOverflow(page));
   }

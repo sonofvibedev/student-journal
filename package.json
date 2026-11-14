@@ -1,7 +1,7 @@
 {
   "name": "student-journal-tests",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Только тестовое окружение (проект student-journal-test). Сайт собирается без npm.",
   "type": "module",
   "scripts": {
@@ -13,6 +13,6 @@
     "test:all": "npm run test:unit && npm run test:migrate && npm run test:reset && npm run test:deploy && npm run test:db && npm run test:e2e",
     "test:ui": "node tests/e2e/ui.mjs",
     "test:unit": "node tests/unit/bseu.mjs && node tests/unit/schedule-notify.mjs && node tests/unit/ops.mjs && node tests/unit/chat-crypto.mjs && node tests/unit/offline-queue.mjs && node tests/unit/rating.mjs && node tests/unit/nav-stack.mjs && node tests/unit/tg-init.mjs && node tests/unit/password-reset.mjs && node tests/unit/v201.mjs && node tests/unit/v202.mjs && node tests/unit/v203.mjs",
-    "test:mock": "node tests/e2e/v201-mock.mjs && node tests/e2e/chat-mock.mjs"
+    "test:mock": "node tests/e2e/v201-mock.mjs && node tests/e2e/chat-mock.mjs && node tests/e2e/v211-mock.mjs"
   }
 }

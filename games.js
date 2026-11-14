@@ -1320,7 +1320,11 @@ function gmPalette() {
 }
 // Смена темы или акцента меняет атрибуты <html>: кэш палитры сбрасываем
 if (typeof MutationObserver === 'function') {
-  new MutationObserver(() => { gmPaletteCache = null; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
+  new MutationObserver(() => {
+    gmPaletteCache = null;
+    // Тему сменили при открытой игре: на паузе холст сам не перерисуется, рисуем заново
+    try { flappyDraw(); if (typeof snakeDraw === 'function') snakeDraw(); } catch (e) { /* игра ещё не создана */ }
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
 }
 
 function flappyDraw() {
@@ -1335,8 +1339,13 @@ function flappyDraw() {
   const bg2 = (css.getPropertyValue('--color-surface-2') || bg).trim();
   const accent = (css.getPropertyValue('--color-accent') || 'Highlight').trim();
 
-  // Поля по краям — тем же фоном, чтобы не было пустых полос
+  // Холст стираем и сначала заливаем непрозрачным фоном страницы: --color-surface у темы полупрозрачный,
+  // и без этого каждый кадр ложился бы поверх прошлого (белел фон, тянулся шлейф от птицы и труб)
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  ctx.clearRect(0, 0, view.w, view.h);
+  ctx.fillStyle = (css.getPropertyValue('--color-bg') || 'Canvas').trim();
+  ctx.fillRect(0, 0, view.w, view.h);
+  // Поля по краям — тем же фоном, чтобы не было пустых полос
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, view.w, view.h);
 

@@ -20,14 +20,14 @@ vm.runInNewContext(read('cab-core.js'), ctx);
 const Cab = ctx.Cab;
 
 // ---------- версия ----------
-await t('версия одна: package.json (2.1.0), APP_VERSION (2.1), первая запись «Что нового»', () => {
+await t('версия одна: package.json (2.1.1), APP_VERSION (2.1.1), первая запись «Что нового»', () => {
   const src = read('changelog.js'), full = JSON.parse(read('package.json')).version, v = full.replace(/\.0$/, '');
-  assert.equal(full, '2.1.0');
+  assert.equal(full, '2.1.1');
   assert.doesNotThrow(() => new vm.Script(src), 'changelog.js должен компилироваться (его грузят все страницы)');
   assert.ok(src.includes(`const APP_VERSION = '${v}';`));
   const first = /const CHANGELOG = \[\s*\{\s*version: '([^']+)'[\s\S]*?items: \[([\s\S]*?)\n    \],/.exec(src);
   assert.equal(first[1], v);
-  assert.ok((first[2].match(/^\s+'/gm) || []).length >= 5, 'в первой записи должны быть пункты по всем разделам');
+  assert.ok((first[2].match(/^\s+'/gm) || []).length >= 3, 'в первой записи должны быть пункты по всем изменённым разделам');
 });
 await t('CACHE_VERSION на единицу выше, ?v= во всех страницах тот же номер', () => {
   const n = Number(/journal-24dmm2-v(\d+)/.exec(read('sw.js'))[1]);
