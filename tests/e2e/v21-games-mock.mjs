@@ -131,9 +131,16 @@ try {
   // ---------- «Ассоциации» ----------
   {
     const { page, errs } = await open('/study/games/words', 'app.html');
-    await page.waitForSelector('#wordsHost > *', { timeout: 10000 });
+    await page.route('**/functions/v1/word-of-day', (r) => r.fulfill(J(200, { ok: true, has: true, total: 5000, guesses: [], tries: 0, hints: 0, finished: false })));   // слово задано: рисуется карточка с полем ввода
+    await page.reload(); await page.waitForSelector('#wordsHost .word-card', { timeout: 10000 });
     check('ассоциации: экран открылся с «Назад» в игры', await page.locator('.j2-back').first().getAttribute('href') === '#/study/games');
     await shot(page, 'words-dark');
+    const overflow = () => page.evaluate(() => [...document.querySelectorAll('.word-card')].flatMap((c) => { const r = c.getBoundingClientRect(); return [...c.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > r.right + 1).map((e) => e.id || e.className); }));
+    let over = await overflow();
+    check('ассоциации: ничего не вылезает за правый край карточки', !over.length, over.join(', '));
+    await page.addStyleTag({ content: 'html{font-size:150%}input,button,.btn{font-size:150%!important}' });   // крупный шрифт Android: поле ввода шире
+    over = await overflow();
+    check('ассоциации: и при крупном шрифте всё внутри карточки', !over.length, over.join(', '));
     check('ассоциации: ошибок страницы нет', !errs.length, errs.join('\n'));
   }
   // ---------- светлая тема ----------
