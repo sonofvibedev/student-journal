@@ -40,7 +40,9 @@ async function wordsCall(payload) {
       },
       body: JSON.stringify(payload)
     });
-    return await res.json().catch(() => ({ error: 'server_error' }));
+    const out = await res.json().catch(() => ({ error: 'server_error' }));
+    if (res.status === 401 && out.error === 'unauthorized' && window.Cab && Cab.sessionDead) Cab.sessionDead();   // сессия снята на сервере: на вход, а не «Не загрузилось»
+    return out;
   } catch (e) {
     return { error: 'network' };
   }

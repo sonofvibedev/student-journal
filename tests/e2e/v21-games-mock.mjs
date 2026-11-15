@@ -143,6 +143,14 @@ try {
     check('ассоциации: и при крупном шрифте всё внутри карточки', !over.length, over.join(', '));
     check('ассоциации: ошибок страницы нет', !errs.length, errs.join('\n'));
   }
+  // ---------- сессия снята на сервере: «Ассоциации» ведут на вход ----------
+  {
+    const { page } = await open('/study/games/words', 'app.html');
+    await page.route('**/functions/v1/word-of-day', (r) => r.fulfill(J(401, { error: 'unauthorized' })));
+    await page.reload(); await page.waitForURL(/join\.html/, { timeout: 10000 }).catch(() => {});
+    check('ассоциации: unauthorized от сервера — уход на join.html, а не «Не загрузилось»', /join\.html/.test(page.url()), page.url());
+    check('ассоциации: вход из Telegram не отключается (j2.tg_off не ставится)', await page.evaluate(() => !localStorage.getItem('j2.tg_off')));
+  }
   // ---------- светлая тема ----------
   {
     const { page, errs } = await open('/study/games', 'app.html', { theme: 'light' });

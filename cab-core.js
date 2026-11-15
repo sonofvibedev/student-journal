@@ -229,6 +229,14 @@
     location.replace('join.html');
   };
 
+  // Сервер сказал «unauthorized»: сессии больше нет (вышли со всех устройств, сняли доступ), а в памяти остался токен.
+  // Выходим только у себя, без j2.tg_off: в Telegram join.html войдёт заново сам, в браузере покажет вход.
+  Cab.sessionDead = async () => {
+    try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* уже вышли */ }
+    try { ['student', 'headman'].forEach((k) => localStorage.removeItem(CTX_KEY + k)); } catch (e) { /* нет доступа к памяти */ }
+    location.replace('join.html');
+  };
+
   // ---------- «Назад» в Telegram Mini App ----------
   // Стек экранов (страница + hash) лежит в sessionStorage и переживает переходы между app.html, headman.html и teacher.html.
   // Пишем при загрузке и при hashchange, подряд одинаковые не дублируем. Адрес, равный предпоследнему, — это возврат (pop).
