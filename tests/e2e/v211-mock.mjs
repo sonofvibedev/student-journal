@@ -78,8 +78,8 @@ const browser = await chromium.launch({ executablePath: findChrome() });
 const SES = JSON.stringify({ access_token: 'x.' + Buffer.from(JSON.stringify({ sub: 'u-me', exp: 4102444800, role: 'authenticated' })).toString('base64url') + '.y', refresh_token: 'r', token_type: 'bearer', expires_in: 99999999, expires_at: 4102444800,
   user: { id: 'u-me', email: 'me@j.example', aud: 'authenticated', app_metadata: {}, user_metadata: {} } });
 const ERR_OK = /Failed to load resource|status of 4|ERR_|Service Worker|sw\.js|favicon/i;
-async function open(hash, file, { staff = false, editor = false, size = [360, 740], keep = null, theme = null } = {}) {
-  DB = mk(); LOG = [];
+async function open(hash, file, { staff = false, editor = false, size = [360, 740], keep = null, theme = null, rpcs = null, wait = '#cabMain .cab-title, #cabMain h1, #cabMain .cab-head' } = {}) {
+  DB = mk(); LOG = []; if (rpcs) Object.assign(DB.rpc, rpcs);
   if (staff) DB.memberships[0].extra_role = 'headman';
   if (editor) DB.homework_editors = [{ student_id: 's-me' }];
   const ctx = keep || await browser.newContext({ viewport: { width: size[0], height: size[1] }, locale: 'ru-RU', serviceWorkers: 'block' });
@@ -87,7 +87,7 @@ async function open(hash, file, { staff = false, editor = false, size = [360, 74
   if (theme && !keep) await ctx.addInitScript((t) => { try { if (!localStorage.getItem('m_j2_theme')) localStorage.setItem('m_j2_theme', t); } catch (e) { /* нет памяти */ } }, theme);
   const page = await ctx.newPage(), errs = [];
   page.on('pageerror', (e) => errs.push(String(e))); page.on('console', (m) => { if (m.type() === 'error' && !ERR_OK.test(m.text())) errs.push(m.text()); });
-  await page.goto(`${BASE}/${file}#${hash}`); await page.waitForSelector('#cabMain .cab-title, #cabMain h1, #cabMain .cab-head', { timeout: 15000 });
+  await page.goto(`${BASE}/${file}#${hash}`); await page.waitForSelector(wait, { timeout: 15000 });
   return { ctx, page, errs };
 }
 const shot = (page, name) => page.screenshot({ path: join(OUT, `${++n}-${name}.png`), fullPage: true });
@@ -217,6 +217,18 @@ try {
     check(`пропуски, ${theme}: ошибок страницы нет`, !errs.length, errs.join(' | '));
     await shot(page, `absences-${theme}`);
     await ctx.close();
+  }
+  // ---- 4. Режим техработ: заставка вместо ухода на join.html ----
+  {
+    const { ctx, page, errs } = await open('/home', 'app.html', { rpcs: { maintenance_status: { on: true, admin: false } }, wait: '#maintScreen' });
+    check('техработы: студент видит «Ведутся технические работы» и остаётся в кабинете', /Ведутся технические работы/.test(await T(page, '#maintScreen')) && /app\.html/.test(page.url()), page.url());
+    check('техработы: кабинет под заставкой недоступен (inert)', await page.evaluate(() => !!document.querySelector('#cab').inert));
+    check('техработы: ошибок страницы нет', !errs.length, errs.join(' | '));
+    await shot(page, 'maintenance');
+    await ctx.close();
+    const adm = await open('/home', 'app.html', { rpcs: { maintenance_status: { on: true, admin: true } } });
+    check('техработы: староста-админ входит как обычно, заставки нет', await adm.page.locator('#maintScreen').count() === 0);
+    await adm.ctx.close();
   }
 } catch (e) { check('тест дошёл до конца', false, String(e.stack || e).slice(0, 400)); }
 finally { await browser.close(); server.close(); }

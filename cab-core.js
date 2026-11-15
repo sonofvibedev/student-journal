@@ -102,6 +102,19 @@
   // Членства, прочитанные при входе, — для j2-gate.js: он разбирает их сам и не повторяет тот же запрос на старте (null — не прочитали)
   let memsDone;
   Cab.memsReady = new Promise((r) => { memsDone = r; });
+  // Режим техработ: сервер отдаёт всем, кроме старосты-админа, пустые ответы, и без заставки кабинет увёл бы на join.html как «членства нет».
+  // Пока заставка открыта, раз в 30 с спрашиваем сервер и сами обновляем страницу, когда режим выключили. id как у maintenance.js: j2-gate.js его не трогает.
+  Cab.maintenance = function () {
+    if (document.getElementById('maintScreen')) return;
+    const el = document.createElement('div');
+    el.id = 'maintScreen'; el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'maintT');
+    el.style.cssText = 'position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:24px;text-align:center;color:var(--j-text,#F2F4F8);background:rgb(var(--j-bg-rgb,10,12,17))';
+    el.innerHTML = '<div><h1 class="j2-h1" id="maintT" tabindex="-1">Ведутся технические работы</h1><p class="j2-sub">Журнал скоро снова откроется. Страница обновится сама.</p></div>';
+    document.body.appendChild(el);
+    Array.prototype.forEach.call(document.body.children, (c) => { if (c !== el) c.inert = true; });
+    el.querySelector('h1').focus();
+    setInterval(async () => { try { const { data } = await sb.rpc('maintenance_status'); if (data && !(data.on && !data.admin)) location.reload(); } catch (e) { /* нет связи: ждём */ } }, 30000);
+  };
   // Возвращает контекст или null (тогда страница уже уводит пользователя на нужный экран)
   const loadOnline = async function (kind) {
     if (!sb) { document.body.textContent = 'Нет связи с сервером.'; return null; }
@@ -110,6 +123,9 @@
     if (sesErr && (sesErr.name === 'AuthRetryableFetchError' || netErr(sesErr))) throw sesErr;
     if (!ses || !ses.session) { location.replace('join.html'); return null; }
     const uid = ses.session.user.id;
+    // ошибку (старая база без функции) не считаем техработами; нет связи — как и раньше, дальше упадёт запрос членств
+    const mt = await sb.rpc('maintenance_status').then((r) => r.data, () => null);
+    if (mt && mt.on === true && mt.admin !== true) { const e = new Error('maintenance'); e.code = 'maintenance'; throw e; }
     const [mems, sa] = await Promise.all([
       Cab.q(sb.from('memberships').select('group_id, student_id, base_role, extra_role, status, consent_at').eq('user_id', uid)),
       Cab.q(sb.from('sysadmins').select('user_id').eq('user_id', uid)),
@@ -377,7 +393,8 @@
     let ctx;
     try { ctx = await Cab.load(opts.kind); }
     catch (e) {
-      if (e.code !== 'timeout' && !netErr(e)) throw e;                     // остальное — как раньше (Cab.fatal на странице)
+      if (e.code === 'maintenance') { Cab.maintenance(); return null; }
+      if (e.code !== 'timeout' && !netErr(e)) throw e;                    // остальное — как раньше (Cab.fatal на странице)
       console.error('[cab] вход', e);
       root.innerHTML = Cab.str(Cab.h`<main class="cab-wrap"><div class="j2-card bad"><h2>Не получилось загрузить</h2><p>Проверьте связь и повторите.</p></div><button class="j2-btn" id="cabRetry" type="button">Повторить</button></main>`);
       document.getElementById('cabRetry').onclick = () => location.reload();
@@ -451,7 +468,9 @@
         if (JSON.stringify(c) === raw) { if (ctx.offline) ctx = Cab.ctx = c; return; }   // совпало: тот же объект (экраны держат ссылку), только снять «офлайн»
         ctx = Cab.ctx = c; go();
       }, (e) => {
-        clearTimeout(slow); Cab.weak = true;
+        clearTimeout(slow);
+        if (e.code === 'maintenance') { Cab.weak = false; Cab.netBar(); Cab.maintenance(); return; }
+        Cab.weak = true;
         console.error('[cab] сверка входа', e);
         if (netErr(e) && !ctx.offline) {
           ctx = Cab.ctx = Object.assign({}, ctx, { offline: true });
